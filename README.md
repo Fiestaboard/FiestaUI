@@ -6,9 +6,23 @@ FiestaUI is the [FiestaBoard](https://github.com/Fiestaboard/FiestaBoard) design
 
 ## Installation
 
-```bash
-npm install @fiestaboard/ui
-```
+The package is published to the **GitHub Packages npm registry** (not npmjs.com — yet). GitHub Packages requires authentication to install, even for public packages, so consumers need a one-time setup:
+
+1. Create a [personal access token](https://github.com/settings/tokens) with the `read:packages` scope.
+2. Configure npm (in `~/.npmrc`, NOT committed to any repo):
+
+   ```ini
+   @fiestaboard:registry=https://npm.pkg.github.com
+   //npm.pkg.github.com/:_authToken=YOUR_TOKEN
+   ```
+
+3. Install:
+
+   ```bash
+   npm install @fiestaboard/ui
+   ```
+
+In GitHub Actions, use the workflow's `GITHUB_TOKEN` (with `packages: read`) as `NODE_AUTH_TOKEN` via `actions/setup-node`'s `registry-url`/`scope` options instead of a PAT.
 
 Peer dependencies: `react` / `react-dom` ^19, `lucide-react`, and `tailwindcss` ^4 in the consuming app.
 
@@ -70,7 +84,9 @@ npm run build && npm pack   # produces fiestaboard-ui-<version>.tgz
 
 Releases are manual: **Actions → Release → Run workflow**, choosing a `patch` / `minor` / `major` bump. The workflow bumps the version, tags `v<version>`, publishes to npm, and creates a GitHub Release.
 
-Publishing authenticates via [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (GitHub Actions OIDC) — no long-lived tokens, nothing to rotate, automatic provenance. Bootstrap history: trusted publishing can't create a brand-new package, and bypass-2FA tokens are [deprecated](https://github.blog/changelog/2026-07-08-npm-install-time-security-and-gat-bypass2fa-deprecation/), so the very first (placeholder) version was published manually with a 2FA OTP; every release since comes from the workflow via OIDC.
+Publishing authenticates with the workflow's built-in `GITHUB_TOKEN` (`packages: write`) — no npm account, no long-lived secrets, nothing to rotate.
+
+If the package later moves to registry.npmjs.org (which would allow anonymous installs), switch the release workflow to [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC); note that npm's [bypass-2FA token deprecation](https://github.blog/changelog/2026-07-08-npm-install-time-security-and-gat-bypass2fa-deprecation/) means the first npmjs publish must be done manually with a 2FA OTP.
 
 ## License
 
