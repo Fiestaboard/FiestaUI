@@ -8,34 +8,43 @@ const meta = {
   title: "UI/React Bits/FadeContent",
   component: FadeContent,
   parameters: {
-    layout: "padded",
+    layout: "centered",
     a11y: {
       config: {
+        // Content animates from opacity 0; axe can snapshot mid-transition.
         rules: [{ id: "color-contrast", enabled: false }],
       },
     },
   },
   tags: ["autodocs"],
   argTypes: {
+    children: {
+      control: false,
+      description: "Content to reveal",
+    },
     blur: {
       control: "boolean",
-      description: "Add blur effect during fade-in",
+      description: "Also animate from blur(10px) to sharp",
     },
     duration: {
-      control: { type: "number", min: 0.2, max: 3, step: 0.1 },
+      control: { type: "number", min: 0.1, max: 3, step: 0.1 },
       description: "Animation duration in seconds",
     },
     delay: {
-      control: { type: "number", min: 0, max: 5, step: 0.5 },
-      description: "Delay before animation starts in seconds",
+      control: { type: "number", min: 0, max: 5, step: 0.1 },
+      description: "Delay before the animation starts in seconds",
     },
     translateY: {
-      control: { type: "number", min: 0, max: 100, step: 10 },
-      description: "Vertical translation distance in pixels",
+      control: { type: "range", min: 0, max: 100, step: 5 },
+      description: "Vertical slide-in distance in pixels",
     },
     threshold: {
-      control: { type: "number", min: 0, max: 1, step: 0.1 },
-      description: "Intersection observer threshold (0-1)",
+      control: { type: "range", min: 0, max: 1, step: 0.05 },
+      description: "IntersectionObserver visibility ratio (0-1) for off-screen mounts",
+    },
+    className: {
+      control: "text",
+      description: "Classes applied to the animated wrapper div",
     },
   },
 } satisfies Meta<typeof FadeContent>;
@@ -58,7 +67,9 @@ export const Default: Story = {
     ),
     blur: false,
     duration: 0.6,
+    delay: 0,
     translateY: 20,
+    threshold: 0.1,
   },
 };
 
@@ -86,8 +97,8 @@ export const WithBlur: Story = {
 export const FastAnimation: Story = {
   args: {
     children: (
-      <div className="p-6 rounded-lg border bg-card text-card-foreground">
-        <h3 className="text-lg font-semibold mb-2">Quick Fade</h3>
+      <div className="rounded-lg border bg-card p-6 text-card-foreground">
+        <h3 className="mb-2 text-lg font-semibold">Quick Fade</h3>
         <p className="text-sm text-muted-foreground">Fast animation speed</p>
       </div>
     ),
@@ -98,8 +109,8 @@ export const FastAnimation: Story = {
 export const SlowAnimation: Story = {
   args: {
     children: (
-      <div className="p-6 rounded-lg border bg-card text-card-foreground">
-        <h3 className="text-lg font-semibold mb-2">Slow Fade</h3>
+      <div className="rounded-lg border bg-card p-6 text-card-foreground">
+        <h3 className="mb-2 text-lg font-semibold">Slow Fade</h3>
         <p className="text-sm text-muted-foreground">Smooth, slow animation</p>
       </div>
     ),
@@ -110,8 +121,8 @@ export const SlowAnimation: Story = {
 export const WithDelay: Story = {
   args: {
     children: (
-      <div className="p-6 rounded-lg border bg-card text-card-foreground">
-        <h3 className="text-lg font-semibold mb-2">Delayed Fade</h3>
+      <div className="rounded-lg border bg-card p-6 text-card-foreground">
+        <h3 className="mb-2 text-lg font-semibold">Delayed Fade</h3>
         <p className="text-sm text-muted-foreground">Waits 1 second before animating</p>
       </div>
     ),
@@ -137,34 +148,61 @@ export const LargeTranslation: Story = {
   },
 };
 
-export const MultipleElements = () => (
-  <div className="space-y-4 max-w-2xl">
-    <FadeContent duration={0.6} translateY={20}>
+export const PureFade: Story = {
+  args: {
+    children: (
+      <Card className="w-80">
+        <CardHeader>
+          <CardTitle>No Movement</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">Opacity-only fade with translateY set to 0</p>
+        </CardContent>
+      </Card>
+    ),
+    translateY: 0,
+    duration: 1.2,
+  },
+};
+
+export const StaggeredList: Story = {
+  parameters: {
+    layout: "padded",
+  },
+  args: {
+    children: (
       <Card>
         <CardHeader>
           <CardTitle>First Card</CardTitle>
           <CardDescription>No delay</CardDescription>
         </CardHeader>
       </Card>
-    </FadeContent>
-    <FadeContent duration={0.6} delay={0.2} translateY={20}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Second Card</CardTitle>
-          <CardDescription>0.2s delay</CardDescription>
-        </CardHeader>
-      </Card>
-    </FadeContent>
-    <FadeContent duration={0.6} delay={0.4} translateY={20}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Third Card</CardTitle>
-          <CardDescription>0.4s delay</CardDescription>
-        </CardHeader>
-      </Card>
-    </FadeContent>
-    <FadeContent duration={0.6} delay={0.6} blur={true} translateY={30}>
-      <Button className="w-full">Call to Action</Button>
-    </FadeContent>
-  </div>
-);
+    ),
+    duration: 0.6,
+    translateY: 20,
+  },
+  render: (args) => (
+    <div className="max-w-2xl space-y-4">
+      <FadeContent {...args} />
+      <FadeContent duration={0.6} delay={0.2} translateY={20}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Second Card</CardTitle>
+            <CardDescription>0.2s delay</CardDescription>
+          </CardHeader>
+        </Card>
+      </FadeContent>
+      <FadeContent duration={0.6} delay={0.4} translateY={20}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Third Card</CardTitle>
+            <CardDescription>0.4s delay</CardDescription>
+          </CardHeader>
+        </Card>
+      </FadeContent>
+      <FadeContent duration={0.6} delay={0.6} blur translateY={30}>
+        <Button className="w-full">Call to Action</Button>
+      </FadeContent>
+    </div>
+  ),
+};

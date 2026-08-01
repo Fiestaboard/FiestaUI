@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { AlertCircle, CheckCircle2, Info, TriangleAlert } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info, TriangleAlert, WifiOff } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "./alert";
+import { Button } from "./button";
 
 const meta = {
   title: "UI/Alert",
@@ -16,6 +17,14 @@ const meta = {
       options: ["default", "destructive"],
       description: "Visual style variant",
     },
+    className: {
+      control: "text",
+      description: "Additional CSS classes for the alert container",
+    },
+    children: {
+      control: false,
+      description: "Alert content — typically an icon, AlertTitle, and AlertDescription",
+    },
   },
 } satisfies Meta<typeof Alert>;
 
@@ -24,6 +33,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
+    variant: "default",
     className: "w-[450px]",
     children: (
       <>
@@ -48,13 +58,32 @@ export const Destructive: Story = {
   },
 };
 
-export const WithIcon = () => (
-  <Alert className="w-[450px]">
-    <Info className="h-4 w-4" />
-    <AlertTitle>Information</AlertTitle>
-    <AlertDescription>This is an informational alert with an icon.</AlertDescription>
-  </Alert>
-);
+export const WithIcon: Story = {
+  args: {
+    variant: "default",
+    className: "w-[450px]",
+    children: (
+      <>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Information</AlertTitle>
+        <AlertDescription>This is an informational alert with an icon.</AlertDescription>
+      </>
+    ),
+  },
+};
+
+export const TitleOnly: Story = {
+  args: {
+    variant: "default",
+    className: "w-[450px]",
+    children: (
+      <>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Scheduled maintenance tonight at 11 PM.</AlertTitle>
+      </>
+    ),
+  },
+};
 
 export const Success = () => (
   <Alert className="w-[450px]">
@@ -85,4 +114,22 @@ export const AllVariants = () => (
       <AlertDescription>This is the destructive variant.</AlertDescription>
     </Alert>
   </div>
+);
+
+export const ConnectionLost = () => (
+  <Alert variant="destructive" className="w-[450px]">
+    <WifiOff className="h-4 w-4" />
+    <AlertTitle>Board offline</AlertTitle>
+    <AlertDescription>
+      <p>The board at 192.0.2.10 has not responded for 5 minutes. Messages will be queued until it reconnects.</p>
+      <div className="mt-3 flex gap-2">
+        <Button size="sm" variant="destructive">
+          Retry now
+        </Button>
+        <Button size="sm" variant="outline">
+          View diagnostics
+        </Button>
+      </div>
+    </AlertDescription>
+  </Alert>
 );

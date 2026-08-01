@@ -11,28 +11,40 @@ const meta = {
   tags: ["autodocs"],
   argTypes: {
     to: {
-      control: "number",
-      description: "Target number to count up to",
+      control: { type: "number" },
+      description: "Target number to animate to",
     },
     from: {
-      control: "number",
-      description: "Starting number",
+      control: { type: "number" },
+      description: "Starting number (set higher than `to` for a countdown)",
     },
     duration: {
-      control: { type: "number", min: 0.5, max: 10, step: 0.5 },
-      description: "Animation duration in seconds",
+      control: { type: "number", min: 0.1, max: 10, step: 0.1 },
+      description: "Animation duration in seconds (ease-out cubic)",
     },
     delay: {
-      control: { type: "number", min: 0, max: 5, step: 0.5 },
-      description: "Delay before animation starts in seconds",
+      control: { type: "number", min: 0, max: 5, step: 0.25 },
+      description: "Delay before the animation starts in seconds",
     },
     separator: {
       control: "text",
-      description: "Thousands separator character",
+      description: "Thousands separator character (empty string disables grouping)",
     },
     startWhen: {
       control: "boolean",
-      description: "Whether to start animation",
+      description: "Gate the animation; it only starts when true and the element is in view",
+    },
+    className: {
+      control: "text",
+      description: "Classes applied to the rendered span",
+    },
+    onStart: {
+      control: false,
+      description: "Callback fired when the animation starts (after delay)",
+    },
+    onEnd: {
+      control: false,
+      description: "Callback fired when the animation reaches the target",
     },
   },
 } satisfies Meta<typeof CountUp>;
@@ -45,6 +57,10 @@ export const Default: Story = {
     to: 100,
     from: 0,
     duration: 2,
+    delay: 0,
+    separator: "",
+    startWhen: true,
+    className: "text-4xl font-bold tabular-nums text-foreground",
   },
 };
 
@@ -54,6 +70,7 @@ export const WithSeparator: Story = {
     from: 0,
     duration: 2,
     separator: ",",
+    className: "text-3xl font-semibold tabular-nums text-foreground",
   },
 };
 
@@ -62,6 +79,16 @@ export const Decimals: Story = {
     to: 99.99,
     from: 0,
     duration: 2,
+    className: "text-3xl font-semibold tabular-nums text-foreground",
+  },
+};
+
+export const Countdown: Story = {
+  args: {
+    to: 0,
+    from: 10,
+    duration: 5,
+    className: "text-4xl font-bold tabular-nums text-foreground",
   },
 };
 
@@ -70,6 +97,7 @@ export const FastAnimation: Story = {
     to: 500,
     from: 0,
     duration: 0.5,
+    className: "text-3xl font-semibold tabular-nums text-foreground",
   },
 };
 
@@ -78,6 +106,7 @@ export const SlowAnimation: Story = {
     to: 50,
     from: 0,
     duration: 5,
+    className: "text-3xl font-semibold tabular-nums text-foreground",
   },
 };
 
@@ -87,6 +116,18 @@ export const WithDelay: Story = {
     from: 0,
     duration: 2,
     delay: 2,
+    className: "text-3xl font-semibold tabular-nums text-foreground",
+  },
+};
+
+export const Paused: Story = {
+  args: {
+    to: 2048,
+    from: 0,
+    duration: 2,
+    separator: ",",
+    startWhen: false,
+    className: "text-3xl font-semibold tabular-nums text-foreground",
   },
 };
 
@@ -96,42 +137,58 @@ export const LargeNumber: Story = {
     from: 0,
     duration: 3,
     separator: ",",
-    className: "text-4xl font-bold text-primary",
+    className: "text-4xl font-bold tabular-nums text-primary",
   },
 };
 
 export const Percentage: Story = {
-  // `to` is a required prop, so the CSF story type requires args even though
-  // this story's render ignores them.
-  args: { to: 87.5 },
-  render: () => (
-    <div className="flex items-center gap-1 text-2xl font-semibold">
-      <CountUp to={87.5} from={0} duration={2} />
+  args: {
+    to: 87.5,
+    from: 0,
+    duration: 2,
+  },
+  render: (args) => (
+    <div className="flex items-center gap-1 text-2xl font-semibold text-foreground">
+      <CountUp {...args} />
       <span>%</span>
     </div>
   ),
 };
 
-export const MultipleCounters = () => (
-  <div className="flex gap-8 text-center">
-    <div>
-      <div className="text-4xl font-bold text-primary">
-        <CountUp to={1234} from={0} duration={2} separator="," />
+export const StatsDashboard: Story = {
+  args: {
+    to: 1234,
+    from: 0,
+    duration: 2,
+    separator: ",",
+  },
+  render: (args) => (
+    <div className="flex gap-8 text-center">
+      <div>
+        <div className="text-4xl font-bold tabular-nums text-primary">
+          <CountUp {...args} />
+        </div>
+        <div className="mt-2 text-sm text-muted-foreground">Total Users</div>
       </div>
-      <div className="text-sm text-muted-foreground mt-2">Total Users</div>
-    </div>
-    <div>
-      <div className="text-4xl font-bold text-success">
-        <CountUp to={98.7} from={0} duration={2} />
-        <span>%</span>
+      <div>
+        <div className="text-4xl font-bold tabular-nums text-success">
+          <CountUp to={98.7} from={0} duration={2} delay={0.2} />
+          <span>%</span>
+        </div>
+        <div className="mt-2 text-sm text-muted-foreground">Success Rate</div>
       </div>
-      <div className="text-sm text-muted-foreground mt-2">Success Rate</div>
-    </div>
-    <div>
-      <div className="text-4xl font-bold text-info">
-        <CountUp to={42} from={0} duration={2} />
+      <div>
+        <div className="text-4xl font-bold tabular-nums text-info">
+          <CountUp to={42} from={0} duration={2} delay={0.4} />
+        </div>
+        <div className="mt-2 text-sm text-muted-foreground">Active Projects</div>
       </div>
-      <div className="text-sm text-muted-foreground mt-2">Active Projects</div>
+      <div>
+        <div className="text-4xl font-bold tabular-nums text-foreground">
+          <CountUp to={3600000} from={0} duration={2.5} delay={0.6} separator="," />
+        </div>
+        <div className="mt-2 text-sm text-muted-foreground">Messages Sent</div>
+      </div>
     </div>
-  </div>
-);
+  ),
+};

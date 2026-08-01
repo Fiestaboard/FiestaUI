@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Calendar, FileText, GalleryHorizontalEnd, Home, Puzzle, Settings } from "lucide-react";
 import { useState } from "react";
 
+import { PRIDE_SEASON, type Season } from "../../lib/seasons";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -23,6 +24,7 @@ const LABELS = {
   expandSidebar: "Expand sidebar",
   collapseSidebar: "Collapse sidebar",
   aiAssistant: "AI Assistant",
+  logoButtonAriaLabel: "Celebrate the season",
 };
 
 const renderLink: SidebarProps["renderLink"] = ({ children, ...props }) => <a {...props}>{children}</a>;
@@ -31,8 +33,14 @@ const renderLink: SidebarProps["renderLink"] = ({ children, ...props }) => <a {.
  * The whole FiestaBoard look and feel in one story: sidebar chrome +
  * main-content layout + page scaffolding, all from @fiestaboard/ui.
  */
-function AppShellDemo() {
-  const [collapsed, setCollapsed] = useState(false);
+function AppShellDemo({
+  season = null,
+  initialCollapsed = false,
+}: {
+  season?: Season | null;
+  initialCollapsed?: boolean;
+}) {
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
 
   const primary: SidebarNavItem[] = [
@@ -56,6 +64,8 @@ function AppShellDemo() {
         onToggleCollapsed={() => setCollapsed(!collapsed)}
         maxWidth={1680}
         sidebarInset={12}
+        season={season}
+        onLogoClick={season ? () => {} : undefined}
         versionSlot={<span className="text-xs text-sidebar-foreground/70">v9.0.0</span>}
         themeToggleSlot={
           <ThemeToggle
@@ -103,4 +113,17 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   render: () => <AppShellDemo />,
+};
+
+export const Collapsed: Story = {
+  render: () => <AppShellDemo initialCollapsed />,
+};
+
+/**
+ * The shell during a festive season: the sidebar renders its aurora and
+ * the logo becomes a celebration button — no extra wiring needed beyond
+ * passing the season to the Sidebar.
+ */
+export const PrideSeason: Story = {
+  render: () => <AppShellDemo season={PRIDE_SEASON} />,
 };

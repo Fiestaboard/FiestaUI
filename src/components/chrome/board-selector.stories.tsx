@@ -19,6 +19,31 @@ const meta = {
     layout: "centered",
   },
   tags: ["autodocs"],
+  argTypes: {
+    boards: {
+      description: "Boards to offer, in menu order — empty names fall back to the unnamedBoard label.",
+      control: "object",
+    },
+    value: {
+      description: "id of the currently selected board.",
+      control: "select",
+      options: BOARDS.map((b) => b.id),
+    },
+    onChange: { description: "Called with the newly selected board id.", control: false },
+    labels: {
+      description: "Localized strings: trigger aria-label, empty placeholder, and unnamed-board fallback.",
+      control: "object",
+    },
+    collapsed: {
+      description: "Sidebar-collapsed mode: icon-only trigger with a tooltip naming the current board.",
+      control: "boolean",
+    },
+    variant: {
+      description: "Where the selector lives — the sidebar or the compact mobile header bar.",
+      control: "inline-radio",
+      options: ["sidebar", "mobileHeader"],
+    },
+  },
   decorators: [
     (Story) => (
       <TooltipProvider delayDuration={0}>
@@ -34,16 +59,23 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Keyed on args.value so the `value` control re-seeds local selection state. */
+function ControlledBoardSelector(args: React.ComponentProps<typeof BoardSelector>) {
+  const [value, setValue] = useState(args.value);
+  return <BoardSelector {...args} value={value} onChange={setValue} />;
+}
+
 export const Default: Story = {
   args: {
     boards: BOARDS,
     value: "living-room",
     onChange: () => {},
     labels: LABELS,
+    collapsed: false,
+    variant: "sidebar",
   },
   render: function Render(args) {
-    const [value, setValue] = useState(args.value);
-    return <BoardSelector {...args} value={value} onChange={setValue} />;
+    return <ControlledBoardSelector key={args.value} {...args} />;
   },
 };
 

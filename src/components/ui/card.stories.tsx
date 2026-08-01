@@ -1,9 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { Settings2 } from "lucide-react";
 
+import { Badge } from "./badge";
 import { Button } from "./button";
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card";
 import { Input } from "./input";
 import { Label } from "./label";
+import { Switch } from "./switch";
 
 const meta = {
   title: "UI/Card",
@@ -12,6 +15,16 @@ const meta = {
     layout: "centered",
   },
   tags: ["autodocs"],
+  argTypes: {
+    className: {
+      control: "text",
+      description: "Additional CSS classes (e.g. width, border color)",
+    },
+    children: {
+      control: false,
+      description: "Card sections — CardHeader, CardContent, CardFooter, etc.",
+    },
+  },
 } satisfies Meta<typeof Card>;
 
 export default meta;
@@ -108,6 +121,36 @@ export const MultipleCards = () => (
       </CardContent>
     </Card>
   </div>
+);
+
+export const IntegrationCard = () => (
+  <Card className="w-[380px]">
+    <CardHeader>
+      <CardTitle>Weather</CardTitle>
+      <CardDescription>Current conditions and forecast for your board.</CardDescription>
+      <CardAction>
+        <Button variant="ghost" size="icon" aria-label="Weather settings">
+          <Settings2 className="h-4 w-4" />
+        </Button>
+      </CardAction>
+    </CardHeader>
+    <CardContent className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Badge variant="success">connected</Badge>
+        <Badge variant="secondary">refreshes every 15 min</Badge>
+      </div>
+      <div className="flex items-center justify-between">
+        <Label htmlFor="weather-enabled">Show on board</Label>
+        <Switch id="weather-enabled" defaultChecked />
+      </div>
+    </CardContent>
+    <CardFooter className="flex justify-between border-t">
+      <p className="text-sm text-muted-foreground">Last updated 2 min ago</p>
+      <Button variant="outline" size="sm">
+        Preview
+      </Button>
+    </CardFooter>
+  </Card>
 );
 
 export const AllLayouts = () => (

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { ChevronRight, Loader2, Mail, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Mail, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "./button";
 
@@ -13,21 +13,29 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["default", "destructive", "outline", "secondary", "ghost", "link"],
+      options: ["default", "brand", "destructive", "outline", "secondary", "ghost", "link"],
       description: "Visual style variant",
     },
     size: {
       control: "select",
       options: ["default", "sm", "lg", "icon", "icon-sm", "icon-lg"],
-      description: "Size variant",
+      description: "Size variant (icon sizes are square)",
     },
     disabled: {
       control: "boolean",
       description: "Disabled state",
     },
+    children: {
+      control: "text",
+      description: "Button label content",
+    },
+    className: {
+      control: "text",
+      description: "Additional CSS classes",
+    },
     asChild: {
-      control: "boolean",
-      description: "Render as child element using Radix Slot",
+      control: false,
+      description: "Render the button styles onto a single child element (e.g. an anchor)",
     },
   },
 } satisfies Meta<typeof Button>;
@@ -40,6 +48,14 @@ export const Default: Story = {
     children: "Button",
     variant: "default",
     size: "default",
+    disabled: false,
+  },
+};
+
+export const Brand: Story = {
+  args: {
+    children: "Get started",
+    variant: "brand",
   },
 };
 
@@ -131,9 +147,16 @@ export const Disabled: Story = {
   },
 };
 
+export const AsLink = () => (
+  <Button asChild variant="outline">
+    <a href="#docs">Read the docs</a>
+  </Button>
+);
+
 export const AllVariants = () => (
   <div className="flex flex-wrap items-center gap-4">
     <Button variant="default">Default</Button>
+    <Button variant="brand">Brand</Button>
     <Button variant="secondary">Secondary</Button>
     <Button variant="destructive">Destructive</Button>
     <Button variant="outline">Outline</Button>
@@ -177,5 +200,25 @@ export const IconButtons = () => (
     <Button variant="secondary" size="icon" aria-label="Add">
       <Plus className="h-4 w-4" />
     </Button>
+  </div>
+);
+
+export const PaginationToolbar = () => (
+  <div className="flex w-[420px] items-center justify-between rounded-lg border p-3">
+    <Button variant="outline" size="sm">
+      <ChevronLeft className="h-4 w-4" />
+      Previous
+    </Button>
+    <span className="text-sm text-muted-foreground">Page 2 of 10</span>
+    <div className="flex items-center gap-2">
+      <Button variant="outline" size="sm">
+        Next
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+      <Button variant="brand" size="sm">
+        <Plus className="h-4 w-4" />
+        New page
+      </Button>
+    </div>
   </div>
 );
