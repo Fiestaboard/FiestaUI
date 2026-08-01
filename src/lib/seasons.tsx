@@ -166,9 +166,3 @@ export function usePrideActive(): boolean {
   const season = useActiveSeason();
   return season?.id === "pride";
 }
-
-/** @deprecated Use PRIDE_SEASON.colors. */
-export const PRIDE_COLORS = PRIDE_SEASON.colors;
-
-/** @deprecated Use fireSeasonBurst(). */
-export const firePrideBurst = fireSeasonBurst;
