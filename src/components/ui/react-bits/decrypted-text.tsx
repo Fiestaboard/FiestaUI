@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { cn } from "../../../lib/utils";
+
 interface DecryptedTextProps {
   text: string;
   speed?: number;
@@ -148,7 +150,7 @@ export default function DecryptedText({
       : {};
 
   return (
-    <span ref={containerRef} className={`inline-block ${parentClassName}`} {...hoverProps}>
+    <span ref={containerRef} className={cn("inline-block", parentClassName)} {...hoverProps}>
       <span className="sr-only">{displayText}</span>
       <span aria-hidden className={className}>
         {displayText.split("").map((char, index) => {
