@@ -70,7 +70,7 @@ npm run build && npm pack   # produces fiestaboard-ui-<version>.tgz
 
 Releases are manual: **Actions → Release → Run workflow**, choosing a `patch` / `minor` / `major` bump. The workflow bumps the version, tags `v<version>`, publishes to npm, and creates a GitHub Release.
 
-Publishing authenticates via [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (GitHub Actions OIDC) — no long-lived tokens. The `NPM_TOKEN` secret exists only until the first publish establishes the package on the registry; after configuring the trusted publisher on npmjs.com, delete the secret.
+Publishing authenticates via [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (GitHub Actions OIDC) — no long-lived tokens, nothing to rotate, automatic provenance. Bootstrap history: trusted publishing can't create a brand-new package, and bypass-2FA tokens are [deprecated](https://github.blog/changelog/2026-07-08-npm-install-time-security-and-gat-bypass2fa-deprecation/), so the very first (placeholder) version was published manually with a 2FA OTP; every release since comes from the workflow via OIDC.
 
 ## License
 
