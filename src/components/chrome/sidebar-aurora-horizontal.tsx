@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef } from "react";
 
-const DEFAULT_COLORS = ["#e40303", "#ff8c00", "#ffed00", "#008026", "#004dff", "#750787"];
+import { PRIDE_SEASON } from "../../lib/seasons";
 
 const VERT = `#version 300 es
 in vec2 position;
@@ -75,7 +75,7 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 export const SidebarAuroraHorizontal = memo(function SidebarAuroraHorizontal({
-  colors = DEFAULT_COLORS,
+  colors = PRIDE_SEASON.colors,
 }: {
   colors?: string[];
 }) {

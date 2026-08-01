@@ -563,7 +563,16 @@
 /* Pride month (June) — rainbow page icon gradient + logo text + sidebar */
 
 .pride-month .logo-fiesta-text {
-  background: linear-gradient(90deg, #e40303, #ff8c00, #ffed00, #008026, #004dff, #750787);
+  /* Rainbow from the .pride-month --icon-g* override — single source. */
+  background: linear-gradient(
+    90deg,
+    var(--icon-g1),
+    var(--icon-g2),
+    var(--icon-g3),
+    var(--icon-g4),
+    var(--icon-g5),
+    var(--icon-g6)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -802,11 +811,13 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   --sidebar-foreground: oklch(1 0 0);
 }
 
-/* Light mode: soft gradient (coral → peach → lavender) */
+/* Light mode: soft gradient (coral → peach → lavender).
+   Stops derive from the canonical --fiesta-* brand gradient tokens —
+   never fork the hexes here; seasons retint via --sidebar-fiesta-*. */
 .sidebar-gradient {
-  --sidebar-fiesta-red: #c97a72;
-  --sidebar-fiesta-orange: #c99662;
-  --sidebar-fiesta-purple: #9b7bb0; /* board violet hue, light */
+  --sidebar-fiesta-red: var(--fiesta-red);
+  --sidebar-fiesta-orange: var(--fiesta-orange);
+  --sidebar-fiesta-purple: var(--fiesta-purple);
   background: repeating-linear-gradient(
     170deg,
     var(--sidebar-fiesta-red) 0%,
@@ -830,11 +841,15 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   --accent-foreground: oklch(0 0 0);
   --border: oklch(0 0 0 / 12%);
 }
-.dark .sidebar-gradient {
-  /* Dark mode: rich Fiesta gradient, white text */
+/* Dark mode: rich Fiesta gradient — deep-toned stops defined ONCE for both
+   the vertical sidebar and the mobile horizontal header. */
+.dark .sidebar-gradient,
+.dark .sidebar-gradient-horizontal {
   --sidebar-fiesta-red: #7a2a24;
   --sidebar-fiesta-orange: #6d5014;
   --sidebar-fiesta-purple: #4e3070; /* board violet, darker for dark theme */
+}
+.dark .sidebar-gradient {
   color: oklch(1 0 0);
   --sidebar-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(1 0 0 / 24%);
@@ -848,10 +863,11 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 }
 
 .sidebar-gradient-horizontal {
-  /* Light mode: same soft gradient as vertical sidebar */
-  --sidebar-fiesta-red: #c98a82;
-  --sidebar-fiesta-orange: #c9a070;
-  --sidebar-fiesta-purple: #9b7bb0;
+  /* Light mode: identical stops to the vertical sidebar — one brand gradient
+     on every viewport (previously the mobile header ran subtly warmer). */
+  --sidebar-fiesta-red: var(--fiesta-red);
+  --sidebar-fiesta-orange: var(--fiesta-orange);
+  --sidebar-fiesta-purple: var(--fiesta-purple);
   background: repeating-linear-gradient(
     135deg,
     var(--sidebar-fiesta-red) 0,
@@ -882,9 +898,6 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
 }
 .dark .sidebar-gradient-horizontal {
-  --sidebar-fiesta-red: #7a2a24;
-  --sidebar-fiesta-orange: #6d5014;
-  --sidebar-fiesta-purple: #4e3070;
   color: oklch(1 0 0);
   --foreground: oklch(1 0 0);
   --sidebar-accent: oklch(1 0 0 / 24%);
