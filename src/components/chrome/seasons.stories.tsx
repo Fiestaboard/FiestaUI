@@ -108,7 +108,7 @@ const meta: Meta<SeasonPreviewArgs> = {
 export default meta;
 type Story = StoryObj<SeasonPreviewArgs>;
 
-export const Preview: Story = {
+export const Default: Story = {
   args: { seasonId: "pride" },
   render: function Render(args) {
     return <SeasonPreview seasonId={args.seasonId} />;
