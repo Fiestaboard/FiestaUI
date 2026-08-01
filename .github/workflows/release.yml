@@ -1,0 +1,89 @@
+name: Release
+
+# Manually triggered release: bumps the version, tags, publishes to npm,
+# and creates a GitHub Release.
+#
+# npm auth works in one of two modes:
+#   1. Bootstrap (first publish only): uses the NPM_TOKEN repo secret,
+#      because npm Trusted Publishing cannot create a brand-new package.
+#   2. Trusted Publishing (OIDC): once the package exists and a trusted
+#      publisher is configured on npmjs.com (GitHub Actions, org
+#      Fiestaboard, repo FiestaUI, workflow release.yml), DELETE the
+#      NPM_TOKEN secret. The workflow then publishes with a short-lived
+#      OIDC token minted per-run — nothing to rotate, and provenance
+#      attestations are generated automatically.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Semver bump type"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+        required: true
+
+permissions:
+  contents: write
+  id-token: write # npm Trusted Publishing (OIDC)
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Ensure npm supports trusted publishing (>= 11.5)
+        run: npm --version
+
+      - name: Install dependencies
+        run: npm ci --no-audit
+
+      - name: Build
+        run: npm run build
+
+      - name: Bump version and tag
+        id: version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          npm version "${{ inputs.bump }}" -m "chore: release v%s"
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to npm (token bootstrap)
+        if: ${{ env.HAS_NPM_TOKEN == 'true' }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          npm publish --access public --provenance
+          rm -f ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npm (OIDC trusted publishing)
+        if: ${{ env.HAS_NPM_TOKEN != 'true' }}
+        run: npm publish --access public
+
+      - name: Push version commit and tag
+        run: git push --follow-tags origin main
+
+      - name: Create GitHub Release
+        run: |
+          gh release create "v${{ steps.version.outputs.version }}" \
+            --title "v${{ steps.version.outputs.version }}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+    env:
+      HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
