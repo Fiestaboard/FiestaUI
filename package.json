@@ -30,7 +30,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "vite build && tsc -p tsconfig.build.json && cp src/styles/theme.css dist/theme.css",
+    "build": "vite build && tsc -p tsconfig.build.json && cp src/styles/theme.css dist/theme.css && cp -r src/styles/seasons dist/seasons",
     "typecheck": "tsc --noEmit",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
