@@ -14,7 +14,7 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["default", "destructive"],
+      options: ["default", "destructive", "info", "success", "warning"],
       description: "Visual style variant",
     },
     className: {
@@ -53,6 +53,48 @@ export const Destructive: Story = {
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>Your session has expired. Please log in again.</AlertDescription>
+      </>
+    ),
+  },
+};
+
+export const InfoVariant: Story = {
+  args: {
+    variant: "info",
+    className: "w-[450px]",
+    children: (
+      <>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Scheduled update</AlertTitle>
+        <AlertDescription>The board restarts tonight at 02:00 for a firmware update.</AlertDescription>
+      </>
+    ),
+  },
+};
+
+export const SuccessVariant: Story = {
+  args: {
+    variant: "success",
+    className: "w-[450px]",
+    children: (
+      <>
+        <CheckCircle2 className="h-4 w-4" />
+        <AlertTitle>Connected</AlertTitle>
+        <AlertDescription>Your board is online and synced.</AlertDescription>
+      </>
+    ),
+  },
+};
+
+export const WarningVariant: Story = {
+  args: {
+    variant: "warning",
+    className: "w-[450px]",
+    children: (
+      <>
+        <TriangleAlert className="h-4 w-4" />
+        <AlertTitle>Weak signal</AlertTitle>
+        <AlertDescription>The board's Wi-Fi signal is weak; updates may lag.</AlertDescription>
       </>
     ),
   },

@@ -13,7 +13,7 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["default", "secondary", "destructive", "outline", "variable", "success", "formula"],
+      options: ["default", "brand", "secondary", "destructive", "outline", "variable", "success", "formula"],
       description: "Visual style variant",
     },
     children: {
@@ -38,6 +38,13 @@ export const Default: Story = {
   args: {
     children: "Badge",
     variant: "default",
+  },
+};
+
+export const Brand: Story = {
+  args: {
+    children: "Brand",
+    variant: "brand",
   },
 };
 
