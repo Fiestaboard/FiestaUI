@@ -36,11 +36,7 @@ void main(){
   fragColor = vec4(ramp, intensity);
 }`;
 
-export const SidebarAurora = memo(function SidebarAurora({
-  colors = PRIDE_SEASON.colors,
-}: {
-  colors?: string[];
-}) {
+export const SidebarAurora = memo(function SidebarAurora({ colors = PRIDE_SEASON.colors }: { colors?: string[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useAuroraCanvas(canvasRef, FRAG, colors, "SidebarAurora");
 

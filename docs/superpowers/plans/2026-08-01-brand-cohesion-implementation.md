@@ -19,6 +19,8 @@
 - Canonical fiesta gradient (light): `#c97a72 / #c99662 / #9b7bb0`; dark sidebar deep set: `#7a2a24 / #6d5014 / #4e3070` (defined once, shared by vertical + horizontal).
 - Season `colors[]` must match that season's CSS palette (CSS design intent is canonical).
 
+> **Amendment (mid-execution, user decision):** `PageHeader`/`PageLayout`/`PageToolbar` are KEPT — the user prefers them as the standard page scaffolding despite zero current app usage. Their `--icon-g*` tokens and `.page-title`/`.page-description` classes stay. Task 1's deletion list shrinks accordingly; everything else stands.
+
 ### Task 1: Remove downstream-unused components and dead tokens
 
 **Files:**
