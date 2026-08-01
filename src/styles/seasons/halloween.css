@@ -14,14 +14,15 @@
   background-clip: text;
 }
 
-/* Page-icon gradient: ember orange through toxic green into deep purple */
+/* Page-icon gradient: ember orange through toxic green into deep purple —
+   same purple ramp as the logo gradient so the two marks match. */
 .halloween-season {
   --icon-g1: #ff7518;
   --icon-g2: #ff9838;
   --icon-g3: #39d353;
-  --icon-g4: #8b5cf6;
-  --icon-g5: #6a0dad;
-  --icon-g6: #4c1d95;
+  --icon-g4: #a855f7;
+  --icon-g5: #7c3aed;
+  --icon-g6: #6a0dad;
 }
 
 /* Dark mode sidebar: flat near-black with a purple cast — the WebGL aurora
