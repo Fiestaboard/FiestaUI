@@ -19,7 +19,7 @@ const badgeVariants = cva(
         success:
           "bg-tag-success/15 border-tag-success/40 text-tag-success-foreground font-mono [a&]:hover:bg-tag-success/25",
         formula:
-          "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400 font-mono [a&]:hover:bg-amber-500/20",
+          "bg-tag-formula/15 border-tag-formula/30 text-tag-formula-foreground font-mono [a&]:hover:bg-tag-formula/25",
       },
     },
     defaultVariants: {

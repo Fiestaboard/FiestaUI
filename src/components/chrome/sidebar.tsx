@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Menu, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import type { Season } from "../../lib/seasons";
@@ -285,13 +285,7 @@ export function Sidebar({
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? labels.closeMenu : labels.openMenu}
           >
-            {mobileMenuOpen ? (
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>
           {logoBlock("mobile")}
           {mobileBoardSelector && <div className="ml-2 flex-shrink-0">{mobileBoardSelector}</div>}
@@ -380,7 +374,7 @@ export function Sidebar({
               <button
                 onClick={onToggleCollapsed}
                 aria-label={collapsed ? labels.expandSidebar : labels.collapseSidebar}
-                className="absolute -right-3.5 top-[51px] z-[51] flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 bg-background text-gray-500 dark:text-gray-400 shadow-md hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                className="absolute -right-3.5 top-[51px] z-[51] flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-md hover:bg-accent hover:text-foreground transition-colors"
               >
                 {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
               </button>

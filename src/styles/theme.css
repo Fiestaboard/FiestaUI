@@ -84,6 +84,8 @@
   --color-tag-variable-foreground: var(--tag-variable-foreground);
   --color-tag-success: var(--tag-success);
   --color-tag-success-foreground: var(--tag-success-foreground);
+  --color-tag-formula: var(--tag-formula);
+  --color-tag-formula-foreground: var(--tag-formula-foreground);
 
   /* Overlay */
   --color-overlay: var(--overlay);
@@ -187,6 +189,8 @@
   --tag-variable-foreground: oklch(0.35 0.1 280);
   --tag-success: oklch(0.45 0.2 160);
   --tag-success-foreground: oklch(0.35 0.1 160);
+  --tag-formula: oklch(0.45 0.15 80);
+  --tag-formula-foreground: oklch(0.35 0.1 80);
   --overlay: oklch(0 0 0 / 80%);
   /* Brand accent - darkened for WCAG 2.2 AA (≥4.5:1 on light bg) */
   --brand: oklch(0.56 0.15 75);
@@ -256,6 +260,8 @@
   --tag-variable-foreground: oklch(0.85 0.08 280);
   --tag-success: oklch(0.65 0.15 160);
   --tag-success-foreground: oklch(0.85 0.08 160);
+  --tag-formula: oklch(0.65 0.15 80);
+  --tag-formula-foreground: oklch(0.85 0.08 80);
   --overlay: oklch(0 0 0 / 80%);
   --brand: oklch(0.78 0.14 75);
   --brand-emphasis: oklch(0.55 0.16 60);
