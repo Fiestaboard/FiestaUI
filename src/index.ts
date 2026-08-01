@@ -20,11 +20,12 @@ export * from "./components/ui/dropdown-menu";
 export * from "./components/ui/empty-state";
 export * from "./components/ui/input";
 export * from "./components/ui/label";
-export * from "./components/ui/react-bits/blur-text";
-export * from "./components/ui/react-bits/count-up";
-export * from "./components/ui/react-bits/decrypted-text";
-export * from "./components/ui/react-bits/fade-content";
-export * from "./components/ui/react-bits/spotlight-card";
+// react-bits components are default exports — re-export them as named.
+export { default as BlurText } from "./components/ui/react-bits/blur-text";
+export { default as CountUp } from "./components/ui/react-bits/count-up";
+export { default as DecryptedText } from "./components/ui/react-bits/decrypted-text";
+export { default as FadeContent } from "./components/ui/react-bits/fade-content";
+export { default as SpotlightCard } from "./components/ui/react-bits/spotlight-card";
 export * from "./components/ui/scroll-area";
 export * from "./components/ui/select";
 export * from "./components/ui/sheet";
