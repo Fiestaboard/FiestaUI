@@ -27,6 +27,7 @@
       "import": "./dist/index.js"
     },
     "./theme.css": "./dist/theme.css",
+    "./seasons/*.css": "./dist/seasons/*.css",
     "./package.json": "./package.json"
   },
   "scripts": {

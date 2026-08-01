@@ -26,7 +26,8 @@
 
 /* Dark mode sidebar: flat dark roasted umber — the WebGL aurora
    (amber/sienna/cream palette) supplies the warmth and movement. */
-.dark.thanksgiving-season .sidebar-gradient {
+.dark.thanksgiving-season .sidebar-gradient,
+.dark.thanksgiving-season .sidebar-gradient-horizontal {
   background: #170e08;
   animation: none;
   color: oklch(1 0 0);
@@ -36,16 +37,6 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --foreground: oklch(1 0 0);
   --muted-foreground: oklch(1 0 0 / 75%);
-}
-
-.dark.thanksgiving-season .sidebar-gradient-horizontal {
-  background: #170e08;
-  animation: none;
-  color: oklch(1 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0 / 14%);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
 }
 
 /* Light mode sidebar: retint the flowing gradient stops to burnt sienna,

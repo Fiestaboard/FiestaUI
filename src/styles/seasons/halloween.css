@@ -27,7 +27,8 @@
 
 /* Dark mode sidebar: flat near-black with a purple cast — the WebGL aurora
    (pumpkin/purple/green palette) supplies the movement. */
-.dark.halloween-season .sidebar-gradient {
+.dark.halloween-season .sidebar-gradient,
+.dark.halloween-season .sidebar-gradient-horizontal {
   background: #140b1c;
   animation: none;
   color: oklch(1 0 0);
@@ -37,16 +38,6 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --foreground: oklch(1 0 0);
   --muted-foreground: oklch(1 0 0 / 75%);
-}
-
-.dark.halloween-season .sidebar-gradient-horizontal {
-  background: #140b1c;
-  animation: none;
-  color: oklch(1 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0 / 14%);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
 }
 
 /* Light mode sidebar: retint the flowing gradient stops to muted pumpkin,

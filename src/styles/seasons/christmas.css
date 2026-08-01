@@ -26,7 +26,8 @@
 
 /* Dark mode sidebar: flat deep pine-night green — the WebGL aurora
    (red/green/gold/snow palette) plays the part of the tree lights. */
-.dark.christmas-season .sidebar-gradient {
+.dark.christmas-season .sidebar-gradient,
+.dark.christmas-season .sidebar-gradient-horizontal {
   background: #0d1811;
   animation: none;
   color: oklch(1 0 0);
@@ -36,16 +37,6 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --foreground: oklch(1 0 0);
   --muted-foreground: oklch(1 0 0 / 75%);
-}
-
-.dark.christmas-season .sidebar-gradient-horizontal {
-  background: #0d1811;
-  animation: none;
-  color: oklch(1 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0 / 14%);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
 }
 
 /* Light mode sidebar: retint the flowing gradient stops to soft holly red,

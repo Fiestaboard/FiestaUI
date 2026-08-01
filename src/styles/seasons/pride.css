@@ -1,0 +1,50 @@
+/* pride — the LIVE season (June). Activates when the app shell stamps
+   .pride-month on <html> (see lib/seasons.tsx PRIDE_SEASON.htmlClass; the
+   class name predates the .<id>-season draft convention and is kept for
+   app compatibility). Same structure as every draft season file: icon
+   gradient override, logo gradient, dark sidebar base, light retint.
+
+   Note: --brand is deliberately season-invariant — seasons retheme the
+   chrome (logo, icon gradient, sidebar) while the brand accent stays the
+   Fiesta orange everywhere else. */
+
+/* Page-icon gradient: the six-stop rainbow */
+.pride-month {
+  --icon-g1: #e40303;
+  --icon-g2: #ff8c00;
+  --icon-g3: #ffed00;
+  --icon-g4: #008026;
+  --icon-g5: #004dff;
+  --icon-g6: #750787;
+}
+
+/* "Fiesta" logo word — rainbow from the --icon-g* override (single source) */
+.pride-month .logo-fiesta-text {
+  background: linear-gradient(
+    90deg,
+    var(--icon-g1),
+    var(--icon-g2),
+    var(--icon-g3),
+    var(--icon-g4),
+    var(--icon-g5),
+    var(--icon-g6)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Dark mode sidebar: dark base so the WebGL aurora is the visual.
+   Light mode keeps the original gradient — the aurora canvas overlays it. */
+.dark.pride-month .sidebar-gradient,
+.dark.pride-month .sidebar-gradient-horizontal {
+  background: #0e0b18;
+  animation: none;
+  color: oklch(1 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(1 0 0 / 14%);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --foreground: oklch(1 0 0);
+  --muted-foreground: oklch(1 0 0 / 75%);
+}
