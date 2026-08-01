@@ -2,15 +2,10 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Calendar, FileText, GalleryHorizontalEnd, HelpCircle, Home, Puzzle, Settings } from "lucide-react";
 import { useState } from "react";
 
+import { PRIDE_SEASON } from "../../lib/seasons";
 import { BoardSelector } from "./board-selector";
 import { Sidebar, type SidebarNavItem, type SidebarProps } from "./sidebar";
 import { ThemeToggle } from "./theme-toggle";
-
-const TACO_ICON =
-  "data:image/svg+xml," +
-  encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><text y="26" font-size="26">🌮</text></svg>`,
-  );
 
 const LABELS = {
   mainNavigation: "Main navigation",
@@ -58,7 +53,6 @@ function DemoSidebar(overrides: Partial<SidebarProps>) {
       renderLink={renderLink}
       collapsed={collapsed}
       onToggleCollapsed={() => setCollapsed(!collapsed)}
-      logoIconSrc={TACO_ICON}
       maxWidth={1680}
       sidebarInset={12}
       boardSelector={
@@ -104,6 +98,6 @@ export const WithAiAssistant: Story = {
   render: () => <DemoSidebar ai={{ active: false, onOpen: () => {} }} />,
 };
 
-export const Pride: Story = {
-  render: () => <DemoSidebar pride onLogoClick={() => {}} />,
+export const PrideSeason: Story = {
+  render: () => <DemoSidebar season={PRIDE_SEASON} onLogoClick={() => {}} />,
 };

@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef } from "react";
 
-const PRIDE_COLORS = ["#e40303", "#ff8c00", "#ffed00", "#008026", "#004dff", "#750787"];
+const DEFAULT_COLORS = ["#e40303", "#ff8c00", "#ffed00", "#008026", "#004dff", "#750787"];
 
 const VERT = `#version 300 es
 in vec2 position;
@@ -83,7 +83,7 @@ function hexToRgb(hex: string): [number, number, number] {
   ];
 }
 
-export const SidebarAurora = memo(function SidebarAurora() {
+export const SidebarAurora = memo(function SidebarAurora({ colors = DEFAULT_COLORS }: { colors?: string[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -139,7 +139,7 @@ export const SidebarAurora = memo(function SidebarAurora() {
     const uRes = gl.getUniformLocation(prog, "uResolution");
     const uBlend = gl.getUniformLocation(prog, "uBlend");
 
-    gl.uniform3fv(uStops, new Float32Array(PRIDE_COLORS.flatMap(hexToRgb)));
+    gl.uniform3fv(uStops, new Float32Array(colors.slice(0, 6).flatMap(hexToRgb)));
     gl.uniform1f(uBlend, 0.75);
 
     function resize() {
@@ -172,7 +172,7 @@ export const SidebarAurora = memo(function SidebarAurora() {
       cancelAnimationFrame(rafId);
       ro.disconnect();
     };
-  }, []);
+  }, [colors]);
 
   return (
     <div

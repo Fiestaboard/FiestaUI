@@ -3,6 +3,8 @@ import "../src/styles/storybook.css";
 import type { Preview } from "@storybook/react-vite";
 import { useEffect } from "react";
 
+import { SEASONS } from "../src/lib/seasons";
+
 // Same class-based dark mode contract as the app: the `dark` class on
 // <html>. (FiestaBoard's use-theme hook does this at runtime; Storybook
 // only needs the class toggled.)
@@ -10,6 +12,16 @@ function ThemeSync({ theme }: { theme: "light" | "dark" }) {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
+  return null;
+}
+
+// Seasonal theming preview: stamps the selected season's htmlClass on
+// <html>, exactly like the app shell does in production (June → pride).
+function SeasonSync({ seasonId }: { seasonId: string }) {
+  useEffect(() => {
+    const root = document.documentElement;
+    for (const s of SEASONS) root.classList.toggle(s.htmlClass, s.id === seasonId);
+  }, [seasonId]);
   return null;
 }
 
@@ -27,9 +39,19 @@ const preview: Preview = {
         dynamicTitle: true,
       },
     },
+    season: {
+      description: "Seasonal theming",
+      toolbar: {
+        title: "Season",
+        icon: "calendar",
+        items: [{ value: "none", title: "None" }, ...SEASONS.map((s) => ({ value: s.id, title: s.label }))],
+        dynamicTitle: true,
+      },
+    },
   },
   initialGlobals: {
     theme: "dark",
+    season: "none",
   },
   parameters: {
     controls: {
@@ -51,12 +73,14 @@ const preview: Preview = {
   decorators: [
     (Story, context) => {
       const theme = (context.globals.theme || "dark") as "light" | "dark";
+      const seasonId = (context.globals.season || "none") as string;
       // Fullscreen stories (app chrome) render their own landmarks — a
       // <main> wrapper here would nest/duplicate theirs and fail axe.
       const fullscreen = context.parameters.layout === "fullscreen";
       return (
         <>
           <ThemeSync theme={theme} />
+          <SeasonSync seasonId={seasonId} />
           {fullscreen ? (
             <div className="bg-background text-foreground">
               <Story />

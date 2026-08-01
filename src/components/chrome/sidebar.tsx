@@ -3,9 +3,11 @@
 import { ChevronLeft, ChevronRight, Menu, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import type { Season } from "../../lib/seasons";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { FIESTA_ICON_DATA_URI } from "./fiesta-icon";
 import { FiestaLogo } from "./fiesta-logo";
 import { SidebarAurora } from "./sidebar-aurora";
 import { SidebarAuroraHorizontal } from "./sidebar-aurora-horizontal";
@@ -60,11 +62,15 @@ export interface SidebarProps {
   transitioning?: boolean;
   onToggleCollapsed: () => void;
   onTransitionEnd?: () => void;
-  /** src for the 32×32 app icon next to the logo (base-path aware). */
-  logoIconSrc: string;
-  /** Pride-month mode: auroras render and the logo becomes a button. */
-  pride?: boolean;
-  /** Click handler for the pride logo button (celebration lives in the app). */
+  /**
+   * src for the 32×32 brand icon next to the logo. Defaults to the
+   * embedded pixel-taco brand mark; apps may override (e.g. base-path
+   * aware asset URLs).
+   */
+  logoIconSrc?: string;
+  /** Active season: auroras render in its colors and the logo becomes a button. */
+  season?: Season | null;
+  /** Click handler for the seasonal logo button (celebration lives in the app). */
   onLogoClick?: (e: React.MouseEvent) => void;
   /** AI assistant nav entry; omit to hide. */
   ai?: { active: boolean; onOpen: () => void };
@@ -92,8 +98,8 @@ export function Sidebar({
   transitioning = false,
   onToggleCollapsed,
   onTransitionEnd,
-  logoIconSrc,
-  pride = false,
+  logoIconSrc = FIESTA_ICON_DATA_URI,
+  season = null,
   onLogoClick,
   ai,
   boardSelector,
@@ -245,7 +251,7 @@ export function Sidebar({
         ? "flex items-center gap-3 min-w-0 flex-1 ml-2"
         : "flex items-center gap-2 overflow-hidden px-4 py-4";
 
-    if (pride) {
+    if (season) {
       return (
         <button
           type="button"
@@ -270,7 +276,7 @@ export function Sidebar({
     <>
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-2 left-3 right-3 z-[100] overflow-hidden sidebar-gradient-horizontal">
-        {pride && <SidebarAuroraHorizontal />}
+        {season && <SidebarAuroraHorizontal colors={season.colors} />}
         <div className="relative z-[1] flex items-center px-4 h-14">
           <Button
             variant="ghost"
@@ -367,7 +373,7 @@ export function Sidebar({
             }
           }}
         >
-          {pride && <SidebarAurora />}
+          {season && <SidebarAurora colors={season.colors} />}
           {/* Edge toggle button -- sits on the sidebar border, Jira-style */}
           <Tooltip>
             <TooltipTrigger asChild>

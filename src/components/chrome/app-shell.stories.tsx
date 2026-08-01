@@ -13,12 +13,6 @@ import { Sidebar, type SidebarNavItem, type SidebarProps } from "./sidebar";
 import { SkipToContent } from "./skip-to-content";
 import { ThemeToggle } from "./theme-toggle";
 
-const TACO_ICON =
-  "data:image/svg+xml," +
-  encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><text y="26" font-size="26">🌮</text></svg>`,
-  );
-
 const LABELS = {
   mainNavigation: "Main navigation",
   primaryNavigation: "Primary navigation",
@@ -60,7 +54,6 @@ function AppShellDemo() {
         renderLink={renderLink}
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed(!collapsed)}
-        logoIconSrc={TACO_ICON}
         maxWidth={1680}
         sidebarInset={12}
         versionSlot={<span className="text-xs text-sidebar-foreground/70">v9.0.0</span>}

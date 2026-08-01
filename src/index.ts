@@ -38,6 +38,7 @@ export * from "./components/ui/tooltip";
 // App chrome — branding, sidebar, layout, festive treatments.
 export * from "./components/chrome/board-icon";
 export * from "./components/chrome/board-selector";
+export * from "./components/chrome/fiesta-icon";
 export * from "./components/chrome/fiesta-logo";
 export * from "./components/chrome/language-selector";
 export * from "./components/chrome/main-content";
@@ -49,6 +50,5 @@ export * from "./components/chrome/sidebar-aurora";
 export * from "./components/chrome/sidebar-aurora-horizontal";
 export * from "./components/chrome/skip-to-content";
 export * from "./components/chrome/theme-toggle";
-export * from "./lib/festive";
-export * from "./lib/pride-burst";
+export * from "./lib/seasons";
 export { cn } from "./lib/utils";
