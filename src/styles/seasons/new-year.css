@@ -1,0 +1,58 @@
+/* new-year — draft seasonal theme. Styles activate only when the
+   .new-year-season class is stamped on <html> (Storybook Season selector).
+   Not consulted by getActiveSeason() until promoted to SEASONS.
+
+   Design intent: midnight countdown — champagne gold and silver sparkle
+   against a deep midnight-blue base, with a violet firework accent. The
+   aurora becomes the fireworks over a night sky. */
+
+/* Logo: champagne gold → sparkle white → silver → midnight violet */
+.new-year-season .logo-fiesta-text {
+  background: linear-gradient(90deg, #ffd700, #f5da6e, #f0f0f5, #c0c0c0, #8a7bd8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Page-icon gradient: gold fading through silver into midnight blue */
+.new-year-season {
+  --icon-g1: #ffd700;
+  --icon-g2: #f5da6e;
+  --icon-g3: #d8dde8;
+  --icon-g4: #a9b6d0;
+  --icon-g5: #5b6fd4;
+  --icon-g6: #2c3e8c;
+}
+
+/* Dark mode sidebar: flat deep midnight blue — the WebGL aurora
+   (gold/silver/violet palette) supplies the fireworks. */
+.dark.new-year-season .sidebar-gradient {
+  background: #090b1e;
+  animation: none;
+  color: oklch(1 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(1 0 0 / 14%);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --foreground: oklch(1 0 0);
+  --muted-foreground: oklch(1 0 0 / 75%);
+}
+
+.dark.new-year-season .sidebar-gradient-horizontal {
+  background: #090b1e;
+  animation: none;
+  color: oklch(1 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(1 0 0 / 14%);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+}
+
+/* Light mode sidebar: retint the flowing gradient stops to antique gold,
+   brushed silver, and periwinkle dusk (black text stays ≥4.5:1 on these). */
+.new-year-season:not(.dark) .sidebar-gradient,
+.new-year-season:not(.dark) .sidebar-gradient-horizontal {
+  --sidebar-fiesta-red: #c4ad62;
+  --sidebar-fiesta-orange: #b8bfcc;
+  --sidebar-fiesta-purple: #8790c9;
+}

@@ -1,0 +1,58 @@
+/* halloween — draft seasonal theme. Styles activate only when the
+   .halloween-season class is stamped on <html> (Storybook Season selector).
+   Not consulted by getActiveSeason() until promoted to SEASONS.
+
+   Design intent: jack-o'-lantern glow in a haunted night — pumpkin orange
+   burning into witch purple with a flicker of eerie green, all set against
+   a near-black purple-tinged dark base so the aurora reads like fog. */
+
+/* Logo: pumpkin → eerie green flicker → witch purple */
+.halloween-season .logo-fiesta-text {
+  background: linear-gradient(90deg, #ff7518, #ff9838, #39d353, #a855f7, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Page-icon gradient: ember orange through toxic green into deep purple */
+.halloween-season {
+  --icon-g1: #ff7518;
+  --icon-g2: #ff9838;
+  --icon-g3: #39d353;
+  --icon-g4: #8b5cf6;
+  --icon-g5: #6a0dad;
+  --icon-g6: #4c1d95;
+}
+
+/* Dark mode sidebar: flat near-black with a purple cast — the WebGL aurora
+   (pumpkin/purple/green palette) supplies the movement. */
+.dark.halloween-season .sidebar-gradient {
+  background: #140b1c;
+  animation: none;
+  color: oklch(1 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(1 0 0 / 14%);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --foreground: oklch(1 0 0);
+  --muted-foreground: oklch(1 0 0 / 75%);
+}
+
+.dark.halloween-season .sidebar-gradient-horizontal {
+  background: #140b1c;
+  animation: none;
+  color: oklch(1 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(1 0 0 / 14%);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+}
+
+/* Light mode sidebar: retint the flowing gradient stops to muted pumpkin,
+   dry amber, and dusk purple (black text stays ≥4.5:1 on these mid-tones). */
+.halloween-season:not(.dark) .sidebar-gradient,
+.halloween-season:not(.dark) .sidebar-gradient-horizontal {
+  --sidebar-fiesta-red: #c67a45;
+  --sidebar-fiesta-orange: #b6924e;
+  --sidebar-fiesta-purple: #8a6cae;
+}

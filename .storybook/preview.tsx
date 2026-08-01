@@ -3,7 +3,7 @@ import "../src/styles/storybook.css";
 import type { Preview } from "@storybook/react-vite";
 import { useEffect } from "react";
 
-import { SEASONS } from "../src/lib/seasons";
+import { ALL_SEASONS, SEASONS } from "../src/lib/seasons";
 
 // Same class-based dark mode contract as the app: the `dark` class on
 // <html>. (FiestaBoard's use-theme hook does this at runtime; Storybook
@@ -20,7 +20,7 @@ function ThemeSync({ theme }: { theme: "light" | "dark" }) {
 function SeasonSync({ seasonId }: { seasonId: string }) {
   useEffect(() => {
     const root = document.documentElement;
-    for (const s of SEASONS) root.classList.toggle(s.htmlClass, s.id === seasonId);
+    for (const s of ALL_SEASONS) root.classList.toggle(s.htmlClass, s.id === seasonId);
   }, [seasonId]);
   return null;
 }
@@ -44,7 +44,13 @@ const preview: Preview = {
       toolbar: {
         title: "Season",
         icon: "calendar",
-        items: [{ value: "none", title: "None" }, ...SEASONS.map((s) => ({ value: s.id, title: s.label }))],
+        items: [
+          { value: "none", title: "None" },
+          ...ALL_SEASONS.map((s) => ({
+            value: s.id,
+            title: SEASONS.includes(s) ? s.label : `${s.label} (draft)`,
+          })),
+        ],
         dynamicTitle: true,
       },
     },

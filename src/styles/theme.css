@@ -16,6 +16,15 @@
 @import "tw-animate-css";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
+/* Draft seasonal themes — design previews; inert unless the season
+   class is stamped on <html>. The app stamps only SEASONS (pride). */
+@import "./seasons/halloween.css";
+@import "./seasons/thanksgiving.css";
+@import "./seasons/christmas.css";
+@import "./seasons/new-year.css";
+@import "./seasons/easter.css";
+@import "./seasons/mothers-day.css";
+@import "./seasons/fathers-day.css";
 
 @custom-variant dark (&:is(.dark *));
 

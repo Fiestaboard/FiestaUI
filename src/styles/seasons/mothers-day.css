@@ -1,0 +1,48 @@
+/* mothers-day — draft seasonal theme. Styles activate only when the
+   .mothers-day-season class is stamped on <html> (Storybook Season selector).
+   Not consulted by getActiveSeason() until promoted to SEASONS.
+
+   Design intent: elegant warm rose — deep rose through blush with a
+   soft cream-gold accent; garden-rose rather than candy pink. Dark
+   sidebar is a muted rosewood-plum so white text and the rose aurora
+   stay legible. */
+
+/* Page-icon SVG gradient stops */
+.mothers-day-season {
+  --icon-g1: #b03060; /* deep rose */
+  --icon-g2: #d1608a; /* rose */
+  --icon-g3: #e79ab0; /* blush */
+  --icon-g4: #d8b98a; /* cream gold */
+  --icon-g5: #c76a94; /* rose mauve */
+  --icon-g6: #b03060; /* deep rose (loop) */
+}
+
+/* "Fiesta" logo word — rose-to-cream gradient */
+.mothers-day-season .logo-fiesta-text {
+  background: linear-gradient(90deg, #b03060, #d1608a, #e79ab0, #d8b98a, #b03060);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Light mode sidebar: rose-garden gradient stops (mechanics unchanged) */
+.mothers-day-season:not(.dark) .sidebar-gradient,
+.mothers-day-season:not(.dark) .sidebar-gradient-horizontal {
+  --sidebar-fiesta-red: #d98ba0; /* rose */
+  --sidebar-fiesta-orange: #e6cfa8; /* soft cream */
+  --sidebar-fiesta-purple: #b586a8; /* mauve */
+}
+
+/* Dark mode sidebar: muted rosewood-plum base; aurora provides the color */
+.dark.mothers-day-season .sidebar-gradient,
+.dark.mothers-day-season .sidebar-gradient-horizontal {
+  background: #1c1016;
+  animation: none;
+  color: oklch(1 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(1 0 0 / 14%);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --foreground: oklch(1 0 0);
+  --muted-foreground: oklch(1 0 0 / 75%);
+}

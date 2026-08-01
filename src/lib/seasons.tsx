@@ -37,6 +37,70 @@ export const PRIDE_SEASON: Season = {
 /** All registered seasons, in priority order (first match wins). */
 export const SEASONS: Season[] = [PRIDE_SEASON];
 
+/**
+ * Design drafts: fully styled seasons that are NOT live — they appear in
+ * the Storybook Season selector (marked as drafts) but getActiveSeason()
+ * never consults them, so consuming apps ship only SEASONS. Promote a
+ * finished design by moving its entry into SEASONS.
+ *
+ * Each draft's CSS lives in src/styles/seasons/<id>.css (imported by
+ * theme.css — inert unless the class is stamped on <html>).
+ */
+export const DRAFT_SEASONS: Season[] = [
+  {
+    id: "halloween",
+    label: "Halloween",
+    months: [9],
+    htmlClass: "halloween-season",
+    colors: ["#ff7518", "#8b5cf6", "#39d353", "#ff9838", "#c084fc", "#6a0dad"],
+  },
+  {
+    id: "thanksgiving",
+    label: "Thanksgiving",
+    months: [10],
+    htmlClass: "thanksgiving-season",
+    colors: ["#b5651d", "#e0a030", "#8c3b1b", "#f5deb3", "#eec659", "#d2691e"],
+  },
+  {
+    id: "christmas",
+    label: "Christmas",
+    months: [11],
+    htmlClass: "christmas-season",
+    colors: ["#c8102e", "#0f8a3d", "#f8f8f8", "#ffd700", "#f0c33c", "#0f8a3d"],
+  },
+  {
+    id: "new-year",
+    label: "New Year",
+    months: [0],
+    htmlClass: "new-year-season",
+    colors: ["#ffd700", "#c0c0c0", "#5b6fd4", "#ffffff", "#f5da6e", "#8a2be2"],
+  },
+  {
+    id: "easter",
+    label: "Easter",
+    months: [3],
+    htmlClass: "easter-season",
+    colors: ["#ffb7ce", "#a3d9ff", "#fff3a0", "#c9f0c4", "#e6ccff", "#ffd6a5"],
+  },
+  {
+    id: "mothers-day",
+    label: "Mother's Day",
+    months: [4],
+    htmlClass: "mothers-day-season",
+    colors: ["#ff69b4", "#ffc0cb", "#f4c2c2", "#d87093", "#ffb6c1", "#c71585"],
+  },
+  {
+    id: "fathers-day",
+    label: "Father's Day",
+    months: [5],
+    htmlClass: "fathers-day-season",
+    colors: ["#4a7ba6", "#8fb8de", "#7fc8c0", "#5f9ea0", "#a9c4d9", "#6d9dc5"],
+  },
+];
+
+/** Every season, live and draft — for previews (Storybook selector). */
+export const ALL_SEASONS: Season[] = [...SEASONS, ...DRAFT_SEASONS];
+
 export const HIDE_FESTIVE_COOKIE = "hide_festive_months";
 
 export function readCookieString(): string {
