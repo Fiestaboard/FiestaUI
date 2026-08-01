@@ -51,12 +51,21 @@ const preview: Preview = {
   decorators: [
     (Story, context) => {
       const theme = (context.globals.theme || "dark") as "light" | "dark";
+      // Fullscreen stories (app chrome) render their own landmarks — a
+      // <main> wrapper here would nest/duplicate theirs and fail axe.
+      const fullscreen = context.parameters.layout === "fullscreen";
       return (
         <>
           <ThemeSync theme={theme} />
-          <main className="min-h-screen bg-background text-foreground p-8">
-            <Story />
-          </main>
+          {fullscreen ? (
+            <div className="bg-background text-foreground">
+              <Story />
+            </div>
+          ) : (
+            <main className="min-h-screen bg-background text-foreground p-8">
+              <Story />
+            </main>
+          )}
         </>
       );
     },
