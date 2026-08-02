@@ -13,6 +13,11 @@ on:
         description: "Released FiestaUI version (X.Y.Z, no leading v)"
         required: true
         type: string
+      adopt:
+        description: "Run the design-system adoption pass after a green bump"
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       version:
@@ -24,6 +29,11 @@ on:
         required: false
         type: boolean
         default: false
+      adopt:
+        description: "Run the design-system adoption pass after a green bump"
+        required: false
+        type: boolean
+        default: true
 
 # Newest release wins; an in-flight run for an older version is cancelled.
 concurrency:
@@ -33,6 +43,7 @@ concurrency:
 permissions:
   contents: read
   packages: read
+  issues: write # adoption pass files component-request issues on this repo
 
 env:
   TARGET_REPO: Fiestaboard/FiestaBoard
@@ -202,6 +213,23 @@ jobs:
             echo "green=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # Best-effort design-system adoption: swap FiestaBoard's hand-rolled
+      # UI onto @fiestaboard/ui while the tree is green. Never blocks the
+      # upgrade — adopt.sh always exits 0 and rolls back a red tree. See
+      # docs/superpowers/specs/2026-08-02-design-system-adoption-design.md.
+      - name: Adopt design-system components
+        if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true' && steps.fix.outputs.green == 'true' && inputs.adopt != false
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # FiestaUI-scoped: issue filing
+          NEW_VERSION: ${{ steps.meta.outputs.version }}
+          UI_REPO: ${{ github.repository }}
+          SUMMARY_FILE: ${{ github.workspace }}/adoption-summary.md
+        run: |
+          # claude-code was installed globally by the validate/fix step.
+          "$FIESTAUI_DIR/scripts/downstream-upgrade/adopt.sh"
+
       - name: Push fixes and confirm FiestaBoard CI
         id: ci
         if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true'
@@ -223,6 +251,24 @@ jobs:
             sleep 60 # give CI time to register checks on the new SHA
             if gh pr checks "$pr" -R "$TARGET_REPO" --watch --fail-fast; then
               result=green; break
+            fi
+            # Red CI with adoption commits present: drop the adoption first
+            # (cheap, upgrade-protecting) before spending repair attempts.
+            # Adoption commits are HEAD-most at this point (no repair
+            # commits yet — this branch runs before fix-loop) and
+            # contiguous, so resetting below the oldest one is exact.
+            if [ ! -f "$GITHUB_WORKSPACE/adoption-dropped" ] && \
+               git log --format=%H --grep='\[fiestaui-adoption\]' origin/main..HEAD | grep -q .; then
+              first_adopt=$(git log --format=%H --grep='\[fiestaui-adoption\]' origin/main..HEAD | tail -1)
+              git reset --hard "${first_adopt}^"
+              touch "$GITHUB_WORKSPACE/adoption-dropped"
+              {
+                echo
+                echo "FiestaBoard CI went red with adoption commits present;"
+                echo "all adoption commits were dropped and CI re-run."
+              } >> "$GITHUB_WORKSPACE/adoption-summary.md"
+              git push --force origin "$UPGRADE_BRANCH"
+              continue
             fi
             attempts=$(cat "$ATTEMPTS_FILE" 2>/dev/null || echo 0)
             if [ "${{ steps.fix.outputs.green }}" = "false" ] || [ "$attempts" -ge "$MAX_ATTEMPTS" ]; then
@@ -262,6 +308,9 @@ jobs:
                 echo; echo "Clean upgrade — no code changes were needed."
               fi
             } > "$GITHUB_WORKSPACE/comment.md"
+            if [ -f "$GITHUB_WORKSPACE/adoption-summary.md" ]; then
+              { echo; cat "$GITHUB_WORKSPACE/adoption-summary.md"; } >> "$GITHUB_WORKSPACE/comment.md"
+            fi
             "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" comment "$GITHUB_WORKSPACE/comment.md"
             "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" set-state green
           else
@@ -272,6 +321,9 @@ jobs:
               tail -c 4000 "$LOG_FILE"
               echo '```'
             } > "$GITHUB_WORKSPACE/comment.md"
+            if [ -f "$GITHUB_WORKSPACE/adoption-summary.md" ]; then
+              { echo; cat "$GITHUB_WORKSPACE/adoption-summary.md"; } >> "$GITHUB_WORKSPACE/comment.md"
+            fi
             "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" comment "$GITHUB_WORKSPACE/comment.md"
             "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" set-state blocked
             echo "::warning::Upgrade blocked; maintainer pinged. Workflow exits 0 (release itself succeeded)."
