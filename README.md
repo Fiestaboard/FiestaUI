@@ -88,6 +88,23 @@ Publishing authenticates with the workflow's built-in `GITHUB_TOKEN` (`packages:
 
 If the package later moves to registry.npmjs.org (which would allow anonymous installs), switch the release workflow to [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC); note that npm's [bypass-2FA token deprecation](https://github.blog/changelog/2026-07-08-npm-install-time-security-and-gat-bypass2fa-deprecation/) means the first npmjs publish must be done manually with a 2FA OTP.
 
+## Downstream upgrade automation
+
+Every release triggers `.github/workflows/downstream-upgrade.yml`, which keeps
+a single evergreen PR open on `Fiestaboard/FiestaBoard` (branch
+`fiestaui-upgrade`) pinning `@fiestaboard/ui` to the newest version. If the
+bump breaks FiestaBoard, Claude (Opus) TDD-fixes it (max 3 attempts) and
+FiestaBoard CI must pass before the PR is labeled `upgrade-green`; otherwise
+it's labeled `upgrade-blocked` and the maintainer is pinged. A human on
+FiestaBoard always does the merge.
+
+Manual run / backfill: **Actions → Downstream Upgrade → Run workflow**
+(optionally set `version`; `dry_run` computes the bump without pushing).
+
+Required repo secrets: `CLAUDE_BOT_APP_ID`, `CLAUDE_BOT_APP_PRIVATE_KEY`
+(GitHub App with write access to FiestaBoard), `CLAUDE_CODE_OAUTH_TOKEN`.
+Design: `docs/superpowers/specs/2026-08-01-downstream-upgrade-design.md`.
+
 ## License
 
 MIT
