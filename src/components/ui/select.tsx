@@ -158,7 +158,7 @@ const SelectContent = React.forwardRef<
         align={align}
         sideOffset={sideOffset}
         alignItemWithTrigger={false}
-        className="z-[120]"
+        className="z-[var(--z-select)]"
       >
         <SelectPrimitive.Popup
           ref={ref}

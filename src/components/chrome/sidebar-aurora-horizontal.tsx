@@ -41,7 +41,7 @@ export const SidebarAuroraHorizontal = memo(function SidebarAuroraHorizontal({
         position: "absolute",
         inset: 0,
         overflow: "hidden",
-        borderRadius: "16px",
+        borderRadius: "var(--radius-chrome-mobile, 16px)",
         pointerEvents: "none",
       }}
     >

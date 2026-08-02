@@ -42,7 +42,7 @@ const SheetOverlay = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Backdrop>
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Backdrop
-    className={cn("fixed inset-0 z-[110] bg-overlay", className)}
+    className={cn("fixed inset-0 z-[var(--z-sheet)] bg-overlay", className)}
     style={{
       animation: "sheet-overlay-in var(--motion-duration-slow) var(--motion-ease-out)",
     }}
@@ -52,7 +52,7 @@ const SheetOverlay = React.forwardRef<
 ));
 SheetOverlay.displayName = "SheetOverlay";
 
-const sheetVariants = cva("fixed z-[110] gap-4 bg-background p-6 shadow-modal", {
+const sheetVariants = cva("fixed z-[var(--z-sheet)] gap-4 bg-background p-6 shadow-modal", {
   variants: {
     side: {
       top: "inset-x-0 top-0 border-b",

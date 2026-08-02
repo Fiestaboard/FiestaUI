@@ -300,7 +300,7 @@ export function Sidebar({
           --mobile-header-height var that the menu and MainContent offset by. */}
       <header
         ref={headerRef}
-        className="lg:hidden fixed top-2 left-3 right-3 z-[100] overflow-hidden sidebar-gradient-horizontal"
+        className="lg:hidden fixed top-2 left-3 right-3 z-[var(--z-mobile-header)] overflow-hidden sidebar-gradient-horizontal"
       >
         {season && <SidebarAuroraHorizontal colors={season.colors} />}
         <div className="relative z-[1] flex min-h-14 flex-wrap items-center gap-y-2 px-4 py-2">
@@ -322,7 +322,7 @@ export function Sidebar({
       <div
         data-testid="mobile-backdrop"
         className={cn(
-          "lg:hidden fixed inset-0 z-[90] bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 pointer-events-none",
+          "lg:hidden fixed inset-0 z-[var(--z-mobile-backdrop)] bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 pointer-events-none",
           mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0",
         )}
         onClick={() => setMobileMenuOpen(false)}
@@ -332,7 +332,7 @@ export function Sidebar({
       {/* Mobile Menu */}
       <div
         className={cn(
-          "lg:hidden fixed top-[calc(var(--mobile-header-height,56px)+16px)] left-3 right-3 z-[95] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal",
+          "lg:hidden fixed top-[calc(var(--mobile-header-height,56px)+16px)] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal",
           mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
         role={mobileMenuOpen ? "dialog" : undefined}
@@ -341,7 +341,9 @@ export function Sidebar({
         aria-hidden={!mobileMenuOpen}
         inert={!mobileMenuOpen ? true : undefined}
         style={{
-          clipPath: mobileMenuOpen ? "inset(0 0 0 0 round 16px)" : "inset(0 0 100% 0 round 16px)",
+          clipPath: mobileMenuOpen
+            ? "inset(0 0 0 0 round var(--radius-chrome-mobile, 16px))"
+            : "inset(0 0 100% 0 round var(--radius-chrome-mobile, 16px))",
           transition:
             "clip-path var(--motion-duration-slower) var(--motion-ease-spring), opacity var(--motion-duration-exit) var(--motion-ease-standard)",
         }}
@@ -383,7 +385,7 @@ export function Sidebar({
         <aside
           aria-label={labels.mainNavigation}
           className={cn(
-            "hidden lg:fixed lg:top-3 lg:bottom-3 lg:z-50 lg:block sidebar-gradient sidebar-transition",
+            "hidden lg:fixed lg:top-3 lg:bottom-3 lg:z-[var(--z-sidebar)] lg:block sidebar-gradient sidebar-transition",
             collapsed ? "lg:w-16" : "lg:w-64",
             transitioning && "is-transitioning",
           )}
@@ -401,7 +403,7 @@ export function Sidebar({
               <button
                 onClick={onToggleCollapsed}
                 aria-label={collapsed ? labels.expandSidebar : labels.collapseSidebar}
-                className="absolute -right-3.5 top-[51px] z-[51] flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-md hover:bg-accent hover:text-foreground transition-colors"
+                className="absolute -right-3.5 top-[51px] z-[var(--z-sidebar-toggle)] flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-md hover:bg-accent hover:text-foreground transition-colors"
               >
                 {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
               </button>

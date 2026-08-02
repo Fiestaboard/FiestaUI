@@ -47,7 +47,7 @@ export const SidebarAurora = memo(function SidebarAurora({ colors = PRIDE_SEASON
         position: "absolute",
         inset: 0,
         overflow: "hidden",
-        borderRadius: "14px",
+        borderRadius: "var(--radius-chrome, 14px)",
         pointerEvents: "none",
       }}
     >

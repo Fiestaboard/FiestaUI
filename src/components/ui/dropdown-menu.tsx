@@ -42,7 +42,12 @@ function DropdownMenuContent({
 }) {
   return (
     <DropdownMenuPrimitive.Portal>
-      <DropdownMenuPrimitive.Positioner side={side} align={align} sideOffset={sideOffset} className="z-50">
+      <DropdownMenuPrimitive.Positioner
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        className="z-[var(--z-popover)]"
+      >
         <DropdownMenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
@@ -207,7 +212,7 @@ function DropdownMenuSubTrigger({
 function DropdownMenuSubContent({ className, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Popup>) {
   return (
     <DropdownMenuPrimitive.Portal>
-      <DropdownMenuPrimitive.Positioner className="z-50">
+      <DropdownMenuPrimitive.Positioner className="z-[var(--z-popover)]">
         <DropdownMenuPrimitive.Popup
           data-slot="dropdown-menu-sub-content"
           className={cn(

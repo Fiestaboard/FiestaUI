@@ -254,6 +254,96 @@
   --motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
   --motion-ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);
   --motion-ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* ============================================================
+   * Radius role scale (B3) — which UI role gets which corner.
+   * Roles are derived from what shipped components already use;
+   * every value equals the exact pre-token computed value (visual
+   * parity is the contract — see file header).
+   *
+   * Role          | token                  | = class      | value | used by
+   * control-inset | --radius-control-inset | rounded-sm   |  6px  | items nested inside a rounded control/popover: dropdown & select items, tabs trigger, dialog close
+   * control       | --radius-control       | rounded-md   |  8px  | buttons, input, textarea, select trigger, tabs list, skeleton, skip-link, and popover surfaces (dropdown/select/tooltip popups)
+   * surface       | --radius-surface       | rounded-lg   | 10px  | modal surfaces (dialog, alert-dialog), alert, sidebar nav pills
+   * card          | --radius-card          | rounded-xl   | 12px  | card, page-header icon tile
+   * pill          | --radius-pill          | rounded-full |  ∞    | badge, switch, slider, sheet close, scroll-area thumb, sidebar edge toggle, empty-state icon
+   * chrome        | --radius-chrome        | (css/inline) | 14px  | desktop sidebar shell + its aurora inset
+   * chrome-mobile | --radius-chrome-mobile | (css/inline) | 16px  | mobile header/menu shell, its aurora inset, menu clip-path reveal
+   *
+   * Components KEEP their Tailwind rounded-* classes — those already
+   * resolve through the --radius calc chain, so each role token below
+   * is defined with the same math and stays in lockstep with them.
+   * New components pick a ROLE from this table instead of a raw size.
+   * The chrome radii are deliberately fixed px (not on the rem-based
+   * --radius chain): they match the aurora canvas insets exactly.
+   *
+   * Deliberately off-scale (left as-is): BoardIcon bare `rounded`
+   * (4px micro tile), pride-burst particle 2px, scroll-area viewport
+   * rounded-[inherit].
+   * ============================================================ */
+  --radius-control-inset: calc(var(--radius) - 4px);
+  --radius-control: calc(var(--radius) - 2px);
+  --radius-surface: var(--radius);
+  --radius-card: calc(var(--radius) + 4px);
+  --radius-pill: calc(infinity * 1px);
+  --radius-chrome: 14px;
+  --radius-chrome-mobile: 16px;
+
+  /* ============================================================
+   * Z-index layer scale (B3) — the app's stacking story, bottom to
+   * top. Values are exactly the pre-token numbers (parity contract).
+   *
+   *   --z-popover          50  dropdown-menu popovers (see gotcha below)
+   *   --z-sidebar          50  desktop sidebar rail
+   *   --z-sidebar-toggle   51  edge collapse button — LOCAL value: the
+   *                            fixed z-50 aside is its own stacking
+   *                            context, so 51 only beats the aurora
+   *                            canvas / z-[1] content column inside it
+   *   --z-mobile-backdrop  90  dimming layer behind the mobile menu
+   *   --z-mobile-menu      95  mobile slide-down menu panel
+   *   --z-mobile-header   100  mobile header — beats the open menu (95)
+   *                            and backdrop (90) so the hamburger/close
+   *                            button stays clickable
+   *   --z-sheet           110  sheet/drawer + its backdrop — covers all
+   *                            chrome including the mobile header
+   *   --z-select          120  Select popup — MUST stay above
+   *                            --z-mobile-header: the header hosts the
+   *                            mobile board selector, and its portalled
+   *                            popup wins by VALUE (Base UI portals into
+   *                            <body>; all these layers are fixed in the
+   *                            root stacking context)
+   *   --z-modal           130  dialog + alert-dialog (and backdrops) —
+   *                            above sheets, so dialogs can launch from
+   *                            them
+   *   --z-tooltip         140  tooltip — topmost overlay, readable over
+   *                            modals
+   *   --z-skip-link       200  skip-to-content link when focused
+   *   --z-confetti       9999  season burst particles — above everything
+   *
+   * Popover gotcha: --z-popover (50) ties with the desktop sidebar.
+   * Dropdowns still stack above it because Base UI portals append to
+   * <body> AFTER the sidebar — DOM order breaks the tie. A dropdown
+   * opened FROM the mobile header (100) would lose; nothing does that
+   * today (the header's board selector is a Select at 120). Don't put
+   * DropdownMenus in mobile chrome without revisiting this.
+   *
+   * Not on the scale (local stacking / one-offs): select scroll
+   * buttons z-10 (sticky inside the popup), sidebar/header content
+   * z-[1] (above the aurora canvas), board-switch view-transition
+   * groups 0/1 (::view-transition pseudo-tree only).
+   * ============================================================ */
+  --z-popover: 50;
+  --z-sidebar: 50;
+  --z-sidebar-toggle: 51;
+  --z-mobile-backdrop: 90;
+  --z-mobile-menu: 95;
+  --z-mobile-header: 100;
+  --z-sheet: 110;
+  --z-select: 120;
+  --z-modal: 130;
+  --z-tooltip: 140;
+  --z-skip-link: 200;
+  --z-confetti: 9999;
 }
 
 .dark {
@@ -616,7 +706,7 @@
   height: 7px;
   border-radius: 2px;
   pointer-events: none;
-  z-index: 9999;
+  z-index: var(--z-confetti);
   /* 0.8s default is a one-off (JS overrides via --dur), so it stays inline */
   animation: pride-burst var(--dur, 0.8s) var(--motion-ease-out) forwards;
 }
@@ -828,7 +918,7 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   background-repeat: repeat-y;
   animation: sidebar-gradient-flow 117s linear infinite;
   color: oklch(0 0 0);
-  border-radius: 14px;
+  border-radius: var(--radius-chrome);
   --sidebar-foreground: oklch(0 0 0);
   --sidebar-accent: oklch(1 0 0 / 35%);
   --sidebar-accent-foreground: oklch(0 0 0);
@@ -877,7 +967,7 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   background-position: 0% 50%;
   animation: sidebar-gradient-flow-h 117s linear infinite;
   color: oklch(0 0 0);
-  border-radius: 16px;
+  border-radius: var(--radius-chrome-mobile);
   --foreground: oklch(0 0 0);
   --sidebar-accent: oklch(1 0 0 / 35%);
   --sidebar-accent-foreground: oklch(0 0 0);
