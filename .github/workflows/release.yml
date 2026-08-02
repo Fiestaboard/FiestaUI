@@ -82,7 +82,15 @@ jobs:
           gh pr create --head "${BRANCH}" --base main \
             --title "chore: release v${{ steps.version.outputs.version }}" \
             --body "Version commit for the published v${{ steps.version.outputs.version }} release. Auto-merges when CI passes."
-          gh pr merge "${BRANCH}" --auto --squash --delete-branch
+          # Pushes and PRs made with GITHUB_TOKEN never trigger pull_request
+          # workflows (GitHub's recursion guard), so the required "CI Success"
+          # check would never report and auto-merge would wait forever.
+          # workflow_dispatch is exempt from that guard — dispatch CI on the
+          # branch explicitly so the check runs against the PR's head commit.
+          gh workflow run ci.yml --ref "${BRANCH}"
+          # --merge (not --squash) so the tagged commit itself becomes
+          # reachable from main instead of dangling behind the tag.
+          gh pr merge "${BRANCH}" --auto --merge --delete-branch
         env:
           GH_TOKEN: ${{ github.token }}
 
