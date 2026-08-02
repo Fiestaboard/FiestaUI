@@ -26,6 +26,11 @@ on:
 permissions:
   contents: write
   packages: write
+  # Landing the version commit via PR needs more than contents: an explicit
+  # permissions block zeroes everything unlisted, which broke `gh pr create`
+  # ("Resource not accessible by integration") on the v1.0.1 release.
+  pull-requests: write # create + auto-merge the version PR
+  actions: write # dispatch ci.yml on the release branch
 
 concurrency:
   group: release
