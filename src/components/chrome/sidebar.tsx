@@ -342,7 +342,8 @@ export function Sidebar({
         inert={!mobileMenuOpen ? true : undefined}
         style={{
           clipPath: mobileMenuOpen ? "inset(0 0 0 0 round 16px)" : "inset(0 0 100% 0 round 16px)",
-          transition: "clip-path 350ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms ease",
+          transition:
+            "clip-path var(--motion-duration-slower) var(--motion-ease-spring), opacity var(--motion-duration-exit) var(--motion-ease-standard)",
         }}
       >
         <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">

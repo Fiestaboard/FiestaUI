@@ -44,7 +44,7 @@ const SheetOverlay = React.forwardRef<
   <SheetPrimitive.Backdrop
     className={cn("fixed inset-0 z-[110] bg-overlay", className)}
     style={{
-      animation: "sheet-overlay-in 300ms ease-out",
+      animation: "sheet-overlay-in var(--motion-duration-slow) var(--motion-ease-out)",
     }}
     {...props}
     ref={ref}
@@ -79,17 +79,18 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<React.ComponentRef<typeof SheetPrimitive.Popup>, SheetContentProps>(
   ({ side = "right", className, children, onEscapeKeyDown, onKeyDown, ...props }, ref) => {
     const getAnimation = (side: string) => {
+      const timing = "var(--motion-duration-slowest) var(--motion-ease-standard)";
       switch (side) {
         case "right":
-          return "sheet-slide-in-right 400ms cubic-bezier(0.25, 0.1, 0.25, 1)";
+          return `sheet-slide-in-right ${timing}`;
         case "left":
-          return "sheet-slide-in-left 400ms cubic-bezier(0.25, 0.1, 0.25, 1)";
+          return `sheet-slide-in-left ${timing}`;
         case "top":
-          return "sheet-slide-in-top 400ms cubic-bezier(0.25, 0.1, 0.25, 1)";
+          return `sheet-slide-in-top ${timing}`;
         case "bottom":
-          return "sheet-slide-in-bottom 400ms cubic-bezier(0.25, 0.1, 0.25, 1)";
+          return `sheet-slide-in-bottom ${timing}`;
         default:
-          return "sheet-slide-in-right 400ms cubic-bezier(0.25, 0.1, 0.25, 1)";
+          return `sheet-slide-in-right ${timing}`;
       }
     };
 

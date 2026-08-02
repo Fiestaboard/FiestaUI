@@ -216,6 +216,44 @@
   --elevation-card: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 2px 8px -2px rgb(0 0 0 / 0.06);
   --elevation-card-hover: 0 2px 8px -2px rgb(0 0 0 / 0.08), 0 4px 16px -4px rgb(0 0 0 / 0.06);
   --elevation-modal: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+
+  /* ============================================================
+   * Motion tokens (B4) — one duration scale + named easings.
+   * Values are lifted verbatim from the pre-token declarations;
+   * visual parity is the contract (see file header).
+   *
+   * Durations:
+   *   fast    100ms  micro fades (collapsed-sidebar labels; = Tailwind duration-100)
+   *   control 150ms  control feedback: button/switch/scrollbar (= Tailwind duration-150)
+   *   base    200ms  standard fades, accordion, dialog (= Tailwind duration-200)
+   *   exit    250ms  surface exit slides + companion fades
+   *   slow    300ms  surface & page entrances, sidebar collapse
+   *   slower  350ms  large-surface entrances (slide-up page, mobile nav/menu)
+   *   slowest 400ms  sheet/drawer slide-in, desktop sidebar entrance
+   *
+   * Easings:
+   *   out       ease-out                          standard decelerate (fades, entrances)
+   *   spring    cubic-bezier(0.16, 1, 0.3, 1)     out-expo "spring" (modal/page/sheet entrances)
+   *   in        cubic-bezier(0.4, 0, 1, 1)        accelerate (exits; = Tailwind ease-in)
+   *   out-cubic cubic-bezier(0.33, 1, 0.68, 1)    gentle decelerate (sidebar collapse/expand)
+   *   standard  cubic-bezier(0.25, 0.1, 0.25, 1)  = CSS `ease` keyword (sheet slides)
+   *
+   * Deliberately left inline (true one-offs): 117s sidebar gradient
+   * flow, 220ms board-switch exits, 0.8s pride-burst, 1s card-fade-in,
+   * 50ms page-toolbar stagger delay.
+   * ============================================================ */
+  --motion-duration-fast: 100ms;
+  --motion-duration-control: 150ms;
+  --motion-duration-base: 200ms;
+  --motion-duration-exit: 250ms;
+  --motion-duration-slow: 300ms;
+  --motion-duration-slower: 350ms;
+  --motion-duration-slowest: 400ms;
+  --motion-ease-out: ease-out;
+  --motion-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --motion-ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);
+  --motion-ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .dark {
@@ -324,12 +362,12 @@
 
 .animate-accordion-down {
   display: grid;
-  animation: accordion-down 0.2s ease-out;
+  animation: accordion-down var(--motion-duration-base) var(--motion-ease-out);
 }
 
 .animate-accordion-up {
   display: grid;
-  animation: accordion-up 0.2s ease-out;
+  animation: accordion-up var(--motion-duration-base) var(--motion-ease-out);
 }
 
 /* Tailwind animate utilities for Radix UI */
@@ -446,51 +484,51 @@
 }
 
 .animate-in {
-  animation: enter 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: enter var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .animate-out {
-  animation: exit 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: exit var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .fade-in-0 {
-  animation: fade-in 200ms ease-out;
+  animation: fade-in var(--motion-duration-base) var(--motion-ease-out);
 }
 
 .fade-out-0 {
-  animation: fade-out 200ms ease-out;
+  animation: fade-out var(--motion-duration-base) var(--motion-ease-out);
 }
 
 .slide-in-from-right {
-  animation: slide-in-from-right 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slide-in-from-right var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .slide-out-to-right {
-  animation: slide-out-to-right 250ms cubic-bezier(0.4, 0, 1, 1);
+  animation: slide-out-to-right var(--motion-duration-exit) var(--motion-ease-in);
 }
 
 .slide-in-from-left {
-  animation: slide-in-from-left 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slide-in-from-left var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .slide-out-to-left {
-  animation: slide-out-to-left 250ms cubic-bezier(0.4, 0, 1, 1);
+  animation: slide-out-to-left var(--motion-duration-exit) var(--motion-ease-in);
 }
 
 .slide-in-from-top {
-  animation: slide-in-from-top 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slide-in-from-top var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .slide-out-to-top {
-  animation: slide-out-to-top 250ms cubic-bezier(0.4, 0, 1, 1);
+  animation: slide-out-to-top var(--motion-duration-exit) var(--motion-ease-in);
 }
 
 .slide-in-from-bottom {
-  animation: slide-in-from-bottom 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slide-in-from-bottom var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .slide-out-to-bottom {
-  animation: slide-out-to-bottom 250ms cubic-bezier(0.4, 0, 1, 1);
+  animation: slide-out-to-bottom var(--motion-duration-exit) var(--motion-ease-in);
 }
 
 /* ===== 60FPS SHEET/DRAWER ANIMATIONS ===== */
@@ -579,7 +617,8 @@
   border-radius: 2px;
   pointer-events: none;
   z-index: 9999;
-  animation: pride-burst var(--dur, 0.8s) ease-out forwards;
+  /* 0.8s default is a one-off (JS overrides via --dur), so it stays inline */
+  animation: pride-burst var(--dur, 0.8s) var(--motion-ease-out) forwards;
 }
 
 /* Board switch transition — the app-wide board selector wraps its state
@@ -640,20 +679,22 @@ html[data-board-switch]::view-transition-group(app-mobile-header) {
   }
 }
 
+/* 220ms outgoing-page exit is a deliberate one-off (slightly quicker than the
+   250ms exit tier so the incoming page reads as leading the switch) */
 html[data-board-switch="forward"]::view-transition-old(board-page) {
-  animation: board-switch-out-left 220ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: board-switch-out-left 220ms var(--motion-ease-in) both;
 }
 
 html[data-board-switch="forward"]::view-transition-new(board-page) {
-  animation: board-switch-in-right 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: board-switch-in-right var(--motion-duration-slow) var(--motion-ease-spring) both;
 }
 
 html[data-board-switch="backward"]::view-transition-old(board-page) {
-  animation: board-switch-out-right 220ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: board-switch-out-right 220ms var(--motion-ease-in) both;
 }
 
 html[data-board-switch="backward"]::view-transition-new(board-page) {
-  animation: board-switch-in-left 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: board-switch-in-left var(--motion-duration-slow) var(--motion-ease-spring) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -667,22 +708,22 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 @layer base {
   /* Animate page content on route changes */
   main {
-    animation: page-enter 300ms ease-out;
+    animation: page-enter var(--motion-duration-slow) var(--motion-ease-out);
   }
 
   /* Slide-up animation for modal-like pages (edit/new) */
   html[data-transition="slide-up"] main {
-    animation: slide-up-enter 350ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slide-up-enter var(--motion-duration-slower) var(--motion-ease-spring);
   }
 
   /* Slide-down animation for returning from modals */
   html[data-transition="slide-down"] main {
-    animation: slide-down-enter 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slide-down-enter var(--motion-duration-slow) var(--motion-ease-spring);
   }
 
   /* Scale-fade for content areas */
   html[data-transition="scale-fade"] main {
-    animation: scale-fade-enter 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: scale-fade-enter var(--motion-duration-slow) var(--motion-ease-spring);
   }
 
   /* Respect user's motion preferences */
@@ -887,22 +928,24 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
 }
 /* Desktop: entrance then gradient flow (both run; gradient starts after 400ms) */
+/* 117s gradient loop is an ambient one-off; its 0.4s/0.35s start delays
+   mirror the entrance durations (slowest/slower) and stay literal with them */
 @media (min-width: 1024px) {
   .sidebar-gradient {
     animation:
-      nav-slide-in-left 400ms ease-out both,
+      nav-slide-in-left var(--motion-duration-slowest) var(--motion-ease-out) both,
       sidebar-gradient-flow 117s linear 0.4s infinite;
   }
 }
 .sidebar-gradient-horizontal {
   animation:
-    nav-slide-in-top 350ms ease-out both,
+    nav-slide-in-top var(--motion-duration-slower) var(--motion-ease-out) both,
     sidebar-gradient-flow-h 117s linear 0.35s infinite;
 }
 @media (min-width: 1024px) {
   .sidebar-gradient-horizontal {
     animation:
-      nav-slide-in-top 350ms ease-out both,
+      nav-slide-in-top var(--motion-duration-slower) var(--motion-ease-out) both,
       sidebar-gradient-flow-h 117s linear 0.35s infinite;
   }
 }
@@ -912,9 +955,9 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
    All use the same 300ms easing so they move in sync and never collide. */
 .sidebar-transition {
   transition:
-    width 300ms cubic-bezier(0.33, 1, 0.68, 1),
-    padding-left 300ms cubic-bezier(0.33, 1, 0.68, 1),
-    padding-right 300ms cubic-bezier(0.33, 1, 0.68, 1);
+    width var(--motion-duration-slow) var(--motion-ease-out-cubic),
+    padding-left var(--motion-duration-slow) var(--motion-ease-out-cubic),
+    padding-right var(--motion-duration-slow) var(--motion-ease-out-cubic);
   contain: layout style;
 }
 .sidebar-transition.is-transitioning {
@@ -1058,7 +1101,8 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 }
 
 .animate-card-fade-in {
-  animation: card-fade-in 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* 1s hero-entrance duration is a one-off, so it stays inline */
+  animation: card-fade-in 1s var(--motion-ease-spring) both;
 }
 
 /* Type scale: ratio 1.25; body 1rem (16px). Tailwind text-xs/sm/base/lg/xl/2xl/3xl/4xl align. */
