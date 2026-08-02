@@ -1,0 +1,272 @@
+name: Downstream Upgrade
+
+# Keeps ONE evergreen upgrade PR open on Fiestaboard/FiestaBoard pinning
+# @fiestaboard/ui to the newest FiestaUI release. Mechanical bump first;
+# Claude (Opus) TDD-fixes breakage only when validation fails; FiestaBoard
+# CI is polled and must be green before the PR is labeled upgrade-green.
+# See docs/superpowers/specs/2026-08-01-downstream-upgrade-design.md.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Released FiestaUI version (X.Y.Z, no leading v)"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "FiestaUI version to upgrade to (defaults to latest release)"
+        required: false
+        type: string
+      dry_run:
+        description: "Compute the bump and validate locally, but do not push, PR, or run Claude"
+        required: false
+        type: boolean
+        default: false
+
+# Newest release wins; an in-flight run for an older version is cancelled.
+concurrency:
+  group: downstream-upgrade
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  TARGET_REPO: Fiestaboard/FiestaBoard
+  UPGRADE_BRANCH: fiestaui-upgrade
+  MAINTAINER: jeffredodd
+  MAX_ATTEMPTS: "3"
+  FIESTAUI_DIR: ${{ github.workspace }}/fiestaui
+  FIESTABOARD_DIR: ${{ github.workspace }}/fiestaboard
+  LOG_FILE: ${{ github.workspace }}/validate.log
+  ATTEMPTS_FILE: ${{ github.workspace }}/du-attempts
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout FiestaUI
+        uses: actions/checkout@v7
+        with:
+          path: fiestaui
+          fetch-depth: 0 # need tags for the vPrev..vNew diff
+
+      - name: Resolve versions and release notes
+        id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd "$FIESTAUI_DIR"
+          VERSION="${{ inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION=$(gh release view --json tagName --jq '.tagName' | sed 's/^v//')
+          fi
+          git rev-parse "v$VERSION" >/dev/null # fail fast on unknown version
+          PREV=$(git tag --sort=-v:refname | grep -x -A1 "v$VERSION" | tail -1 | sed 's/^v//')
+          [ "$PREV" != "$VERSION" ] || PREV=""
+          gh release view "v$VERSION" --json body --jq '.body' > "$GITHUB_WORKSPACE/release-notes.md" || true
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "prev=$PREV" >> "$GITHUB_OUTPUT"
+          echo "Upgrading FiestaBoard to v$VERSION (previous: v${PREV:-none})"
+
+      - name: Mint FiestaBoard App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.CLAUDE_BOT_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
+          owner: Fiestaboard
+          repositories: FiestaBoard
+
+      - name: Checkout FiestaBoard
+        uses: actions/checkout@v7
+        with:
+          repository: Fiestaboard/FiestaBoard
+          token: ${{ steps.app-token.outputs.token }}
+          path: fiestaboard
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@fiestaboard"
+
+      # Baseline: if FiestaBoard main is already red, the upgrade isn't to
+      # blame — mark blocked and stop before spending Claude tokens.
+      - name: Baseline check on FiestaBoard main
+        id: baseline
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          (cd "$FIESTABOARD_DIR/web" && npm ci --no-audit)
+          if "$FIESTAUI_DIR/scripts/downstream-upgrade/validate.sh" "$FIESTABOARD_DIR" "$LOG_FILE"; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Reset evergreen branch and bump
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd "$FIESTABOARD_DIR"
+          git config user.name "fiestaui-automation[bot]"
+          git config user.email "fiestaui-automation[bot]@users.noreply.github.com"
+          git checkout -B "$UPGRADE_BRANCH" origin/main
+          "$FIESTAUI_DIR/scripts/downstream-upgrade/bump.sh" . "${{ steps.meta.outputs.version }}"
+          git add web/package.json web/package-lock.json
+          git commit -m "chore(deps): bump @fiestaboard/ui to v${{ steps.meta.outputs.version }}"
+
+      - name: Dry run — show diff and stop
+        if: inputs.dry_run == true
+        run: |
+          cd "$FIESTABOARD_DIR"
+          git show --stat HEAD
+          git diff origin/main..HEAD -- web/package.json
+          echo "Baseline ok: ${{ steps.baseline.outputs.ok }}"
+          echo "DRY RUN: skipping push, PR sync, validation loop."
+
+      - name: Push branch and sync PR
+        if: inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ env.TARGET_REPO }}
+          BRANCH: ${{ env.UPGRADE_BRANCH }}
+        run: |
+          cd "$FIESTABOARD_DIR"
+          # The branch is automation-owned; force push IS the evergreen
+          # reset semantics.
+          git push --force origin "$UPGRADE_BRANCH"
+          "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" ensure-labels
+          {
+            echo "Automated upgrade of \`@fiestaboard/ui\` to **v${{ steps.meta.outputs.version }}**."
+            echo
+            echo "## FiestaUI release notes"
+            cat "$GITHUB_WORKSPACE/release-notes.md" 2>/dev/null || echo "_none_"
+            echo
+            echo "_Maintained by FiestaUI's Downstream Upgrade workflow; this PR always tracks the newest release._"
+          } > "$GITHUB_WORKSPACE/pr-body.md"
+          "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" sync \
+            "${{ steps.meta.outputs.version }}" "$GITHUB_WORKSPACE/pr-body.md"
+          "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" set-state pending
+
+      - name: Handle red baseline
+        if: inputs.dry_run != true && steps.baseline.outputs.ok == 'false'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ env.TARGET_REPO }}
+          BRANCH: ${{ env.UPGRADE_BRANCH }}
+        run: |
+          {
+            echo "@$MAINTAINER FiestaBoard \`main\` fails typecheck/tests **before** the"
+            echo "v${{ steps.meta.outputs.version }} bump — baseline failure, not an upgrade issue."
+            echo "The upgrade PR was still updated, but no fixes were attempted."
+            echo
+            echo '```'
+            tail -c 4000 "$LOG_FILE"
+            echo '```'
+          } > "$GITHUB_WORKSPACE/comment.md"
+          "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" comment "$GITHUB_WORKSPACE/comment.md"
+          "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" set-state blocked
+          echo "::warning::FiestaBoard baseline is red; marked upgrade-blocked."
+
+      - name: Validate bump, fix with Claude if needed
+        id: fix
+        if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          PREV_VERSION: ${{ steps.meta.outputs.prev }}
+          NEW_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          : > "$LOG_FILE"
+          if "$FIESTAUI_DIR/scripts/downstream-upgrade/validate.sh" "$FIESTABOARD_DIR" "$LOG_FILE"; then
+            echo "clean upgrade — no Claude needed"
+            echo "green=true" >> "$GITHUB_OUTPUT"
+          elif "$FIESTAUI_DIR/scripts/downstream-upgrade/fix-loop.sh"; then
+            echo "green=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "green=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push fixes and confirm FiestaBoard CI
+        id: ci
+        if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ env.TARGET_REPO }}
+          BRANCH: ${{ env.UPGRADE_BRANCH }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREV_VERSION: ${{ steps.meta.outputs.prev }}
+          NEW_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          cd "$FIESTABOARD_DIR"
+          git push --force origin "$UPGRADE_BRANCH"
+          pr=$("$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" sync \
+            "$NEW_VERSION" "$GITHUB_WORKSPACE/pr-body.md")
+          result=pending
+          while true; do
+            sleep 60 # give CI time to register checks on the new SHA
+            if gh pr checks "$pr" -R "$TARGET_REPO" --watch --fail-fast; then
+              result=green; break
+            fi
+            attempts=$(cat "$ATTEMPTS_FILE" 2>/dev/null || echo 0)
+            if [ "${{ steps.fix.outputs.green }}" = "false" ] || [ "$attempts" -ge "$MAX_ATTEMPTS" ]; then
+              result=blocked; break
+            fi
+            # Pull failing logs for Claude, then try one more bounded round.
+            : > "$LOG_FILE"
+            run_id=$(gh run list -R "$TARGET_REPO" --branch "$UPGRADE_BRANCH" \
+              --status failure --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+            if [ -n "$run_id" ]; then
+              gh run view "$run_id" -R "$TARGET_REPO" --log-failed | tail -c 20000 >> "$LOG_FILE"
+            else
+              echo "no CI logs available" >> "$LOG_FILE"
+            fi
+            if ! "$FIESTAUI_DIR/scripts/downstream-upgrade/fix-loop.sh"; then
+              result=blocked; break
+            fi
+            git push --force origin "$UPGRADE_BRANCH"
+          done
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+
+      - name: Final PR state
+        if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ env.TARGET_REPO }}
+          BRANCH: ${{ env.UPGRADE_BRANCH }}
+        run: |
+          cd "$FIESTABOARD_DIR"
+          if [ "${{ steps.ci.outputs.result }}" = "green" ]; then
+            {
+              echo "✅ FiestaBoard CI is green for **v${{ steps.meta.outputs.version }}**."
+              fixes=$(git log origin/main..HEAD --oneline --grep='\[fiestaui-upgrade\]' || true)
+              if [ -n "$fixes" ]; then
+                echo; echo "Claude applied fixes:"; echo '```'; echo "$fixes"; echo '```'
+              else
+                echo; echo "Clean upgrade — no code changes were needed."
+              fi
+            } > "$GITHUB_WORKSPACE/comment.md"
+            "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" comment "$GITHUB_WORKSPACE/comment.md"
+            "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" set-state green
+          else
+            {
+              echo "@$MAINTAINER automated fixes for v${{ steps.meta.outputs.version }} did not"
+              echo "reach green (attempts exhausted). Last failure output:"
+              echo '```'
+              tail -c 4000 "$LOG_FILE"
+              echo '```'
+            } > "$GITHUB_WORKSPACE/comment.md"
+            "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" comment "$GITHUB_WORKSPACE/comment.md"
+            "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" set-state blocked
+            echo "::warning::Upgrade blocked; maintainer pinged. Workflow exits 0 (release itself succeeded)."
+          fi
