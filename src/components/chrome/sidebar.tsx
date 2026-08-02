@@ -445,16 +445,25 @@ export function Sidebar({
                 {secondaryItems.map(renderDesktopNavItem)}
                 {renderAccount?.({ variant: "desktop", collapsed })}
               </nav>
-              <div className="mt-2 border-t border-sidebar-border/80 pt-2">
-                <div className="flex justify-center">{themeToggleSlot}</div>
+              {/* Footer: expanded = version | toggle side by side; collapsed =
+                  toggle stacked over a centered version on the rail line. */}
+              <div
+                className={cn(
+                  "mt-2 border-t border-sidebar-border/80 py-2",
+                  collapsed
+                    ? "flex flex-col items-center gap-1"
+                    : "flex items-center justify-between gap-2 pl-[14px] pr-3",
+                )}
+              >
                 <div
                   className={cn(
-                    "overflow-hidden whitespace-nowrap text-center transition-opacity duration-100",
-                    collapsed ? "max-h-0 opacity-0" : "max-h-8 pt-1 opacity-100 delay-150",
+                    "min-w-0 overflow-hidden whitespace-nowrap",
+                    collapsed ? "order-2 w-full truncate text-center" : "order-1",
                   )}
                 >
                   {versionSlot}
                 </div>
+                <div className={cn("flex-shrink-0", collapsed ? "order-1" : "order-2")}>{themeToggleSlot}</div>
               </div>
             </div>
           </div>
