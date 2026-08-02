@@ -55,6 +55,24 @@ jobs:
           test -f dist/theme.css
           npm pack --dry-run
 
+  automation:
+    name: Automation scripts & workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Shellcheck upgrade scripts
+        run: shellcheck scripts/downstream-upgrade/*.sh scripts/downstream-upgrade/tests/*.sh
+
+      - name: Run script tests
+        run: bash scripts/downstream-upgrade/tests/run.sh
+
+      - name: actionlint
+        run: |
+          bash <(curl -sSf https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color
+
   a11y-tests:
     name: Accessibility Tests (${{ matrix.theme }})
     runs-on: ubuntu-latest
@@ -103,7 +121,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [lint, build, a11y-tests]
+    needs: [lint, build, a11y-tests, automation]
     if: always()
     steps:
       - name: Check all jobs
