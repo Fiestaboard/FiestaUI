@@ -39,12 +39,14 @@
 ### Task 1: Test harness + `bump.sh`
 
 **Files:**
+
 - Create: `scripts/downstream-upgrade/tests/helpers.sh`
 - Create: `scripts/downstream-upgrade/tests/run.sh`
 - Create: `scripts/downstream-upgrade/tests/test_bump.sh`
 - Create: `scripts/downstream-upgrade/bump.sh`
 
 **Interfaces:**
+
 - Produces: `bump.sh <fiestaboard-dir> <version>`; env `SKIP_INSTALL=1` skips `npm install`. Exits non-zero on missing args or missing `web/package.json`.
 - Produces (harness): `tests/run.sh` executes every `tests/test_*.sh` in a subshell, prints PASS/FAIL per file, exits non-zero if any fail. `helpers.sh` provides `assert_eq <expected> <actual> <msg>`, `assert_file_contains <file> <needle> <msg>`, `fail <msg>`, and `make_tmp` (mktemp dir under `${TMPDIR:-/tmp}`, auto-removed via trap).
 
@@ -170,10 +172,12 @@ WEB_DIR="$FB_DIR/web"
 ### Task 2: `validate.sh`
 
 **Files:**
+
 - Create: `scripts/downstream-upgrade/validate.sh`
 - Create: `scripts/downstream-upgrade/tests/test_validate.sh`
 
 **Interfaces:**
+
 - Produces: `validate.sh <fiestaboard-dir> <log-file>` — runs `npm run typecheck` then `npm run test:run` in `<fiestaboard-dir>/web`, appending all output (with `=== typecheck ===` / `=== test:run ===` markers) to `<log-file>`. Exit 0 iff both pass; runs both even if the first fails (Claude sees the full picture).
 
 - [ ] **Step 1: Write the failing test**
@@ -242,11 +246,13 @@ exit $status
 ### Task 3: Prompt template + `fix-loop.sh`
 
 **Files:**
+
 - Create: `.github/prompts/downstream-upgrade-fix.md`
 - Create: `scripts/downstream-upgrade/fix-loop.sh`
 - Create: `scripts/downstream-upgrade/tests/test_fix_loop.sh`
 
 **Interfaces:**
+
 - Consumes: `validate.sh` (as the default validate command).
 - Produces: `fix-loop.sh` driven by env vars:
   - `FIESTAUI_DIR`, `FIESTABOARD_DIR`, `LOG_FILE`, `PREV_VERSION`, `NEW_VERSION` (required)
@@ -417,10 +423,12 @@ exit 1
 ### Task 4: `pr-sync.sh`
 
 **Files:**
+
 - Create: `scripts/downstream-upgrade/pr-sync.sh`
 - Create: `scripts/downstream-upgrade/tests/test_pr_sync.sh`
 
 **Interfaces:**
+
 - Produces: `pr-sync.sh <subcommand> [args]`, env `REPO` (default `Fiestaboard/FiestaBoard`), `BRANCH` (default `fiestaui-upgrade`), `GH_BIN` (default `gh`, for tests). Subcommands:
   - `ensure-labels` — idempotently create the three labels (`--force`).
   - `sync <version> <body-file>` — if an open PR for `BRANCH` exists, `gh pr edit` title/body; else `gh pr create` (base `main`, label `upgrade-pending`). Prints the PR number.
@@ -559,15 +567,17 @@ Note: the stub `gh` in tests doesn't implement `--jq`, so `open_pr` output in te
 ### Task 5: `downstream-upgrade.yml` workflow
 
 **Files:**
+
 - Create: `.github/workflows/downstream-upgrade.yml`
 
 **Interfaces:**
+
 - Consumes: all four scripts + prompt template.
 - Produces: reusable workflow with `workflow_call` input `version` (required string) and `workflow_dispatch` inputs `version` (optional) + `dry_run` (boolean, default false). Secrets used: `CLAUDE_BOT_APP_ID`, `CLAUDE_BOT_APP_PRIVATE_KEY`, `CLAUDE_CODE_OAUTH_TOKEN` (via `secrets: inherit` from the caller).
 
 - [ ] **Step 1: Write the workflow**
 
-```yaml
+````yaml
 name: Downstream Upgrade
 
 # Keeps ONE evergreen upgrade PR open on Fiestaboard/FiestaBoard pinning
@@ -837,7 +847,7 @@ jobs:
             "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" set-state blocked
             echo "::warning::Upgrade blocked; maintainer pinged. Workflow exits 0 (release itself succeeded)."
           fi
-```
+````
 
 Fix before committing: the `Push branch and sync PR` step contains a placeholder-ish `git push --force-with-lease=... --force` line — use plain `git push --force origin "$UPGRADE_BRANCH"` (the branch is automation-owned; force is the evergreen reset semantics). Remove the stray `bump.sh --help` line in the baseline step (leftover guard, serves no purpose).
 
@@ -849,10 +859,12 @@ Fix before committing: the `Push branch and sync PR` step contains a placeholder
 ### Task 6: Wire into `release.yml` + CI checks for the automation itself
 
 **Files:**
+
 - Modify: `.github/workflows/release.yml` (job `release`, currently lines 34-78)
 - Modify: `.github/workflows/ci.yml` (add job; extend `ci-success.needs`, currently line 106)
 
 **Interfaces:**
+
 - Consumes: `downstream-upgrade.yml` (`workflow_call`), `steps.version.outputs.version` already emitted in `release.yml`.
 
 - [ ] **Step 1: Expose the version as a job output in `release.yml`**
@@ -860,46 +872,46 @@ Fix before committing: the `Push branch and sync PR` step contains a placeholder
 In the `release` job header add:
 
 ```yaml
-  release:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    outputs:
-      version: ${{ steps.version.outputs.version }}
+release:
+  runs-on: ubuntu-latest
+  timeout-minutes: 15
+  outputs:
+    version: ${{ steps.version.outputs.version }}
 ```
 
 - [ ] **Step 2: Append the downstream job at the end of `release.yml`**
 
 ```yaml
-  # After a successful publish, keep the evergreen upgrade PR on
-  # Fiestaboard/FiestaBoard pointed at this release.
-  downstream-upgrade:
-    needs: release
-    uses: ./.github/workflows/downstream-upgrade.yml
-    with:
-      version: ${{ needs.release.outputs.version }}
-    secrets: inherit
+# After a successful publish, keep the evergreen upgrade PR on
+# Fiestaboard/FiestaBoard pointed at this release.
+downstream-upgrade:
+  needs: release
+  uses: ./.github/workflows/downstream-upgrade.yml
+  with:
+    version: ${{ needs.release.outputs.version }}
+  secrets: inherit
 ```
 
 - [ ] **Step 3: Add the automation job to `ci.yml`** (after the `build` job):
 
 ```yaml
-  automation:
-    name: Automation scripts & workflows
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v7
+automation:
+  name: Automation scripts & workflows
+  runs-on: ubuntu-latest
+  timeout-minutes: 5
+  steps:
+    - uses: actions/checkout@v7
 
-      - name: Shellcheck upgrade scripts
-        run: shellcheck scripts/downstream-upgrade/*.sh scripts/downstream-upgrade/tests/*.sh
+    - name: Shellcheck upgrade scripts
+      run: shellcheck scripts/downstream-upgrade/*.sh scripts/downstream-upgrade/tests/*.sh
 
-      - name: Run script tests
-        run: bash scripts/downstream-upgrade/tests/run.sh
+    - name: Run script tests
+      run: bash scripts/downstream-upgrade/tests/run.sh
 
-      - name: actionlint
-        run: |
-          bash <(curl -sSf https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
-          ./actionlint -color
+    - name: actionlint
+      run: |
+        bash <(curl -sSf https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+        ./actionlint -color
 ```
 
 - [ ] **Step 4: Extend `ci-success`** — change `needs: [lint, build, a11y-tests]` to `needs: [lint, build, a11y-tests, automation]`.
@@ -911,6 +923,7 @@ In the `release` job header add:
 ### Task 7: Docs + secrets verification
 
 **Files:**
+
 - Modify: `README.md` (add a "Downstream upgrade automation" section near existing release docs)
 
 **Interfaces:** none new.

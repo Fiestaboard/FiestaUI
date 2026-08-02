@@ -59,7 +59,7 @@ One new workflow in FiestaUI: `.github/workflows/downstream-upgrade.yml`.
 4. Force-push (`--force-with-lease`) with the App token.
 5. Create the PR if none is open for `fiestaui-upgrade`; otherwise update the
    existing PR in place. Title: `chore(deps): upgrade @fiestaboard/ui to
-   vX.Y.Z`. Body: FiestaUI release notes for the version range plus a log of
+vX.Y.Z`. Body: FiestaUI release notes for the version range plus a log of
    what the automation did. Initial label: `upgrade-pending`.
 
 ### Job 2 — validate → fix loop (Claude Opus, TDD)
@@ -90,11 +90,11 @@ Runs in the same workflow with both repos on disk.
 The PR is always open and ready for review — never draft. Labels carry
 state:
 
-| Label | Meaning |
-| --- | --- |
-| `upgrade-pending` | Bump pushed; validation/fixing in progress |
-| `upgrade-green` | FiestaBoard CI confirmed passing; PR is good to merge |
-| `upgrade-blocked` | Attempts exhausted or baseline red; needs a human |
+| Label             | Meaning                                               |
+| ----------------- | ----------------------------------------------------- |
+| `upgrade-pending` | Bump pushed; validation/fixing in progress            |
+| `upgrade-green`   | FiestaBoard CI confirmed passing; PR is good to merge |
+| `upgrade-blocked` | Attempts exhausted or baseline red; needs a human     |
 
 On `upgrade-green`, a comment summarizes what (if anything) Claude changed.
 On `upgrade-blocked`, a sticky comment @-mentions `jeffredodd` with failing
