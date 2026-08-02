@@ -45,3 +45,10 @@ export * from "./components/chrome/skip-to-content";
 export * from "./components/chrome/theme-toggle";
 export * from "./lib/seasons";
 export { cn } from "./lib/utils";
+// Board preview — the split-flap Vestaboard display renderer + its data.
+export * from "./components/board/board-display";
+export * from "./components/board/scaled-board-display";
+export * from "./components/board/static-board-display";
+export * from "./lib/board-characters";
+export * from "./lib/board-colors";
+export * from "./lib/board-dimensions";
