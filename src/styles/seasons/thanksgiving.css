@@ -6,9 +6,13 @@
    burnt sienna and warm amber, over a dark roasted-umber base so the aurora
    glows like hearth light. Cozy, warm, nothing shouty. */
 
-/* Logo: harvest gold → glowing amber → burnt sienna */
+/* Logo: golden hour pouring into roasted russet — bright harvest golds
+   into deep umber. Stops are split bright/deep on purpose: the light
+   sidebar animates all three stops under the wordmark, so every stop
+   holds ≥1.5:1 against all of them (lowest: #f6c56a at 1.54:1) while the
+   golds keep the hearth glow on the dark base. */
 .thanksgiving-season .logo-fiesta-text {
-  background: linear-gradient(90deg, #f5c163, #e0a030, #e07b39, #c65d2e);
+  background: linear-gradient(90deg, #ffd88a, #f6c56a, #8a4a20, #6f3413);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -26,7 +30,8 @@
 
 /* Dark mode sidebar: flat dark roasted umber — the WebGL aurora
    (amber/sienna/cream palette) supplies the warmth and movement. */
-.dark.thanksgiving-season .sidebar-gradient {
+.dark.thanksgiving-season .sidebar-gradient,
+.dark.thanksgiving-season .sidebar-gradient-horizontal {
   background: #170e08;
   animation: none;
   color: oklch(1 0 0);
@@ -38,16 +43,6 @@
   --muted-foreground: oklch(1 0 0 / 75%);
 }
 
-.dark.thanksgiving-season .sidebar-gradient-horizontal {
-  background: #170e08;
-  animation: none;
-  color: oklch(1 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0 / 14%);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-}
-
 /* Light mode sidebar: retint the flowing gradient stops to burnt sienna,
    harvest gold, and toasted russet (black text stays ≥4.5:1 on these). */
 .thanksgiving-season:not(.dark) .sidebar-gradient,
@@ -55,4 +50,15 @@
   --sidebar-fiesta-red: #b96a3e;
   --sidebar-fiesta-orange: #cf9c4f;
   --sidebar-fiesta-purple: #a3703f;
+}
+
+/* Reduced motion: authored here rather than inherited — these selectors
+   out-specific the base .sidebar-gradient rules in theme.css, so a future
+   edit that re-declares animation above would silently escape the base
+   @media block. Keeping the guard in-file makes that impossible. */
+@media (prefers-reduced-motion: reduce) {
+  .thanksgiving-season .sidebar-gradient,
+  .thanksgiving-season .sidebar-gradient-horizontal {
+    animation: none;
+  }
 }

@@ -2,10 +2,11 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Calendar, FileText, GalleryHorizontalEnd, Home, Puzzle, Settings } from "lucide-react";
 import { useState } from "react";
 
-import { PRIDE_SEASON, type Season } from "../../lib/seasons";
+import { ALL_SEASONS, type Season } from "../../lib/seasons";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { BoardSelector } from "./board-selector";
 import { MainContent } from "./main-content";
 import { PageHeader, PageIconGradientDefs } from "./page-header";
 import { PageLayout } from "./page-layout";
@@ -13,6 +14,13 @@ import { PageToolbar } from "./page-toolbar";
 import { Sidebar, type SidebarNavItem, type SidebarProps } from "./sidebar";
 import { SkipToContent } from "./skip-to-content";
 import { ThemeToggle } from "./theme-toggle";
+
+// Seasons come from the Season toolbar decorator: it stamps the CSS class,
+// and stories resolve the same global into the Sidebar's season prop so the
+// aurora only appears while a season is active in the toolbar.
+function toolbarSeason(globals: Record<string, unknown>): Season | null {
+  return ALL_SEASONS.find((s) => s.id === globals.season) ?? null;
+}
 
 const LABELS = {
   mainNavigation: "Main navigation",
@@ -42,6 +50,18 @@ function AppShellDemo({
 }) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [board, setBoard] = useState("board-1");
+
+  const boards = [
+    { id: "board-1", name: "Living Room" },
+    { id: "board-2", name: "Kitchen" },
+  ];
+  const boardSelectorProps = {
+    boards,
+    value: board,
+    onChange: setBoard,
+    labels: { boardSelector: "Select board", selectBoard: "Select a board", unnamedBoard: "Unnamed board" },
+  };
 
   const primary: SidebarNavItem[] = [
     { key: "home", href: "#", icon: Home, label: "Home", active: true },
@@ -66,6 +86,8 @@ function AppShellDemo({
         sidebarInset={12}
         season={season}
         onLogoClick={season ? () => {} : undefined}
+        boardSelector={<BoardSelector {...boardSelectorProps} collapsed={collapsed} />}
+        mobileBoardSelector={<BoardSelector {...boardSelectorProps} variant="mobileHeader" />}
         versionSlot={<span className="text-xs text-sidebar-foreground/70">v9.0.0</span>}
         themeToggleSlot={
           <ThemeToggle
@@ -112,18 +134,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => <AppShellDemo />,
+  render: (_, { globals }) => <AppShellDemo season={toolbarSeason(globals)} />,
 };
 
 export const Collapsed: Story = {
-  render: () => <AppShellDemo initialCollapsed />,
-};
-
-/**
- * The shell during a festive season: the sidebar renders its aurora and
- * the logo becomes a celebration button — no extra wiring needed beyond
- * passing the season to the Sidebar.
- */
-export const PrideSeason: Story = {
-  render: () => <AppShellDemo season={PRIDE_SEASON} />,
+  render: (_, { globals }) => <AppShellDemo initialCollapsed season={toolbarSeason(globals)} />,
 };

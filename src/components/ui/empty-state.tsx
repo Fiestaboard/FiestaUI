@@ -23,6 +23,7 @@ export function EmptyState({ icon: Icon, title, description, action, illustratio
   const titleId = React.useId();
   return (
     <div
+      data-slot="empty-state"
       className={cn("flex flex-col items-center justify-center text-center py-8 px-4", className)}
       role="status"
       aria-live="polite"
@@ -30,21 +31,30 @@ export function EmptyState({ icon: Icon, title, description, action, illustratio
     >
       {illustration ? (
         <div
+          data-slot="empty-state-media"
           className="mb-3 flex items-center justify-center [&_svg]:max-w-[120px] [&_svg]:max-h-[80px] [&_svg]:text-muted-foreground"
           aria-hidden
         >
           {illustration}
         </div>
       ) : (
-        <div className="rounded-full bg-brand/10 p-4 mb-3">
+        <div data-slot="empty-state-media" className="rounded-full bg-brand/10 p-4 mb-3">
           <Icon className="h-8 w-8 text-brand" aria-hidden />
         </div>
       )}
-      <h3 id={titleId} className="text-sm font-medium text-foreground">
+      <h3 data-slot="empty-state-title" id={titleId} className="text-sm font-medium text-foreground">
         {title}
       </h3>
-      {description && <p className="text-sm text-muted-foreground mt-1 max-w-sm leading-relaxed">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
+      {description && (
+        <p data-slot="empty-state-description" className="text-sm text-muted-foreground mt-1 max-w-sm leading-relaxed">
+          {description}
+        </p>
+      )}
+      {action && (
+        <div data-slot="empty-state-action" className="mt-4">
+          {action}
+        </div>
+      )}
     </div>
   );
 }

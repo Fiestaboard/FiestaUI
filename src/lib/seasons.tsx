@@ -45,6 +45,10 @@ export const SEASONS: Season[] = [PRIDE_SEASON];
  *
  * Each draft's CSS lives in src/styles/seasons/<id>.css (imported by
  * theme.css — inert unless the class is stamped on <html>).
+ *
+ * `colors` MUST mirror the season CSS's --icon-g1..6 ramp: the CSS is the
+ * design intent, and the aurora/confetti render alongside the CSS-tinted
+ * chrome, so a diverging palette reads as two different seasons at once.
  */
 export const DRAFT_SEASONS: Season[] = [
   {
@@ -52,49 +56,53 @@ export const DRAFT_SEASONS: Season[] = [
     label: "Halloween",
     months: [9],
     htmlClass: "halloween-season",
-    colors: ["#ff7518", "#8b5cf6", "#39d353", "#ff9838", "#c084fc", "#6a0dad"],
+    colors: ["#ff7518", "#ff9838", "#39d353", "#a855f7", "#7c3aed", "#6a0dad"],
   },
   {
     id: "thanksgiving",
     label: "Thanksgiving",
     months: [10],
     htmlClass: "thanksgiving-season",
-    colors: ["#b5651d", "#e0a030", "#8c3b1b", "#f5deb3", "#eec659", "#d2691e"],
+    colors: ["#a0522d", "#c9682a", "#e0a030", "#eec659", "#b5651d", "#8c3b1b"],
   },
   {
     id: "christmas",
     label: "Christmas",
     months: [11],
     htmlClass: "christmas-season",
-    colors: ["#c8102e", "#0f8a3d", "#f8f8f8", "#ffd700", "#f0c33c", "#0f8a3d"],
+    colors: ["#c8102e", "#d94a3d", "#ffd700", "#2aa457", "#0f8a3d", "#0b6b30"],
   },
   {
     id: "new-year",
     label: "New Year",
     months: [0],
     htmlClass: "new-year-season",
-    colors: ["#ffd700", "#c0c0c0", "#5b6fd4", "#ffffff", "#f5da6e", "#8a2be2"],
+    colors: ["#ffd700", "#f5da6e", "#d8dde8", "#a9b6d0", "#5b6fd4", "#2c3e8c"],
   },
   {
     id: "easter",
     label: "Easter",
     months: [3],
     htmlClass: "easter-season",
-    colors: ["#ffb7ce", "#a3d9ff", "#fff3a0", "#c9f0c4", "#e6ccff", "#ffd6a5"],
+    colors: ["#e8879e", "#d9a520", "#5cbf8a", "#6fb3e0", "#a98ed9", "#e8879e"],
   },
   {
     id: "mothers-day",
     label: "Mother's Day",
     months: [4],
     htmlClass: "mothers-day-season",
-    colors: ["#ff69b4", "#ffc0cb", "#f4c2c2", "#d87093", "#ffb6c1", "#c71585"],
+    colors: ["#b03060", "#d1608a", "#e79ab0", "#d8b98a", "#c76a94", "#b03060"],
   },
   {
+    // NOTE: shares June with pride. getActiveSeason() is first-match-wins
+    // over SEASONS, so if this is ever promoted, decide precedence (or
+    // day-range activation) explicitly — as registered, pride would win
+    // the whole month.
     id: "fathers-day",
     label: "Father's Day",
     months: [5],
     htmlClass: "fathers-day-season",
-    colors: ["#4a7ba6", "#8fb8de", "#7fc8c0", "#5f9ea0", "#a9c4d9", "#6d9dc5"],
+    colors: ["#2f5d8a", "#4a7ba6", "#5f9ea0", "#6d7f93", "#3f6e7e", "#2f5d8a"],
   },
 ];
 
@@ -166,9 +174,3 @@ export function usePrideActive(): boolean {
   const season = useActiveSeason();
   return season?.id === "pride";
 }
-
-/** @deprecated Use PRIDE_SEASON.colors. */
-export const PRIDE_COLORS = PRIDE_SEASON.colors;
-
-/** @deprecated Use fireSeasonBurst(). */
-export const firePrideBurst = fireSeasonBurst;

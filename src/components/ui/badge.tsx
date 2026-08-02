@@ -10,6 +10,7 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+        brand: "border-transparent bg-brand-emphasis text-brand-foreground [a&]:hover:bg-brand-emphasis/90",
         secondary: "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
         destructive:
           "border-transparent bg-destructive text-destructive-foreground [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
@@ -19,7 +20,7 @@ const badgeVariants = cva(
         success:
           "bg-tag-success/15 border-tag-success/40 text-tag-success-foreground font-mono [a&]:hover:bg-tag-success/25",
         formula:
-          "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400 font-mono [a&]:hover:bg-amber-500/20",
+          "bg-tag-formula/15 border-tag-formula/30 text-tag-formula-foreground font-mono [a&]:hover:bg-tag-formula/25",
       },
     },
     defaultVariants: {

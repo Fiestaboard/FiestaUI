@@ -17,9 +17,12 @@
   --icon-g6: #e8879e; /* blush (loop) */
 }
 
-/* "Fiesta" logo word — pastel spring gradient */
+/* "Fiesta" logo word — the same spring sequence one shade deeper than the
+   icon ramp: the light sidebar animates pastel egg-shell stops under the
+   wordmark, so every logo stop holds ≥1.5:1 against all of them (lowest:
+   #b8860b at 1.64:1) where the raw pastels would wash out. */
 .easter-season .logo-fiesta-text {
-  background: linear-gradient(90deg, #e8879e, #d9a520, #5cbf8a, #6fb3e0, #a98ed9);
+  background: linear-gradient(90deg, #d4677f, #b8860b, #2f9e68, #3f8dc4, #8a6cc9);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -45,4 +48,15 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --foreground: oklch(1 0 0);
   --muted-foreground: oklch(1 0 0 / 75%);
+}
+
+/* Reduced motion: authored here rather than inherited — these selectors
+   out-specific the base .sidebar-gradient rules in theme.css, so a future
+   edit that re-declares animation above would silently escape the base
+   @media block. Keeping the guard in-file makes that impossible. */
+@media (prefers-reduced-motion: reduce) {
+  .easter-season .sidebar-gradient,
+  .easter-season .sidebar-gradient-horizontal {
+    animation: none;
+  }
 }

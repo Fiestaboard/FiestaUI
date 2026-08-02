@@ -16,8 +16,9 @@
 @import "tw-animate-css";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
-/* Draft seasonal themes — design previews; inert unless the season
-   class is stamped on <html>. The app stamps only SEASONS (pride). */
+/* Seasonal themes — one file per season, inert unless the season class
+   is stamped on <html>. Pride is live; the rest are design drafts. */
+@import "./seasons/pride.css";
 @import "./seasons/halloween.css";
 @import "./seasons/thanksgiving.css";
 @import "./seasons/christmas.css";
@@ -84,6 +85,8 @@
   --color-tag-variable-foreground: var(--tag-variable-foreground);
   --color-tag-success: var(--tag-success);
   --color-tag-success-foreground: var(--tag-success-foreground);
+  --color-tag-formula: var(--tag-formula);
+  --color-tag-formula-foreground: var(--tag-formula-foreground);
 
   /* Overlay */
   --color-overlay: var(--overlay);
@@ -187,6 +190,8 @@
   --tag-variable-foreground: oklch(0.35 0.1 280);
   --tag-success: oklch(0.45 0.2 160);
   --tag-success-foreground: oklch(0.35 0.1 160);
+  --tag-formula: oklch(0.45 0.15 80);
+  --tag-formula-foreground: oklch(0.35 0.1 80);
   --overlay: oklch(0 0 0 / 80%);
   /* Brand accent - darkened for WCAG 2.2 AA (≥4.5:1 on light bg) */
   --brand: oklch(0.56 0.15 75);
@@ -211,6 +216,134 @@
   --elevation-card: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 2px 8px -2px rgb(0 0 0 / 0.06);
   --elevation-card-hover: 0 2px 8px -2px rgb(0 0 0 / 0.08), 0 4px 16px -4px rgb(0 0 0 / 0.06);
   --elevation-modal: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+
+  /* ============================================================
+   * Motion tokens (B4) — one duration scale + named easings.
+   * Values are lifted verbatim from the pre-token declarations;
+   * visual parity is the contract (see file header).
+   *
+   * Durations:
+   *   fast    100ms  micro fades (collapsed-sidebar labels; = Tailwind duration-100)
+   *   control 150ms  control feedback: button/switch/scrollbar (= Tailwind duration-150)
+   *   base    200ms  standard fades, accordion, dialog (= Tailwind duration-200)
+   *   exit    250ms  surface exit slides + companion fades
+   *   slow    300ms  surface & page entrances, sidebar collapse
+   *   slower  350ms  large-surface entrances (slide-up page, mobile nav/menu)
+   *   slowest 400ms  sheet/drawer slide-in, desktop sidebar entrance
+   *
+   * Easings:
+   *   out       ease-out                          standard decelerate (fades, entrances)
+   *   spring    cubic-bezier(0.16, 1, 0.3, 1)     out-expo "spring" (modal/page/sheet entrances)
+   *   in        cubic-bezier(0.4, 0, 1, 1)        accelerate (exits; = Tailwind ease-in)
+   *   out-cubic cubic-bezier(0.33, 1, 0.68, 1)    gentle decelerate (sidebar collapse/expand)
+   *   standard  cubic-bezier(0.25, 0.1, 0.25, 1)  = CSS `ease` keyword (sheet slides)
+   *
+   * Deliberately left inline (true one-offs): 117s sidebar gradient
+   * flow, 220ms board-switch exits, 0.8s pride-burst, 1s card-fade-in,
+   * 50ms page-toolbar stagger delay.
+   * ============================================================ */
+  --motion-duration-fast: 100ms;
+  --motion-duration-control: 150ms;
+  --motion-duration-base: 200ms;
+  --motion-duration-exit: 250ms;
+  --motion-duration-slow: 300ms;
+  --motion-duration-slower: 350ms;
+  --motion-duration-slowest: 400ms;
+  --motion-ease-out: ease-out;
+  --motion-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --motion-ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);
+  --motion-ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* ============================================================
+   * Radius role scale (B3) — which UI role gets which corner.
+   * Roles are derived from what shipped components already use;
+   * every value equals the exact pre-token computed value (visual
+   * parity is the contract — see file header).
+   *
+   * Role          | token                  | = class      | value | used by
+   * control-inset | --radius-control-inset | rounded-sm   |  6px  | items nested inside a rounded control/popover: dropdown & select items, tabs trigger, dialog close
+   * control       | --radius-control       | rounded-md   |  8px  | buttons, input, textarea, select trigger, tabs list, skeleton, skip-link, and popover surfaces (dropdown/select/tooltip popups)
+   * surface       | --radius-surface       | rounded-lg   | 10px  | modal surfaces (dialog, alert-dialog), alert, sidebar nav pills
+   * card          | --radius-card          | rounded-xl   | 12px  | card, page-header icon tile
+   * pill          | --radius-pill          | rounded-full |  ∞    | badge, switch, slider, sheet close, scroll-area thumb, sidebar edge toggle, empty-state icon
+   * chrome        | --radius-chrome        | (css/inline) | 14px  | desktop sidebar shell + its aurora inset
+   * chrome-mobile | --radius-chrome-mobile | (css/inline) | 16px  | mobile header/menu shell, its aurora inset, menu clip-path reveal
+   *
+   * Components KEEP their Tailwind rounded-* classes — those already
+   * resolve through the --radius calc chain, so each role token below
+   * is defined with the same math and stays in lockstep with them.
+   * New components pick a ROLE from this table instead of a raw size.
+   * The chrome radii are deliberately fixed px (not on the rem-based
+   * --radius chain): they match the aurora canvas insets exactly.
+   *
+   * Deliberately off-scale (left as-is): BoardIcon bare `rounded`
+   * (4px micro tile), pride-burst particle 2px, scroll-area viewport
+   * rounded-[inherit].
+   * ============================================================ */
+  --radius-control-inset: calc(var(--radius) - 4px);
+  --radius-control: calc(var(--radius) - 2px);
+  --radius-surface: var(--radius);
+  --radius-card: calc(var(--radius) + 4px);
+  --radius-pill: calc(infinity * 1px);
+  --radius-chrome: 14px;
+  --radius-chrome-mobile: 16px;
+
+  /* ============================================================
+   * Z-index layer scale (B3) — the app's stacking story, bottom to
+   * top. Values are exactly the pre-token numbers (parity contract).
+   *
+   *   --z-popover          50  dropdown-menu popovers (see gotcha below)
+   *   --z-sidebar          50  desktop sidebar rail
+   *   --z-sidebar-toggle   51  edge collapse button — LOCAL value: the
+   *                            fixed z-50 aside is its own stacking
+   *                            context, so 51 only beats the aurora
+   *                            canvas / z-[1] content column inside it
+   *   --z-mobile-backdrop  90  dimming layer behind the mobile menu
+   *   --z-mobile-menu      95  mobile slide-down menu panel
+   *   --z-mobile-header   100  mobile header — beats the open menu (95)
+   *                            and backdrop (90) so the hamburger/close
+   *                            button stays clickable
+   *   --z-sheet           110  sheet/drawer + its backdrop — covers all
+   *                            chrome including the mobile header
+   *   --z-select          120  Select popup — MUST stay above
+   *                            --z-mobile-header: the header hosts the
+   *                            mobile board selector, and its portalled
+   *                            popup wins by VALUE (Base UI portals into
+   *                            <body>; all these layers are fixed in the
+   *                            root stacking context)
+   *   --z-modal           130  dialog + alert-dialog (and backdrops) —
+   *                            above sheets, so dialogs can launch from
+   *                            them
+   *   --z-tooltip         140  tooltip — topmost overlay, readable over
+   *                            modals
+   *   --z-skip-link       200  skip-to-content link when focused
+   *   --z-confetti       9999  season burst particles — above everything
+   *
+   * Popover gotcha: --z-popover (50) ties with the desktop sidebar.
+   * Dropdowns still stack above it because Base UI portals append to
+   * <body> AFTER the sidebar — DOM order breaks the tie. A dropdown
+   * opened FROM the mobile header (100) would lose; nothing does that
+   * today (the header's board selector is a Select at 120). Don't put
+   * DropdownMenus in mobile chrome without revisiting this.
+   *
+   * Not on the scale (local stacking / one-offs): select scroll
+   * buttons z-10 (sticky inside the popup), sidebar/header content
+   * z-[1] (above the aurora canvas), board-switch view-transition
+   * groups 0/1 (::view-transition pseudo-tree only).
+   * ============================================================ */
+  --z-popover: 50;
+  --z-sidebar: 50;
+  --z-sidebar-toggle: 51;
+  --z-mobile-backdrop: 90;
+  --z-mobile-menu: 95;
+  --z-mobile-header: 100;
+  --z-sheet: 110;
+  --z-select: 120;
+  --z-modal: 130;
+  --z-tooltip: 140;
+  --z-skip-link: 200;
+  --z-confetti: 9999;
 }
 
 .dark {
@@ -256,6 +389,8 @@
   --tag-variable-foreground: oklch(0.85 0.08 280);
   --tag-success: oklch(0.65 0.15 160);
   --tag-success-foreground: oklch(0.85 0.08 160);
+  --tag-formula: oklch(0.65 0.15 80);
+  --tag-formula-foreground: oklch(0.85 0.08 80);
   --overlay: oklch(0 0 0 / 80%);
   --brand: oklch(0.78 0.14 75);
   --brand-emphasis: oklch(0.55 0.16 60);
@@ -271,16 +406,6 @@
   --elevation-card: 0 1px 3px 0 rgb(0 0 0 / 0.2), 0 0 0 1px oklch(1 0 0 / 6%);
   --elevation-card-hover: 0 2px 8px -2px rgb(0 0 0 / 0.3), 0 0 0 1px oklch(1 0 0 / 10%);
   --elevation-modal: 0 8px 24px -4px rgb(0 0 0 / 0.25), 0 4px 8px -4px rgb(0 0 0 / 0.15);
-}
-
-/* Pride month (June) — rainbow page icon gradient token override */
-.pride-month {
-  --icon-g1: #e40303;
-  --icon-g2: #ff8c00;
-  --icon-g3: #ffed00;
-  --icon-g4: #008026;
-  --icon-g5: #004dff;
-  --icon-g6: #750787;
 }
 
 @layer base {
@@ -327,12 +452,12 @@
 
 .animate-accordion-down {
   display: grid;
-  animation: accordion-down 0.2s ease-out;
+  animation: accordion-down var(--motion-duration-base) var(--motion-ease-out);
 }
 
 .animate-accordion-up {
   display: grid;
-  animation: accordion-up 0.2s ease-out;
+  animation: accordion-up var(--motion-duration-base) var(--motion-ease-out);
 }
 
 /* Tailwind animate utilities for Radix UI */
@@ -449,51 +574,51 @@
 }
 
 .animate-in {
-  animation: enter 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: enter var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .animate-out {
-  animation: exit 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: exit var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .fade-in-0 {
-  animation: fade-in 200ms ease-out;
+  animation: fade-in var(--motion-duration-base) var(--motion-ease-out);
 }
 
 .fade-out-0 {
-  animation: fade-out 200ms ease-out;
+  animation: fade-out var(--motion-duration-base) var(--motion-ease-out);
 }
 
 .slide-in-from-right {
-  animation: slide-in-from-right 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slide-in-from-right var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .slide-out-to-right {
-  animation: slide-out-to-right 250ms cubic-bezier(0.4, 0, 1, 1);
+  animation: slide-out-to-right var(--motion-duration-exit) var(--motion-ease-in);
 }
 
 .slide-in-from-left {
-  animation: slide-in-from-left 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slide-in-from-left var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .slide-out-to-left {
-  animation: slide-out-to-left 250ms cubic-bezier(0.4, 0, 1, 1);
+  animation: slide-out-to-left var(--motion-duration-exit) var(--motion-ease-in);
 }
 
 .slide-in-from-top {
-  animation: slide-in-from-top 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slide-in-from-top var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .slide-out-to-top {
-  animation: slide-out-to-top 250ms cubic-bezier(0.4, 0, 1, 1);
+  animation: slide-out-to-top var(--motion-duration-exit) var(--motion-ease-in);
 }
 
 .slide-in-from-bottom {
-  animation: slide-in-from-bottom 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slide-in-from-bottom var(--motion-duration-slow) var(--motion-ease-spring);
 }
 
 .slide-out-to-bottom {
-  animation: slide-out-to-bottom 250ms cubic-bezier(0.4, 0, 1, 1);
+  animation: slide-out-to-bottom var(--motion-duration-exit) var(--motion-ease-in);
 }
 
 /* ===== 60FPS SHEET/DRAWER ANIMATIONS ===== */
@@ -560,42 +685,11 @@
  * Consumed by the chrome components (Sidebar, PageHeader, …).
  * ============================================================ */
 
-/* Pride month (June) — rainbow page icon gradient + logo text + sidebar */
+/* Pride styling lives in seasons/pride.css alongside the draft seasons. */
 
-.pride-month .logo-fiesta-text {
-  background: linear-gradient(90deg, #e40303, #ff8c00, #ffed00, #008026, #004dff, #750787);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Pride month sidebar (dark mode only): dark base so the WebGL aurora is the visual.
-   Light mode keeps the original gradient — the aurora canvas overlays it.
-   .dark.pride-month targets <html> when it has both classes simultaneously. */
-.dark.pride-month .sidebar-gradient {
-  background: #0e0b18;
-  animation: none;
-  color: oklch(1 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0 / 14%);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --foreground: oklch(1 0 0);
-  --muted-foreground: oklch(1 0 0 / 75%);
-}
-
-/* Mobile horizontal header — dark mode only */
-.dark.pride-month .sidebar-gradient-horizontal {
-  background: #0e0b18;
-  animation: none;
-  color: oklch(1 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0 / 14%);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-}
-
-/* Pride easter egg — confetti burst particles spawned by JS on logo click */
+/* Season easter egg — confetti burst particles spawned by JS on logo click
+   (class name kept as pride-burst-* for app compatibility; every season's
+   fireSeasonBurst() uses it) */
 @keyframes pride-burst {
   0% {
     transform: translate(0, 0) rotate(0deg) scale(1);
@@ -612,8 +706,9 @@
   height: 7px;
   border-radius: 2px;
   pointer-events: none;
-  z-index: 9999;
-  animation: pride-burst var(--dur, 0.8s) ease-out forwards;
+  z-index: var(--z-confetti);
+  /* 0.8s default is a one-off (JS overrides via --dur), so it stays inline */
+  animation: pride-burst var(--dur, 0.8s) var(--motion-ease-out) forwards;
 }
 
 /* Board switch transition — the app-wide board selector wraps its state
@@ -674,20 +769,22 @@ html[data-board-switch]::view-transition-group(app-mobile-header) {
   }
 }
 
+/* 220ms outgoing-page exit is a deliberate one-off (slightly quicker than the
+   250ms exit tier so the incoming page reads as leading the switch) */
 html[data-board-switch="forward"]::view-transition-old(board-page) {
-  animation: board-switch-out-left 220ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: board-switch-out-left 220ms var(--motion-ease-in) both;
 }
 
 html[data-board-switch="forward"]::view-transition-new(board-page) {
-  animation: board-switch-in-right 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: board-switch-in-right var(--motion-duration-slow) var(--motion-ease-spring) both;
 }
 
 html[data-board-switch="backward"]::view-transition-old(board-page) {
-  animation: board-switch-out-right 220ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: board-switch-out-right 220ms var(--motion-ease-in) both;
 }
 
 html[data-board-switch="backward"]::view-transition-new(board-page) {
-  animation: board-switch-in-left 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: board-switch-in-left var(--motion-duration-slow) var(--motion-ease-spring) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -701,22 +798,22 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 @layer base {
   /* Animate page content on route changes */
   main {
-    animation: page-enter 300ms ease-out;
+    animation: page-enter var(--motion-duration-slow) var(--motion-ease-out);
   }
 
   /* Slide-up animation for modal-like pages (edit/new) */
   html[data-transition="slide-up"] main {
-    animation: slide-up-enter 350ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slide-up-enter var(--motion-duration-slower) var(--motion-ease-spring);
   }
 
   /* Slide-down animation for returning from modals */
   html[data-transition="slide-down"] main {
-    animation: slide-down-enter 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slide-down-enter var(--motion-duration-slow) var(--motion-ease-spring);
   }
 
   /* Scale-fade for content areas */
   html[data-transition="scale-fade"] main {
-    animation: scale-fade-enter 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: scale-fade-enter var(--motion-duration-slow) var(--motion-ease-spring);
   }
 
   /* Respect user's motion preferences */
@@ -802,11 +899,13 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   --sidebar-foreground: oklch(1 0 0);
 }
 
-/* Light mode: soft gradient (coral → peach → lavender) */
+/* Light mode: soft gradient (coral → peach → lavender).
+   Stops derive from the canonical --fiesta-* brand gradient tokens —
+   never fork the hexes here; seasons retint via --sidebar-fiesta-*. */
 .sidebar-gradient {
-  --sidebar-fiesta-red: #c97a72;
-  --sidebar-fiesta-orange: #c99662;
-  --sidebar-fiesta-purple: #9b7bb0; /* board violet hue, light */
+  --sidebar-fiesta-red: var(--fiesta-red);
+  --sidebar-fiesta-orange: var(--fiesta-orange);
+  --sidebar-fiesta-purple: var(--fiesta-purple);
   background: repeating-linear-gradient(
     170deg,
     var(--sidebar-fiesta-red) 0%,
@@ -819,7 +918,7 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   background-repeat: repeat-y;
   animation: sidebar-gradient-flow 117s linear infinite;
   color: oklch(0 0 0);
-  border-radius: 14px;
+  border-radius: var(--radius-chrome);
   --sidebar-foreground: oklch(0 0 0);
   --sidebar-accent: oklch(1 0 0 / 35%);
   --sidebar-accent-foreground: oklch(0 0 0);
@@ -830,11 +929,15 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   --accent-foreground: oklch(0 0 0);
   --border: oklch(0 0 0 / 12%);
 }
-.dark .sidebar-gradient {
-  /* Dark mode: rich Fiesta gradient, white text */
+/* Dark mode: rich Fiesta gradient — deep-toned stops defined ONCE for both
+   the vertical sidebar and the mobile horizontal header. */
+.dark .sidebar-gradient,
+.dark .sidebar-gradient-horizontal {
   --sidebar-fiesta-red: #7a2a24;
   --sidebar-fiesta-orange: #6d5014;
   --sidebar-fiesta-purple: #4e3070; /* board violet, darker for dark theme */
+}
+.dark .sidebar-gradient {
   color: oklch(1 0 0);
   --sidebar-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(1 0 0 / 24%);
@@ -848,10 +951,11 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 }
 
 .sidebar-gradient-horizontal {
-  /* Light mode: same soft gradient as vertical sidebar */
-  --sidebar-fiesta-red: #c98a82;
-  --sidebar-fiesta-orange: #c9a070;
-  --sidebar-fiesta-purple: #9b7bb0;
+  /* Light mode: identical stops to the vertical sidebar — one brand gradient
+     on every viewport (previously the mobile header ran subtly warmer). */
+  --sidebar-fiesta-red: var(--fiesta-red);
+  --sidebar-fiesta-orange: var(--fiesta-orange);
+  --sidebar-fiesta-purple: var(--fiesta-purple);
   background: repeating-linear-gradient(
     135deg,
     var(--sidebar-fiesta-red) 0,
@@ -863,7 +967,7 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   background-position: 0% 50%;
   animation: sidebar-gradient-flow-h 117s linear infinite;
   color: oklch(0 0 0);
-  border-radius: 16px;
+  border-radius: var(--radius-chrome-mobile);
   --foreground: oklch(0 0 0);
   --sidebar-accent: oklch(1 0 0 / 35%);
   --sidebar-accent-foreground: oklch(0 0 0);
@@ -882,9 +986,6 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
 }
 .dark .sidebar-gradient-horizontal {
-  --sidebar-fiesta-red: #7a2a24;
-  --sidebar-fiesta-orange: #6d5014;
-  --sidebar-fiesta-purple: #4e3070;
   color: oklch(1 0 0);
   --foreground: oklch(1 0 0);
   --sidebar-accent: oklch(1 0 0 / 24%);
@@ -917,22 +1018,24 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
 }
 /* Desktop: entrance then gradient flow (both run; gradient starts after 400ms) */
+/* 117s gradient loop is an ambient one-off; its 0.4s/0.35s start delays
+   mirror the entrance durations (slowest/slower) and stay literal with them */
 @media (min-width: 1024px) {
   .sidebar-gradient {
     animation:
-      nav-slide-in-left 400ms ease-out both,
+      nav-slide-in-left var(--motion-duration-slowest) var(--motion-ease-out) both,
       sidebar-gradient-flow 117s linear 0.4s infinite;
   }
 }
 .sidebar-gradient-horizontal {
   animation:
-    nav-slide-in-top 350ms ease-out both,
+    nav-slide-in-top var(--motion-duration-slower) var(--motion-ease-out) both,
     sidebar-gradient-flow-h 117s linear 0.35s infinite;
 }
 @media (min-width: 1024px) {
   .sidebar-gradient-horizontal {
     animation:
-      nav-slide-in-top 350ms ease-out both,
+      nav-slide-in-top var(--motion-duration-slower) var(--motion-ease-out) both,
       sidebar-gradient-flow-h 117s linear 0.35s infinite;
   }
 }
@@ -942,9 +1045,9 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
    All use the same 300ms easing so they move in sync and never collide. */
 .sidebar-transition {
   transition:
-    width 300ms cubic-bezier(0.33, 1, 0.68, 1),
-    padding-left 300ms cubic-bezier(0.33, 1, 0.68, 1),
-    padding-right 300ms cubic-bezier(0.33, 1, 0.68, 1);
+    width var(--motion-duration-slow) var(--motion-ease-out-cubic),
+    padding-left var(--motion-duration-slow) var(--motion-ease-out-cubic),
+    padding-right var(--motion-duration-slow) var(--motion-ease-out-cubic);
   contain: layout style;
 }
 .sidebar-transition.is-transitioning {
@@ -1088,7 +1191,8 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 }
 
 .animate-card-fade-in {
-  animation: card-fade-in 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* 1s hero-entrance duration is a one-off, so it stays inline */
+  animation: card-fade-in 1s var(--motion-ease-spring) both;
 }
 
 /* Type scale: ratio 1.25; body 1rem (16px). Tailwind text-xs/sm/base/lg/xl/2xl/3xl/4xl align. */
@@ -1099,4 +1203,34 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 }
 .page-description {
   @apply text-muted-foreground mt-1 text-sm sm:text-base leading-relaxed;
+}
+
+/* ─── Board display ─── */
+/* Split-flap board preview (components/board). The flap keyframes
+   (flapDown/flapUp/flapShadow) are injected into <head> by the component
+   itself so the animation works without CSS import-order coupling; this
+   section carries only the global kill switches, copied verbatim from
+   FiestaBoard app/globals.css. The app stamps these classes on <html>
+   from the user's board-animation setting. */
+
+/* Board animation kill switch. The board flap structure (4 layers) is
+   already gated in JS so the extra DOM never renders when this is set,
+   but the CSS belt-and-braces guarantees no leftover transforms animate
+   if a flap node is mid-render when the setting flips. */
+.board-animations-off [data-board-preview] *,
+.board-animations-off [data-board-preview] *::before,
+.board-animations-off [data-board-preview] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Desktop-only mode: suppress board animation below the `md` breakpoint
+   (768px — matches Tailwind's default). */
+@media (max-width: 767px) {
+  .board-animations-desktop-only [data-board-preview] *,
+  .board-animations-desktop-only [data-board-preview] *::before,
+  .board-animations-desktop-only [data-board-preview] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

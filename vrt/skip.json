@@ -1,0 +1,14 @@
+[
+  {
+    "id": "ui-aurora--*",
+    "reason": "Aurora runs a free-running requestAnimationFrame WebGL loop (uTime = rAF timestamp) that does not honor prefers-reduced-motion, so every shot lands on an arbitrary animation frame. Proven unstable run-to-run locally (up to ~173k differing pixels)."
+  },
+  {
+    "id": "board-boarddisplay--loading",
+    "reason": "isLoading tiles cycle the character set continuously on an 80ms setInterval (JS-driven, unaffected by the CSS freeze), so each shot catches different glyphs mid-flip. Proven unstable run-to-run locally."
+  },
+  {
+    "id": "board-boarddisplay--loading-transition",
+    "reason": "Spends its first 3s in the same setInterval-driven loading state before revealing the message; screenshots land inside that window on arbitrary flip frames. Proven unstable run-to-run locally."
+  }
+]

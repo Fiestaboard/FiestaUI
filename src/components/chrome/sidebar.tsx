@@ -1,16 +1,16 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Menu, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Menu, Sparkles, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Season } from "../../lib/seasons";
 import { cn } from "../../lib/utils";
+import { SidebarAurora } from "../seasons/sidebar-aurora";
+import { SidebarAuroraHorizontal } from "../seasons/sidebar-aurora-horizontal";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { FIESTA_ICON_DATA_URI } from "./fiesta-icon";
 import { FiestaLogo } from "./fiesta-logo";
-import { SidebarAurora } from "./sidebar-aurora";
-import { SidebarAuroraHorizontal } from "./sidebar-aurora-horizontal";
 
 export interface SidebarNavItem {
   key: string;
@@ -112,6 +112,24 @@ export function Sidebar({
 }: SidebarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [appInset, setAppInset] = useState(0);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // The mobile header wraps on narrow viewports, so its height is dynamic.
+  // Publish it as --mobile-header-height for the mobile menu and
+  // MainContent to offset against (both fall back to the unwrapped 56px).
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const publish = () =>
+      document.documentElement.style.setProperty("--mobile-header-height", `${header.offsetHeight}px`);
+    const ro = new ResizeObserver(publish);
+    ro.observe(header);
+    publish();
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty("--mobile-header-height");
+    };
+  }, []);
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -248,7 +266,10 @@ export function Sidebar({
     const icon = <img src={logoIconSrc} alt="" width={32} height={32} className="flex-shrink-0" />;
     const wrapperClass =
       variant === "mobile"
-        ? "flex items-center gap-3 min-w-0 flex-1 ml-2"
+        ? // No min-w-0: the logo keeps its intrinsic width so a tight header
+          // wraps the board selector to a second row instead of clipping
+          // the wordmark under it.
+          "flex items-center gap-3 flex-1 ml-2"
         : "flex items-center gap-2 overflow-hidden px-4 py-4";
 
     if (season) {
@@ -274,10 +295,15 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-2 left-3 right-3 z-[100] overflow-hidden sidebar-gradient-horizontal">
+      {/* Mobile Header — wraps on narrow viewports (the board selector drops
+          to a second row at ~320px); its measured height feeds the
+          --mobile-header-height var that the menu and MainContent offset by. */}
+      <header
+        ref={headerRef}
+        className="lg:hidden fixed top-2 left-3 right-3 z-[var(--z-mobile-header)] overflow-hidden sidebar-gradient-horizontal"
+      >
         {season && <SidebarAuroraHorizontal colors={season.colors} />}
-        <div className="relative z-[1] flex items-center px-4 h-14">
+        <div className="relative z-[1] flex min-h-14 flex-wrap items-center gap-y-2 px-4 py-2">
           <Button
             variant="ghost"
             size="icon"
@@ -285,16 +311,10 @@ export function Sidebar({
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? labels.closeMenu : labels.openMenu}
           >
-            {mobileMenuOpen ? (
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>
           {logoBlock("mobile")}
-          {mobileBoardSelector && <div className="ml-2 flex-shrink-0">{mobileBoardSelector}</div>}
+          {mobileBoardSelector && <div className="ml-auto pl-2 flex-shrink-0">{mobileBoardSelector}</div>}
         </div>
       </header>
 
@@ -302,7 +322,7 @@ export function Sidebar({
       <div
         data-testid="mobile-backdrop"
         className={cn(
-          "lg:hidden fixed inset-0 z-[90] bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 pointer-events-none",
+          "lg:hidden fixed inset-0 z-[var(--z-mobile-backdrop)] bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 pointer-events-none",
           mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0",
         )}
         onClick={() => setMobileMenuOpen(false)}
@@ -312,7 +332,7 @@ export function Sidebar({
       {/* Mobile Menu */}
       <div
         className={cn(
-          "lg:hidden fixed top-[72px] left-3 right-3 z-[95] flex max-h-[calc(100dvh-5.5rem)] flex-col overflow-hidden sidebar-gradient-horizontal",
+          "lg:hidden fixed top-[calc(var(--mobile-header-height,56px)+16px)] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal",
           mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
         role={mobileMenuOpen ? "dialog" : undefined}
@@ -321,8 +341,11 @@ export function Sidebar({
         aria-hidden={!mobileMenuOpen}
         inert={!mobileMenuOpen ? true : undefined}
         style={{
-          clipPath: mobileMenuOpen ? "inset(0 0 0 0 round 16px)" : "inset(0 0 100% 0 round 16px)",
-          transition: "clip-path 350ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms ease",
+          clipPath: mobileMenuOpen
+            ? "inset(0 0 0 0 round var(--radius-chrome-mobile, 16px))"
+            : "inset(0 0 100% 0 round var(--radius-chrome-mobile, 16px))",
+          transition:
+            "clip-path var(--motion-duration-slower) var(--motion-ease-spring), opacity var(--motion-duration-exit) var(--motion-ease-standard)",
         }}
       >
         <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -362,7 +385,7 @@ export function Sidebar({
         <aside
           aria-label={labels.mainNavigation}
           className={cn(
-            "hidden lg:fixed lg:top-3 lg:bottom-3 lg:z-50 lg:block sidebar-gradient sidebar-transition",
+            "hidden lg:fixed lg:top-3 lg:bottom-3 lg:z-[var(--z-sidebar)] lg:block sidebar-gradient sidebar-transition",
             collapsed ? "lg:w-16" : "lg:w-64",
             transitioning && "is-transitioning",
           )}
@@ -380,7 +403,7 @@ export function Sidebar({
               <button
                 onClick={onToggleCollapsed}
                 aria-label={collapsed ? labels.expandSidebar : labels.collapseSidebar}
-                className="absolute -right-3.5 top-[51px] z-[51] flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 bg-background text-gray-500 dark:text-gray-400 shadow-md hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                className="absolute -right-3.5 top-[51px] z-[var(--z-sidebar-toggle)] flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-md hover:bg-accent hover:text-foreground transition-colors"
               >
                 {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
               </button>
@@ -451,16 +474,25 @@ export function Sidebar({
                 {secondaryItems.map(renderDesktopNavItem)}
                 {renderAccount?.({ variant: "desktop", collapsed })}
               </nav>
-              <div className="mt-2 flex items-center justify-between gap-2 border-t border-sidebar-border/80 py-2 pl-[14px] pr-3">
+              {/* Footer: expanded = version | toggle side by side; collapsed =
+                  toggle stacked over a centered version on the rail line. */}
+              <div
+                className={cn(
+                  "mt-2 border-t border-sidebar-border/80 py-2",
+                  collapsed
+                    ? "flex flex-col items-center gap-1"
+                    : "flex items-center justify-between gap-2 pl-[14px] pr-3",
+                )}
+              >
                 <div
                   className={cn(
-                    "min-w-0 overflow-hidden whitespace-nowrap transition-opacity duration-100",
-                    collapsed ? "max-w-0 opacity-0" : "max-w-[min(200px,100%)] opacity-100 delay-150",
+                    "min-w-0 overflow-hidden whitespace-nowrap",
+                    collapsed ? "order-2 w-full truncate text-center" : "order-1",
                   )}
                 >
                   {versionSlot}
                 </div>
-                <div className="flex-shrink-0">{themeToggleSlot}</div>
+                <div className={cn("flex-shrink-0", collapsed ? "order-1" : "order-2")}>{themeToggleSlot}</div>
               </div>
             </div>
           </div>

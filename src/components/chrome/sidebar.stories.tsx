@@ -12,11 +12,24 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { PRIDE_SEASON } from "../../lib/seasons";
+import { ALL_SEASONS, type Season } from "../../lib/seasons";
 import { cn } from "../../lib/utils";
 import { BoardSelector } from "./board-selector";
 import { Sidebar, type SidebarNavItem, type SidebarProps } from "./sidebar";
 import { ThemeToggle } from "./theme-toggle";
+
+// Seasons are a decorator concern: the Season toolbar (preview.tsx) stamps the
+// CSS class app-wide, and stories resolve the same global into the Sidebar's
+// `season` prop so the aurora + celebration logo appear only while the
+// toolbar has a season active — never as a baked-in story variant.
+function toolbarSeason(globals: Record<string, unknown>): Season | null {
+  return ALL_SEASONS.find((s) => s.id === globals.season) ?? null;
+}
+
+function seasonProps(globals: Record<string, unknown>) {
+  const season = toolbarSeason(globals);
+  return season ? { season, onLogoClick: () => {} } : {};
+}
 
 const LABELS = {
   mainNavigation: "Main navigation",
@@ -111,6 +124,18 @@ function DemoSidebar({
           />
         ) : undefined
       }
+      mobileBoardSelector={
+        // Phone widths switch boards from the always-visible header bar.
+        boards.length > 1 ? (
+          <BoardSelector
+            boards={boards}
+            value={board}
+            onChange={setBoard}
+            labels={{ boardSelector: "Select board", selectBoard: "Select a board", unnamedBoard: "Unnamed board" }}
+            variant="mobileHeader"
+          />
+        ) : undefined
+      }
       versionSlot={<span className="text-xs text-sidebar-foreground/70">v9.0.0</span>}
       themeToggleSlot={
         <ThemeToggle
@@ -127,7 +152,8 @@ function DemoSidebar({
 /** Flat, controls-friendly args mapped onto the Sidebar's real (function/slot-heavy) props. */
 interface PlaygroundArgs {
   collapsed: boolean;
-  season: "none" | "pride";
+  /** Injected from the Season toolbar global, not a control. */
+  season?: Season | null;
   showAi: boolean;
   aiActive: boolean;
   boardCount: number;
@@ -170,8 +196,8 @@ function PlaygroundSidebar(args: PlaygroundArgs) {
       onToggleCollapsed={() => setCollapsed(!collapsed)}
       maxWidth={1680}
       sidebarInset={12}
-      season={args.season === "pride" ? PRIDE_SEASON : null}
-      onLogoClick={args.season === "pride" ? () => {} : undefined}
+      season={args.season ?? null}
+      onLogoClick={args.season ? () => {} : undefined}
       ai={args.showAi ? { active: args.aiActive, onOpen: () => {} } : undefined}
       boardSelector={
         boards.length > 1 ? (
@@ -181,6 +207,17 @@ function PlaygroundSidebar(args: PlaygroundArgs) {
             onChange={setBoard}
             labels={{ boardSelector: "Select board", selectBoard: "Select a board", unnamedBoard: "Unnamed board" }}
             collapsed={collapsed}
+          />
+        ) : undefined
+      }
+      mobileBoardSelector={
+        boards.length > 1 ? (
+          <BoardSelector
+            boards={boards}
+            value={board}
+            onChange={setBoard}
+            labels={{ boardSelector: "Select board", selectBoard: "Select a board", unnamedBoard: "Unnamed board" }}
+            variant="mobileHeader"
           />
         ) : undefined
       }
@@ -215,7 +252,6 @@ type Story = StoryObj;
 export const Playground: StoryObj<PlaygroundArgs> = {
   args: {
     collapsed: false,
-    season: "none",
     showAi: true,
     aiActive: false,
     boardCount: 2,
@@ -228,11 +264,6 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     collapsed: {
       description: "Start collapsed to the icon rail — the edge chevron stays clickable either way.",
       control: "boolean",
-    },
-    season: {
-      description: "Seasonal treatment: auroras render and the logo becomes a celebration button.",
-      control: "inline-radio",
-      options: ["none", "pride"],
     },
     showAi: { description: "Show the AI assistant entry between primary and secondary nav.", control: "boolean" },
     aiActive: { description: "Highlight the AI assistant entry as the active route.", control: "boolean" },
@@ -252,23 +283,23 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       control: "boolean",
     },
   },
-  render: function Render(args) {
+  render: function Render(args, { globals }) {
     // Re-mount when the collapsed control flips so it re-seeds local state
     // without killing the edge-toggle interactivity in between.
-    return <PlaygroundSidebar key={String(args.collapsed)} {...args} />;
+    return <PlaygroundSidebar key={String(args.collapsed)} {...args} season={toolbarSeason(globals)} />;
   },
 };
 
 export const Default: Story = {
-  render: () => <DemoSidebar />,
+  render: (_, { globals }) => <DemoSidebar {...seasonProps(globals)} />,
 };
 
 export const Collapsed: Story = {
-  render: () => <DemoSidebar initialCollapsed />,
+  render: (_, { globals }) => <DemoSidebar initialCollapsed {...seasonProps(globals)} />,
 };
 
 export const MultiBoard: Story = {
-  render: () => <DemoSidebar boardCount={3} />,
+  render: (_, { globals }) => <DemoSidebar boardCount={3} {...seasonProps(globals)} />,
 };
 
 export const SingleBoard: Story = {
@@ -279,23 +310,21 @@ export const SingleBoard: Story = {
       },
     },
   },
-  render: () => <DemoSidebar boardCount={1} />,
+  render: (_, { globals }) => <DemoSidebar boardCount={1} {...seasonProps(globals)} />,
 };
 
 export const WithAiAssistant: Story = {
-  render: () => <DemoSidebar ai={{ active: false, onOpen: () => {} }} />,
+  render: (_, { globals }) => <DemoSidebar ai={{ active: false, onOpen: () => {} }} {...seasonProps(globals)} />,
 };
 
 export const AiActive: Story = {
-  render: () => <DemoSidebar ai={{ active: true, onOpen: () => {} }} />,
-};
-
-export const PrideSeason: Story = {
-  render: () => <DemoSidebar season={PRIDE_SEASON} onLogoClick={() => {}} />,
+  render: (_, { globals }) => <DemoSidebar ai={{ active: true, onOpen: () => {} }} {...seasonProps(globals)} />,
 };
 
 export const WithAccount: Story = {
-  render: () => <DemoSidebar renderAccount={({ collapsed }) => <AccountRow collapsed={collapsed} />} />,
+  render: (_, { globals }) => (
+    <DemoSidebar renderAccount={({ collapsed }) => <AccountRow collapsed={collapsed} />} {...seasonProps(globals)} />
+  ),
 };
 
 /**
@@ -316,5 +345,5 @@ export const Mobile: Story = {
       },
     },
   },
-  render: () => <DemoSidebar />,
+  render: (_, { globals }) => <DemoSidebar {...seasonProps(globals)} />,
 };

@@ -64,7 +64,7 @@ function Slider({
               // The accessible name must land on the thumb's <input>, not the
               // Root div — forward the wrapper-level aria-label there.
               getAriaLabel={ariaLabel ? () => ariaLabel : undefined}
-              className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring/50 transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+              className="block size-4 shrink-0 rounded-full border border-primary bg-background shadow-sm ring-ring/50 transition-[color,box-shadow] outline-none hover:ring-[3px] focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50"
             />
           ))}
         </SliderPrimitive.Track>

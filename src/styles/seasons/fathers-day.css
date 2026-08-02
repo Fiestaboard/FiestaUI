@@ -16,9 +16,13 @@
   --icon-g6: #2f5d8a; /* steel blue (loop) */
 }
 
-/* "Fiesta" logo word — steel-to-sea-glass gradient */
+/* "Fiesta" logo word — steel-to-sea-glass gradient, inked one shade
+   deeper than the icon ramp: the light sidebar animates coastal-slate
+   stops under the wordmark, so every logo stop holds ≥1.5:1 against all
+   of them (lowest: #35707a at 1.67:1) where the mid-tone ramp would sink
+   into the slate. */
 .fathers-day-season .logo-fiesta-text {
-  background: linear-gradient(90deg, #2f5d8a, #4a7ba6, #5f9ea0, #6d7f93, #2f5d8a);
+  background: linear-gradient(90deg, #2f5d8a, #3d6b96, #35707a, #55677a, #2f5d8a);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -44,4 +48,15 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --foreground: oklch(1 0 0);
   --muted-foreground: oklch(1 0 0 / 75%);
+}
+
+/* Reduced motion: authored here rather than inherited — these selectors
+   out-specific the base .sidebar-gradient rules in theme.css, so a future
+   edit that re-declares animation above would silently escape the base
+   @media block. Keeping the guard in-file makes that impossible. */
+@media (prefers-reduced-motion: reduce) {
+  .fathers-day-season .sidebar-gradient,
+  .fathers-day-season .sidebar-gradient-horizontal {
+    animation: none;
+  }
 }
