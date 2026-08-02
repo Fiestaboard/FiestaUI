@@ -35,6 +35,8 @@ const textVariants = cva("", {
 interface TextProps extends React.HTMLAttributes<HTMLElement>, VariantProps<typeof textVariants> {
   /** Rendered element. `p` (default) for block copy, `span` for inline fragments. */
   as?: "p" | "span";
+  /** `React.HTMLAttributes` has no `ref` prop; React 19 forwards it through the spread. */
+  ref?: React.Ref<HTMLElement>;
 }
 
 /**
@@ -45,7 +47,7 @@ interface TextProps extends React.HTMLAttributes<HTMLElement>, VariantProps<type
  * the status token set so message coloring stays on-token.
  */
 function Text({ as = "p", className, size, tone, weight, ...props }: TextProps) {
-  const Component = as;
+  const Component = as as React.ElementType;
   return <Component data-slot="text" className={cn(textVariants({ size, tone, weight }), className)} {...props} />;
 }
 

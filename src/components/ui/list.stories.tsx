@@ -50,3 +50,13 @@ export const Markers: Story = {
     </List>
   ),
 };
+
+export const DiscMarker: Story = {
+  render: () => (
+    <List marker="disc" gap="2">
+      <ListItem>First bulleted item</ListItem>
+      <ListItem>Second bulleted item</ListItem>
+      <ListItem>Third bulleted item</ListItem>
+    </List>
+  ),
+};

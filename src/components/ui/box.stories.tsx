@@ -32,3 +32,11 @@ export const Default: Story = {
     </Box>
   ),
 };
+
+export const AsSection: Story = {
+  render: () => (
+    <Box as="section" className="w-64 rounded-md border p-3">
+      <Text tone="muted">as="section" — a semantic non-div element with no added styling.</Text>
+    </Box>
+  ),
+};

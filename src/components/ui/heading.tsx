@@ -20,6 +20,8 @@ const headingVariants = cva("font-semibold leading-none tracking-tight text-fore
 interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement>, VariantProps<typeof headingVariants> {
   /** Semantic heading element. h1 is reserved for PageHeader. */
   level?: 2 | 3 | 4;
+  /** `React.HTMLAttributes` has no `ref` prop; React 19 forwards it through the spread. */
+  ref?: React.Ref<HTMLHeadingElement>;
 }
 
 /**

@@ -56,6 +56,17 @@ export const Tones: Story = {
   ),
 };
 
+export const Sizes: Story = {
+  render: () => (
+    <Stack gap="1">
+      <Text size="xs">size="xs" — fine print, timestamps</Text>
+      <Text size="sm">size="sm" — the app default body size</Text>
+      <Text size="lg">size="lg" — emphasized body copy</Text>
+      <Text weight="medium">weight="medium" — emphasized default-size copy</Text>
+    </Stack>
+  ),
+};
+
 export const InlineSpan: Story = {
   render: () => (
     <Text size="base">
