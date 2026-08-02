@@ -22,6 +22,12 @@ Implemented in this PR:
 - **F3** — light manager theme (`fiestaLight` mirrors theme.css's light neutrals); the shell follows the preview's Theme toolbar toggle via a small manager addon.
 - **Removals (breaking — next release is a major):** `Checkbox`, `BlurText`, `CountUp`, `SpotlightCard`, deprecated `PRIDE_COLORS`/`firePrideBurst` — verified unused in FiestaBoard `web/src`. **Kept by product decision:** `PageHeader`/`PageLayout`/`PageToolbar` (and their `--icon-g*`/`.page-title` plumbing) — currently unused by the app but they are the preferred page scaffolding; adopting them in FiestaBoard is the follow-up.
 
+Post-review polish (same PR, from design walkthrough feedback):
+
+- Collapsed sidebar: board-selector trigger centered on the rail line (was 8px off — phantom flex gaps + fixed-width trigger in a full-width slot); theme toggle centered; version number shown centered beneath the toggle when collapsed, side-by-side row when expanded.
+- Mobile header: board selector compacts to icon + caret below 480px (no board name fits beside the wordmark on portrait phones); header can wrap as a safety net, publishing its measured height as `--mobile-header-height` for the menu/content offsets (replaces hardcoded 72px).
+- Sidebar/AppShell stories now wire `mobileBoardSelector` — the phone-width Storybook header previously had no board switcher at all.
+
 Deferred (tracked below, unchanged): B4 motion token system, C3 authoring-pattern migration, G SVG taco redraw, remaining B3 radius/z-index scales.
 
 ## Executive summary
