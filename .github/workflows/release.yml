@@ -35,6 +35,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -76,3 +78,12 @@ jobs:
             --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
+
+  # After a successful publish, keep the evergreen upgrade PR on
+  # Fiestaboard/FiestaBoard pointed at this release.
+  downstream-upgrade:
+    needs: release
+    uses: ./.github/workflows/downstream-upgrade.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+    secrets: inherit
