@@ -35,6 +35,7 @@ export * from "./components/ui/stack";
 export * from "./components/ui/switch";
 export * from "./components/ui/tabs";
 export * from "./components/ui/text";
+export * from "./components/ui/text-link";
 export * from "./components/ui/textarea";
 export * from "./components/ui/tooltip";
 // App chrome — branding, sidebar, layout, festive treatments.
