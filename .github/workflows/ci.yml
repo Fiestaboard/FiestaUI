@@ -4,8 +4,70 @@ on:
   push:
     branches: [main]
   pull_request:
+  # seed_baselines exists because vrt-update.yml can't be dispatched until it
+  # lands on the default branch — dispatching CI with this input runs the same
+  # baseline seeding from this ref. Remove once vrt-update.yml is on main.
+  workflow_dispatch:
+    inputs:
+      seed_baselines:
+        description: "Regenerate vrt/baselines and commit to this branch"
+        type: boolean
+        default: false
 
 jobs:
+  vrt-seed:
+    name: Seed VRT baselines
+    if: github.event_name == 'workflow_dispatch' && inputs.seed_baselines
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-a11y-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Storybook
+        run: npm run build-storybook -- --quiet
+
+      - name: Start Storybook static server
+        run: |
+          npx http-server storybook-static --port 6006 --silent &
+          sleep 5
+
+      - name: Regenerate baselines
+        timeout-minutes: 12
+        run: npm run vrt:update
+
+      - name: Commit and push baselines
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A vrt/baselines
+          if git diff --cached --quiet; then
+            echo "Baselines unchanged — nothing to commit"
+            exit 0
+          fi
+          git commit -m "chore(vrt): update visual baselines"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
   lint:
     name: Lint & Typecheck
     runs-on: ubuntu-latest
