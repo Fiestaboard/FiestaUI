@@ -17,6 +17,8 @@ export * from "./components/ui/collapsible";
 export * from "./components/ui/dialog";
 export * from "./components/ui/dropdown-menu";
 export * from "./components/ui/empty-state";
+export * from "./components/ui/flex";
+export * from "./components/ui/grid";
 export * from "./components/ui/input";
 export * from "./components/ui/label";
 // react-bits components are default exports — re-export them as named.
@@ -27,6 +29,7 @@ export * from "./components/ui/select";
 export * from "./components/ui/sheet";
 export * from "./components/ui/skeleton";
 export * from "./components/ui/slider";
+export * from "./components/ui/stack";
 export * from "./components/ui/switch";
 export * from "./components/ui/tabs";
 export * from "./components/ui/textarea";
