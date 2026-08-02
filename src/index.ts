@@ -24,6 +24,7 @@ export * from "./components/ui/grid";
 export * from "./components/ui/heading";
 export * from "./components/ui/input";
 export * from "./components/ui/label";
+export * from "./components/ui/list";
 export { default as DecryptedText } from "./components/ui/react-bits/decrypted-text";
 export { default as FadeContent } from "./components/ui/react-bits/fade-content";
 export * from "./components/ui/scroll-area";
