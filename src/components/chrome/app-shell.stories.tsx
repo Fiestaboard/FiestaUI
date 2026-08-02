@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Calendar, FileText, GalleryHorizontalEnd, Home, Puzzle, Settings } from "lucide-react";
 import { useState } from "react";
 
-import { PRIDE_SEASON, type Season } from "../../lib/seasons";
+import { ALL_SEASONS, type Season } from "../../lib/seasons";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -14,6 +14,13 @@ import { PageToolbar } from "./page-toolbar";
 import { Sidebar, type SidebarNavItem, type SidebarProps } from "./sidebar";
 import { SkipToContent } from "./skip-to-content";
 import { ThemeToggle } from "./theme-toggle";
+
+// Seasons come from the Season toolbar decorator: it stamps the CSS class,
+// and stories resolve the same global into the Sidebar's season prop so the
+// aurora only appears while a season is active in the toolbar.
+function toolbarSeason(globals: Record<string, unknown>): Season | null {
+  return ALL_SEASONS.find((s) => s.id === globals.season) ?? null;
+}
 
 const LABELS = {
   mainNavigation: "Main navigation",
@@ -127,18 +134,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => <AppShellDemo />,
+  render: (_, { globals }) => <AppShellDemo season={toolbarSeason(globals)} />,
 };
 
 export const Collapsed: Story = {
-  render: () => <AppShellDemo initialCollapsed />,
-};
-
-/**
- * The shell during a festive season: the sidebar renders its aurora and
- * the logo becomes a celebration button — no extra wiring needed beyond
- * passing the season to the Sidebar.
- */
-export const PrideSeason: Story = {
-  render: () => <AppShellDemo season={PRIDE_SEASON} />,
+  render: (_, { globals }) => <AppShellDemo initialCollapsed season={toolbarSeason(globals)} />,
 };
