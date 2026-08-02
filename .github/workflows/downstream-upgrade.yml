@@ -109,7 +109,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          (cd "$FIESTABOARD_DIR/web" && npm ci --no-audit)
+          # --legacy-peer-deps matches FiestaBoard's own CI install flags.
+          (cd "$FIESTABOARD_DIR/web" && npm ci --legacy-peer-deps --no-audit)
           if "$FIESTAUI_DIR/scripts/downstream-upgrade/validate.sh" "$FIESTABOARD_DIR" "$LOG_FILE"; then
             echo "ok=true" >> "$GITHUB_OUTPUT"
           else

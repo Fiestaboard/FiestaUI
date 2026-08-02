@@ -16,6 +16,7 @@ WEB_DIR="$FB_DIR/web"
   cd "$WEB_DIR"
   npm pkg set "dependencies.@fiestaboard/ui=$VERSION"
   if [ "${SKIP_INSTALL:-0}" != "1" ]; then
-    npm install --no-audit --fund=false
+    # --legacy-peer-deps matches FiestaBoard's own CI install flags.
+    npm install --legacy-peer-deps --no-audit --fund=false
   fi
 )
