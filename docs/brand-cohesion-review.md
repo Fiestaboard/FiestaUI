@@ -2,9 +2,15 @@
 
 _Review date: 2026-08-01. Scope: full `src/` tree (ui + chrome components, react-bits, styles, seasonal themes, lib/seasons), `.storybook/`, packaging (`package.json` exports/build), and README._
 
-## Status (updated 2026-08-01, same PR)
+## Status (updated 2026-08-01, same PR — v1.0.0: all workstreams closed)
 
 Implemented in this PR:
+
+- **B4** — motion token system: `--motion-duration-{fast,control,base,exit,slow,slower,slowest}` + `--motion-ease-{out,spring,in,out-cubic,standard}` in theme.css, all values lifted verbatim; keyframe timing, sheet inline animation strings, and the mobile-menu transition migrated. Deliberate one-offs stay literal with comments.
+- **B3 (complete)** — radius role scale (control-inset/control/surface/card/pill + chrome 14px/chrome-mobile 16px) and a documented z-index layer scale (--z-popover 50 → --z-confetti 9999); chrome magic numbers and ui overlay z-indexes now reference tokens; stacking rationale documented.
+- **C3** — one authoring pattern across ui/: plain function components + data-slot everywhere (React 19 ref-as-prop; forwardRef/displayName tier fully migrated; button/badge stay on useRender by design). DOM identical except added data-slot attributes.
+- **G** — pixel-taco redrawn as tokenized SVG: 330 rect runs over a 15-slot `--fiesta-icon-*` semantic palette (source PNG had AA noise — parity proven 0-diff against the quantized design target); `FIESTA_ICON_DATA_URI` stays backward-compatible; crisp at all sizes.
+- **Board Preview extraction** — BoardDisplay/ScaledBoardDisplay/StaticBoardDisplay + character/color/dimension data modules moved into the package as fully presentational components; flip-animation values byte-identical; 33 axe-clean stories under Board/.
 
 - **A1, A2** — fiesta gradient single-sourced to `--fiesta-*` (mobile header unified to desktop values); pride palette reduced to two sources (CSS `--icon-g*` ramp in `seasons/pride.css`, JS `PRIDE_SEASON.colors`) with auroras/logo deriving from them.
 - **A3** — every draft season's `colors[]` now mirrors its CSS `--icon-g*` ramp; Halloween's logo/icon purple ramps aligned.
@@ -28,7 +34,7 @@ Post-review polish (same PR, from design walkthrough feedback):
 - Mobile header: board selector compacts to icon + caret below 480px (no board name fits beside the wordmark on portrait phones); header can wrap as a safety net, publishing its measured height as `--mobile-header-height` for the menu/content offsets (replaces hardcoded 72px).
 - Sidebar/AppShell stories now wire `mobileBoardSelector` — the phone-width Storybook header previously had no board switcher at all.
 
-Deferred (tracked below, unchanged): B4 motion token system, C3 authoring-pattern migration, G SVG taco redraw, remaining B3 radius/z-index scales.
+Remaining (minor, tracked in their sections): C1's full cva/token adoption for the surviving react-bits pieces; C2's decision on `ui/aurora.tsx` (kept — used by the app's setup wizard).
 
 ## Executive summary
 
