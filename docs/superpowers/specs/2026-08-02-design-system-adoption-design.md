@@ -105,8 +105,8 @@ Instructs Claude to:
   `NODE_AUTH_TOKEN`, and `FIESTAUI_TOKEN: ${{ secrets.GITHUB_TOKEN }}` (for
   issue creation on FiestaUI; workflow gains `issues: write`). FiestaBoard
   operations keep the existing app token.
-- `ensure-labels` (pr-sync.sh) additionally ensures a `component-request`
-  label on the FiestaUI repo.
+- `adopt.sh` ensures a `component-request` label on the FiestaUI repo before
+  running Claude (it holds the FiestaUI-scoped token; failure tolerated).
 - The "Push fixes and confirm FiestaBoard CI" loop gains one rule: on CI
   failure, if `git log origin/main..HEAD --grep='\[fiestaui-adoption\]'` is
   non-empty, revert those commits (`git revert --no-edit` newest-first, or
