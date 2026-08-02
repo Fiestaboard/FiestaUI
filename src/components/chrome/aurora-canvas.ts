@@ -141,22 +141,39 @@ export function useAuroraCanvas(
       gl!.uniform2f(uRes, w, h);
     }
 
-    const ro = new ResizeObserver(resize);
-    ro.observe(canvas.parentElement!);
-    resize();
-
     let rafId = 0;
-    const tick = (ts: number) => {
-      rafId = requestAnimationFrame(tick);
-      gl!.uniform1f(uTime, ts * 0.001);
+    const draw = (time: number) => {
+      gl!.uniform1f(uTime, time);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
       gl!.drawArrays(gl!.TRIANGLES, 0, 3);
     };
-    rafId = requestAnimationFrame(tick);
+    const tick = (ts: number) => {
+      rafId = requestAnimationFrame(tick);
+      draw(ts * 0.001);
+    };
+
+    // prefers-reduced-motion: freeze the aurora on a single frame instead of
+    // running the loop — the colour ramp stays, only the movement stops.
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const startOrFreeze = () => {
+      cancelAnimationFrame(rafId);
+      if (reducedMotion.matches) draw(0);
+      else rafId = requestAnimationFrame(tick);
+    };
+    reducedMotion.addEventListener("change", startOrFreeze);
+
+    const ro = new ResizeObserver(() => {
+      resize();
+      if (reducedMotion.matches) draw(0);
+    });
+    ro.observe(canvas.parentElement!);
+    resize();
+    startOrFreeze();
 
     // Do NOT call loseContext() — permanently destroys context, breaks React 18 Strict Mode remount.
     return () => {
       cancelAnimationFrame(rafId);
+      reducedMotion.removeEventListener("change", startOrFreeze);
       ro.disconnect();
     };
   }, [canvasRef, fragSource, colors, label]);

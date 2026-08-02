@@ -47,3 +47,14 @@
   --sidebar-fiesta-orange: #c4a34e;
   --sidebar-fiesta-purple: #5e9670;
 }
+
+/* Reduced motion: authored here rather than inherited — these selectors
+   out-specific the base .sidebar-gradient rules in theme.css, so a future
+   edit that re-declares animation above would silently escape the base
+   @media block. Keeping the guard in-file makes that impossible. */
+@media (prefers-reduced-motion: reduce) {
+  .christmas-season .sidebar-gradient,
+  .christmas-season .sidebar-gradient-horizontal {
+    animation: none;
+  }
+}

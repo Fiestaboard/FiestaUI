@@ -40,10 +40,22 @@
 }
 
 /* Light mode sidebar: retint the flowing gradient stops to antique gold,
-   brushed silver, and periwinkle dusk (black text stays ≥4.5:1 on these). */
+   brushed silver, and periwinkle dusk (black text verified ≥4.5:1 on all
+   three stops; periwinkle #8790c9 is 6.86:1). */
 .new-year-season:not(.dark) .sidebar-gradient,
 .new-year-season:not(.dark) .sidebar-gradient-horizontal {
   --sidebar-fiesta-red: #c4ad62;
   --sidebar-fiesta-orange: #b8bfcc;
   --sidebar-fiesta-purple: #8790c9;
+}
+
+/* Reduced motion: authored here rather than inherited — these selectors
+   out-specific the base .sidebar-gradient rules in theme.css, so a future
+   edit that re-declares animation above would silently escape the base
+   @media block. Keeping the guard in-file makes that impossible. */
+@media (prefers-reduced-motion: reduce) {
+  .new-year-season .sidebar-gradient,
+  .new-year-season .sidebar-gradient-horizontal {
+    animation: none;
+  }
 }

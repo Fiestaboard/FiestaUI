@@ -46,3 +46,14 @@
   --foreground: oklch(1 0 0);
   --muted-foreground: oklch(1 0 0 / 75%);
 }
+
+/* Reduced motion: authored here rather than inherited — these selectors
+   out-specific the base .sidebar-gradient rules in theme.css, so a future
+   edit that re-declares animation above would silently escape the base
+   @media block. Keeping the guard in-file makes that impossible. */
+@media (prefers-reduced-motion: reduce) {
+  .mothers-day-season .sidebar-gradient,
+  .mothers-day-season .sidebar-gradient-horizontal {
+    animation: none;
+  }
+}

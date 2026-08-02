@@ -41,10 +41,22 @@
 }
 
 /* Light mode sidebar: retint the flowing gradient stops to muted pumpkin,
-   dry amber, and dusk purple (black text stays ≥4.5:1 on these mid-tones). */
+   dry amber, and dusk purple (black text verified ≥4.5:1 on all three
+   stops; the lowest is #8a6cae at 4.84:1). */
 .halloween-season:not(.dark) .sidebar-gradient,
 .halloween-season:not(.dark) .sidebar-gradient-horizontal {
   --sidebar-fiesta-red: #c67a45;
   --sidebar-fiesta-orange: #b6924e;
   --sidebar-fiesta-purple: #8a6cae;
+}
+
+/* Reduced motion: authored here rather than inherited — these selectors
+   out-specific the base .sidebar-gradient rules in theme.css, so a future
+   edit that re-declares animation above would silently escape the base
+   @media block. Keeping the guard in-file makes that impossible. */
+@media (prefers-reduced-motion: reduce) {
+  .halloween-season .sidebar-gradient,
+  .halloween-season .sidebar-gradient-horizontal {
+    animation: none;
+  }
 }
