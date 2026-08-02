@@ -111,6 +111,18 @@ function DemoSidebar({
           />
         ) : undefined
       }
+      mobileBoardSelector={
+        // Phone widths switch boards from the always-visible header bar.
+        boards.length > 1 ? (
+          <BoardSelector
+            boards={boards}
+            value={board}
+            onChange={setBoard}
+            labels={{ boardSelector: "Select board", selectBoard: "Select a board", unnamedBoard: "Unnamed board" }}
+            variant="mobileHeader"
+          />
+        ) : undefined
+      }
       versionSlot={<span className="text-xs text-sidebar-foreground/70">v9.0.0</span>}
       themeToggleSlot={
         <ThemeToggle
@@ -181,6 +193,17 @@ function PlaygroundSidebar(args: PlaygroundArgs) {
             onChange={setBoard}
             labels={{ boardSelector: "Select board", selectBoard: "Select a board", unnamedBoard: "Unnamed board" }}
             collapsed={collapsed}
+          />
+        ) : undefined
+      }
+      mobileBoardSelector={
+        boards.length > 1 ? (
+          <BoardSelector
+            boards={boards}
+            value={board}
+            onChange={setBoard}
+            labels={{ boardSelector: "Select board", selectBoard: "Select a board", unnamedBoard: "Unnamed board" }}
+            variant="mobileHeader"
           />
         ) : undefined
       }

@@ -36,7 +36,7 @@ export function MainContent({
       id="main-content"
       className={cn(
         "min-h-dvh flex flex-col w-full mx-auto",
-        !isAuthScreen && "pt-[72px] lg:pt-0 sidebar-transition",
+        !isAuthScreen && "pt-[calc(var(--mobile-header-height,56px)+16px)] lg:pt-0 sidebar-transition",
         !isAuthScreen && (collapsed ? "lg:pl-[76px]" : "lg:pl-[268px]"),
         !isAuthScreen && (aiPanelOpen ? "lg:pr-[384px]" : "lg:pr-0"),
         !isAuthScreen && transitioning && "is-transitioning",

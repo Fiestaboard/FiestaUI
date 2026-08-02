@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Menu, Sparkles, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Season } from "../../lib/seasons";
 import { cn } from "../../lib/utils";
@@ -112,6 +112,24 @@ export function Sidebar({
 }: SidebarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [appInset, setAppInset] = useState(0);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // The mobile header wraps on narrow viewports, so its height is dynamic.
+  // Publish it as --mobile-header-height for the mobile menu and
+  // MainContent to offset against (both fall back to the unwrapped 56px).
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const publish = () =>
+      document.documentElement.style.setProperty("--mobile-header-height", `${header.offsetHeight}px`);
+    const ro = new ResizeObserver(publish);
+    ro.observe(header);
+    publish();
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty("--mobile-header-height");
+    };
+  }, []);
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -248,7 +266,10 @@ export function Sidebar({
     const icon = <img src={logoIconSrc} alt="" width={32} height={32} className="flex-shrink-0" />;
     const wrapperClass =
       variant === "mobile"
-        ? "flex items-center gap-3 min-w-0 flex-1 ml-2"
+        ? // No min-w-0: the logo keeps its intrinsic width so a tight header
+          // wraps the board selector to a second row instead of clipping
+          // the wordmark under it.
+          "flex items-center gap-3 flex-1 ml-2"
         : "flex items-center gap-2 overflow-hidden px-4 py-4";
 
     if (season) {
@@ -274,10 +295,15 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-2 left-3 right-3 z-[100] overflow-hidden sidebar-gradient-horizontal">
+      {/* Mobile Header — wraps on narrow viewports (the board selector drops
+          to a second row at ~320px); its measured height feeds the
+          --mobile-header-height var that the menu and MainContent offset by. */}
+      <header
+        ref={headerRef}
+        className="lg:hidden fixed top-2 left-3 right-3 z-[100] overflow-hidden sidebar-gradient-horizontal"
+      >
         {season && <SidebarAuroraHorizontal colors={season.colors} />}
-        <div className="relative z-[1] flex items-center px-4 h-14">
+        <div className="relative z-[1] flex min-h-14 flex-wrap items-center gap-y-2 px-4 py-2">
           <Button
             variant="ghost"
             size="icon"
@@ -288,7 +314,7 @@ export function Sidebar({
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>
           {logoBlock("mobile")}
-          {mobileBoardSelector && <div className="ml-2 flex-shrink-0">{mobileBoardSelector}</div>}
+          {mobileBoardSelector && <div className="ml-auto pl-2 flex-shrink-0">{mobileBoardSelector}</div>}
         </div>
       </header>
 
@@ -306,7 +332,7 @@ export function Sidebar({
       {/* Mobile Menu */}
       <div
         className={cn(
-          "lg:hidden fixed top-[72px] left-3 right-3 z-[95] flex max-h-[calc(100dvh-5.5rem)] flex-col overflow-hidden sidebar-gradient-horizontal",
+          "lg:hidden fixed top-[calc(var(--mobile-header-height,56px)+16px)] left-3 right-3 z-[95] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal",
           mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
         role={mobileMenuOpen ? "dialog" : undefined}

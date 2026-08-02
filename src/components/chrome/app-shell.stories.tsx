@@ -6,6 +6,7 @@ import { PRIDE_SEASON, type Season } from "../../lib/seasons";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { BoardSelector } from "./board-selector";
 import { MainContent } from "./main-content";
 import { PageHeader, PageIconGradientDefs } from "./page-header";
 import { PageLayout } from "./page-layout";
@@ -42,6 +43,18 @@ function AppShellDemo({
 }) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [board, setBoard] = useState("board-1");
+
+  const boards = [
+    { id: "board-1", name: "Living Room" },
+    { id: "board-2", name: "Kitchen" },
+  ];
+  const boardSelectorProps = {
+    boards,
+    value: board,
+    onChange: setBoard,
+    labels: { boardSelector: "Select board", selectBoard: "Select a board", unnamedBoard: "Unnamed board" },
+  };
 
   const primary: SidebarNavItem[] = [
     { key: "home", href: "#", icon: Home, label: "Home", active: true },
@@ -66,6 +79,8 @@ function AppShellDemo({
         sidebarInset={12}
         season={season}
         onLogoClick={season ? () => {} : undefined}
+        boardSelector={<BoardSelector {...boardSelectorProps} collapsed={collapsed} />}
+        mobileBoardSelector={<BoardSelector {...boardSelectorProps} variant="mobileHeader" />}
         versionSlot={<span className="text-xs text-sidebar-foreground/70">v9.0.0</span>}
         themeToggleSlot={
           <ThemeToggle
