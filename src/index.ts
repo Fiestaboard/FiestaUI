@@ -20,6 +20,7 @@ export * from "./components/ui/dropdown-menu";
 export * from "./components/ui/empty-state";
 export * from "./components/ui/flex";
 export * from "./components/ui/grid";
+export * from "./components/ui/heading";
 export * from "./components/ui/input";
 export * from "./components/ui/label";
 export { default as DecryptedText } from "./components/ui/react-bits/decrypted-text";
