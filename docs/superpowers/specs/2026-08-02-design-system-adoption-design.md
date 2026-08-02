@@ -9,7 +9,7 @@
 FiestaBoard still contains hand-rolled components and raw styled elements that
 duplicate what `@fiestaboard/ui` already provides. Today nothing converges the
 app onto the design system; drift only grows. The downstream-upgrade workflow
-keeps the *version* fresh but not the *usage*.
+keeps the _version_ fresh but not the _usage_.
 
 ## Goal
 
@@ -40,7 +40,7 @@ components"** — between "Validate bump, fix with Claude if needed" and "Push
 fixes and confirm FiestaBoard CI". Gate:
 `inputs.dry_run != true && steps.baseline.outputs.ok == 'true' && steps.fix.outputs.green == 'true' && inputs.adopt != false`.
 
-Because adoption commits land on the same `fiestaui-upgrade` branch *before*
+Because adoption commits land on the same `fiestaui-upgrade` branch _before_
 the existing push/CI-confirm step, they ride the workflow's existing PR sync,
 CI polling, labels, and comment machinery unchanged.
 
@@ -66,7 +66,7 @@ Same conventions as `fix-loop.sh` (env-driven, shellcheck-clean, testable):
    `{{SUMMARY_FILE}}`, `{{NEW_VERSION}}`, `{{UI_REPO}}` — the FiestaUI
    `owner/repo` slug used for issue filing).
 3. Run headless Claude (`claude -p … --model opus --add-dir "$FIESTAUI_DIR"
-   --dangerously-skip-permissions`) from `FIESTABOARD_DIR`. Claude exit code is
+--dangerously-skip-permissions`) from `FIESTABOARD_DIR`. Claude exit code is
    advisory (same as fix-loop).
 4. Re-run `validate.sh`. If red: `git reset --hard "$PRE_ADOPTION_SHA"`, note
    the rollback in the summary file, exit 0.
@@ -116,13 +116,13 @@ Instructs Claude to:
 
 ## Error handling
 
-| Failure | Behavior |
-| --- | --- |
-| Claude session dies / times out | adopt.sh validates + resets if needed, exits 0; summary says adoption skipped |
-| A swap breaks local validation | Claude (or adopt.sh backstop) reverts it; listed as reverted |
-| Swaps pass locally, break FiestaBoard CI | CI loop reverts all adoption commits, re-pushes; upgrade proceeds untouched |
-| Issue creation fails (token/labels) | Logged in summary; never fails the step |
-| Upgrade itself not green | Adoption step skipped entirely |
+| Failure                                  | Behavior                                                                      |
+| ---------------------------------------- | ----------------------------------------------------------------------------- |
+| Claude session dies / times out          | adopt.sh validates + resets if needed, exits 0; summary says adoption skipped |
+| A swap breaks local validation           | Claude (or adopt.sh backstop) reverts it; listed as reverted                  |
+| Swaps pass locally, break FiestaBoard CI | CI loop reverts all adoption commits, re-pushes; upgrade proceeds untouched   |
+| Issue creation fails (token/labels)      | Logged in summary; never fails the step                                       |
+| Upgrade itself not green                 | Adoption step skipped entirely                                                |
 
 Adoption can never set `upgrade-blocked`; only upgrade failures can.
 

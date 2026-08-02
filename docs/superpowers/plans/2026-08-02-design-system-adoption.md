@@ -25,14 +25,16 @@
 ### Task 1: Adoption prompt template
 
 **Files:**
+
 - Create: `.github/prompts/design-system-adoption.md`
 
 **Interfaces:**
+
 - Produces: the template consumed by `adopt.sh` (Task 2) with placeholders `{{FIESTAUI_DIR}}`, `{{FIESTABOARD_DIR}}`, `{{LOG_FILE}}`, `{{SUMMARY_FILE}}`, `{{NEW_VERSION}}`, `{{UI_REPO}}` — no others.
 
 - [ ] **Step 1: Write the template**
 
-````markdown
+```markdown
 # Converge FiestaBoard onto the @fiestaboard/ui design system (v{{NEW_VERSION}})
 
 You are running inside FiestaUI's downstream-upgrade automation, after a
@@ -80,7 +82,7 @@ exported there; component sources are in `{{FIESTAUI_DIR}}/src/components/`.
 - Only for patterns used 2+ times in FiestaBoard. One issue per pattern;
   skip anything an open issue already covers.
 - `gh issue create -R {{UI_REPO}} --label component-request
-  --title "Component request: <Name>" --body <...>` where the body lists
+--title "Component request: <Name>" --body <...>` where the body lists
   the FiestaBoard usage sites (file:line), what the pattern does, and a
   suggested prop API.
 
@@ -99,7 +101,7 @@ If you found no candidates at all, write the header plus
 "No swap candidates found this run."
 
 When validation is green and the summary is written, stop.
-````
+```
 
 - [ ] **Step 2: Commit**
 
@@ -113,10 +115,12 @@ git commit -m "feat: adoption prompt template for design-system swaps"
 ### Task 2: `adopt.sh` with offline tests (TDD)
 
 **Files:**
+
 - Create: `scripts/downstream-upgrade/adopt.sh`
 - Test: `scripts/downstream-upgrade/tests/test_adopt.sh`
 
 **Interfaces:**
+
 - Consumes: `.github/prompts/design-system-adoption.md` (Task 1), `validate.sh` (existing).
 - Produces: `adopt.sh` invoked by the workflow (Task 3) with required env `FIESTAUI_DIR`, `FIESTABOARD_DIR`, `LOG_FILE`, `SUMMARY_FILE`, `NEW_VERSION`, `UI_REPO`; optional `CLAUDE_BIN`, `CLAUDE_MODEL`, `PROMPT_FILE`, `VALIDATE_CMD`, `GH_BIN`. Always exits 0; leaves `SUMMARY_FILE` non-empty; on red validation resets the FiestaBoard checkout to the pre-run SHA.
 
@@ -307,9 +311,11 @@ git commit -m "feat: adopt.sh — best-effort design-system adoption pass with r
 ### Task 3: Wire adoption into `downstream-upgrade.yml`
 
 **Files:**
+
 - Modify: `.github/workflows/downstream-upgrade.yml`
 
 **Interfaces:**
+
 - Consumes: `adopt.sh` (Task 2) with its documented env contract.
 - Produces: workflow behavior relied on by the spec — adoption step between local validation and push/CI-confirm; CI loop drops `[fiestaui-adoption]` commits once before Claude repair; final comment carries the summary.
 
@@ -318,11 +324,11 @@ git commit -m "feat: adopt.sh — best-effort design-system adoption pass with r
 In the `on:` block, add to `workflow_call.inputs`:
 
 ```yaml
-      adopt:
-        description: "Run the design-system adoption pass after a green bump"
-        required: false
-        type: boolean
-        default: true
+adopt:
+  description: "Run the design-system adoption pass after a green bump"
+  required: false
+  type: boolean
+  default: true
 ```
 
 and the same block under `workflow_dispatch.inputs`.
@@ -341,22 +347,22 @@ permissions:
 Directly after the "Validate bump, fix with Claude if needed" step and before "Push fixes and confirm FiestaBoard CI":
 
 ```yaml
-      # Best-effort design-system adoption: swap FiestaBoard's hand-rolled
-      # UI onto @fiestaboard/ui while the tree is green. Never blocks the
-      # upgrade — adopt.sh always exits 0 and rolls back a red tree. See
-      # docs/superpowers/specs/2026-08-02-design-system-adoption-design.md.
-      - name: Adopt design-system components
-        if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true' && steps.fix.outputs.green == 'true' && inputs.adopt != false
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # FiestaUI-scoped: issue filing
-          NEW_VERSION: ${{ steps.meta.outputs.version }}
-          UI_REPO: ${{ github.repository }}
-          SUMMARY_FILE: ${{ github.workspace }}/adoption-summary.md
-        run: |
-          # claude-code was installed globally by the validate/fix step.
-          "$FIESTAUI_DIR/scripts/downstream-upgrade/adopt.sh"
+# Best-effort design-system adoption: swap FiestaBoard's hand-rolled
+# UI onto @fiestaboard/ui while the tree is green. Never blocks the
+# upgrade — adopt.sh always exits 0 and rolls back a red tree. See
+# docs/superpowers/specs/2026-08-02-design-system-adoption-design.md.
+- name: Adopt design-system components
+  if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true' && steps.fix.outputs.green == 'true' && inputs.adopt != false
+  env:
+    CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # FiestaUI-scoped: issue filing
+    NEW_VERSION: ${{ steps.meta.outputs.version }}
+    UI_REPO: ${{ github.repository }}
+    SUMMARY_FILE: ${{ github.workspace }}/adoption-summary.md
+  run: |
+    # claude-code was installed globally by the validate/fix step.
+    "$FIESTAUI_DIR/scripts/downstream-upgrade/adopt.sh"
 ```
 
 - [ ] **Step 4: Teach the CI loop to drop adoption commits first**
