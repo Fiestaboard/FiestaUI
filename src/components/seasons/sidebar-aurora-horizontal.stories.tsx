@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { PRIDE_SEASON } from "../../lib/seasons";
 import { SidebarAuroraHorizontal } from "./sidebar-aurora-horizontal";
 
 const meta = {
-  title: "Chrome/SidebarAuroraHorizontal",
+  title: "Seasons/SidebarAuroraHorizontal",
   component: SidebarAuroraHorizontal,
   parameters: {
     layout: "centered",
@@ -34,7 +35,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  args: { colors: PRIDE_SEASON.colors },
+};
 
 export const CustomColors: Story = {
   args: {

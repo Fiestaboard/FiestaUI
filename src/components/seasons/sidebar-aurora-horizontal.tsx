@@ -2,7 +2,6 @@
 
 import { memo, useRef } from "react";
 
-import { PRIDE_SEASON } from "../../lib/seasons";
 import { AURORA_FRAG_PRELUDE, useAuroraCanvas } from "./aurora-canvas";
 
 // Horizontal variant: colours run left→right, intensity builds a soft
@@ -26,11 +25,9 @@ void main(){
   fragColor = vec4(ramp, intensity);
 }`;
 
-export const SidebarAuroraHorizontal = memo(function SidebarAuroraHorizontal({
-  colors = PRIDE_SEASON.colors,
-}: {
-  colors?: string[];
-}) {
+// Seasonal decor: rendered by Sidebar only while a season is active, in that
+// season's palette — colors is required so the aurora can't appear unseasoned.
+export const SidebarAuroraHorizontal = memo(function SidebarAuroraHorizontal({ colors }: { colors: string[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useAuroraCanvas(canvasRef, FRAG, colors, "SidebarAuroraHorizontal");
 

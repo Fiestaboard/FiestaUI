@@ -3,8 +3,8 @@ import { Calendar, FileText, Home, Puzzle, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { ALL_SEASONS } from "../../lib/seasons";
-import { Sidebar, type SidebarNavItem, type SidebarProps } from "./sidebar";
-import { ThemeToggle } from "./theme-toggle";
+import { Sidebar, type SidebarNavItem, type SidebarProps } from "../chrome/sidebar";
+import { ThemeToggle } from "../chrome/theme-toggle";
 
 const LABELS = {
   mainNavigation: "Main navigation",
@@ -92,7 +92,7 @@ function SeasonPreview({ seasonId }: SeasonPreviewArgs) {
 }
 
 const meta: Meta<SeasonPreviewArgs> = {
-  title: "Chrome/Seasons",
+  title: "Seasons/Overview",
   parameters: {
     layout: "fullscreen",
   },

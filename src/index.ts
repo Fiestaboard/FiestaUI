@@ -39,10 +39,10 @@ export * from "./components/chrome/fiesta-logo";
 export * from "./components/chrome/language-selector";
 export * from "./components/chrome/main-content";
 export * from "./components/chrome/sidebar";
-export * from "./components/chrome/sidebar-aurora";
-export * from "./components/chrome/sidebar-aurora-horizontal";
 export * from "./components/chrome/skip-to-content";
 export * from "./components/chrome/theme-toggle";
+export * from "./components/seasons/sidebar-aurora";
+export * from "./components/seasons/sidebar-aurora-horizontal";
 export * from "./lib/seasons";
 export { cn } from "./lib/utils";
 // Board preview — the split-flap Vestaboard display renderer + its data.
