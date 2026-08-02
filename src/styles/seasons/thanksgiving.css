@@ -6,9 +6,13 @@
    burnt sienna and warm amber, over a dark roasted-umber base so the aurora
    glows like hearth light. Cozy, warm, nothing shouty. */
 
-/* Logo: harvest gold → glowing amber → burnt sienna */
+/* Logo: golden hour pouring into roasted russet — bright harvest golds
+   into deep umber. Stops are split bright/deep on purpose: the light
+   sidebar animates all three stops under the wordmark, so every stop
+   holds ≥1.5:1 against all of them (lowest: #f6c56a at 1.54:1) while the
+   golds keep the hearth glow on the dark base. */
 .thanksgiving-season .logo-fiesta-text {
-  background: linear-gradient(90deg, #f5c163, #e0a030, #e07b39, #c65d2e);
+  background: linear-gradient(90deg, #ffd88a, #f6c56a, #8a4a20, #6f3413);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

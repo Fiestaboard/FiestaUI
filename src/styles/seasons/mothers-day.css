@@ -17,9 +17,13 @@
   --icon-g6: #b03060; /* deep rose (loop) */
 }
 
-/* "Fiesta" logo word — rose-to-cream gradient */
+/* "Fiesta" logo word — deep garden-rose ombré (the blush and cream-gold
+   accents stay in the icon ramp/aurora): the light sidebar animates rose,
+   cream, and mauve stops under the wordmark, so every logo stop holds
+   ≥1.5:1 against all of them (lowest: #c2436f at 1.60:1) where blush and
+   cream would vanish into their sidebar twins. */
 .mothers-day-season .logo-fiesta-text {
-  background: linear-gradient(90deg, #b03060, #d1608a, #e79ab0, #d8b98a, #b03060);
+  background: linear-gradient(90deg, #b03060, #c2436f, #a83365, #8e2a55, #b03060);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

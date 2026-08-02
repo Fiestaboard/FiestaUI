@@ -6,9 +6,13 @@
    by a ribbon of gold, over a deep pine-night base so the aurora drifts
    like lights on a tree. Rich, not garish. */
 
-/* Logo: cranberry red → gold ribbon → evergreen */
+/* Logo: deep cranberry → bright gold ribbon → deep evergreen. Stops are
+   split deep/bright on purpose: the light sidebar animates all three stops
+   under the wordmark, so every stop holds ≥1.5:1 against all of them
+   (lowest: #0b6b30 at 1.57:1) while the golds keep the sparkle on the
+   dark pine-night base. */
 .christmas-season .logo-fiesta-text {
-  background: linear-gradient(90deg, #d63447, #f0c33c, #ffd700, #2aa457, #0f8a3d);
+  background: linear-gradient(90deg, #a8102a, #ffd700, #ffe066, #0b6b30, #07481f);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

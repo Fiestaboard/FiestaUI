@@ -6,7 +6,14 @@
 
    Note: --brand is deliberately season-invariant — seasons retheme the
    chrome (logo, icon gradient, sidebar) while the brand accent stays the
-   Fiesta orange everywhere else. */
+   Fiesta orange everywhere else.
+
+   Known limitation (accepted): in light mode the rainbow wordmark sits on
+   the base brand gradient, and the red/orange stripes drop under 1.5:1
+   against the coral stop. The six-stripe flag is canonical and is not
+   retinted per-surface; the wordmark is a brand logotype (WCAG 1.4.3
+   logotype exemption). Draft seasons instead split their logo stops
+   deep/bright to clear their light sidebars — see any seasons/<id>.css. */
 
 /* Page-icon gradient: the six-stop rainbow */
 .pride-month {

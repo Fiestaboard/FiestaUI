@@ -6,16 +6,21 @@
    burning into witch purple with a flicker of eerie green, all set against
    a near-black purple-tinged dark base so the aurora reads like fog. */
 
-/* Logo: pumpkin → eerie green flicker → witch purple */
+/* Logo: deep ember igniting into candle glow, a toxic-green flicker, then
+   dying into witch purple. Stops are split deep/bright on purpose: the
+   light sidebar animates all three stops under the wordmark, so every stop
+   holds ≥1.5:1 against all of them (lowest: #7c3aed at 1.57:1) while the
+   bright stops keep the glow on the dark base. */
 .halloween-season .logo-fiesta-text {
-  background: linear-gradient(90deg, #ff7518, #ff9838, #39d353, #a855f7, #7c3aed);
+  background: linear-gradient(90deg, #a33b00, #ffc274, #7de394, #7c3aed, #56189e);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 /* Page-icon gradient: ember orange through toxic green into deep purple —
-   same purple ramp as the logo gradient so the two marks match. */
+   the vivid ramp (mirrored by colors[] for the aurora/confetti); the logo
+   uses deep/bright variants of the same hues for sidebar legibility. */
 .halloween-season {
   --icon-g1: #ff7518;
   --icon-g2: #ff9838;
@@ -40,14 +45,16 @@
   --muted-foreground: oklch(1 0 0 / 75%);
 }
 
-/* Light mode sidebar: retint the flowing gradient stops to muted pumpkin,
-   dry amber, and dusk purple (black text verified ≥4.5:1 on all three
-   stops; the lowest is #8a6cae at 4.84:1). */
+/* Light mode sidebar: retint the flowing gradient stops to vivid pumpkin,
+   bright marigold, and lavender-purple — orange-into-purple is the
+   Halloween signature, and dropping the earlier khaki-amber middle keeps
+   it distinct from Thanksgiving's harvest sidebar. Black text verified
+   ≥4.5:1 on all three stops; the lowest is #9d76c2 at 5.80:1. */
 .halloween-season:not(.dark) .sidebar-gradient,
 .halloween-season:not(.dark) .sidebar-gradient-horizontal {
-  --sidebar-fiesta-red: #c67a45;
-  --sidebar-fiesta-orange: #b6924e;
-  --sidebar-fiesta-purple: #8a6cae;
+  --sidebar-fiesta-red: #cd7435;
+  --sidebar-fiesta-orange: #dd9040;
+  --sidebar-fiesta-purple: #9d76c2;
 }
 
 /* Reduced motion: authored here rather than inherited — these selectors
