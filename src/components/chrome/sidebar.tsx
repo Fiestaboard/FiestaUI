@@ -445,16 +445,16 @@ export function Sidebar({
                 {secondaryItems.map(renderDesktopNavItem)}
                 {renderAccount?.({ variant: "desktop", collapsed })}
               </nav>
-              <div className="mt-2 flex items-center justify-between gap-2 border-t border-sidebar-border/80 py-2 pl-[14px] pr-3">
+              <div className="mt-2 border-t border-sidebar-border/80 pt-2">
+                <div className="flex justify-center">{themeToggleSlot}</div>
                 <div
                   className={cn(
-                    "min-w-0 overflow-hidden whitespace-nowrap transition-opacity duration-100",
-                    collapsed ? "max-w-0 opacity-0" : "max-w-[min(200px,100%)] opacity-100 delay-150",
+                    "overflow-hidden whitespace-nowrap text-center transition-opacity duration-100",
+                    collapsed ? "max-h-0 opacity-0" : "max-h-8 pt-1 opacity-100 delay-150",
                   )}
                 >
                   {versionSlot}
                 </div>
-                <div className="flex-shrink-0">{themeToggleSlot}</div>
               </div>
             </div>
           </div>
