@@ -1,6 +1,19 @@
 import { create } from "storybook/theming/create";
 
-import { FIESTA_ICON_DATA_URI } from "../src/components/chrome/fiesta-icon";
+import { FIESTA_ICON_SVG } from "../src/components/chrome/fiesta-icon";
+
+// Brand lockup: the taco mark + FiestaBoard wordmark as one SVG data URI
+// (with brandImage set, Storybook shows only the image — text next to the
+// taco has to live inside it). "Board" is theme-colored, so each manager
+// theme gets its own lockup.
+function brandLockup(boardColor: string): string {
+  const icon = FIESTA_ICON_SVG.replace("<svg ", '<svg width="30" height="30" y="1" ');
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="152" height="32" viewBox="0 0 152 32">${icon}` +
+    `<text x="38" y="22.5" font-family="system-ui, -apple-system, sans-serif" font-size="17" font-weight="700">` +
+    `<tspan fill="#e8a520">Fiesta</tspan><tspan fill="${boardColor}">Board</tspan></text></svg>`;
+  return `data:image/svg+xml,${svg.replace(/"/g, "'").replace(/[%#<>]/g, (c) => encodeURIComponent(c))}`;
+}
 
 // Brand constants shared by both manager themes. Typography is the same
 // self-hosted Geist the design system ships (theme.css --font-geist-sans /
@@ -8,7 +21,6 @@ import { FIESTA_ICON_DATA_URI } from "../src/components/chrome/fiesta-icon";
 const brand = {
   brandTitle: "FiestaUI",
   brandUrl: "https://github.com/Fiestaboard/FiestaUI",
-  brandImage: FIESTA_ICON_DATA_URI,
   brandTarget: "_self" as const,
   appBorderRadius: 8,
   inputBorderRadius: 6,
@@ -19,6 +31,7 @@ const brand = {
 export const fiestaDark = create({
   base: "dark",
   ...brand,
+  brandImage: brandLockup("#f0f0f0"),
 
   // UI
   appBg: "#0a0a0a",
@@ -45,6 +58,7 @@ export const fiestaDark = create({
 export const fiestaLight = create({
   base: "light",
   ...brand,
+  brandImage: brandLockup("#1a1a1a"),
 
   // UI
   appBg: "#fafafa",
