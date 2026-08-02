@@ -22,7 +22,6 @@ export * from "./components/ui/flex";
 export * from "./components/ui/grid";
 export * from "./components/ui/input";
 export * from "./components/ui/label";
-// react-bits components are default exports — re-export them as named.
 export { default as DecryptedText } from "./components/ui/react-bits/decrypted-text";
 export { default as FadeContent } from "./components/ui/react-bits/fade-content";
 export * from "./components/ui/scroll-area";
@@ -33,6 +32,7 @@ export * from "./components/ui/slider";
 export * from "./components/ui/stack";
 export * from "./components/ui/switch";
 export * from "./components/ui/tabs";
+export * from "./components/ui/text";
 export * from "./components/ui/textarea";
 export * from "./components/ui/tooltip";
 // App chrome — branding, sidebar, layout, festive treatments.
