@@ -73,8 +73,12 @@ jobs:
           echo "prev=$PREV" >> "$GITHUB_OUTPUT"
           echo "Upgrading FiestaBoard to v$VERSION (previous: v${PREV:-none})"
 
+      # continue-on-error keeps dry runs usable before the App secrets are
+      # configured; live runs still fail loudly at the push step if the
+      # token is missing.
       - name: Mint FiestaBoard App token
         id: app-token
+        continue-on-error: ${{ inputs.dry_run == true }}
         uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.CLAUDE_BOT_APP_ID }}
@@ -86,7 +90,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: Fiestaboard/FiestaBoard
-          token: ${{ steps.app-token.outputs.token }}
+          # Falls back to github.token for dry runs (public repo, read-only).
+          token: ${{ steps.app-token.outputs.token || github.token }}
           path: fiestaboard
           fetch-depth: 0
 
