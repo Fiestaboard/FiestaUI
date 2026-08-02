@@ -14,13 +14,15 @@ Implemented in this PR:
 - **B3 (partial)** — Dialog/AlertDialog on `shadow-modal`, dropdown sub-content matches parent `shadow-md`, Select `h-9`, label disabled opacity 50, close buttons gain disabled opacity. Radius role scale and z-index scale deferred (parity risk).
 - **C1 (partial)** — unused react-bits removed; `DecryptedText` uses `cn`; `FadeContent` passes `className` through untouched. Full cva/token adoption deferred.
 - **C2** — sidebar auroras share one WebGL core (`aurora-canvas.ts`); `ui/aurora.tsx` (ogl) kept as-is — it is used by the app's setup wizard.
-- **D** — Badge `brand` variant; Alert `info`/`success`/`warning`; AlertTitle semibold; AlertDialogTitle leading/tracking aligned.
+- **D** — Badge `brand` variant (on `bg-brand-emphasis`, same fill as Button's brand — `bg-brand` + white failed AA at 2.04:1 in dark); Alert `info`/`success`/`warning`; AlertTitle semibold; AlertDialogTitle leading/tracking aligned.
 - **E2, E3, E5** — all season files share one structural template; pride follows the per-file convention (`seasons/pride.css`, class name unchanged); `./seasons/*.css` added to package exports.
 - **E1, E4** — documented decisions: `--brand` is season-invariant by design (comment in pride.css); June pride/fathers-day collision annotated in `seasons.tsx`.
+- **E6** — reduced-motion authored in every season file (guards against future season edits out-specificing the base rules); the WebGL aurora core now freezes on a single static frame under `prefers-reduced-motion`; the flagged contrast claims verified — Halloween `#8a6cae` 4.84:1, New Year `#8790c9` 6.86:1 under black text, both AA.
 - **F1, F2, F4** — Storybook shell on Geist + taco `brandImage`; `Chrome/Seasons` primary story renamed to `Default`; `BoardIcon` story added.
+- **F3** — light manager theme (`fiestaLight` mirrors theme.css's light neutrals); the shell follows the preview's Theme toolbar toggle via a small manager addon.
 - **Removals (breaking — next release is a major):** `Checkbox`, `BlurText`, `CountUp`, `SpotlightCard`, deprecated `PRIDE_COLORS`/`firePrideBurst` — verified unused in FiestaBoard `web/src`. **Kept by product decision:** `PageHeader`/`PageLayout`/`PageToolbar` (and their `--icon-g*`/`.page-title` plumbing) — currently unused by the app but they are the preferred page scaffolding; adopting them in FiestaBoard is the follow-up.
 
-Deferred (tracked below, unchanged): B4 motion token system, C3 authoring-pattern migration, E6 authored reduced-motion in season files, F3 light manager theme, G SVG taco redraw, remaining B3 radius/z-index scales.
+Deferred (tracked below, unchanged): B4 motion token system, C3 authoring-pattern migration, G SVG taco redraw, remaining B3 radius/z-index scales.
 
 ## Executive summary
 
