@@ -97,12 +97,12 @@ Each one has a different trigger, different permissions, and a different blast r
 
 The folder is the loop's persistent memory.
 
-| File | Lifetime | Owner |
-| --- | --- | --- |
-| `<name>-state.json` (in `.github/`, not `.github/<name>/`) | mutated by the auditor every run | the audit cron |
-| `<name>/rejected-edits.jsonl` | append-only learning log | the feedback workflow |
-| `<name>/build_rejection.py` | static; tweaked when the schema evolves | maintainer |
-| `<name>/README.md` | human-readable docs for the folder | maintainer |
+| File                                                       | Lifetime                                | Owner                 |
+| ---------------------------------------------------------- | --------------------------------------- | --------------------- |
+| `<name>-state.json` (in `.github/`, not `.github/<name>/`) | mutated by the auditor every run        | the audit cron        |
+| `<name>/rejected-edits.jsonl`                              | append-only learning log                | the feedback workflow |
+| `<name>/build_rejection.py`                                | static; tweaked when the schema evolves | maintainer            |
+| `<name>/README.md`                                         | human-readable docs for the folder      | maintainer            |
 
 The state file goes in `.github/` (not the loop's subfolder) because it's the audit's progress, not feedback memory. The rejection log and its companion script go in `.github/<name>/` so future loops follow the same convention.
 
@@ -146,6 +146,7 @@ The rejection log is the most important non-obvious mechanism. Without it, the a
 5. Audit's wrap-up summary cites the PRs whose lessons it applied.
 
 The auditor's prompt explicitly instructs:
+
 - "Treat the close commenter's reasoning as authoritative."
 - "Generalize — most rejections expose a class of false positive."
 - "Cite when relevant — mention the PR number in your wrap-up summary."
@@ -155,12 +156,14 @@ The maintainer can hand-delete a JSONL line if a rejection was wrong (the file i
 ## When components are optional
 
 The minimal loop is:
+
 - `claude-<name>.yml` (auditor)
 - `.github/<name>-state.json` (sweep state)
 
 The auditor still runs without any of: triage, review, feedback. It just won't fan out to per-issue fix PRs and won't learn from rejections.
 
 You can add components incrementally:
+
 - Just the auditor → sweeps + opens inline PRs.
 - Auditor + triage → also fans out to per-issue fix PRs.
 - Auditor + triage + review → adds a quality gate on PRs touching the domain.
@@ -169,6 +172,7 @@ You can add components incrementally:
 ## Comparison: this skill vs. one-off audits
 
 A one-off audit is a `gh workflow run` (or just `Agent` from a Claude Code session). It's faster to set up but:
+
 - No state file → can't sweep large domains in batches.
 - No rejection log → repeats wrong findings.
 - No dedup → opens duplicate PRs.
@@ -179,6 +183,7 @@ Use this skill when the domain is large enough that one pass can't cover it, rec
 ## Comparison: this skill vs. a Linear automation
 
 Linear / Jira automations sit outside the codebase and report findings via API. They can be more flexible (custom dashboards, SLAs, cross-repo) but lose:
+
 - Direct PR fan-out (Linear doesn't open PRs against your repo).
 - Bytes-level diff capture for the rejection log.
 - Free hosting on GitHub Actions.

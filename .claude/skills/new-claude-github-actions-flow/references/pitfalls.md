@@ -39,7 +39,7 @@ concurrency:
   cancel-in-progress: false
 ```
 
-`cancel-in-progress: false` is critical. A `workflow_dispatch` fired during a scheduled run should *wait its turn*, not abort the scheduled run. With `true` you'd lose the scheduled run mid-way and corrupt the state file.
+`cancel-in-progress: false` is critical. A `workflow_dispatch` fired during a scheduled run should _wait its turn_, not abort the scheduled run. With `true` you'd lose the scheduled run mid-way and corrupt the state file.
 
 The feedback-capture workflow also needs serialization — two PRs closed at once would race the JSONL log:
 
@@ -49,7 +49,7 @@ concurrency:
   cancel-in-progress: false
 ```
 
-The review workflow is the *opposite* — there you want `cancel-in-progress: true` because only the latest diff matters.
+The review workflow is the _opposite_ — there you want `cancel-in-progress: true` because only the latest diff matters.
 
 ## DST and cron — UTC pairs per intended PT window
 
@@ -62,10 +62,10 @@ GitHub Actions only accepts UTC crons. America/Los_Angeles is UTC-8 (PST) in win
 ```yaml
 on:
   schedule:
-    - cron: '7 19 * * *'   # 12:07 PDT (summer) — winter cron gated off
-    - cron: '7 20 * * *'   # 12:07 PST (winter) — summer cron gated by cooldown
-    - cron: '7 23 * * *'   # 16:07 PDT (summer)
-    - cron: '7 0 * * *'    # 16:07 PST (winter)
+    - cron: "7 19 * * *" # 12:07 PDT (summer) — winter cron gated off
+    - cron: "7 20 * * *" # 12:07 PST (winter) — summer cron gated by cooldown
+    - cron: "7 23 * * *" # 16:07 PDT (summer)
+    - cron: "7 0 * * *" # 16:07 PST (winter)
 ```
 
 The gate step bounces the run if the local PT hour is outside the intended windows:
@@ -88,7 +88,7 @@ The 30-minute slop on the upper bound absorbs typical GitHub Actions cron delay 
 
 **Symptom:** the audit runs twice in 15 minutes (e.g., 12:07 PDT and 13:07 PDT both fire on the same day if both UTC crons are admitted by the gate).
 
-**Cause:** during DST one of the paired UTC crons falls inside the gate window of the *next* window.
+**Cause:** during DST one of the paired UTC crons falls inside the gate window of the _next_ window.
 
 **Fix:** add a `last_run_at` check that bounces runs younger than ~3 hours.
 
@@ -165,7 +165,7 @@ Without this, the action prints `full output hidden for security`. Silent permis
 
 ```yaml
 with:
-  show_full_output: 'true'
+  show_full_output: "true"
 ```
 
 If you ever wonder "why did this run cost $X and produce nothing?" — this is the answer 80% of the time.
@@ -178,21 +178,21 @@ If you ever wonder "why did this run cost $X and produce nothing?" — this is t
 
 ```yaml
 with:
-  allowed_bots: 'claude'
+  allowed_bots: "claude"
 ```
 
 For the auto-review workflow, both bot identities show up — bot-authored PRs come from `claude` or `github-actions`:
 
 ```yaml
 with:
-  allowed_bots: 'claude,github-actions'
+  allowed_bots: "claude,github-actions"
 ```
 
 This is independent of the workflow's own `if:` gate. The action has its own anti-bot guard layered on top.
 
 ## `pull_request_target` vs `pull_request` for feedback capture
 
-**Symptom:** PR #992 closed one second after the feedback workflow merged. The capture workflow never fired. The branch was already created from `main` *before* the capture workflow existed — and `pull_request` resolves workflow definitions from the **PR's head ref**.
+**Symptom:** PR #992 closed one second after the feedback workflow merged. The capture workflow never fired. The branch was already created from `main` _before_ the capture workflow existed — and `pull_request` resolves workflow definitions from the **PR's head ref**.
 
 **Fix:** use `pull_request_target` so GitHub resolves the workflow from `main`:
 
@@ -205,8 +205,9 @@ on:
 Branches cut from `main` before the workflow was added would otherwise be invisible to it forever. With `pull_request_target` the workflow runs against `main`'s definition regardless of head-ref age.
 
 **Safety:** `pull_request_target` grants secrets to the workflow. Two musts:
+
 1. Check out the **base ref** (or no checkout at all), never the PR head.
-2. Read PR head content via `gh api .../contents/<path>?ref=<head_sha>` — bytes piped through Claude as *data*, never materialized in a path a later step could execute.
+2. Read PR head content via `gh api .../contents/<path>?ref=<head_sha>` — bytes piped through Claude as _data_, never materialized in a path a later step could execute.
 
 The action's `--allowed-tools` is your last line of defense. Keep it read-only for `pull_request_target` workflows.
 
@@ -268,7 +269,7 @@ The audit prompt has explicit guardrails so Claude can't go off-roading:
 - When dedup says skip, skip — don't refile the same finding.
 ```
 
-The "Edits are restricted to" rule is the most important. Without it Claude has carte blanche over the repo for the duration of the run. State the *exact* file types editable and the *exact* paths writable.
+The "Edits are restricted to" rule is the most important. Without it Claude has carte blanche over the repo for the duration of the run. State the _exact_ file types editable and the _exact_ paths writable.
 
 ## RELEASE_PAT for state-file pushes past branch protection
 
@@ -347,6 +348,7 @@ if meta.get("state") == "MERGED":
 ## Triage worker — triple trigger and bot allowlist
 
 The shared triage worker (`claude-issue-triage.yml`) is gated three ways:
+
 1. Issue opened by trusted author (OWNER / MEMBER / COLLABORATOR)
 2. `claude-fix` label applied manually
 3. Audit's domain label applied (e.g., `docs-audit`, `tests-audit`)
@@ -354,6 +356,7 @@ The shared triage worker (`claude-issue-triage.yml`) is gated three ways:
 Without gate 3, audit-filed issues won't trigger triage because the bot author doesn't satisfy gate 1.
 
 Gate 3 must be reflected in two places:
+
 1. The workflow's `if:` condition (`github.event.label.name == 'docs-audit'`)
 2. The action's `allowed_bots: 'claude'` (so the run isn't rejected post-gate)
 
@@ -367,6 +370,7 @@ Inline audit PRs are **ready-for-review** (no `--draft` flag). Triage-worker PRs
 - Code-flavored: draft (human validates the first-pass code fix)
 
 Branch naming carries the flavor:
+
 - `<name>/round-<n>-run-<id>` — audit inline PR (always ready-for-review)
 - `<short>/issue-<N>-<slug>` — triage PR (flavor-dependent draft state)
 
@@ -377,6 +381,7 @@ The feedback capture's `if:` condition must match both prefixes if both flavors 
 `permissions: contents: read` at the top of the workflow, then `contents: write` only on the job that needs it. The least-privilege baseline matters because `pull_request_target` workflows have secrets attached.
 
 For the audit job:
+
 ```yaml
 permissions:
   contents: write
@@ -386,18 +391,20 @@ permissions:
 ```
 
 For the review job:
+
 ```yaml
 permissions:
   contents: read
-  pull-requests: write   # to post the review
+  pull-requests: write # to post the review
   id-token: write
   actions: read
 ```
 
 For the feedback capture:
+
 ```yaml
 permissions:
-  contents: write        # to commit the JSONL log
+  contents: write # to commit the JSONL log
   pull-requests: read
   issues: read
 ```

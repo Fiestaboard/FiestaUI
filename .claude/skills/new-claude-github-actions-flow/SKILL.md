@@ -21,16 +21,16 @@ This skill lets you create the same shape of loop for **any domain** — tests, 
 
 Every loop produced by this skill has up to four GitHub Actions workflows plus a state file. Components are independently optional, but the recommended default is all four:
 
-| File | Trigger | Purpose |
-| --- | --- | --- |
-| `.github/workflows/claude-<name>.yml` | `schedule` + `workflow_dispatch` | Main audit cron. Sweeps the domain in batches, opens trivial fixes inline, files issues for the rest. |
-| `.github/workflows/claude-issue-triage.yml` (one shared, not per-loop) | `issues: [opened, labeled]` | Per-issue worker. When the audit files an issue with the loop's label, this opens a focused fix PR. |
-| `.github/workflows/claude-<name>-review.yml` | `pull_request_target` on paths | Auto-reviews every PR touching the domain, before merge. |
-| `.github/workflows/claude-<name>-feedback.yml` | `pull_request_target: [closed]` | Captures closed-without-merge PRs into a JSONL rejection log the next audit reads. |
-| `.github/<name>-state.json` | (file, not a workflow) | Sweep progress: round, files_remaining, files_audited, last_run_at. |
-| `.github/<name>/build_rejection.py` | (script) | Builds one JSONL line per rejected PR with full diff + every comment. |
-| `.github/<name>/rejected-edits.jsonl` | (data) | Append-only learning log the audit prompt reads at the start of every run. |
-| `.github/<name>/README.md` | (docs) | Explains the loop's feedback memory for human maintainers. |
+| File                                                                   | Trigger                          | Purpose                                                                                               |
+| ---------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `.github/workflows/claude-<name>.yml`                                  | `schedule` + `workflow_dispatch` | Main audit cron. Sweeps the domain in batches, opens trivial fixes inline, files issues for the rest. |
+| `.github/workflows/claude-issue-triage.yml` (one shared, not per-loop) | `issues: [opened, labeled]`      | Per-issue worker. When the audit files an issue with the loop's label, this opens a focused fix PR.   |
+| `.github/workflows/claude-<name>-review.yml`                           | `pull_request_target` on paths   | Auto-reviews every PR touching the domain, before merge.                                              |
+| `.github/workflows/claude-<name>-feedback.yml`                         | `pull_request_target: [closed]`  | Captures closed-without-merge PRs into a JSONL rejection log the next audit reads.                    |
+| `.github/<name>-state.json`                                            | (file, not a workflow)           | Sweep progress: round, files_remaining, files_audited, last_run_at.                                   |
+| `.github/<name>/build_rejection.py`                                    | (script)                         | Builds one JSONL line per rejected PR with full diff + every comment.                                 |
+| `.github/<name>/rejected-edits.jsonl`                                  | (data)                           | Append-only learning log the audit prompt reads at the start of every run.                            |
+| `.github/<name>/README.md`                                             | (docs)                           | Explains the loop's feedback memory for human maintainers.                                            |
 
 The canonical reference instance is `docs-audit`, which lives in the **FiestaBoard repo** (not this one): `.github/workflows/claude-docs-audit.yml`, `.github/workflows/docs-audit-feedback.yml`, `.github/workflows/claude-docs-review.yml`, `.github/workflows/claude-issue-triage.yml`, and `.github/docs-audit/` there. If you have that repo checked out locally (e.g. `~/workspace/FiestaBoard`), read those files end-to-end before scaffolding a new loop. Otherwise, the templates bundled in this skill's `references/templates/` are your source of truth — they were copied from the canonical instance.
 
@@ -105,6 +105,7 @@ Will modify:
 Read each template from `references/templates/`. Each template uses `{{TOKEN}}` placeholders documented in `references/variables.md`. Substitute the variables per the user's choices. Write the rendered file to its target path on a feature branch.
 
 Template files to read:
+
 - `references/templates/audit-cron.yml.tmpl` → main audit workflow
 - `references/templates/auto-review.yml.tmpl` → PR auto-review (skip if user opted out)
 - `references/templates/feedback-capture.yml.tmpl` → rejection capture (skip if opted out)
@@ -113,6 +114,7 @@ Template files to read:
 - `references/templates/feedback-readme.md.tmpl` → human-readable folder docs
 
 For the **audit prompt body** — the long `prompt:` block in the audit workflow — synthesize it from the user's domain description. Use the docs-audit prompt as the structural template (sweep logic, batch picking, bucket A/B/C definitions, rejection-log learning, hard rules, wrap-up summary) but rewrite the domain-specific paragraphs:
+
 - "You are the FiestaUI X auditor." — substitute X.
 - The categorization section (what counts as bucket A / B / C for this domain).
 - Glob patterns for file discovery.
@@ -143,6 +145,7 @@ If the canonical docs-audit triage worker already exists, edit `.github/workflow
 ### Step 6 — Tell the user what's next
 
 After the PR opens, tell the user explicitly:
+
 - The first cron tick — when the loop will fire on its own.
 - How to manual-dispatch it now: `gh workflow run claude-<name>.yml`.
 - Where to find the state file and rejection log.
@@ -151,7 +154,7 @@ After the PR opens, tell the user explicitly:
 
 ## Issues-only trims
 
-When the loop only files issues — no inline bucket-A PRs, no auto-review, no feedback capture — the audit workflow's surface area shrinks. Apply *every* trim below; leaving any one in place is dead permission or dead instruction that future-you will have to reason about. The state-file commit still happens, so a few write capabilities stay.
+When the loop only files issues — no inline bucket-A PRs, no auto-review, no feedback capture — the audit workflow's surface area shrinks. Apply _every_ trim below; leaving any one in place is dead permission or dead instruction that future-you will have to reason about. The state-file commit still happens, so a few write capabilities stay.
 
 **Permissions block (audit job).** Drop `pull-requests: write`. Keep `contents: write` (state-file commit), `issues: write`, `id-token: write`. Result:
 
@@ -166,7 +169,7 @@ permissions:
 
 - `Bash(gh pr create:*)`
 - `Bash(gh pr view:*)`
-- `Bash(gh pr list:*)` *(or keep only if dedup still wants it — see below)*
+- `Bash(gh pr list:*)` _(or keep only if dedup still wants it — see below)_
 - `Bash(gh pr edit:*)`
 - `Bash(git branch:*)`, `Bash(git checkout:*)`, `Bash(git switch:*)`, `Bash(git fetch:*)`
 
@@ -188,6 +191,7 @@ permissions:
 **Hard rules.** Replace "Edits are restricted to `<editable globs>`" with "Edits are restricted to `<STATE_FILE>` only". The audit must not modify source code outside the state file.
 
 **What stays.**
+
 - The full sweep/state logic (state file, batches, rounds).
 - The dedup cooldown check.
 - The dynamic-effort step (queue depth → batch/cap).
@@ -208,6 +212,7 @@ If the user says "the docs audit", look at `.github/workflows/claude-docs-audit.
 ### Step 2 — Identify the knob
 
 Read `references/variables.md`. Every knob is catalogued there with:
+
 - What it controls
 - Where in the workflow file it lives (step name, env var, or interpolation token)
 - The trade-offs (lower batch = more PRs per day; higher cap = noisier reviewer queue; etc.)
@@ -215,16 +220,16 @@ Read `references/variables.md`. Every knob is catalogued there with:
 
 Common tuning requests and where they land:
 
-| Request | File(s) | Knob |
-| --- | --- | --- |
-| "Run every 4 hours" | audit workflow | `on.schedule.cron` pairs + the local-time gate |
-| "Use Opus instead of Sonnet" | audit workflow | `--model` in `claude_args` |
-| "Bump batch / cap" | audit workflow | "Compute dynamic effort" step's branches |
-| "Add a file pattern to skip" | audit workflow | Prompt's glob-discovery section |
-| "Hold off when N drafts open" | audit workflow | "Dedup against recent runs" step's `draft_count` cap |
-| "Allow another Bash command" | audit workflow | `--allowed-tools` allowlist |
-| "Auto-review more file types" | review workflow | `on.pull_request_target.paths` |
-| "Capture rejections from new branch prefix" | feedback workflow | `if:` startsWith condition |
+| Request                                     | File(s)           | Knob                                                 |
+| ------------------------------------------- | ----------------- | ---------------------------------------------------- |
+| "Run every 4 hours"                         | audit workflow    | `on.schedule.cron` pairs + the local-time gate       |
+| "Use Opus instead of Sonnet"                | audit workflow    | `--model` in `claude_args`                           |
+| "Bump batch / cap"                          | audit workflow    | "Compute dynamic effort" step's branches             |
+| "Add a file pattern to skip"                | audit workflow    | Prompt's glob-discovery section                      |
+| "Hold off when N drafts open"               | audit workflow    | "Dedup against recent runs" step's `draft_count` cap |
+| "Allow another Bash command"                | audit workflow    | `--allowed-tools` allowlist                          |
+| "Auto-review more file types"               | review workflow   | `on.pull_request_target.paths`                       |
+| "Capture rejections from new branch prefix" | feedback workflow | `if:` startsWith condition                           |
 
 ### Step 3 — Make the change
 
@@ -245,6 +250,7 @@ Same as CREATE step 5. PR title: `chore(<name>-audit): <what you tuned>`. PR bod
 ## Key references
 
 Read these before making decisions:
+
 - `references/pitfalls.md` — every hard-won lesson, with the PR that taught it.
 - `references/variables.md` — full knob catalogue for tuning.
 - `references/architecture.md` — how the four workflows interlock and why.
@@ -268,6 +274,7 @@ These apply to every loop you scaffold:
 ## Wrap-up
 
 After scaffolding or tuning, give the user:
+
 - A one-line summary of what landed.
 - The PR URL.
 - The first scheduled trigger time.
