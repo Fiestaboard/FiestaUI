@@ -24,11 +24,13 @@
 ### Task 1: `Text`
 
 **Files:**
+
 - Create: `src/components/ui/text.tsx`
 - Create: `src/components/ui/text.stories.tsx`
 - Modify: `src/index.ts` (add `export * from "./components/ui/text";` in the alphabetical ui block)
 
 **Interfaces:**
+
 - Produces: `Text` — props `{ as?: "p" | "span"; size?: "xs" | "sm" | "base" | "lg"; tone?: "default" | "muted" | "destructive" | "info" | "success" | "warning"; weight?: "normal" | "medium" | "semibold" } & React.HTMLAttributes<HTMLElement>`. Defaults: `as="p"`, `size="sm"`, `tone="default"`, `weight="normal"`. (`size` defaults to `"sm"` because dense `text-sm` body copy is the dominant style in FiestaBoard, mirroring how `Stack` defaults `gap="2"`.) Also exports `textVariants`.
 
 - [ ] **Step 1: Write the story (the executable spec)**
@@ -96,7 +98,11 @@ export const Tones: Story = {
 export const InlineSpan: Story = {
   render: () => (
     <Text size="base">
-      Sentence with an <Text as="span" weight="semibold">inline emphasized</Text> fragment.
+      Sentence with an{" "}
+      <Text as="span" weight="semibold">
+        inline emphasized
+      </Text>{" "}
+      fragment.
     </Text>
   ),
 };
@@ -195,11 +201,13 @@ git commit -m "feat: Text primitive (p/span with size/tone/weight variants)"
 ### Task 2: `Heading`
 
 **Files:**
+
 - Create: `src/components/ui/heading.tsx`
 - Create: `src/components/ui/heading.stories.tsx`
 - Modify: `src/index.ts` (add `export * from "./components/ui/heading";` after `grid`, before `input`)
 
 **Interfaces:**
+
 - Produces: `Heading` — props `{ level?: 2 | 3 | 4; size?: "sm" | "base" | "lg" | "xl" } & React.HTMLAttributes<HTMLHeadingElement>`. Defaults `level={2}`, `size="base"`. Semantic level and visual size are decoupled. `h1` is intentionally NOT supported — page titles are `PageHeader`'s job. Also exports `headingVariants`.
 
 - [ ] **Step 1: Write the story**
@@ -244,10 +252,16 @@ export const Default: Story = {
 export const Levels: Story = {
   render: () => (
     <Stack gap="3">
-      <Heading level={2} size="xl">h2 rendered at size xl</Heading>
-      <Heading level={3} size="lg">h3 rendered at size lg</Heading>
+      <Heading level={2} size="xl">
+        h2 rendered at size xl
+      </Heading>
+      <Heading level={3} size="lg">
+        h3 rendered at size lg
+      </Heading>
       <Heading level={3}>h3 at the default base size</Heading>
-      <Heading level={4} size="sm">h4 rendered at size sm</Heading>
+      <Heading level={4} size="sm">
+        h4 rendered at size sm
+      </Heading>
     </Stack>
   ),
 };
@@ -317,11 +331,13 @@ git commit -m "feat: Heading primitive (h2-h4, size decoupled from level)"
 ### Task 3: `Code`
 
 **Files:**
+
 - Create: `src/components/ui/code.tsx`
 - Create: `src/components/ui/code.stories.tsx`
 - Modify: `src/index.ts` (add `export * from "./components/ui/code";` after `checkbox`, before `collapsible`)
 
 **Interfaces:**
+
 - Produces: `Code` — inline code chip, props `React.ComponentProps<"code">`, no variants.
 
 - [ ] **Step 1: Write the story**
@@ -406,11 +422,13 @@ git commit -m "feat: Code primitive (inline code chip)"
 ### Task 4: `TextLink`
 
 **Files:**
+
 - Create: `src/components/ui/text-link.tsx`
 - Create: `src/components/ui/text-link.stories.tsx`
 - Modify: `src/index.ts` (add `export * from "./components/ui/text-link";` after `text`, before `textarea`)
 
 **Interfaces:**
+
 - Produces: `TextLink` — styled anchor, props `React.ComponentProps<"a">`. Consumers pass `href`/`target` as usual; router-integrated links downstream can wrap it or pass the router link via `render`-less composition (`TextLink` stays a plain `<a>`; FiestaBoard's react-router `<Link>` usages are out of scope for this primitive and keep using `Link` with `className`).
 
 - [ ] **Step 1: Write the story**
@@ -499,11 +517,13 @@ git commit -m "feat: TextLink primitive (canonical anchor + focus ring)"
 ### Task 5: `List` / `ListItem`
 
 **Files:**
+
 - Create: `src/components/ui/list.tsx`
 - Create: `src/components/ui/list.stories.tsx`
 - Modify: `src/index.ts` (add `export * from "./components/ui/list";` after `label`, before `scroll-area`)
 
 **Interfaces:**
+
 - Produces: `List` — props `{ as?: "ul" | "ol"; marker?: "none" | "disc" | "decimal"; gap?: "0" | "1" | "2" | "3" | "4" } & React.HTMLAttributes<HTMLUListElement | HTMLOListElement>`, defaults `as="ul"`, `marker="none"`, `gap="1"`. `ListItem` — props `React.ComponentProps<"li">`, unstyled pass-through. Also exports `listVariants`.
 
 - [ ] **Step 1: Write the story**
@@ -597,8 +617,7 @@ const listVariants = cva("", {
 });
 
 interface ListProps
-  extends React.HTMLAttributes<HTMLUListElement | HTMLOListElement>,
-    VariantProps<typeof listVariants> {
+  extends React.HTMLAttributes<HTMLUListElement | HTMLOListElement>, VariantProps<typeof listVariants> {
   /** Rendered element: unordered (default) or ordered. */
   as?: "ul" | "ol";
 }
@@ -635,11 +654,13 @@ git commit -m "feat: List/ListItem primitives (ul/ol with marker and gap variant
 ### Task 6: `Table` set
 
 **Files:**
+
 - Create: `src/components/ui/table.tsx`
 - Create: `src/components/ui/table.stories.tsx`
 - Modify: `src/index.ts` (add `export * from "./components/ui/table";` after `switch`, before `text`)
 
 **Interfaces:**
+
 - Produces: `Table` (wraps itself in an `overflow-x-auto` container div), `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` — each `React.ComponentProps<"table"|"thead"|"tbody"|"tr"|"th"|"td">` respectively, no variants.
 
 - [ ] **Step 1: Write the story**
@@ -765,11 +786,13 @@ git commit -m "feat: Table primitives (house data-table style with scroll contai
 ### Task 7: `Box`
 
 **Files:**
+
 - Create: `src/components/ui/box.tsx`
 - Create: `src/components/ui/box.stories.tsx`
 - Modify: `src/index.ts` (add `export * from "./components/ui/box";` after `badge`, before `button`)
 
 **Interfaces:**
+
 - Produces: `Box` — props `{ as?: "div" | "section" | "main" | "nav" | "header" | "footer" | "form" | "aside" } & React.HTMLAttributes<HTMLElement>`, default `as="div"`. Deliberately unstyled: `className` passes through untouched. This is the typed escape hatch that keeps "zero raw HTML" honest downstream.
 
 - [ ] **Step 1: Write the story**
@@ -859,9 +882,11 @@ git commit -m "feat: Box primitive (typed unstyled escape hatch)"
 ### Task 8: PR, release, downstream delivery
 
 **Files:**
+
 - None new — process task.
 
 **Interfaces:**
+
 - Consumes: Tasks 1–7 merged to `main`.
 - Produces: a published `@fiestaboard/ui` **minor** release; the Downstream Upgrade workflow re-points FiestaBoard PR `Fiestaboard/FiestaBoard#1471` at it automatically.
 
