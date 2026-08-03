@@ -6,3 +6,11 @@ coverage/
 .DS_Store
 *.log
 vrt/diffs/
+
+# design-sync (claude.ai/design) — transient/regenerated artifacts
+.design-sync/sb-reference/
+.design-sync/learnings/
+.design-sync/.cache/
+.design-sync/node_modules
+.ds-sync/
+ds-bundle/
