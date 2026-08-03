@@ -12,7 +12,10 @@ const REACT_VERSION = "19";
 // system has no user-facing copy of its own and no app routing.
 const eslintConfig = [
   {
-    ignores: ["node_modules/**", "dist/**", "storybook-static/**"],
+    // .design-sync/ holds claude.ai/design sync artifacts (owned previews use a
+    // virtual `@ds-stories` alias and aren't part of the package build), so they
+    // aren't linted as repo source.
+    ignores: ["node_modules/**", "dist/**", "storybook-static/**", ".design-sync/**"],
   },
   ...tseslint.configs.recommended,
   {
