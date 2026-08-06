@@ -231,6 +231,44 @@ jobs:
             When you are not certain a change is visually neutral, it is not
             a bucket-A fix. Push it to bucket B or C and let a human decide.
 
+            ## Visual coverage is NOT uniform — check before you trust it
+
+            The referee has blind spots, and they are concentrated in exactly
+            the components with the most performance headroom. Animated
+            components are the hardest to baseline and the most expensive to
+            run, so the stories that got excluded from VRT are disproportion-
+            ately the ones you most want to change.
+
+            **Read `vrt/skip.json` early in every run.** It lists story-ID
+            patterns excluded from visual regression, each with a reason.
+            Map those story IDs back to their source files (story ID
+            `ui-aurora--*` comes from `src/components/ui/aurora.tsx`,
+            `board-boarddisplay--*` from
+            `src/components/board/board-display.tsx`, and so on).
+
+            For any source file whose stories are skipped:
+
+            - **It can never be a bucket-A fix.** No exceptions. Nothing
+              automated will catch it if you break the rendering, so a human
+              has to look. File an issue instead, and say in the issue body
+              that the component is VRT-skipped and needs manual visual
+              verification.
+            - Treat it as *higher* priority for investigation, not lower.
+              These are usually the rAF/WebGL/timer-driven components where
+              the real memory and per-frame wins live.
+
+            At the time this workflow was written, `vrt/skip.json` excluded
+            `ui-aurora--*` and two `board-boarddisplay--loading*` stories.
+            Trust the file over this paragraph — it may have changed.
+
+            One of those skip reasons is itself a finding worth acting on:
+            Aurora is excluded because its rAF loop is free-running and
+            "does not honor prefers-reduced-motion." That is a real bucket-B
+            defect — a WebGL loop that ignores the user's motion preference
+            and burns GPU regardless. Fixing it would also make the component
+            baseline-able, which closes the coverage hole. If no open issue
+            covers it, file one.
+
             ## Effort for this run (computed by the workflow)
 
             - **Mode:**        ${{ steps.effort.outputs.mode }}
@@ -354,10 +392,10 @@ jobs:
 
                 Anything bigger than a one-line edit, anything requiring
                 surrounding context to fix, anything involving a choice
-                between reasonable rewrites, and anything whose visual
-                neutrality you would have to argue for — is NOT bucket A.
-                Push it to B or C so a triage worker handles it with a full
-                thinking pass.
+                between reasonable rewrites, anything whose visual
+                neutrality you would have to argue for, and anything in a
+                VRT-skipped component — is NOT bucket A. Push it to B or C so
+                a triage worker handles it with a full thinking pass.
 
             **B. Missing things** — a safeguard or capability that simply
                 isn't there:
@@ -498,7 +536,11 @@ jobs:
             - Never push to `main` except for the single state-file commit above.
             - Never force-push, never `--no-verify`, never `--no-gpg-sign`.
             - Never modify anything under `vrt/` — baselines are sacred.
+              That includes `vrt/skip.json`: widening the skip list to make a
+              change look safe is the single worst thing you could do here.
             - Never modify `*.stories.tsx` — they define the VRT surface.
+            - Never put a change to a VRT-skipped component in bucket A, no
+              matter how trivial it looks. Nothing would catch a regression.
             - Never modify files outside `src/**/*.ts`, `src/**/*.tsx`
               (excluding `*.stories.tsx`), `src/styles/**/*.css`, and
               `.github/perf-audit-state.json`.

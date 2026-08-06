@@ -25,6 +25,39 @@ and the triage worker are forbidden from touching them. A change that requires
 a baseline update is a design change, not a performance change, and belongs in
 a human-authored PR.
 
+### The referee has blind spots
+
+`vrt/skip.json` excludes some stories from visual regression, and those
+exclusions are not randomly distributed — they cluster on animated
+rAF/WebGL/timer-driven components, because those are the hardest to screenshot
+deterministically. Which means the components with the **most** performance
+headroom have the **least** visual coverage.
+
+As of this writing the skip list covers `ui-aurora--*` (a free-running WebGL
+loop that lands on an arbitrary frame) and two `board-boarddisplay--loading*`
+stories (an 80ms `setInterval` cycling glyphs). For those components, a green
+`visual-regression` check proves nothing.
+
+All three prompts are told to read `vrt/skip.json` and react to it:
+
+- The **audit** may never put a VRT-skipped component in bucket A, however
+  trivial the fix looks. It files an issue instead, flagged for manual visual
+  verification.
+- The **triage worker** keeps changes to skipped components smaller, and must
+  say in the PR body what a human needs to check by hand.
+- The **auto-review** calls out any PR touching a skipped component, and treats
+  a diff that _adds_ to `vrt/skip.json` as a significant finding — that is a
+  change escaping its own guard.
+
+None of them may edit `vrt/skip.json`. Widening the skip list to get a change
+past the visual gate would defeat the entire loop.
+
+> Worth noting: Aurora's skip reason is that its rAF loop "does not honor
+> prefers-reduced-motion." That is itself a legitimate performance and
+> accessibility defect. Fixing it would make the component baseline-able and
+> close the coverage hole — the audit is instructed to file it if it isn't
+> already tracked.
+
 ## How it works
 
 1. **`claude-perf-audit-feedback.yml`** triggers on `pull_request_target.closed`.

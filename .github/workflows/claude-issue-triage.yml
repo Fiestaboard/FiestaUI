@@ -160,8 +160,21 @@ jobs:
               referee for visual parity — a perf fix that needs a baseline
               update is not a perf fix. If your change would alter rendering,
               stop, comment on the issue explaining the visual trade-off, and
-              let a human decide.
+              let a human decide. This includes `vrt/skip.json`: never widen
+              the skip list to get a change past the visual gate.
             - Never modify `*.stories.tsx`. They define the VRT surface.
+            - **Check `vrt/skip.json` before you start.** It lists stories
+              excluded from visual regression, and those exclusions cluster
+              on the animated rAF/WebGL/timer components — precisely the ones
+              with the most perf headroom. If the component you're fixing has
+              no baseline (e.g. `ui-aurora--*` maps to
+              `src/components/ui/aurora.tsx`), then CI will NOT catch a
+              rendering regression in your change. When that's the case: keep
+              the change smaller than you otherwise would, say plainly in the
+              PR body that the component is VRT-skipped and why, and tell the
+              reviewer exactly what to look at by hand. Don't lean on
+              "visual-regression passed" — for these components it proves
+              nothing.
             - Never change the public API: exported component names, prop
               names, prop types, and defaults are frozen.
             - Preserve animation *appearance* — duration, easing, amplitude,

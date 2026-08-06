@@ -134,6 +134,20 @@ jobs:
             updates baselines deliberately is fine; use your judgement from
             the title and body.)
 
+            **The guard has holes, and you should know where.** Read
+            `vrt/skip.json` — it lists stories excluded from visual
+            regression, and the exclusions cluster on animated rAF/WebGL/
+            timer components (as written, `ui-aurora--*` and two
+            `board-boarddisplay--loading*` stories). If this PR touches a
+            component whose stories are skipped, a green `visual-regression`
+            check proves nothing about it. Say so explicitly in your review
+            and tell the maintainer what to verify by hand.
+
+            Treat any diff that ADDS entries to `vrt/skip.json` as a
+            significant finding — that is a reduction in coverage, and if it
+            arrives alongside a change to the same component, it is the
+            change escaping its own guard.
+
             ## How to access PR content
 
             Use `gh pr diff ${{ github.event.pull_request.number }}` for the diff.
