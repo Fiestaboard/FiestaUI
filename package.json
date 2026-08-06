@@ -43,7 +43,9 @@
     "test-storybook:ci": "test-storybook --ci",
     "vrt": "node scripts/vrt/vrt.mjs compare",
     "vrt:update": "node scripts/vrt/vrt.mjs update",
-    "vrt:serve": "http-server storybook-static --port 6007 --silent"
+    "vrt:serve": "http-server storybook-static --port 6007 --silent",
+    "perf:bundle": "node scripts/perf/bundle.mjs",
+    "perf:test": "node --test scripts/perf/tests/*.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -71,6 +73,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.4",
     "axe-playwright": "^2.1.0",
+    "esbuild": "0.28.1",
     "eslint": "^10",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsx-a11y": "^6.10.2",
