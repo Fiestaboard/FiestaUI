@@ -177,19 +177,39 @@ A new `perf-bundle` job in `.github/workflows/ci.yml`, PR-only — it needs a
 base to compare against.
 
 1. Checkout with `fetch-depth: 0`.
-2. `setup-node` (Node 24, npm cache), `npm ci --no-audit`.
-3. Check out the PR base, `npm ci` **only if `package-lock.json` differs**
-   between base and head, build, `measure --out base.json`.
-4. Return to head and rebuild — the base build overwrote `dist/`, so this is
-   always required, not conditional — then `measure --out head.json`.
-5. `compare --base base.json --head head.json --markdown report.md`.
-6. Append `report.md` to `$GITHUB_STEP_SUMMARY` — renders a table on the checks
+2. `setup-node` (Node 24, npm cache), `npm ci --no-audit` — **once, at head.**
+3. Copy `scripts/perf/` to a temp directory.
+4. Check out the PR base **source only**, build, `measure --out base.json`.
+5. Return to head, rebuild, `measure --out head.json`.
+6. `compare --base base.json --head head.json --markdown report.md`.
+7. Append `report.md` to `$GITHUB_STEP_SUMMARY` — renders a table on the checks
    page with no additional permissions.
-7. If `compare` failed and the PR does **not** carry `perf-budget-ok`, fail
+8. If `compare` failed and the PR does **not** carry `perf-budget-ok`, fail
    the job.
 
 The job owns the label check itself, so it can be added to `ci-success`'s
 `needs` list without the bypass breaking the aggregate result.
+
+### Two constraints discovered while planning
+
+Both of these are load-bearing; an implementation that ignores either is
+broken in a way CI will not obviously report.
+
+**`node_modules` is installed once, at head, and never reinstalled.** An
+earlier draft of this spec reinstalled at base when `package-lock.json`
+differed. That is actively wrong: the PR introducing this harness is itself a
+lockfile change (it adds `esbuild`), so reinstalling at base would uninstall
+the tool doing the measuring. Holding dependencies fixed across both sides is
+also the more correct comparison — it isolates the source change, which is the
+only thing being gated.
+
+**The measuring script runs from a temp copy, not from the checked-out tree.**
+`scripts/perf/` does not exist at the base commit of the PR that adds it, and
+in general the base and head copies could differ. Copying the head version
+aside and using it for both measurements guarantees both sides are measured by
+identical code. This requires `bundle.mjs` to accept an explicit
+`--dist <path>` rather than resolving `dist/` relative to its own location;
+it defaults to `<cwd>/dist`.
 
 ## Bot self-verification
 
@@ -232,9 +252,9 @@ Explicitly out of scope for this spec:
 
 ## Risks
 
-- **Build time.** The job builds the library twice. Mitigated by skipping the
-  redundant `npm ci` when the lockfile is unchanged; the library build is fast
-  relative to the Storybook-based jobs already in CI.
+- **Build time.** The job builds the library twice, but installs dependencies
+  only once. The library build is fast relative to the Storybook-based jobs
+  already in CI.
 - **Gate fatigue.** The `perf-budget-ok` escape hatch is the mitigation. If the
   label starts getting applied routinely, the thresholds are wrong and should
   be revisited rather than the job removed.
