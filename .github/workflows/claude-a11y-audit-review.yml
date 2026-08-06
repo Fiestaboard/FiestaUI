@@ -1,0 +1,194 @@
+name: "Claude: A11y Auto-Review"
+
+# =============================================================================
+# Auto-runs a Claude accessibility review on any PR touching FiestaUI's shipped
+# source or its Storybook/a11y configuration. Posts ONE review comment.
+# Read-only on contents — only pull-requests:write so the action can leave its
+# review.
+#
+# This is a quality gate for human PRs as much as for bot ones. CI's
+# `a11y-tests` job already runs axe over every story in both themes and blocks
+# the merge on failure, so this review deliberately does NOT re-check what axe
+# checks. It reviews the things axe structurally cannot see: keyboard and focus
+# behaviour, motion preferences in JavaScript, the quality of an accessible
+# name rather than its presence, and any diff that quietly reduces a11y
+# coverage.
+#
+# `pull_request_target` runs from the base ref's workflow definition, so
+# malicious head-branch edits can't fire. We only check out the BASE ref —
+# never the PR head — per the CodeQL `actions/untrusted-checkout` rule (the
+# "pwn-request" pattern). PR head content is read read-only via
+# `gh api .../contents/<path>?ref=<head_sha>` from inside the prompt: bytes
+# piped through Claude as data, never materialized in a location a later step
+# could execute. Belt and braces: `--allowed-tools` is read-only.
+#
+# Draft PRs are skipped — a draft signals "not ready for review yet". The
+# trigger includes `ready_for_review` so the review fires when the author flips
+# draft -> ready.
+# =============================================================================
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "src/**"
+      - ".storybook/**"
+      - "eslint.config.mjs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claude-a11y-audit-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Claude reviews the accessibility impact
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout base ref (trusted)
+        uses: actions/checkout@v7
+        with:
+          # pull_request_target grants secrets — never check out PR head.
+          # The base ref gives Claude the trusted canonical source to compare
+          # against. PR head content is read via
+          # `gh api .../contents/<path>?ref=<head_sha>` from inside the
+          # prompt — data piped through Claude, never executed.
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run Claude a11y review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Skip the OIDC -> claude[bot] App-token exchange. On
+          # pull_request_target events the App exchange returns
+          # `401 Invalid OIDC token`; providing github_token bypasses that
+          # exchange entirely. Cost: the review is posted as
+          # `github-actions[bot]` rather than `claude[bot]`.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Bot-authored PRs need reviewing too — that's the point. Both
+          # identities show up: the audit cron pushes as `claude`, and the
+          # review badge itself is `github-actions`.
+          allowed_bots: "claude,github-actions"
+          show_full_output: "true"
+          claude_args: >-
+            --model claude-sonnet-4-6
+            --max-turns 40
+            --allowed-tools "Read,Glob,Grep,Bash(ls:*),Bash(cat:*),Bash(find:*),Bash(grep:*),Bash(rg:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr review:*),Bash(gh api:*)"
+          prompt: |
+            You are the FiestaUI accessibility reviewer. Review PR
+            #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+
+            FiestaUI is a React 19 component library on Base UI with Tailwind
+            v4 tokens, published as `@fiestaboard/ui`. Every accessibility
+            defect in `src/` is inherited by every downstream consumer.
+
+            ## What NOT to review
+
+            axe already runs on this PR. CI's `a11y-tests` job builds Storybook
+            and runs `axe-playwright` over every story in both dark and light
+            themes, and it is a required check. Do not re-report violations the
+            default axe ruleset catches — that job will fail the PR on its own,
+            and duplicating it wastes the maintainer's attention.
+
+            Stay in your lane in the other direction too: correctness, naming,
+            performance, and test coverage belong to the human reviewer, to CI,
+            and to the perf auto-review.
+
+            ## What to review
+
+            The space axe structurally cannot reach:
+
+            - **Keyboard and focus.** axe inspects a static DOM snapshot; it
+              cannot press Tab. Look for: focus traps that are missing or
+              broken in overlays, focus not restored to the trigger when a
+              dialog/sheet/menu closes, missing Escape handling, roving
+              tabindex or arrow-key navigation that the diff changes, controls
+              reachable by mouse but not keyboard, and focus order that
+              diverges from visual order.
+            - **Motion.** `prefers-reduced-motion` is honored in CSS only in
+              this repo (`src/styles/theme.css` and the season stylesheets).
+              Any NEW JavaScript-driven animation — `requestAnimationFrame`,
+              `setInterval`, WebGL via `ogl` — is invisible to those media
+              queries and must consult the preference itself. Flag new motion
+              that doesn't. (WCAG 2.3.3, and 2.2.2 for anything auto-playing
+              beyond 5 seconds.)
+            - **Semantic quality, not presence.** axe checks that an accessible
+              name exists, not that it is useful. Flag names that are vague,
+              duplicated across controls, or that don't match the visible
+              label. Same for live-region politeness — `assertive` for routine
+              updates is as wrong as `polite` for errors.
+            - **Base UI prop forwarding.** These components wrap Base UI
+              primitives. A wrapper that drops `id`, `ref`, or an `aria-*` prop
+              before it reaches the primitive silently breaks the accessible
+              description or the label association without breaking anything
+              visible.
+            - **ARIA correctness.** Attributes invalid for their role,
+              redundant roles on native elements, and ARIA used where native
+              semantics would work. The first rule of ARIA is not to use it.
+            - **Uncovered states.** axe only sees the state a story renders. If
+              the PR adds a component state (open, error, invalid, loading)
+              with no story exercising it, say so — nothing is checking that
+              markup.
+            - **Touch targets.** Interactive targets below 24x24 CSS px
+              (WCAG 2.5.8).
+
+            ## Coverage reduction is a significant finding
+
+            Treat any of the following as a headline finding, not a footnote —
+            each one makes the project less accessible while making the checks
+            quieter:
+
+            - Adding a rule to the disabled list in
+              `.storybook/test-runner.ts` (currently `page-has-heading-one`,
+              `heading-order`, `color-contrast-enhanced`).
+            - Relaxing the a11y config in `.storybook/preview.tsx`.
+            - Adding an `eslint-disable jsx-a11y/*` comment.
+            - Adding `aria-hidden` to a focusable element, `role="presentation"`
+              to an interactive one, or `tabIndex={-1}` to silence a checker.
+            - Adding entries to `vrt/skip.json` alongside a change to the same
+              component.
+
+            ## Known gaps worth remembering
+
+            `.storybook/test-runner.ts` disables `heading-order` and
+            `color-contrast-enhanced` (AAA) for CI, so nothing enforces heading
+            hierarchy or AAA contrast on this PR. If the diff plausibly affects
+            either, check it by hand rather than assuming the green check
+            covered it.
+
+            ## How to access PR content
+
+            Use `gh pr diff ${{ github.event.pull_request.number }}` for the diff.
+            Use `gh api repos/${{ github.repository }}/contents/<path>?ref=${{ github.event.pull_request.head.sha }}`
+            for full file contents. Never `git checkout` the PR head.
+
+            ## Output
+
+            Post ONE review comment via `gh pr review --comment`. Be specific
+            with `file:line` references. For each finding, name the WCAG
+            success criterion where one applies and say concretely who is
+            affected — a keyboard-only user, a screen reader user, a low-vision
+            user, a user who asked for reduced motion. Abstract rule citations
+            don't get fixed; described experiences do.
+
+            Calibrate. If the diff has no real accessibility impact, say so in
+            one line and stop — a clean PR deserves a short review, not a
+            manufactured finding.
+
+            ## Hard rules
+
+            - Read-only: never Edit, Write, or push.
+            - One review comment per run.
+            - Accessibility scope only.
+            - Never suggest silencing a check as a remedy.
