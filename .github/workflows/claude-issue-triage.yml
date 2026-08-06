@@ -14,6 +14,8 @@ name: "Claude: Issue Triage"
 #      (filed by claude-perf-audit.yml; those issues are authored by the
 #      `claude` bot, so they don't satisfy gate #1, and we want them
 #      auto-triaged anyway — hence `allowed_bots` below)
+#   4. A11y cron: any issue that gets the `a11y-audit` label applied
+#      (filed by claude-a11y-audit.yml; same bot-author reasoning as #3)
 #
 # These gates keep drive-by issues from public reporters out of the auto-run
 # path while still letting any maintainer opt one in by adding the label, and
@@ -48,7 +50,8 @@ jobs:
         )) ||
         (github.event.action == 'labeled' && (
           github.event.label.name == 'claude-fix' ||
-          github.event.label.name == 'perf-audit'
+          github.event.label.name == 'perf-audit' ||
+          github.event.label.name == 'a11y-audit'
         ))
       )
     runs-on: ubuntu-latest
@@ -73,6 +76,22 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --no-audit
+
+      # Only a11y-flavored issues need the browser. An accessibility fix has to
+      # be proven against the real axe suite (see the a11y conventions in the
+      # prompt), and that needs Playwright — but making every triage run pay
+      # for a chromium download would be wasteful, so this is gated on the
+      # issue's labels.
+      - name: Cache Playwright browsers
+        if: contains(github.event.issue.labels.*.name, 'a11y') || contains(github.event.issue.labels.*.name, 'a11y-audit')
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-a11y-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: contains(github.event.issue.labels.*.name, 'a11y') || contains(github.event.issue.labels.*.name, 'a11y-audit')
+        run: npx playwright install --with-deps chromium
 
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
@@ -138,6 +157,13 @@ jobs:
                  auto-review workflow (`claude-perf-audit-review.yml`) fires
                  and the PR lands in the maintainer's normal review queue.
                  (See "Perf issues — conventions" below.)
+               - For a11y-flavored issues (labels include `a11y` or
+                 `a11y-audit`): branch
+                 `a11y/issue-${{ github.event.issue.number }}-<short-slug>`,
+                 title prefix `a11y:`. Open **ready-for-review** — use
+                 `gh pr create` with NO `--draft` flag — so the a11y
+                 auto-review workflow (`claude-a11y-audit-review.yml`) fires.
+                 (See "A11y issues — conventions" below.)
                - For everything else: branch
                  `claude/issue-${{ github.event.issue.number }}`, title
                  `[Claude first-pass] <short summary>`. Open as a draft
@@ -192,6 +218,60 @@ jobs:
               `.github/perf-audit/rejected-edits.jsonl` are worth reading
               before you propose one.
 
+            ## A11y issues — conventions
+
+            If the issue labels include `a11y` or `a11y-audit`, you are
+            shipping an accessibility fix.
+
+            **Start by reading `.github/a11y-audit/README.md`.** It explains
+            what the existing tooling already covers and where the real gaps
+            are; working without that context is how you end up "fixing"
+            something axe already guards.
+
+            The short version: CI's `a11y-tests` job runs `axe-playwright` over
+            every story in both dark and light themes on every PR, and it is a
+            required check. The repo is already clean against the default axe
+            ruleset. The gaps are keyboard and focus behaviour (axe cannot
+            press Tab), rules disabled in `.storybook/test-runner.ts`
+            (`page-has-heading-one`, `heading-order`,
+            `color-contrast-enhanced`), component states no story renders,
+            `prefers-reduced-motion` in JavaScript (it is honored in CSS only),
+            and the *quality* of an accessible name rather than its presence.
+
+            - **Verify with the real suite before you open anything:**
+
+                  bash .github/a11y-audit/verify-a11y.sh
+
+              It builds Storybook and runs the axe suite in both themes. It
+              takes several minutes and it is not optional — it is the
+              difference between claiming an accessibility improvement and
+              demonstrating one. Run it in addition to typecheck, lint,
+              format:check, and build.
+            - **Never weaken a check to make a fix pass.** No disabling axe
+              rules, no extending the disabled-rules list in
+              `.storybook/test-runner.ts`, no relaxing
+              `.storybook/preview.tsx`, no `eslint-disable jsx-a11y/*`.
+            - **Never hide a problem from assistive technology.** `aria-hidden`
+              on a focusable element, `role="presentation"` on an interactive
+              one, or `tabIndex={-1}` to silence a checker are regressions, not
+              fixes.
+            - **Watch the visual gate.** An a11y fix legitimately may change
+              pixels (focus-ring contrast, hit-target size) — but `vrt/`
+              baselines are a required check and reseeding them is the
+              maintainer's call. If your fix moves rendered output, say so
+              plainly in the PR body and state that baselines need reseeding.
+              Never edit anything under `vrt/`, and never edit
+              `*.stories.tsx` — adding a story requires new baselines.
+            - **Prefer native semantics over ARIA.** The first rule of ARIA is
+              not to use it. And check whether Base UI already handles the
+              behaviour before you implement it yourself — duplicating its
+              focus management is a common way to break it. Past rejections in
+              `.github/a11y-audit/rejected-edits.jsonl` are worth reading first.
+            - **In the PR body**, name the WCAG success criterion where one
+              applies and say concretely who benefits — a keyboard-only user, a
+              screen reader user, a low-vision user, a reduced-motion user.
+              State that the axe suite passed in both themes.
+
             If you finish without opening a PR, leave a comment on the issue
             summarizing what you found and why no PR was opened.
 
@@ -204,4 +284,4 @@ jobs:
           claude_args: >-
             --model claude-opus-4-8
             --max-turns 80
-            --allowed-tools "Read,Glob,Grep,Edit,Write,Bash(ls:*),Bash(cat:*),Bash(find:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(du:*),Bash(date:*),Bash(jq:*),Bash(node:*),Bash(npm run typecheck:*),Bash(npm run lint:*),Bash(npm run lint:fix:*),Bash(npm run format:*),Bash(npm run build:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git branch:*),Bash(git checkout:*),Bash(git switch:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git fetch:*),Bash(git rev-parse:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr edit:*),Bash(gh pr comment:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh label list:*),Bash(gh label create:*),Bash(gh api:*)"
+            --allowed-tools "Read,Glob,Grep,Edit,Write,Bash(ls:*),Bash(cat:*),Bash(find:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(du:*),Bash(date:*),Bash(jq:*),Bash(node:*),Bash(npm run typecheck:*),Bash(npm run lint:*),Bash(npm run lint:fix:*),Bash(npm run format:*),Bash(npm run build:*),Bash(bash .github/a11y-audit/verify-a11y.sh:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git branch:*),Bash(git checkout:*),Bash(git switch:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git fetch:*),Bash(git rev-parse:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr edit:*),Bash(gh pr comment:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh label list:*),Bash(gh label create:*),Bash(gh api:*)"

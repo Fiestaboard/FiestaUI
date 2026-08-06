@@ -1,0 +1,719 @@
+name: "Claude: A11y Audit"
+
+# =============================================================================
+# Weekly sweep of FiestaUI's shipped component source for accessibility, with a
+# mandate to actively improve it — not merely to report on it. The audit fixes
+# what it can prove safe inline, and files issues for everything that needs a
+# human's judgement or a full thinking pass from the triage worker.
+#
+# The thing that makes this loop different from a generic "run axe" bot: axe
+# ALREADY runs here. CI's `a11y-tests` job builds Storybook and runs
+# axe-playwright over every story in both dark and light themes, and it is a
+# required check. The repo is therefore axe-clean at the gate by construction.
+#
+# So re-reporting axe violations would produce nothing. The value is in the
+# space axe cannot reach — keyboard and focus behaviour, motion preferences in
+# JavaScript, the QUALITY of a label rather than its presence, and the rules
+# the harness has deliberately switched off. See "Where the real findings are"
+# in the prompt.
+#
+# The audit runs the real suite (.github/a11y-audit/verify-a11y.sh) to verify
+# its own fixes before opening anything. A fix that turns the harness red never
+# becomes a PR.
+#
+# Cadence: weekly, Monday 09:00-10:30 America/Los_Angeles. The cron pair fires
+# twice in UTC to absorb DST drift; the local-hour gate admits one per season
+# and the 72h cooldown blocks the summer double-admit. workflow_dispatch always
+# proceeds.
+#
+# Effort scales with the open `a11y-audit` issue queue (see "Compute dynamic
+# effort"). Drained queue -> thorough (batch 16, cap 20). Hot queue ->
+# conservative (batch 6, cap 6).
+#
+# Progress tracked in .github/a11y-audit-state.json; the sweep restarts from
+# the top once every file has been audited.
+# =============================================================================
+
+on:
+  schedule:
+    - cron: "7 16 * * 1" # Mon 09:07 PDT (summer) — 08:07 PST, gated off in winter
+    - cron: "7 17 * * 1" # Mon 09:07 PST (winter) — 10:07 PDT, blocked by cooldown
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Serialize every a11y-audit run. Without this, two parallel runs read the same
+# state, pick the same batch, and open duplicate PRs. cancel-in-progress=false
+# so a workflow_dispatch fired during a scheduled run waits its turn rather
+# than aborting it mid-state-write.
+concurrency:
+  group: a11y-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: A11y Audit with Claude
+    runs-on: ubuntu-latest
+    # Generous: a Storybook build plus two full axe passes is ~10 min on its
+    # own, and Claude may run the suite more than once while iterating.
+    timeout-minutes: 75
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Gate on America/Los_Angeles local hour window
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch — bypassing the local-hour gate."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          hour=$(TZ=America/Los_Angeles date +%H)
+          minute=$(TZ=America/Los_Angeles date +%M)
+          dow=$(TZ=America/Los_Angeles date +%u)
+          echo "Local time: ${hour}:${minute} PT (day-of-week ${dow})"
+          # Both UTC crons are Monday-in-UTC, but 16:07 UTC in winter is 08:07
+          # PT Monday and there is no PT-day rollover to worry about either
+          # way. The day check is belt-and-braces against a future cron edit.
+          if [ "$dow" != "1" ]; then
+            echo "Not Monday in PT — skipping."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # 30 minutes of slop on the upper bound absorbs the usual GitHub
+          # Actions cron delay (10-30 min is routine).
+          if [ "$hour" = "09" ] || { [ "$hour" = "10" ] && [ "$minute" -le 30 ]; }; then
+            echo "In window (Mon 09:00-10:30 PT)."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Outside the Mon 09:00-10:30 PT window — skipping."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # FiestaUI has no RELEASE_PAT. It mints a GitHub App installation token
+      # instead — same pattern as downstream-upgrade.yml and the perf loop. The
+      # token is what lets the state-file commit push to `main` past branch
+      # protection.
+      - name: Mint app token
+        id: app-token
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.CLAUDE_BOT_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Dedup against recent runs and open PRs
+        id: dedup
+        if: steps.gate.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch — bypassing cooldown and draft cap."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Cooldown. In PDT both UTC crons land inside the 09:00-10:30 gate
+          # (09:07 and 10:07 PT); this is what stops the second one. 72h is
+          # safe for a weekly loop and still leaves the next week's run clear.
+          last=$(jq -r '.last_run_at // empty' .github/a11y-audit-state.json)
+          if [ -n "$last" ]; then
+            last_epoch=$(date -u -d "$last" +%s 2>/dev/null || echo 0)
+            now_epoch=$(date -u +%s)
+            if [ "$last_epoch" -gt 0 ]; then
+              age_h=$(( (now_epoch - last_epoch) / 3600 ))
+              if [ "$age_h" -lt 72 ]; then
+                echo "Skipping: last run was ${age_h}h ago (<72h cooldown)."
+                echo "go=false" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            fi
+          fi
+          # Open-PR cap. A11y PRs change real interaction behaviour and need
+          # careful human review, so the ceiling matches the perf loop's 3.
+          draft_count=$(gh pr list --search "head:a11y-audit/" --state open --json number --jq 'length')
+          if [ "$draft_count" -ge 3 ]; then
+            drafts=$(gh pr list --search "head:a11y-audit/" --state open --json number --jq '[.[].number | tostring] | join(", #")')
+            echo "Skipping: ${draft_count} open a11y-audit PR(s) (#${drafts}). Merge or close some, or use workflow_dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Open audit PRs: ${draft_count} (cap 3)."
+          echo "go=true" >> "$GITHUB_OUTPUT"
+
+      - name: Compute dynamic effort
+        id: effort
+        if: steps.dedup.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          open_count=$(gh issue list --label a11y-audit --state open --limit 200 --json number --jq 'length')
+          echo "Open a11y-audit issues: ${open_count}"
+          if [ "$open_count" -gt 30 ]; then
+            mode="conservative"; batch=6;  cap=6
+          elif [ "$open_count" -gt 15 ]; then
+            mode="balanced";     batch=10; cap=12
+          else
+            mode="thorough";     batch=16; cap=20
+          fi
+          echo "mode=${mode} batch=${batch} cap=${cap}"
+          {
+            echo "mode=${mode}"
+            echo "batch=${batch}"
+            echo "cap=${cap}"
+            echo "open_count=${open_count}"
+          } >> "$GITHUB_OUTPUT"
+
+      # This loop edits real TypeScript and must prove its fixes against the
+      # actual axe suite, so the full toolchain is installed up front and
+      # Claude only has to invoke verify-a11y.sh.
+      - name: Set up Node
+        if: steps.dedup.outputs.go == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.dedup.outputs.go == 'true'
+        run: npm ci --no-audit
+
+      - name: Cache Playwright browsers
+        if: steps.dedup.outputs.go == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-a11y-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.dedup.outputs.go == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Configure git identity
+        if: steps.dedup.outputs.go == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run Claude a11y-audit
+        if: steps.dedup.outputs.go == 'true'
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH_SUFFIX: ${{ github.run_id }}
+          AUDIT_MODE: ${{ steps.effort.outputs.mode }}
+          AUDIT_BATCH_SIZE: ${{ steps.effort.outputs.batch }}
+          AUDIT_ISSUE_CAP: ${{ steps.effort.outputs.cap }}
+          AUDIT_QUEUE_OPEN: ${{ steps.effort.outputs.open_count }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Without this the action prints "full output hidden for security"
+          # and a run that was silently denied every Edit/push looks like a
+          # clean success. Never remove it.
+          show_full_output: "true"
+          # Opus: accessibility findings are semantic and analytical — judging
+          # whether a label is *useful* rather than merely present is exactly
+          # the kind of call the harder model is worth paying for. This is the
+          # first knob to turn down if the cost is unwelcome.
+          claude_args: >-
+            --model claude-opus-4-8
+            --max-turns 250
+            --allowed-tools "Read,Glob,Grep,Edit,Write,Bash(ls:*),Bash(cat:*),Bash(find:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(date:*),Bash(jq:*),Bash(bash .github/a11y-audit/verify-a11y.sh:*),Bash(npm run typecheck:*),Bash(npm run lint:*),Bash(npm run format:*),Bash(npm run build:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git branch:*),Bash(git checkout:*),Bash(git switch:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git fetch:*),Bash(git rev-parse:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue create:*),Bash(gh issue edit:*),Bash(gh label list:*),Bash(gh label create:*)"
+          prompt: |
+            You are the FiestaUI accessibility auditor. You run unattended once
+            a week and audit a batch of the library's shipped source. Your job
+            is to make the library measurably more accessible — you fix what
+            you can prove safe, and you file precise issues for the rest.
+
+            FiestaUI is a React 19 component library built on Base UI with
+            Tailwind v4 design tokens, published as `@fiestaboard/ui`. Every
+            accessibility defect here is inherited by every downstream app,
+            most immediately by FiestaBoard itself. Equally, every improvement
+            you land is inherited by all of them at once. That leverage is the
+            reason this loop exists.
+
+            ## Read this first: axe already runs, and it already passes
+
+            CI's `a11y-tests` job builds Storybook and runs `axe-playwright`
+            over every story, in BOTH dark and light themes, on every pull
+            request. It is a required check (see `.github/workflows/ci.yml`),
+            and every one of the 52 components has a story, so axe's story
+            coverage is complete.
+
+            The practical consequence: **the repo is already clean against the
+            default axe ruleset.** If you spend this run re-deriving what axe
+            checks automatically, you will find nothing and deliver nothing.
+
+            Your value is in the space axe cannot reach. Know precisely where
+            that is before you start.
+
+            ## Where the real findings are
+
+            **1. Rules the harness has switched off.**
+            `.storybook/test-runner.ts` disables three rules for the CI run:
+            `page-has-heading-one`, `heading-order`, and
+            `color-contrast-enhanced` (WCAG AAA contrast). Nothing in CI will
+            ever fail on these.
+
+            Note the divergence worth investigating: `.storybook/preview.tsx`
+            *enables* `color-contrast-enhanced` for the interactive addon panel
+            while `test-runner.ts` *disables* it for CI. So the a11y addon
+            shows AAA contrast findings to a developer browsing Storybook that
+            the pipeline will never enforce. Read both files and confirm this
+            still holds — then treat the AAA contrast gap as a real, unmeasured
+            surface.
+
+            **2. Anything that requires interaction.** axe inspects a static
+            DOM snapshot. It cannot press Tab. It therefore cannot see:
+            focus order, focus trapping in dialogs and sheets, focus
+            restoration to the trigger on close, Escape handling, roving
+            tabindex and arrow-key navigation in menus/tabs/selects, or whether
+            a custom control is reachable by keyboard at all. Base UI provides
+            most of this — but only when the component wires it correctly, and
+            only where the component hasn't reimplemented it by hand.
+
+            **3. Non-default component states.** axe only ever sees the state a
+            story happens to render. If no story renders a Dialog *open*, an
+            Alert in its error variant, or an input in its invalid state, axe
+            has never inspected that markup. Read the `*.stories.tsx` beside
+            each component to see which states are actually exercised.
+
+            **4. Motion preference in JavaScript.** `prefers-reduced-motion` is
+            honored in CSS only — `src/styles/theme.css` and the season
+            stylesheets. No `.tsx` file consults it. Two JS-driven animations
+            ignore it entirely, and a CSS media query cannot reach either:
+
+              - `src/components/ui/aurora.tsx` runs a free-running
+                `requestAnimationFrame` WebGL loop.
+              - `board-display`'s loading state cycles glyphs on an 80ms
+                `setInterval`.
+
+            `vrt/skip.json` documents both, and names Aurora's missing
+            reduced-motion handling explicitly as the reason it cannot be
+            screenshot-tested. That is a real WCAG 2.2.2 / 2.3.3 defect, it is
+            already written down, and axe will never flag it. If no open issue
+            covers it, file one.
+
+            **5. Semantic quality, not presence.** axe checks that an
+            accessible name exists. It cannot judge whether the name is
+            *useful*. `aria-label="button"` passes axe and helps nobody. The
+            same applies to live-region politeness, heading hierarchy that is
+            technically legal but structurally wrong, and announcements that
+            are technically present but unintelligible.
+
+            The board components deserve specific attention here. A split-flap
+            character grid that renders as a wall of individual glyph elements
+            may be announced by a screen reader character by character, or as
+            meaningless noise, while passing every axe rule. Work out what a
+            screen reader would actually say, and whether the grid should
+            expose its message as text via an accessible name or a live region
+            instead.
+
+            **6. Lint that is configured but inert.** `eslint.config.mjs`
+            registers `eslint-plugin-jsx-a11y` in its `plugins` block but
+            enables **zero** `jsx-a11y/*` rules. The plugin is loaded and does
+            nothing. Verify this is still true, and if so it is a strong
+            bucket-B finding: turning on a recommended subset would catch a
+            whole class of regression at lint time, before CI even builds.
+            Do NOT enable the rules inline — that is not a mechanical change,
+            it may surface many pre-existing errors at once, and the choice of
+            which rules to enable is a maintainer's call. File the issue.
+
+            ## The governing constraint: green harness, honest fixes
+
+            Two rules bound everything you do.
+
+            **Never weaken the referee.** You may not disable an axe rule, add
+            to the disabled-rules list in `.storybook/test-runner.ts`, relax
+            `.storybook/preview.tsx`'s a11y config, or add an
+            `eslint-disable jsx-a11y/*` comment. Making the check stop asking
+            is not making the library accessible. If a rule genuinely should be
+            disabled, that is an issue for a human, never an edit you make.
+
+            **Never "fix" by hiding from assistive technology.** Adding
+            `aria-hidden` to something focusable, putting `role="presentation"`
+            on an interactive element, or setting `tabIndex={-1}` to silence a
+            finding all make the audit quieter and the product worse. These are
+            regressions wearing a fix's clothing, and they will be closed.
+
+            ## Visual change: allowed, but never inline
+
+            Unlike the perf loop, an accessibility fix legitimately *may* need
+            to change pixels — raising a focus-ring contrast or enlarging a hit
+            target are real fixes that move rendered output. But the visual
+            regression baselines in `vrt/` are checked by CI, and updating a
+            baseline is a human decision.
+
+            So: **a bucket-A inline fix must be visually neutral.** If a fix you
+            believe in would change rendered output, do not apply it. File it
+            as an issue instead, describe the visual delta precisely, and say
+            that baselines will need reseeding. Never edit anything under
+            `vrt/` — including `vrt/skip.json`. Widening the skip list to get a
+            change past the visual gate is the worst thing you could do here.
+
+            ## Effort for this run (computed by the workflow)
+
+            - **Mode:**        ${{ steps.effort.outputs.mode }}
+            - **Batch size:**  ${{ steps.effort.outputs.batch }} files
+            - **Issue cap:**   ${{ steps.effort.outputs.cap }} per run
+            - **Queue depth:** ${{ steps.effort.outputs.open_count }} open `a11y-audit` issues
+
+            The mode/batch/cap were chosen by the workflow based on queue
+            depth — you don't need to second-guess them.
+
+            ## Learning from past rejections
+
+            **Read `.github/a11y-audit/rejected-edits.jsonl` before doing
+            anything else.** Each non-empty line is a previous PR (from this
+            cron or from a triage worker) that a human closed without merging
+            — i.e. the proposed change was wrong. The log is your single most
+            important input; it is how this loop gets better over time.
+
+            Each line is a JSON object with:
+              - `pr`, `title`, `head_ref`, `closed_at`
+              - `body` — the PR description you originally wrote
+              - `files` — list of `{path, patch}` for every file changed
+              - `comments`, `reviews`, `inline_comments` — every human
+                comment on the PR. These contain the *reason* for the close.
+
+            For each rejection:
+
+            1. **Never repeat the exact swap.** Extract `-` / `+` lines from
+               each `patch`. If you would propose the same swap again —
+               anywhere in the repo, not just in the same file — do not.
+            2. **Read every comment.** Treat the closer's reasoning as
+               authoritative. Generalize beyond the specific case: most a11y
+               rejections expose a whole class of false positive (e.g. "Base UI
+               already manages this — you duplicated it and broke it", "this
+               element is decorative by design", "that ARIA attribute is
+               invalid on this role").
+            3. **Cite when relevant.** If you skip a finding because a past
+               rejection covers it, mention the PR number in the wrap-up.
+
+            If the file does not exist or is empty, proceed normally.
+
+            ## Sweep state
+
+            State file: `.github/a11y-audit-state.json`
+            Schema:
+              - `schema_version`   — int, currently 1
+              - `round`            — int, sweep number (starts at 0; bumped each restart)
+              - `round_started_at` — ISO8601 string or null
+              - `last_run_at`      — ISO8601 string or null
+              - `files_remaining`  — list of relative paths still to audit this round
+              - `files_audited`    — list of relative paths already audited this round
+
+            ## Sweep logic
+
+            1. Read the state file.
+            2. If `files_remaining` is empty:
+               - Glob the repo for files matching:
+                   - `src/components/**/*.tsx`
+                   - `src/lib/**/*.ts`
+                   - `src/lib/**/*.tsx`
+                   - `src/styles/**/*.css`
+                 Exclude:
+                   - `**/*.stories.tsx` (read them for context — they define
+                     the axe and VRT surface — but never edit them)
+                   - `node_modules/`, `dist/`, `storybook-static/`
+                   - `vrt/`, `docs/`, `scripts/`
+                   - `.git/`, `.github/`, `.claude/`, `.design-sync/`
+               - Set `files_remaining` to the full glob, sorted.
+               - Set `files_audited` to `[]`.
+               - Bump `round` by 1 and set `round_started_at` to now (ISO8601 UTC).
+            3. Pick the first **${{ steps.effort.outputs.batch }}** entries from
+               `files_remaining` as this run's batch. If fewer remain, use
+               what's there.
+
+            ## For each file in the batch
+
+            Read it carefully and deeply — don't skim. For a component, work
+            out what a keyboard-only user experiences, what a screen reader
+            actually announces, and what happens for a user who has asked for
+            reduced motion. Read the sibling `*.stories.tsx` to see which
+            states axe has and has not inspected. Where a component wraps a
+            Base UI primitive, check whether it forwards the props that
+            primitive needs (`id`, `aria-*`, `ref`) or quietly drops them —
+            a dropped `aria-describedby` breaks the accessible description
+            without breaking anything visible.
+
+            The highest-value surfaces in this repo, roughly in order:
+
+            - `src/components/ui/` — dialog, alert-dialog, sheet, dropdown-menu,
+              select, tabs, accordion, tooltip, slider, checkbox, switch. These
+              are the interactive primitives; focus management and keyboard
+              behaviour live or die here.
+            - `src/components/board/` — the split-flap character grids. The
+              open question is what a screen reader announces for a wall of
+              glyph elements, and whether the loading state's 80ms interval
+              respects reduced motion.
+            - `src/components/chrome/` — sidebar, page-layout, page-header,
+              skip-to-content, theme-toggle, language-selector. Landmark
+              structure, skip-link correctness, and whether app chrome exposes
+              a coherent heading hierarchy.
+            - `src/components/ui/aurora.tsx` and `src/components/seasons/*` —
+              WebGL and animation. Reduced-motion handling is the headline.
+            - `src/styles/theme.css` — focus-visible treatment, contrast of
+              token pairs, and whether the reduced-motion block covers what it
+              claims to.
+
+            Categorize findings into three buckets:
+
+            **A. Trivial mechanical fixes ONLY** — single-token or single-line
+                edits, provably correct, visually neutral, no judgement call:
+
+                - Adding a missing `aria-label` / `aria-labelledby` to a
+                  control whose only content is an icon, where the correct
+                  wording is unambiguous from surrounding code.
+                - Adding `aria-hidden="true"` to a purely decorative icon that
+                  sits beside an already-labelled text node (decorative, and
+                  NOT focusable — re-read the hard rules).
+                - Forwarding an `aria-*`, `id`, or `ref` prop that the wrapper
+                  is provably dropping before it reaches the Base UI
+                  primitive.
+                - Correcting an invalid ARIA attribute for its role, or a
+                  misspelled ARIA attribute name.
+                - Adding `type="button"` to a `<button>` inside a form that
+                  would otherwise submit it.
+                - Swapping a non-semantic `<div onClick>` for a `<button>`
+                  where the styling is already class-driven and the rendered
+                  result is identical.
+
+                Anything bigger than a one-line edit, anything requiring
+                surrounding context, anything involving a choice between
+                reasonable wordings or approaches, anything that changes
+                keyboard behaviour, and anything whose visual neutrality you
+                would have to argue for — is NOT bucket A. Push it to B or C.
+
+            **B. Missing capability** — a safeguard that simply isn't there:
+
+                - A JS-driven animation (rAF, `setInterval`, WebGL) with no
+                  `prefers-reduced-motion` handling. Aurora and the board
+                  loading state are the known cases.
+                - A live region missing where content updates silently — the
+                  board display changing its message is the obvious candidate.
+                - `eslint-plugin-jsx-a11y` registered with no rules enabled.
+                - No story covering a component's open / error / invalid state,
+                  so axe has never inspected that markup. (File it; do not add
+                  the story yourself — a new story needs new VRT baselines.)
+                - A focus trap, focus restoration, or Escape handler absent
+                  from a custom overlay that doesn't inherit one from Base UI.
+                - No visible focus indicator for a control that can receive
+                  keyboard focus.
+
+            **C. Quality issues** — present but weaker than it should be:
+
+                - An accessible name that exists but is unhelpful, duplicated
+                  across controls, or does not match the visible label.
+                - Heading hierarchy that is legal but structurally misleading —
+                  note that `heading-order` is disabled in CI, so nothing else
+                  is watching this.
+                - AAA contrast (`color-contrast-enhanced`) shortfalls, which
+                  the addon surfaces but CI does not enforce.
+                - Live-region politeness that is wrong for the update's urgency
+                  (`assertive` for routine updates, `polite` for errors).
+                - Touch targets below the 24x24 CSS px WCAG 2.5.8 minimum.
+                - Focus order that follows DOM order but not visual order.
+                - Text alternatives that describe the image rather than its
+                  purpose.
+
+            ## Aggressiveness
+
+            Mode for this run: **${{ steps.effort.outputs.mode }}**.
+
+            - `thorough` (queue <= 15): file any defensible finding. False
+              positives are cheap right now.
+            - `balanced` (16-30): file findings you're moderately confident
+              about. Skip speculative ones.
+            - `conservative` (> 30): only high-confidence findings that map to
+              a specific WCAG success criterion. The reviewer queue is hot.
+
+            In every mode: cite the WCAG success criterion (e.g. "WCAG 2.4.7
+            Focus Visible") when you can. Do not file findings that the default
+            axe ruleset would already catch — CI is green, so if you think you
+            found one, you have almost certainly misread the code. Do not
+            invent ARIA where native semantics already work; the first rule of
+            ARIA is not to use it.
+
+            Always dedup against open `a11y-audit` issues before filing:
+              `gh issue list --label a11y-audit --state open --limit 200 --search "<key phrase>"`
+            Skip if a same-file, same-topic issue is already open.
+
+            ## Outputs
+
+            ### If bucket A has any findings across the batch
+
+            Create a branch named exactly:
+
+                a11y-audit/round-<round>-run-$BRANCH_SUFFIX
+
+            where `$BRANCH_SUFFIX` is the value of the `BRANCH_SUFFIX`
+            environment variable (set to `github.run_id`). Do NOT use
+            `date +%s` — past runs invented stale timestamps that way.
+            Verify with `echo "$BRANCH_SUFFIX"` first.
+
+            Branch off `main`. Apply ONLY the bucket-A fixes.
+
+            **Before committing, prove you didn't break anything:**
+
+                npm run typecheck
+                npm run lint
+                npm run format:check
+                npm run build
+                bash .github/a11y-audit/verify-a11y.sh
+
+            That last one builds Storybook and runs the real axe suite over
+            every story in both dark and light themes — the same check CI
+            runs. It takes several minutes. It is not optional: it is the
+            difference between claiming an accessibility improvement and
+            demonstrating one.
+
+            All five must pass. If any fails, revert the change that caused it
+            and re-run. If you cannot get them all green, do not open the PR at
+            all — file the findings as issues instead and say so in the wrap-up.
+
+            Then commit and open a **ready-for-review** PR (no `--draft`):
+
+              Title: `a11y: auto-audit — round <round>, files <X+1>–<Y> of <T>`
+              Body: for each fix, name the file, the barrier it removes, the
+              WCAG success criterion it serves, and who benefits (keyboard
+              user, screen reader user, low-vision user, reduced-motion user).
+              State explicitly that typecheck, lint, format, build, and the
+              axe suite in both themes are green, and that no file under
+              `vrt/`, no `*.stories.tsx`, and no a11y test configuration was
+              touched.
+
+            Use `gh pr create` with NO `--draft` flag.
+
+            ### For each bucket B or C finding
+
+            File a GitHub issue. Dedupe first.
+
+            Issue title: `a11y: <file> — <one-line summary of the barrier>`
+
+            Issue body should include: the file path(s), the category (B or C),
+            the WCAG success criterion where one applies, who is affected and
+            how (2-5 sentences — be concrete about the lived experience, not
+            just the rule number), why the existing tooling does not catch it
+            (axe blind spot, disabled rule, uncovered state), a suggested fix
+            (2-5 sentences), an explicit note on whether the fix can be
+            visually neutral or would require reseeding VRT baselines, and a
+            footer noting which round filed it.
+
+            Labels: `a11y`, `a11y-audit`. Create labels if needed:
+              `gh label create a11y --color 1D76DB --description "Accessibility: keyboard, screen reader, motion, contrast" || true`
+              `gh label create a11y-audit --color BFD4F2 --description "Filed by the a11y-audit cron" || true`
+
+            After creating each issue, also apply the `claude-fix` label so
+            the issue-triage workflow picks it up:
+              `gh issue edit <N> --add-label claude-fix`
+            Create that label first if needed:
+              `gh label create claude-fix --color 0E8A16 --description "Run the Claude issue-triage workflow on this issue" || true`
+
+            ## State commit
+
+            After processing the batch:
+            1. Move the batch entries from `files_remaining` to `files_audited`.
+            2. Update `last_run_at` to now (ISO8601 UTC).
+            3. Write the JSON back to `.github/a11y-audit-state.json` (2-space
+               indent, trailing newline, keys in the same order as the
+               existing file).
+            4. Commit to `main` directly with the message
+               `chore(a11y-audit): advance sweep state [skip ci]` and push.
+               This is the ONLY direct-to-main commit you make.
+
+            ## Hard rules
+
+            - Never push to `main` except for the single state-file commit above.
+            - Never force-push, never `--no-verify`, never `--no-gpg-sign`.
+            - Never disable, downgrade, or narrow an accessibility check. That
+              means no edits to the disabled-rules list in
+              `.storybook/test-runner.ts`, no edits to the a11y config in
+              `.storybook/preview.tsx`, and no `eslint-disable jsx-a11y/*`
+              comments anywhere.
+            - Never add `aria-hidden` to a focusable element, never put
+              `role="presentation"` on an interactive element, and never use
+              `tabIndex={-1}` to silence a finding. Hiding a problem from
+              assistive technology is a regression, not a fix.
+            - Never modify anything under `vrt/` — baselines are sacred, and
+              `vrt/skip.json` doubly so.
+            - Never modify `*.stories.tsx`. Read them freely; adding or
+              changing one requires new VRT baselines, which is a human call.
+            - Never modify `eslint.config.mjs`, `.storybook/**`, or
+              `package.json` — findings there are issues, not inline fixes.
+            - Never modify files outside `src/**/*.ts`, `src/**/*.tsx`
+              (excluding `*.stories.tsx`), `src/styles/**/*.css`, and
+              `.github/a11y-audit-state.json`.
+            - Never change the public API exported from `src/index.ts`.
+            - Never open more than 1 PR per run.
+            - Never file more than **${{ steps.effort.outputs.cap }}** issues per run.
+            - Never open a PR when typecheck, lint, format, build, or the axe
+              suite is failing.
+            - When dedup says skip, skip — don't refile.
+            - When mode is `thorough`, lean toward filing; when
+              `conservative`, lean toward skipping.
+
+            ## Wrap up
+
+            Print a one-screen summary:
+              ROUND: <n> (started <date>)
+              BATCH: <files in this batch>
+              PR opened: <#N or "none">
+              Verification: typecheck/lint/format/build/axe-suite <pass|fail|not run>
+              Issues filed: <#A #B ...>
+              Skipped due to past rejections: <PR numbers, or "none">
+              Progress: <audited>/<total> files in this round
+              Next batch: <first 3 of files_remaining or "round complete">
+
+      - name: Push state-file changes (fallback)
+        if: steps.dedup.outputs.go == 'true'
+        # Defensive: if the Claude step exits early (rate limit, allowlist
+        # denial, hallucination), the state file may be modified but never
+        # pushed. Better a slightly inconsistent round counter than a state
+        # file frozen at "round 3, 50 files remaining" forever.
+        #
+        # Claude may have left the working tree checked out on its bucket-A
+        # branch, so this never pushes HEAD as-is — a naive `HEAD:main` there
+        # would land the whole feature branch on main. Instead the state file
+        # is copied aside and replayed onto a clean `origin/main`, which also
+        # gives us a natural retry when someone else pushes mid-run.
+        # [skip ci] keeps the commit from retriggering anything.
+        run: |
+          set -euo pipefail
+          STATE=.github/a11y-audit-state.json
+          if git diff --quiet -- "$STATE"; then
+            echo "State file unchanged."
+            exit 0
+          fi
+          tmp=$(mktemp)
+          cp "$STATE" "$tmp"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git checkout -f -B state-push origin/main
+            cp "$tmp" "$STATE"
+            if git diff --quiet -- "$STATE"; then
+              echo "State file already matches main — nothing to push."
+              exit 0
+            fi
+            git add "$STATE"
+            git commit -m "chore(a11y-audit): advance sweep state [skip ci]"
+            if git push origin HEAD:main; then
+              echo "State pushed on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push rejected (attempt ${attempt}) — refetching main and replaying."
+            sleep 3
+          done
+          echo "Could not push the state file after 5 attempts."
+          exit 1

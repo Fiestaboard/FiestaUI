@@ -1,0 +1,120 @@
+name: "Claude: A11y Audit Feedback Capture"
+
+# =============================================================================
+# Captures rejected a11y-audit PRs so the cron auditor can learn from them.
+#
+# Two PR sources feed this pipeline, and both must be captured:
+#   - `a11y-audit/*` — bucket-A inline PRs from the audit cron itself
+#   - `a11y/issue-*` — per-issue fixes from the triage worker
+#
+# When either is closed without merging, the maintainer is telling the bot
+# "this change was wrong." That signal is especially valuable in an
+# accessibility loop, because bad a11y advice is bad in a *generalizable* way:
+# "Base UI already manages focus here, you duplicated it and broke it", "that
+# icon is decorative by design", "that ARIA attribute isn't valid on this
+# role". One recorded rejection can retire a whole class of false positive.
+#
+# This workflow bundles the PR's diff, close metadata, and every comment /
+# review into a single JSONL line in .github/a11y-audit/rejected-edits.jsonl
+# and commits that file to main. The next audit run reads the log and uses it
+# to (a) never re-propose the same exact swap, and (b) generalize from the
+# closer's explanation.
+#
+# `workflow_dispatch` re-runs capture for a given PR — useful when a maintainer
+# adds an explanatory comment after the original close. Re-running replaces the
+# prior line for that PR rather than appending.
+#
+# Trigger is `pull_request_target` (not `pull_request`) so GitHub resolves this
+# workflow file from `main` rather than the PR's head ref. Branches cut from
+# `main` before this workflow landed would otherwise be invisible to it
+# forever. `pull_request_target` is safe here because the workflow checks out
+# `main` (not PR code) and only reads PR metadata via `gh`; no head-ref code is
+# ever executed.
+# =============================================================================
+
+on:
+  pull_request_target:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to (re)capture into the rejection log"
+        required: true
+        type: number
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a11y-audit-feedback
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    name: Capture rejected a11y-audit edit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.pull_request.merged == false &&
+           (startsWith(github.event.pull_request.head.ref, 'a11y-audit/') ||
+            startsWith(github.event.pull_request.head.ref, 'a11y/issue-'))) }}
+    permissions:
+      contents: write
+      pull-requests: read
+      issues: read
+    steps:
+      - name: Determine PR number
+        id: pr
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_PR: ${{ inputs.pr_number }}
+          EVENT_PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "number=${DISPATCH_PR}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${EVENT_PR}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # FiestaUI has no RELEASE_PAT — mint a GitHub App installation token so
+      # the log commit can push to main past branch protection.
+      - name: Mint app token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.CLAUDE_BOT_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
+
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 1
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Capture rejection
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          python3 .github/a11y-audit/build_rejection.py "$PR_NUMBER"
+
+      - name: Commit and push
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- .github/a11y-audit/rejected-edits.jsonl; then
+            echo "Log unchanged — script bailed (merged PR, or no diff)."
+            exit 0
+          fi
+          git add .github/a11y-audit/rejected-edits.jsonl
+          git commit -m "chore(a11y-audit): capture rejection from PR #${PR_NUMBER} [skip ci]"
+          git push origin HEAD:main

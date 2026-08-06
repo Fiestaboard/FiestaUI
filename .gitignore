@@ -7,6 +7,11 @@ coverage/
 *.log
 vrt/diffs/
 
+# Byte-code from the audit loops' rejection-capture scripts, which the
+# feedback READMEs document running locally (DRY_RUN=1 python3 ...).
+__pycache__/
+*.pyc
+
 # design-sync (claude.ai/design) — transient/regenerated artifacts
 .design-sync/sb-reference/
 .design-sync/learnings/
