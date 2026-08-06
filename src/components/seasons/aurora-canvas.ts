@@ -175,6 +175,13 @@ export function useAuroraCanvas(
       cancelAnimationFrame(rafId);
       reducedMotion.removeEventListener("change", startOrFreeze);
       ro.disconnect();
+      // Free the GPU objects built in this effect run so palette changes and
+      // Strict-Mode remounts don't orphan them on the (deliberately kept-alive)
+      // context. Deleting resources is distinct from loseContext().
+      gl.deleteProgram(prog);
+      gl.deleteShader(vert);
+      gl.deleteShader(frag);
+      gl.deleteBuffer(buf);
     };
   }, [canvasRef, fragSource, colors, label]);
 }
