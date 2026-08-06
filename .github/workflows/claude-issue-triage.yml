@@ -1,0 +1,194 @@
+name: "Claude: Issue Triage"
+
+# Take a first-pass fix attempt at new issues.
+#
+# Shared worker — not per-loop. Triage is the same job regardless of which
+# audit filed the issue; the only per-loop branch is the label check in the
+# `if:` gate below and the conventions section in the prompt. When a new
+# audit loop is added to this repo, extend both rather than copying this file.
+#
+# Triggers in several ways:
+#   1. Auto: issue opened by the repo owner / a member / a collaborator
+#   2. Manual gate: any issue that gets the `claude-fix` label applied
+#   3. Perf cron: any issue that gets the `perf-audit` label applied
+#      (filed by claude-perf-audit.yml; those issues are authored by the
+#      `claude` bot, so they don't satisfy gate #1, and we want them
+#      auto-triaged anyway — hence `allowed_bots` below)
+#
+# These gates keep drive-by issues from public reporters out of the auto-run
+# path while still letting any maintainer opt one in by adding the label, and
+# letting the perf-audit cron close its own loop.
+#
+# Model: Opus 4.8 for every triaged issue — code fixes benefit from the harder
+# model at debugging and codebase navigation.
+
+on:
+  issues:
+    types: [opened, labeled]
+
+# Cancel a prior run for the same issue if a new trigger fires (e.g. a second
+# label applied right after open) — avoids burning credits on duplicates.
+concurrency:
+  group: claude-issue-triage-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    # Gate: either the author is trusted, OR a gating label was just applied.
+    # Also skip anything that looks like an `@claude` mention so this doesn't
+    # double-fire with a mention-driven workflow if one is added later.
+    if: |
+      !contains(github.event.issue.body, '@claude') &&
+      !contains(github.event.issue.title, '@claude') &&
+      (
+        (github.event.action == 'opened' && (
+          github.event.issue.author_association == 'OWNER' ||
+          github.event.issue.author_association == 'MEMBER' ||
+          github.event.issue.author_association == 'COLLABORATOR'
+        )) ||
+        (github.event.action == 'labeled' && (
+          github.event.label.name == 'claude-fix' ||
+          github.event.label.name == 'perf-audit'
+        ))
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # The perf-audit cron files issues as the `claude` bot and applies
+          # the `perf-audit` / `claude-fix` labels itself. Without this the
+          # action's own anti-bot guard short-circuits the run regardless of
+          # the workflow `if:` gate, rejecting it with "Workflow initiated by
+          # non-human actor: claude".
+          allowed_bots: "claude"
+
+          # Surface the SDK transcript in the Actions log. Without this the
+          # action prints "full output hidden for security" and silent
+          # permission denials look like a clean success — turns burned,
+          # money spent, no PR, conclusion=success.
+          show_full_output: "true"
+
+          additional_permissions: |
+            actions: read
+
+          prompt: |
+            A new issue was just filed on this repo. Take a first-pass attempt
+            at fixing it. The issue is #${{ github.event.issue.number }}:
+
+            Title: ${{ github.event.issue.title }}
+
+            Labels: ${{ toJSON(github.event.issue.labels.*.name) }}
+
+            Body:
+            ${{ github.event.issue.body }}
+
+            This repo is FiestaUI — a React 19 component library built on Base
+            UI with Tailwind v4 design tokens, published as `@fiestaboard/ui`.
+            Source lives in `src/`; every component has a sibling
+            `*.stories.tsx` that doubles as the visual-regression surface.
+
+            Your job:
+            1. Read the issue carefully and decide whether it's actionable as
+               a code change. If it's a feature request that needs design
+               discussion, a question, a duplicate, or doesn't have enough
+               info, DO NOT open a PR — instead post one short comment on the
+               issue explaining what's needed and stop.
+            2. If it IS actionable: investigate the codebase, reproduce the
+               problem if you can, and implement the smallest fix that solves
+               it. Match the conventions of the surrounding code.
+            3. Verify before you open anything:
+
+                   npm run typecheck
+                   npm run lint
+                   npm run format:check
+                   npm run build
+
+               All must pass. If you can't get them green, don't open a PR —
+               comment on the issue with what you found and stop.
+            4. Open a pull request against `main`:
+               - For perf-flavored issues (labels include `perf` or
+                 `perf-audit`): branch
+                 `perf/issue-${{ github.event.issue.number }}-<short-slug>`,
+                 title prefix `perf:`. Open **ready-for-review** — use
+                 `gh pr create` with NO `--draft` flag — so the perf
+                 auto-review workflow (`claude-perf-audit-review.yml`) fires
+                 and the PR lands in the maintainer's normal review queue.
+                 (See "Perf issues — conventions" below.)
+               - For everything else: branch
+                 `claude/issue-${{ github.event.issue.number }}`, title
+                 `[Claude first-pass] <short summary>`. Open as a draft
+                 (`gh pr create --draft`) so a human validates the first-pass
+                 fix before sign-off.
+               In either case link the issue with
+               `Closes #${{ github.event.issue.number }}` in the body.
+            5. In the PR body, be honest about your confidence: what you
+               changed, what you verified, and what a human reviewer should
+               double-check before merging.
+            6. Never merge the PR. Never force-push. Never bypass hooks.
+
+            ## Perf issues — conventions
+
+            If the issue labels include `perf` or `perf-audit`, you are
+            shipping a performance fix, and the governing constraint is that
+            **the rendered output must not change**:
+
+            - Never modify anything under `vrt/`. The baselines are the
+              referee for visual parity — a perf fix that needs a baseline
+              update is not a perf fix. If your change would alter rendering,
+              stop, comment on the issue explaining the visual trade-off, and
+              let a human decide.
+            - Never modify `*.stories.tsx`. They define the VRT surface.
+            - Never change the public API: exported component names, prop
+              names, prop types, and defaults are frozen.
+            - Preserve animation *appearance* — duration, easing, amplitude,
+              and perceived motion stay identical. Changing how a frame is
+              produced is in scope; changing what it looks like is not.
+            - Scope tightly to the reported finding. Don't refactor adjacent
+              code, and don't bundle several optimizations into one PR.
+            - State in the PR body when the cost is paid (per render, per
+              frame, per mount, or once at import) and why the change is
+              visually neutral. CI's `visual-regression` job is the final
+              check — say explicitly that you expect it to pass unchanged.
+            - Don't add a `useMemo`/`memo` unless you can name the specific
+              re-render it prevents. A memo that costs more than it saves is
+              a regression, and past rejections in
+              `.github/perf-audit/rejected-edits.jsonl` are worth reading
+              before you propose one.
+
+            If you finish without opening a PR, leave a comment on the issue
+            summarizing what you found and why no PR was opened.
+
+          # Long turn ceiling so Claude has room to actually attempt the fix;
+          # `timeout-minutes` above is the real backstop on cost.
+          # `--allowed-tools`: the agent-mode default toolset is READ-ONLY, so
+          # without this allowlist every Edit/Write/`git`/`gh` call is denied
+          # and the run burns its budget doing nothing but reads. Every Bash
+          # pattern the prompt invokes must appear here.
+          claude_args: >-
+            --model claude-opus-4-8
+            --max-turns 80
+            --allowed-tools "Read,Glob,Grep,Edit,Write,Bash(ls:*),Bash(cat:*),Bash(find:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(du:*),Bash(date:*),Bash(jq:*),Bash(node:*),Bash(npm run typecheck:*),Bash(npm run lint:*),Bash(npm run lint:fix:*),Bash(npm run format:*),Bash(npm run build:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git branch:*),Bash(git checkout:*),Bash(git switch:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git fetch:*),Bash(git rev-parse:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr edit:*),Bash(gh pr comment:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh label list:*),Bash(gh label create:*),Bash(gh api:*)"
