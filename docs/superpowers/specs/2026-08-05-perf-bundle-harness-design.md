@@ -177,11 +177,9 @@ A new `perf-bundle` job in `.github/workflows/ci.yml`, PR-only — it needs a
 base to compare against.
 
 1. Checkout with `fetch-depth: 0`.
-2. `setup-node` (Node 24, npm cache), `npm ci --no-audit`.
-3. Check out the PR base, `npm ci` **only if `package-lock.json` differs**
-   between base and head, build, `measure --out base.json`.
-4. Return to head and rebuild — the base build overwrote `dist/`, so this is
-   always required, not conditional — then `measure --out head.json`.
+2. `setup-node` (Node 24, npm cache), `npm ci --no-audit` — **once, at head.**
+3. Check out the PR base **source only**, build, `measure --out base.json`.
+4. Return to head, rebuild, `measure --out head.json`.
 5. `compare --base base.json --head head.json --markdown report.md`.
 6. Append `report.md` to `$GITHUB_STEP_SUMMARY` — renders a table on the checks
    page with no additional permissions.
@@ -190,6 +188,37 @@ base to compare against.
 
 The job owns the label check itself, so it can be added to `ci-success`'s
 `needs` list without the bypass breaking the aggregate result.
+
+### Two constraints discovered while planning
+
+Both of these are load-bearing; an implementation that ignores either is
+broken in a way CI will not obviously report.
+
+**`node_modules` is installed once, at head, and never reinstalled.** An
+earlier draft of this spec reinstalled at base when `package-lock.json`
+differed. That is actively wrong: the PR introducing this harness is itself a
+lockfile change (it adds `esbuild`), so reinstalling at base would uninstall
+the tool doing the measuring. Holding dependencies fixed across both sides is
+also the more correct comparison — it isolates the source change, which is the
+only thing being gated.
+
+**Both checkouts are path-scoped, and that is what pins the harness to head.**
+Only the build inputs are swapped — `src`, `package.json`, `vite.config.ts`,
+`tsconfig.build.json` — never the whole tree. `scripts/perf/` therefore stays
+at the head revision across both measurements, which is required: measuring
+base with base's harness and head with head's would compare two different
+rulers. A full `git checkout <sha>` would break this, and would also delete
+`scripts/perf/` outright on the PR that introduces it.
+
+An earlier draft solved this by copying the harness to `$RUNNER_TEMP` instead.
+That does not work, and failed on the first CI run: Node resolves bare imports
+from the importing file's own directory, so a copy outside the workspace
+cannot find `esbuild`. Keeping one mechanism — the path-scoped checkout —
+rather than two overlapping ones is both simpler and the one that works.
+
+`bundle.mjs` still takes an explicit `--dist <path>` (defaulting to
+`<cwd>/dist`) so one copy of the script can measure a `dist/` built from any
+revision, which is exactly what the two-build sequence needs.
 
 ## Bot self-verification
 
@@ -232,9 +261,9 @@ Explicitly out of scope for this spec:
 
 ## Risks
 
-- **Build time.** The job builds the library twice. Mitigated by skipping the
-  redundant `npm ci` when the lockfile is unchanged; the library build is fast
-  relative to the Storybook-based jobs already in CI.
+- **Build time.** The job builds the library twice, but installs dependencies
+  only once. The library build is fast relative to the Storybook-based jobs
+  already in CI.
 - **Gate fatigue.** The `perf-budget-ok` escape hatch is the mitigation. If the
   label starts getting applied routinely, the thresholds are wrong and should
   be revisited rather than the job removed.

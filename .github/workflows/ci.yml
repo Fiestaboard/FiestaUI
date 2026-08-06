@@ -117,6 +117,84 @@ jobs:
           test -f dist/theme.css
           npm pack --dry-run
 
+  perf-bundle:
+    name: Bundle Budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Needs a base to compare against, so PRs only.
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      # Installed ONCE, at head, and never reinstalled. Reinstalling at base
+      # would uninstall esbuild on any PR that touches package-lock.json —
+      # including the PR that first added it. Holding dependencies fixed also
+      # isolates the source change, which is the only thing being gated.
+      - name: Install dependencies
+        run: npm ci --no-audit
+
+      # Both measurements MUST run the same harness code, and they do: the
+      # checkouts below are path-scoped to the build inputs and never touch
+      # scripts/, so scripts/perf stays at the head revision throughout. Do
+      # not turn these into a full `git checkout <sha>` — that would swap the
+      # harness out from under the base measurement.
+      #
+      # Running it from a copy outside the workspace does NOT work: Node
+      # resolves bare imports from the importing file's directory, so a copy
+      # in $RUNNER_TEMP cannot find esbuild.
+      - name: Measure base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git checkout --quiet --force "$BASE_SHA" -- \
+            src package.json vite.config.ts tsconfig.build.json
+          npm run build
+          node scripts/perf/bundle.mjs measure \
+            --out "$RUNNER_TEMP/base.json" --dist "$GITHUB_WORKSPACE/dist"
+
+      - name: Measure head
+        run: |
+          set -euo pipefail
+          git checkout --quiet --force HEAD -- \
+            src package.json vite.config.ts tsconfig.build.json
+          npm run build
+          node scripts/perf/bundle.mjs measure \
+            --out "$RUNNER_TEMP/head.json" --dist "$GITHUB_WORKSPACE/dist"
+
+      - name: Compare
+        id: compare
+        run: |
+          set +e
+          node scripts/perf/bundle.mjs compare \
+            --base "$RUNNER_TEMP/base.json" \
+            --head "$RUNNER_TEMP/head.json" \
+            --markdown "$RUNNER_TEMP/report.md"
+          code=$?
+          set -e
+          echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # Report-only during rollout. Promoting this to a hard failure (with the
+      # perf-budget-ok escape hatch) is a follow-up, once the numbers have
+      # proven stable on real PRs — see the plan's Task 5.
+      - name: Report result
+        env:
+          COMPARE_EXIT: ${{ steps.compare.outputs.exit_code }}
+        run: |
+          if [ "$COMPARE_EXIT" != "0" ]; then
+            echo "::warning::Bundle budget regression detected (report-only during rollout)."
+          else
+            echo "No bundle regressions."
+          fi
+
   automation:
     name: Automation scripts & workflows
     runs-on: ubuntu-latest
@@ -129,6 +207,15 @@ jobs:
 
       - name: Run script tests
         run: bash scripts/downstream-upgrade/tests/run.sh
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      # No `npm ci` needed: compare.mjs is dependency-free and node --test is
+      # built in. Keeps this job as fast as it is today.
+      - name: Run perf harness unit tests
+        run: npm run perf:test
 
       - name: actionlint
         run: |
