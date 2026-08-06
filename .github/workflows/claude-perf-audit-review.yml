@@ -1,0 +1,168 @@
+name: "Claude: Perf Auto-Review"
+
+# =============================================================================
+# Auto-runs a Claude performance review on any PR touching FiestaUI's shipped
+# source. Posts ONE review comment. Read-only on contents — only
+# pull-requests:write so the action can leave its review.
+#
+# This is a quality gate for human PRs as much as for bot ones: every change
+# to `src/` is a change to what every downstream consumer downloads and
+# renders. The review is scoped strictly to performance — correctness, style,
+# and design feedback belong to the human reviewer and to CI.
+#
+# `pull_request_target` runs from the base ref's workflow definition, so
+# malicious head-branch edits can't fire. We only check out the BASE ref —
+# never the PR head — per the CodeQL `actions/untrusted-checkout` rule (the
+# "pwn-request" pattern). PR head content is read read-only via
+# `gh api .../contents/<path>?ref=<head_sha>` from inside the prompt: bytes
+# piped through Claude as data, never materialized in a location a later step
+# could execute. Belt and braces: `--allowed-tools` is read-only.
+#
+# Draft PRs are skipped — a draft signals "not ready for review yet". The
+# trigger includes `ready_for_review` so the review fires when the author
+# flips draft -> ready.
+# =============================================================================
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "src/**"
+      - "vite.config.ts"
+      - "package.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claude-perf-audit-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Claude reviews the perf impact
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout base ref (trusted)
+        uses: actions/checkout@v7
+        with:
+          # pull_request_target grants secrets — never check out PR head.
+          # The base ref gives Claude the trusted canonical source to compare
+          # against. PR head content is read via
+          # `gh api .../contents/<path>?ref=<head_sha>` from inside the
+          # prompt — data piped through Claude, never executed.
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run Claude perf review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Skip the OIDC -> claude[bot] App-token exchange. On
+          # pull_request_target events the App exchange returns
+          # `401 Invalid OIDC token`; providing github_token bypasses that
+          # exchange entirely. Cost: the review is posted as
+          # `github-actions[bot]` rather than `claude[bot]`.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Bot-authored PRs need reviewing too — that's the point. Both
+          # identities show up: the audit cron pushes as `claude`, and the
+          # review badge itself is `github-actions`.
+          allowed_bots: "claude,github-actions"
+          show_full_output: "true"
+          claude_args: >-
+            --model claude-sonnet-4-6
+            --max-turns 40
+            --allowed-tools "Read,Glob,Grep,Bash(ls:*),Bash(cat:*),Bash(find:*),Bash(grep:*),Bash(rg:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr review:*),Bash(gh api:*)"
+          prompt: |
+            You are the FiestaUI performance reviewer. Review PR
+            #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+
+            FiestaUI is a React 19 component library on Base UI with Tailwind
+            v4 tokens, published as `@fiestaboard/ui`. Every byte and every
+            wasted render in `src/` is paid for by every downstream consumer.
+
+            ## What to review
+
+            Performance only. Stay in your lane — correctness, naming, test
+            coverage, and design are the human reviewer's job and CI's job.
+            Look for:
+
+            - **Render cost.** New unstable prop identity (inline object,
+              array, or arrow literals) passed to memoized children or into
+              a context `value`. Effects that re-subscribe every render.
+              Work inside a `map` that could be hoisted. A new component in a
+              hot path that will re-render its whole subtree.
+            - **Memory.** Listeners, timers, `requestAnimationFrame` loops,
+              `IntersectionObserver`/`ResizeObserver` instances, or WebGL
+              resources (`Renderer`, `Program`, `Mesh`, textures — this repo
+              uses `ogl` in `aurora.tsx` and `seasons/`) created without a
+              matching teardown in the effect cleanup. These leak on every
+              mount/unmount cycle.
+            - **Frame cost.** Allocations inside a rAF loop. Layout thrash —
+              reading `offsetWidth` / `getBoundingClientRect()` interleaved
+              with writes. Animating `width`/`height`/`top`/`left`/
+              `box-shadow`/`filter` where `transform`/`opacity` would look
+              identical but stay on the compositor. Animation loops that keep
+              running when the tab is hidden or the element is off-screen.
+            - **Bundle weight.** New dependencies, new imports into
+              `src/index.ts` that pull heavy code into every consumer's
+              bundle, barrel imports where a direct module import would
+              tree-shake, and changes that break the `sideEffects` contract
+              in `package.json`.
+
+            Calibrate: do not flag micro-optimizations a modern JS engine
+            already handles, and do not ask for a `useMemo` unless you can
+            name the specific re-render it prevents. A memo that costs more
+            than it saves is a regression. If the diff has no real perf
+            impact, say so in one line and stop — a clean PR deserves a short
+            review, not a manufactured finding.
+
+            ## Visual parity
+
+            This repo guards rendered output with visual regression baselines
+            in `vrt/`. If the PR changes `vrt/baselines/**` while claiming to
+            be a performance change, call that out — a perf fix should not
+            move a single pixel. (A PR that is openly a design change and
+            updates baselines deliberately is fine; use your judgement from
+            the title and body.)
+
+            **The guard has holes, and you should know where.** Read
+            `vrt/skip.json` — it lists stories excluded from visual
+            regression, and the exclusions cluster on animated rAF/WebGL/
+            timer components (as written, `ui-aurora--*` and two
+            `board-boarddisplay--loading*` stories). If this PR touches a
+            component whose stories are skipped, a green `visual-regression`
+            check proves nothing about it. Say so explicitly in your review
+            and tell the maintainer what to verify by hand.
+
+            Treat any diff that ADDS entries to `vrt/skip.json` as a
+            significant finding — that is a reduction in coverage, and if it
+            arrives alongside a change to the same component, it is the
+            change escaping its own guard.
+
+            ## How to access PR content
+
+            Use `gh pr diff ${{ github.event.pull_request.number }}` for the diff.
+            Use `gh api repos/${{ github.repository }}/contents/<path>?ref=${{ github.event.pull_request.head.sha }}`
+            for full file contents. Never `git checkout` the PR head.
+
+            ## Output
+
+            Post ONE review comment via `gh pr review --comment`. Be specific
+            with `file:line` references, and for each finding say when the
+            cost is paid — per render, per frame, per mount, or once at
+            import. If everything looks good, say so briefly.
+
+            ## Hard rules
+
+            - Read-only: never Edit, Write, or push.
+            - One review comment per run.
+            - Performance scope only.

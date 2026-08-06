@@ -1,0 +1,607 @@
+name: "Claude: Perf Audit"
+
+# =============================================================================
+# Daily sweep of FiestaUI's shipped component source for rendering cost,
+# memory retention, and bundle weight — under a hard constraint: the rendered
+# output must stay pixel-identical. Visual parity is not a nice-to-have here,
+# it is the definition of a valid perf fix. The VRT baselines in `vrt/` are the
+# referee, and the audit is forbidden from touching them.
+#
+# Cadence: once daily, 12:00-13:30 America/Los_Angeles. The cron pair fires
+# twice in UTC to absorb DST drift; the local-hour gate below admits exactly
+# one of them per season, and the cooldown blocks the summer double-admit.
+# workflow_dispatch always proceeds.
+#
+# Effort scales with the open `perf-audit` issue queue (see "Compute dynamic
+# effort" step). Drained queue -> thorough mode (batch 16, cap 20). Hot queue
+# -> conservative mode (batch 6, cap 6). The audit self-throttles without
+# manual tuning. Batches are smaller than the canonical docs-audit because
+# these are .tsx/.css files read deeply, not markdown skimmed for typos.
+#
+# Progress tracked in .github/perf-audit-state.json; the sweep restarts from
+# the top once every file has been audited.
+# =============================================================================
+
+on:
+  schedule:
+    - cron: "7 19 * * *" # 12:07 PDT (summer) — 11:07 PST, gated off in winter
+    - cron: "7 20 * * *" # 12:07 PST (winter) — 13:07 PDT, blocked by cooldown
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Serialize every perf-audit run. Without this, two parallel runs read the
+# same state, pick the same batch, and open duplicate PRs touching the same
+# files. cancel-in-progress=false so a workflow_dispatch fired during a
+# scheduled run waits its turn rather than aborting it mid-state-write.
+concurrency:
+  group: perf-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Perf Audit with Claude
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Gate on America/Los_Angeles local hour window
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch — bypassing the local-hour gate."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          hour=$(TZ=America/Los_Angeles date +%H)
+          minute=$(TZ=America/Los_Angeles date +%M)
+          echo "Local time: ${hour}:${minute} PT"
+          # 30 minutes of slop on the upper bound absorbs the usual GitHub
+          # Actions cron delay (10-30 min is routine).
+          if [ "$hour" = "12" ] || { [ "$hour" = "13" ] && [ "$minute" -le 30 ]; }; then
+            echo "In window (12:00-13:30 PT)."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Outside the 12:00-13:30 PT window — skipping."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # FiestaUI has no RELEASE_PAT. It mints a GitHub App installation token
+      # instead — same pattern as downstream-upgrade.yml. The token is what
+      # lets the state-file commit push to `main` past branch protection.
+      - name: Mint app token
+        id: app-token
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.CLAUDE_BOT_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Dedup against recent runs and open drafts
+        id: dedup
+        if: steps.gate.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch — bypassing cooldown and draft cap."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Cooldown. In PDT both UTC crons land inside the 12:00-13:30 gate
+          # (12:07 and 13:07 PT); this is what stops the second one.
+          last=$(jq -r '.last_run_at // empty' .github/perf-audit-state.json)
+          if [ -n "$last" ]; then
+            last_epoch=$(date -u -d "$last" +%s 2>/dev/null || echo 0)
+            now_epoch=$(date -u +%s)
+            if [ "$last_epoch" -gt 0 ]; then
+              age_h=$(( (now_epoch - last_epoch) / 3600 ))
+              if [ "$age_h" -lt 6 ]; then
+                echo "Skipping: last run was ${age_h}h ago (<6h cooldown)."
+                echo "go=false" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            fi
+          fi
+          # Open-draft cap. Perf PRs need careful human review, so the ceiling
+          # is lower than docs-audit's 5.
+          draft_count=$(gh pr list --search "head:perf-audit/" --state open --json number --jq 'length')
+          if [ "$draft_count" -ge 3 ]; then
+            drafts=$(gh pr list --search "head:perf-audit/" --state open --json number --jq '[.[].number | tostring] | join(", #")')
+            echo "Skipping: ${draft_count} open perf-audit PR(s) (#${drafts}). Merge or close some, or use workflow_dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Open audit PRs: ${draft_count} (cap 3)."
+          echo "go=true" >> "$GITHUB_OUTPUT"
+
+      - name: Compute dynamic effort
+        id: effort
+        if: steps.dedup.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          open_count=$(gh issue list --label perf-audit --state open --limit 200 --json number --jq 'length')
+          echo "Open perf-audit issues: ${open_count}"
+          if [ "$open_count" -gt 30 ]; then
+            mode="conservative"; batch=6;  cap=6
+          elif [ "$open_count" -gt 15 ]; then
+            mode="balanced";     batch=10; cap=12
+          else
+            mode="thorough";     batch=16; cap=20
+          fi
+          echo "mode=${mode} batch=${batch} cap=${cap}"
+          {
+            echo "mode=${mode}"
+            echo "batch=${batch}"
+            echo "cap=${cap}"
+            echo "open_count=${open_count}"
+          } >> "$GITHUB_OUTPUT"
+
+      # Unlike the canonical docs-audit (markdown only), this loop edits real
+      # TypeScript. A perf "fix" that breaks the type checker or the build is
+      # worse than no fix at all, so the toolchain is installed and the prompt
+      # requires a green typecheck + lint + build before any PR is opened.
+      - name: Set up Node
+        if: steps.dedup.outputs.go == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.dedup.outputs.go == 'true'
+        run: npm ci --no-audit
+
+      - name: Configure git identity
+        if: steps.dedup.outputs.go == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run Claude perf-audit
+        if: steps.dedup.outputs.go == 'true'
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH_SUFFIX: ${{ github.run_id }}
+          AUDIT_MODE: ${{ steps.effort.outputs.mode }}
+          AUDIT_BATCH_SIZE: ${{ steps.effort.outputs.batch }}
+          AUDIT_ISSUE_CAP: ${{ steps.effort.outputs.cap }}
+          AUDIT_QUEUE_OPEN: ${{ steps.effort.outputs.open_count }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Without this the action prints "full output hidden for security"
+          # and a run that was silently denied every Edit/push looks like a
+          # clean success. Never remove it.
+          show_full_output: "true"
+          # Opus: perf findings are analytical, the batch is small, and a
+          # false-positive perf claim is expensive to review. This is the
+          # first knob to turn down if the cost is unwelcome.
+          claude_args: >-
+            --model claude-opus-4-8
+            --max-turns 250
+            --allowed-tools "Read,Glob,Grep,Edit,Write,Bash(ls:*),Bash(cat:*),Bash(find:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(du:*),Bash(date:*),Bash(jq:*),Bash(npm run typecheck:*),Bash(npm run lint:*),Bash(npm run build:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git branch:*),Bash(git checkout:*),Bash(git switch:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git fetch:*),Bash(git rev-parse:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue create:*),Bash(gh issue edit:*),Bash(gh label list:*),Bash(gh label create:*)"
+          prompt: |
+            You are the FiestaUI performance auditor. You run unattended once
+            a day and audit a batch of the library's shipped source for
+            rendering cost, memory retention, and bundle weight.
+
+            FiestaUI is a React 19 component library built on Base UI with
+            Tailwind v4 design tokens. It ships as `@fiestaboard/ui` — every
+            byte and every wasted render is paid for by every downstream app,
+            most immediately by FiestaBoard itself.
+
+            ## The prime directive: it must look exactly the same
+
+            A performance change that alters even one pixel of rendered output
+            is NOT a performance change — it is an unreviewed design change,
+            and it will be closed. The repo's visual regression baselines
+            (`vrt/baselines/`) are the referee.
+
+            This means, without exception:
+
+            - You never modify anything under `vrt/`. Not the baselines, not
+              the diffs. If a fix you want to make would require a baseline
+              update, that fix is out of scope for this loop — file it as an
+              issue and explain the visual delta so a human can decide.
+            - You never change colors, spacing, typography, border radii,
+              shadows, z-order, or layout.
+            - You never change animation *appearance*: duration, easing,
+              amplitude, and the motion a user perceives all stay identical.
+              Changing *how* a frame is produced (cheaper paint path, fewer
+              allocations) is in scope; changing what the frame looks like is
+              not.
+            - You never change the public API. Exported component names, prop
+              names, prop types, and default values are frozen. A perf fix
+              that renames a prop is a breaking change wearing a disguise.
+
+            When you are not certain a change is visually neutral, it is not
+            a bucket-A fix. Push it to bucket B or C and let a human decide.
+
+            ## Visual coverage is NOT uniform — check before you trust it
+
+            The referee has blind spots, and they are concentrated in exactly
+            the components with the most performance headroom. Animated
+            components are the hardest to baseline and the most expensive to
+            run, so the stories that got excluded from VRT are disproportion-
+            ately the ones you most want to change.
+
+            **Read `vrt/skip.json` early in every run.** It lists story-ID
+            patterns excluded from visual regression, each with a reason.
+            Map those story IDs back to their source files (story ID
+            `ui-aurora--*` comes from `src/components/ui/aurora.tsx`,
+            `board-boarddisplay--*` from
+            `src/components/board/board-display.tsx`, and so on).
+
+            For any source file whose stories are skipped:
+
+            - **It can never be a bucket-A fix.** No exceptions. Nothing
+              automated will catch it if you break the rendering, so a human
+              has to look. File an issue instead, and say in the issue body
+              that the component is VRT-skipped and needs manual visual
+              verification.
+            - Treat it as *higher* priority for investigation, not lower.
+              These are usually the rAF/WebGL/timer-driven components where
+              the real memory and per-frame wins live.
+
+            At the time this workflow was written, `vrt/skip.json` excluded
+            `ui-aurora--*` and two `board-boarddisplay--loading*` stories.
+            Trust the file over this paragraph — it may have changed.
+
+            One of those skip reasons is itself a finding worth acting on:
+            Aurora is excluded because its rAF loop is free-running and
+            "does not honor prefers-reduced-motion." That is a real bucket-B
+            defect — a WebGL loop that ignores the user's motion preference
+            and burns GPU regardless. Fixing it would also make the component
+            baseline-able, which closes the coverage hole. If no open issue
+            covers it, file one.
+
+            ## Effort for this run (computed by the workflow)
+
+            - **Mode:**        ${{ steps.effort.outputs.mode }}
+            - **Batch size:**  ${{ steps.effort.outputs.batch }} files
+            - **Issue cap:**   ${{ steps.effort.outputs.cap }} per run
+            - **Queue depth:** ${{ steps.effort.outputs.open_count }} open `perf-audit` issues
+
+            The mode/batch/cap were chosen by the workflow based on queue
+            depth — you don't need to second-guess them.
+
+            ## Learning from past rejections
+
+            **Read `.github/perf-audit/rejected-edits.jsonl` before doing
+            anything else.** Each non-empty line is a previous PR (from this
+            cron or from a triage worker) that a human closed without merging
+            — i.e. the proposed change was wrong. The log is your single most
+            important input; it is how this loop gets better over time.
+
+            Each line is a JSON object with:
+              - `pr`, `title`, `head_ref`, `closed_at`
+              - `body` — the PR description you originally wrote
+              - `files` — list of `{path, patch}` for every file changed
+              - `comments`, `reviews`, `inline_comments` — every human
+                comment on the PR. These contain the *reason* for the close.
+
+            For each rejection:
+
+            1. **Never repeat the exact swap.** Extract `-` / `+` lines from
+               each `patch`. If you would propose the same swap again —
+               anywhere in the repo, not just in the same file — do not.
+            2. **Read every comment.** Treat the closer's reasoning as
+               authoritative. Generalize beyond the specific case: most perf
+               rejections expose a whole class of false positive (e.g.
+               "memoizing this is cheaper than the memo itself costs",
+               "this allocation is outside the hot path").
+            3. **Cite when relevant.** If you skip a finding because a past
+               rejection covers it, mention the PR number in the wrap-up.
+
+            If the file does not exist or is empty, proceed normally.
+
+            ## Sweep state
+
+            State file: `.github/perf-audit-state.json`
+            Schema:
+              - `schema_version`   — int, currently 1
+              - `round`            — int, sweep number (starts at 0; bumped each restart)
+              - `round_started_at` — ISO8601 string or null
+              - `last_run_at`      — ISO8601 string or null
+              - `files_remaining`  — list of relative paths still to audit this round
+              - `files_audited`    — list of relative paths already audited this round
+
+            ## Sweep logic
+
+            1. Read the state file.
+            2. If `files_remaining` is empty:
+               - Glob the repo for files matching:
+                   - `src/components/**/*.tsx`
+                   - `src/components/**/*.ts`
+                   - `src/lib/**/*.ts`
+                   - `src/lib/**/*.tsx`
+                   - `src/styles/**/*.css`
+                   - `src/index.ts`
+                   - `vite.config.ts`
+                 Exclude:
+                   - `**/*.stories.tsx` (not shipped to consumers, and they
+                     define the VRT surface — leave them alone)
+                   - `node_modules/`, `dist/`, `storybook-static/`
+                   - `vrt/`, `ds-bundle/`, `docs/`, `scripts/`
+                   - `.git/`, `.github/`, `.claude/`
+               - Set `files_remaining` to the full glob, sorted.
+               - Set `files_audited` to `[]`.
+               - Bump `round` by 1 and set `round_started_at` to now (ISO8601 UTC).
+            3. Pick the first **${{ steps.effort.outputs.batch }}** entries from
+               `files_remaining` as this run's batch. If fewer remain, use
+               what's there.
+
+            ## For each file in the batch
+
+            Read it carefully and deeply — don't skim. For a component, work
+            out what actually happens on mount, on every re-render, on every
+            animation frame, and on unmount. Trace where a value's identity
+            changes between renders and what that invalidates downstream.
+            Where a file is imported by others, check the call sites before
+            concluding something is hot or cold.
+
+            The highest-value surfaces in this repo, roughly in order:
+
+            - `src/components/ui/aurora.tsx` and
+              `src/components/seasons/*` — WebGL via `ogl`. Per-frame
+              allocations, uniform churn, missing disposal, and animation
+              loops that keep running off-screen or in a hidden tab are the
+              expensive failure modes here.
+            - `src/components/board/*` — board displays render character
+              grids. Per-cell work that could be hoisted, unstable element
+              identity, and unnecessary full-grid re-renders dominate.
+            - `src/components/ui/react-bits/*` — animated text effects driven
+              by timers/rAF.
+            - `src/index.ts` — the barrel. Its shape decides what a consumer
+              who imports one button is forced to download.
+
+            Categorize findings into three buckets:
+
+            **A. Trivial mechanical fixes ONLY** — single-token or
+                single-line edits, provably visually neutral, no judgement
+                call involved:
+
+                - Hoisting a render-invariant literal (object, array, regex,
+                  `new Intl.*`, shader source string) out of a component body
+                  to module scope.
+                - Making an expensive `useState` initializer lazy:
+                  `useState(compute())` -> `useState(() => compute())`.
+                - Adding `{ passive: true }` to a `scroll` / `wheel` /
+                  `touchstart` / `touchmove` listener that never calls
+                  `preventDefault`.
+                - Adding one missing teardown call — `cancelAnimationFrame`,
+                  `clearInterval`, `clearTimeout`, `removeEventListener`,
+                  `.dispose()`, `disconnect()` — to an effect cleanup
+                  function that already exists and already returns.
+                - Replacing a barrel import with the equivalent direct module
+                  import where the two are provably identical.
+
+                Anything bigger than a one-line edit, anything requiring
+                surrounding context to fix, anything involving a choice
+                between reasonable rewrites, anything whose visual
+                neutrality you would have to argue for, and anything in a
+                VRT-skipped component — is NOT bucket A. Push it to B or C so
+                a triage worker handles it with a full thinking pass.
+
+            **B. Missing things** — a safeguard or capability that simply
+                isn't there:
+
+                - A rAF / WebGL / timer loop with no `prefers-reduced-motion`
+                  handling, no pause when the tab is hidden
+                  (`visibilitychange`) or the element is off-screen
+                  (`IntersectionObserver`), or no WebGL context-loss
+                  handling.
+                - GPU resources (`Renderer`, `Program`, `Mesh`, textures) with
+                  no disposal path on unmount — a real memory leak in any app
+                  that mounts and unmounts the component.
+                - A heavy dependency reachable from the main entry point with
+                  no lazy/split path, forcing every consumer to download it
+                  (`ogl` is the obvious candidate).
+                - No bundle-size budget or size tracking in CI, so weight
+                  regressions land unnoticed.
+                - A component in a hot path with no memoization boundary
+                  where a parent re-render provably cascades.
+
+            **C. Quality / cost issues** — present but more expensive than it
+                needs to be:
+
+                - Layout thrash: reading `offsetWidth`, `clientHeight`,
+                  `getBoundingClientRect()` inside a rAF callback, resize
+                  handler, or loop interleaved with writes.
+                - Animating properties that force layout or paint (`width`,
+                  `height`, `top`, `left`, `box-shadow`, `filter`) where
+                  `transform` / `opacity` would produce the same visual
+                  result on the compositor.
+                - Per-frame allocations: `new Color(...)`, array/object
+                  literals, or closures created inside a rAF loop.
+                - Unstable prop identity: inline object/array/arrow literals
+                  passed to a memoized child or into a context `value`.
+                - Effects that re-subscribe every render because of an
+                  unstable dependency, or that should be `useLayoutEffect`
+                  (or derived state) instead.
+                - Expensive per-cell or per-item work inside a map that could
+                  be hoisted or precomputed.
+                - Large blur radii, unbounded `will-change`, or CSS that
+                  promotes more layers than it needs.
+                - Barrel/`sideEffects` shape that defeats tree-shaking.
+
+            ## Aggressiveness
+
+            Mode for this run: **${{ steps.effort.outputs.mode }}**.
+
+            - `thorough` (queue <= 15): file any defensible finding. False
+              positives are cheap right now.
+            - `balanced` (16-30): file findings you're moderately confident
+              about. Skim past micro-optimizations with no measurable payoff.
+            - `conservative` (> 30): only flag high-confidence, clearly
+              measurable findings. The reviewer queue is hot.
+
+            In every mode: do not file micro-optimizations that a modern JS
+            engine already handles, and do not file "add `useMemo` here"
+            unless you can name the re-render that it actually prevents. A
+            memo that costs more than it saves is a regression.
+
+            Always dedup against open `perf-audit` issues before filing:
+              `gh issue list --label perf-audit --state open --limit 200 --search "<key phrase>"`
+            Skip if a same-file, same-topic issue is already open.
+
+            ## Outputs
+
+            ### If bucket A has any findings across the batch
+
+            Create a branch named exactly:
+
+                perf-audit/round-<round>-run-$BRANCH_SUFFIX
+
+            where `$BRANCH_SUFFIX` is the value of the `BRANCH_SUFFIX`
+            environment variable (set to `github.run_id`). Do NOT use
+            `date +%s` — past runs invented stale timestamps that way.
+            Verify with `echo "$BRANCH_SUFFIX"` first.
+
+            Branch off `main`. Apply ONLY the bucket-A fixes.
+
+            **Before committing, prove you didn't break anything:**
+
+                npm run typecheck
+                npm run lint
+                npm run build
+
+            All three must pass. If any fails, revert the change that caused
+            it and re-run. If you cannot get all three green, do not open the
+            PR at all — file the findings as issues instead and say so in the
+            wrap-up.
+
+            Then commit and open a **ready-for-review** PR (no `--draft`):
+
+              Title: `perf: auto-audit — round <round>, files <X+1>–<Y> of <T>`
+              Body: for each fix, name the file, the cost you removed, and
+              why the change is visually neutral. State explicitly that
+              typecheck, lint, and build are green, and that no file under
+              `vrt/` was touched. Note that CI's visual-regression job is the
+              final check on visual parity.
+
+            Use `gh pr create` with NO `--draft` flag.
+
+            ### For each bucket B or C finding
+
+            File a GitHub issue. Dedupe first.
+
+            Issue title: `perf: <file> — <one-line summary of the cost>`
+
+            Issue body should include: the file path(s), the category (B or
+            C), what the cost is and when it is paid — per render, per frame,
+            per mount, or once at import (2-5 sentences), a suggested fix
+            (2-5 sentences), an explicit note on whether the fix can be
+            visually neutral or would change rendered output, and a footer
+            noting which round filed it.
+
+            Labels: `perf`, `perf-audit`. Create labels if needed:
+              `gh label create perf --color 5319E7 --description "Performance: render cost, memory, bundle weight" || true`
+              `gh label create perf-audit --color BFD4F2 --description "Filed by the perf-audit cron" || true`
+
+            After creating each issue, also apply the `claude-fix` label so
+            the issue-triage workflow picks it up:
+              `gh issue edit <N> --add-label claude-fix`
+            Create that label first if needed:
+              `gh label create claude-fix --color 0E8A16 --description "Run the Claude issue-triage workflow on this issue" || true`
+
+            ## State commit
+
+            After processing the batch:
+            1. Move the batch entries from `files_remaining` to `files_audited`.
+            2. Update `last_run_at` to now (ISO8601 UTC).
+            3. Write the JSON back to `.github/perf-audit-state.json` (2-space
+               indent, trailing newline, keys in the same order as the
+               existing file).
+            4. Commit to `main` directly with the message
+               `chore(perf-audit): advance sweep state [skip ci]` and push.
+               This is the ONLY direct-to-main commit you make.
+
+            ## Hard rules
+
+            - Never push to `main` except for the single state-file commit above.
+            - Never force-push, never `--no-verify`, never `--no-gpg-sign`.
+            - Never modify anything under `vrt/` — baselines are sacred.
+              That includes `vrt/skip.json`: widening the skip list to make a
+              change look safe is the single worst thing you could do here.
+            - Never modify `*.stories.tsx` — they define the VRT surface.
+            - Never put a change to a VRT-skipped component in bucket A, no
+              matter how trivial it looks. Nothing would catch a regression.
+            - Never modify files outside `src/**/*.ts`, `src/**/*.tsx`
+              (excluding `*.stories.tsx`), `src/styles/**/*.css`, and
+              `.github/perf-audit-state.json`.
+            - Never change the public API exported from `src/index.ts`.
+            - Never open more than 1 PR per run.
+            - Never file more than **${{ steps.effort.outputs.cap }}** issues per run.
+            - Never open a PR when typecheck, lint, or build is failing.
+            - When dedup says skip, skip — don't refile.
+            - When mode is `thorough`, lean toward filing; when
+              `conservative`, lean toward skipping.
+
+            ## Wrap up
+
+            Print a one-screen summary:
+              ROUND: <n> (started <date>)
+              BATCH: <files in this batch>
+              PR opened: <#N or "none">
+              Verification: typecheck/lint/build <pass|fail|not run>
+              Issues filed: <#A #B ...>
+              Skipped due to past rejections: <PR numbers, or "none">
+              Progress: <audited>/<total> files in this round
+              Next batch: <first 3 of files_remaining or "round complete">
+
+      - name: Push state-file changes (fallback)
+        if: steps.dedup.outputs.go == 'true'
+        # Defensive: if the Claude step exits early (rate limit, allowlist
+        # denial, hallucination), the state file may be modified but never
+        # pushed. Better a slightly inconsistent round counter than a state
+        # file frozen at "round 3, 50 files remaining" forever.
+        #
+        # Claude may have left the working tree checked out on its bucket-A
+        # branch, so this never pushes HEAD as-is — a naive `HEAD:main` there
+        # would land the whole feature branch on main. Instead the state file
+        # is copied aside and replayed onto a clean `origin/main`, which also
+        # gives us a natural retry when someone else pushes mid-run.
+        # [skip ci] keeps the commit from retriggering anything.
+        run: |
+          set -euo pipefail
+          STATE=.github/perf-audit-state.json
+          if git diff --quiet -- "$STATE"; then
+            echo "State file unchanged."
+            exit 0
+          fi
+          tmp=$(mktemp)
+          cp "$STATE" "$tmp"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git checkout -f -B state-push origin/main
+            cp "$tmp" "$STATE"
+            if git diff --quiet -- "$STATE"; then
+              echo "State file already matches main — nothing to push."
+              exit 0
+            fi
+            git add "$STATE"
+            git commit -m "chore(perf-audit): advance sweep state [skip ci]"
+            if git push origin HEAD:main; then
+              echo "State pushed on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push rejected (attempt ${attempt}) — refetching main and replaying."
+            sleep 3
+          done
+          echo "Could not push the state file after 5 attempts."
+          exit 1
