@@ -211,18 +211,29 @@ export function Aurora({
       renderFrame(t);
     };
 
+    // Pause the rAF loop while the container is scrolled out of view — a
+    // visible tab keeps firing rAF for off-screen elements, so without this
+    // the shader keeps painting frames nobody can see. Restart on re-entry.
+    let onScreen = true;
     const startOrFreeze = () => {
       cancelAnimationFrame(animateId);
       if (reducedMotion.matches) renderFrame(0);
-      else animateId = requestAnimationFrame(update);
+      else if (onScreen) animateId = requestAnimationFrame(update);
     };
     reducedMotion.addEventListener("change", startOrFreeze);
+
+    const observer = new IntersectionObserver((entries) => {
+      onScreen = entries[0].intersectionRatio > 0;
+      startOrFreeze();
+    });
+    observer.observe(ctn);
 
     resize();
     startOrFreeze();
 
     return () => {
       cancelAnimationFrame(animateId);
+      observer.disconnect();
       reducedMotion.removeEventListener("change", startOrFreeze);
       window.removeEventListener("resize", resize);
       if (ctn && gl.canvas.parentNode === ctn) {

@@ -155,12 +155,21 @@ export function useAuroraCanvas(
     // prefers-reduced-motion: freeze the aurora on a single frame instead of
     // running the loop — the colour ramp stays, only the movement stops.
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // Pause the loop while the canvas is scrolled off-screen (a visible tab
+    // keeps firing rAF for off-screen elements); resume it on re-entry.
+    let onScreen = true;
     const startOrFreeze = () => {
       cancelAnimationFrame(rafId);
       if (reducedMotion.matches) draw(0);
-      else rafId = requestAnimationFrame(tick);
+      else if (onScreen) rafId = requestAnimationFrame(tick);
     };
     reducedMotion.addEventListener("change", startOrFreeze);
+
+    const io = new IntersectionObserver((entries) => {
+      onScreen = entries[0].intersectionRatio > 0;
+      startOrFreeze();
+    });
+    io.observe(canvas);
 
     const ro = new ResizeObserver(() => {
       resize();
@@ -173,6 +182,7 @@ export function useAuroraCanvas(
     // Do NOT call loseContext() — permanently destroys context, breaks React 18 Strict Mode remount.
     return () => {
       cancelAnimationFrame(rafId);
+      io.disconnect();
       reducedMotion.removeEventListener("change", startOrFreeze);
       ro.disconnect();
       // Free the GPU objects built in this effect run so palette changes and
