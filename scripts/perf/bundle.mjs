@@ -16,10 +16,10 @@
  *   node scripts/perf/bundle.mjs compare --base <file> --head <file> [--markdown <file>]
  *     Diff two reports, print a table, exit nonzero on regression.
  *
- * --dist is explicit rather than resolved relative to this file because CI
- * runs the harness from a temp copy: scripts/perf/ does not exist at the base
- * commit of the PR that adds it, so both sides must be measured by the same
- * staged copy of this script.
+ * --dist is explicit rather than resolved relative to this file so the same
+ * harness can measure a dist/ built from any revision. CI relies on that: it
+ * rebuilds dist/ in place from the base commit's sources, then from head, and
+ * measures both with this one copy of the script.
  *
  * See docs/superpowers/specs/2026-08-05-perf-bundle-harness-design.md.
  */

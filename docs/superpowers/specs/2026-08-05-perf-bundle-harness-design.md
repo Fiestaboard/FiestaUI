@@ -178,13 +178,12 @@ base to compare against.
 
 1. Checkout with `fetch-depth: 0`.
 2. `setup-node` (Node 24, npm cache), `npm ci --no-audit` — **once, at head.**
-3. Copy `scripts/perf/` to a temp directory.
-4. Check out the PR base **source only**, build, `measure --out base.json`.
-5. Return to head, rebuild, `measure --out head.json`.
-6. `compare --base base.json --head head.json --markdown report.md`.
-7. Append `report.md` to `$GITHUB_STEP_SUMMARY` — renders a table on the checks
+3. Check out the PR base **source only**, build, `measure --out base.json`.
+4. Return to head, rebuild, `measure --out head.json`.
+5. `compare --base base.json --head head.json --markdown report.md`.
+6. Append `report.md` to `$GITHUB_STEP_SUMMARY` — renders a table on the checks
    page with no additional permissions.
-8. If `compare` failed and the PR does **not** carry `perf-budget-ok`, fail
+7. If `compare` failed and the PR does **not** carry `perf-budget-ok`, fail
    the job.
 
 The job owns the label check itself, so it can be added to `ci-success`'s
@@ -203,13 +202,23 @@ the tool doing the measuring. Holding dependencies fixed across both sides is
 also the more correct comparison — it isolates the source change, which is the
 only thing being gated.
 
-**The measuring script runs from a temp copy, not from the checked-out tree.**
-`scripts/perf/` does not exist at the base commit of the PR that adds it, and
-in general the base and head copies could differ. Copying the head version
-aside and using it for both measurements guarantees both sides are measured by
-identical code. This requires `bundle.mjs` to accept an explicit
-`--dist <path>` rather than resolving `dist/` relative to its own location;
-it defaults to `<cwd>/dist`.
+**Both checkouts are path-scoped, and that is what pins the harness to head.**
+Only the build inputs are swapped — `src`, `package.json`, `vite.config.ts`,
+`tsconfig.build.json` — never the whole tree. `scripts/perf/` therefore stays
+at the head revision across both measurements, which is required: measuring
+base with base's harness and head with head's would compare two different
+rulers. A full `git checkout <sha>` would break this, and would also delete
+`scripts/perf/` outright on the PR that introduces it.
+
+An earlier draft solved this by copying the harness to `$RUNNER_TEMP` instead.
+That does not work, and failed on the first CI run: Node resolves bare imports
+from the importing file's own directory, so a copy outside the workspace
+cannot find `esbuild`. Keeping one mechanism — the path-scoped checkout —
+rather than two overlapping ones is both simpler and the one that works.
+
+`bundle.mjs` still takes an explicit `--dist <path>` (defaulting to
+`<cwd>/dist`) so one copy of the script can measure a `dist/` built from any
+revision, which is exactly what the two-build sequence needs.
 
 ## Bot self-verification
 

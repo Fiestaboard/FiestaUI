@@ -18,7 +18,7 @@
 - Never commit to `main`. Feature branch + PR. Conventional commit messages.
 - `esbuild` is an explicit devDependency, never a transitive one.
 - Byte values are gzip level 9 of minified ESM output.
-- `bundle.mjs` resolves `dist/` from `--dist <path>`, defaulting to `<cwd>/dist`. It must never resolve `dist/` relative to its own file location — CI runs it from a temp copy.
+- `bundle.mjs` resolves `dist/` from `--dist <path>`, defaulting to `<cwd>/dist`, so one copy of the script can measure a `dist/` built from any revision.
 - Blocking thresholds: entry `firstPartyBytes` fails at **>2% AND >200 bytes**; barrel fails at **>1%**; any newly-added external fails.
 
 ---
@@ -770,13 +770,15 @@ perf-bundle:
     - name: Install dependencies
       run: npm ci --no-audit
 
-    # The harness must not come from the checked-out tree: it does not exist
-    # at the base commit of the PR that adds it, and in general the two
-    # copies could differ. Measuring both sides with identical code is the
-    # whole point.
-    - name: Stage the harness outside the worktree
-      run: cp -R scripts/perf "$RUNNER_TEMP/perf-tool"
-
+    # Both measurements MUST run the same harness code, and they do: the
+    # checkouts below are path-scoped to the build inputs and never touch
+    # scripts/, so scripts/perf stays at the head revision throughout. Do
+    # not turn these into a full `git checkout <sha>` — that would swap the
+    # harness out from under the base measurement.
+    #
+    # Running it from a copy outside the workspace does NOT work: Node
+    # resolves bare imports from the importing file's directory, so a copy
+    # in $RUNNER_TEMP cannot find esbuild.
     - name: Measure base
       env:
         BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -784,7 +786,7 @@ perf-bundle:
         set -euo pipefail
         git checkout --quiet --force "$BASE_SHA" -- src package.json vite.config.ts tsconfig.build.json
         npm run build
-        node "$RUNNER_TEMP/perf-tool/bundle.mjs" measure \
+        node scripts/perf/bundle.mjs measure \
           --out "$RUNNER_TEMP/base.json" --dist "$GITHUB_WORKSPACE/dist"
 
     - name: Measure head
@@ -792,14 +794,14 @@ perf-bundle:
         set -euo pipefail
         git checkout --quiet --force HEAD -- src package.json vite.config.ts tsconfig.build.json
         npm run build
-        node "$RUNNER_TEMP/perf-tool/bundle.mjs" measure \
+        node scripts/perf/bundle.mjs measure \
           --out "$RUNNER_TEMP/head.json" --dist "$GITHUB_WORKSPACE/dist"
 
     - name: Compare
       id: compare
       run: |
         set +e
-        node "$RUNNER_TEMP/perf-tool/bundle.mjs" compare \
+        node scripts/perf/bundle.mjs compare \
           --base "$RUNNER_TEMP/base.json" \
           --head "$RUNNER_TEMP/head.json" \
           --markdown "$RUNNER_TEMP/report.md"
