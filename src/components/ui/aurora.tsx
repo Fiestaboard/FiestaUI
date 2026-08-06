@@ -165,21 +165,9 @@ export function Aurora({
       },
     });
 
-    function resize() {
-      if (!ctn) return;
-      const width = ctn.offsetWidth;
-      const height = ctn.offsetHeight;
-      renderer.setSize(width, height);
-      program.uniforms.uResolution.value = [width, height];
-    }
-    window.addEventListener("resize", resize);
-
     const mesh = new Mesh(gl, { geometry, program });
-    ctn.appendChild(gl.canvas);
 
-    let animateId = 0;
-    const update = (t: number) => {
-      animateId = requestAnimationFrame(update);
+    const renderFrame = (t: number) => {
       const props = propsRef.current;
       const timeVal = props.time ?? t * 0.01;
       program.uniforms.uTime.value = timeVal * (props.speed ?? 1.0) * 0.1;
@@ -192,12 +180,42 @@ export function Aurora({
       });
       renderer.render({ scene: mesh });
     };
-    animateId = requestAnimationFrame(update);
+
+    // prefers-reduced-motion: freeze the aurora on a single frame instead of
+    // running the rAF loop — the colour ramp stays, only the movement stops.
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    function resize() {
+      if (!ctn) return;
+      const width = ctn.offsetWidth;
+      const height = ctn.offsetHeight;
+      renderer.setSize(width, height);
+      program.uniforms.uResolution.value = [width, height];
+      if (reducedMotion.matches) renderFrame(0);
+    }
+    window.addEventListener("resize", resize);
+
+    ctn.appendChild(gl.canvas);
+
+    let animateId = 0;
+    const update = (t: number) => {
+      animateId = requestAnimationFrame(update);
+      renderFrame(t);
+    };
+
+    const startOrFreeze = () => {
+      cancelAnimationFrame(animateId);
+      if (reducedMotion.matches) renderFrame(0);
+      else animateId = requestAnimationFrame(update);
+    };
+    reducedMotion.addEventListener("change", startOrFreeze);
 
     resize();
+    startOrFreeze();
 
     return () => {
       cancelAnimationFrame(animateId);
+      reducedMotion.removeEventListener("change", startOrFreeze);
       window.removeEventListener("resize", resize);
       if (ctn && gl.canvas.parentNode === ctn) {
         ctn.removeChild(gl.canvas);
