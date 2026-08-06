@@ -148,10 +148,22 @@ export function Aurora({
       delete geometry.attributes.uv;
     }
 
-    const initialStops = propsRef.current.colorStops.map((hex) => {
-      const c = new Color(hex);
-      return [c.r, c.g, c.b];
-    });
+    // Convert hex color stops to rgb triples, memoized on the stop values so
+    // the conversion (and its allocations) only happens when they change,
+    // not on every rAF frame.
+    let cachedStopsKey = "";
+    let cachedStops: number[][] = [];
+    const toColorStops = (stops: [string, string, string]) => {
+      const key = stops.join(",");
+      if (key !== cachedStopsKey) {
+        cachedStopsKey = key;
+        cachedStops = stops.map((hex) => {
+          const c = new Color(hex);
+          return [c.r, c.g, c.b];
+        });
+      }
+      return cachedStops;
+    };
 
     const program: Program = new Program(gl, {
       vertex: VERT,
@@ -159,7 +171,7 @@ export function Aurora({
       uniforms: {
         uTime: { value: 0 },
         uAmplitude: { value: propsRef.current.amplitude },
-        uColorStops: { value: initialStops },
+        uColorStops: { value: toColorStops(propsRef.current.colorStops) },
         uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
         uBlend: { value: propsRef.current.blend },
       },
@@ -185,11 +197,7 @@ export function Aurora({
       program.uniforms.uTime.value = timeVal * (props.speed ?? 1.0) * 0.1;
       program.uniforms.uAmplitude.value = props.amplitude ?? 1.0;
       program.uniforms.uBlend.value = props.blend ?? 0.5;
-      const stops = props.colorStops;
-      program.uniforms.uColorStops.value = stops.map((hex) => {
-        const c = new Color(hex);
-        return [c.r, c.g, c.b];
-      });
+      program.uniforms.uColorStops.value = toColorStops(props.colorStops);
       renderer.render({ scene: mesh });
     };
     animateId = requestAnimationFrame(update);
