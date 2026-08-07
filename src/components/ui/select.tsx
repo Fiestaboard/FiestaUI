@@ -41,22 +41,24 @@ type SelectProps = Omit<
 const SelectItemsContext = React.createContext<Array<{ value: unknown; label: React.ReactNode }>>([]);
 
 function Select({ children, onValueChange, ...props }: SelectProps) {
-  const items = collectSelectItems(children);
+  // Memoize so the recursive child walk and the context value stay stable
+  // across renders that don't change `children`; a fresh array each render
+  // would re-run the O(tree) walk and re-render every SelectValue consumer.
+  const items = React.useMemo(() => collectSelectItems(children), [children]);
+  const handleValueChange = React.useMemo(
+    // Radix never emitted null (e.g. when a controlled value like ""
+    // matches no item), so shield consumers from Base UI's null events.
+    () =>
+      onValueChange
+        ? (value: unknown) => {
+            if (value != null) onValueChange(value as string);
+          }
+        : undefined,
+    [onValueChange],
+  );
   return (
     <SelectItemsContext.Provider value={items}>
-      <SelectPrimitive.Root
-        items={items.length > 0 ? items : undefined}
-        // Radix never emitted null (e.g. when a controlled value like ""
-        // matches no item), so shield consumers from Base UI's null events.
-        onValueChange={
-          onValueChange
-            ? (value: unknown) => {
-                if (value != null) onValueChange(value as string);
-              }
-            : undefined
-        }
-        {...props}
-      >
+      <SelectPrimitive.Root items={items.length > 0 ? items : undefined} onValueChange={handleValueChange} {...props}>
         {children}
       </SelectPrimitive.Root>
     </SelectItemsContext.Provider>
