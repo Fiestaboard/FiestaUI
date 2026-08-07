@@ -38,19 +38,22 @@ process re-triggering itself.
 ## Constraints
 
 The `main-protection` ruleset is the dominant constraint. It requires a pull
-request and a passing `CI Success` check, and — critically — has **no bypass
-actors**. Even `github-actions[bot]` must land the version commit through a PR.
+request and a passing `CI Success` check for every human change. Its one bypass
+actor is the **GitHub Actions app**, added specifically so the release can push
+its version commit and tag straight to `main`.
 
-`release.yml` already solves this, and its comments record four lessons that
-must survive any change:
+That bypass replaced an auto-merged version PR, which was never stable. The
+lessons that killed it, and that must survive any change:
 
-- The version commit cannot be pushed directly to `main` (learned on v1.0.0,
-  where tag and publish landed but the commit bounced).
-- The version PR must land via `--merge`, not `--squash`, so the tagged commit
-  itself is reachable from `main`. **The whole loop guard depends on this.**
 - A bot-created PR's `pull_request` CI run is born `action_required` and must be
   explicitly approved, and only checks from the `pull_request` suite count
-  toward the PR's required check (learned on v1.0.2).
+  toward the PR's required check (learned on v1.0.2). Polling for that gated run
+  is a race: on v1.3.1 it did not appear inside the 120s window, so the version
+  published and tagged but its commit never landed, and the orphaned PR went
+  permanently `CONFLICTING` the moment v1.3.2 landed.
+- The version commit must be replayed on `main`'s current tip, not pushed from
+  the detached gate sha — `main` can move while CI verifies that sha, and the
+  push has to stay a fast-forward.
 - An explicit `permissions` block zeroes everything unlisted, and the called
   `downstream-upgrade.yml` cannot request more than its caller grants.
 
@@ -91,11 +94,11 @@ otherwise leak through and release from a PR branch's CI.
 major, or for re-running a release after an infrastructure failure. A dispatched
 run bypasses the gate entirely and uses the `bump` input.
 
-### A release's own merge never triggers CI
+### A release's own landing never triggers CI
 
 Verified against run history, and load-bearing for everything below: the release
 merge `200fddd` has **no CI run at all**, and neither does any earlier one. The
-version PR is created and auto-merged with `GH_TOKEN: ${{ github.token }}`, and
+version commit is pushed with `GH_TOKEN: ${{ github.token }}`, and
 GitHub does not create workflow runs for events caused by the default
 `GITHUB_TOKEN`. That is the platform's own loop-prevention rule.
 
@@ -164,11 +167,9 @@ that would cut a needless release.
 
 ### Why the empty-range check is the right shape
 
-Because the version PR lands with `--merge`, the tag is an ancestor of `main`
-and the only commit after it is the merge commit, which `--no-merges` filters to
-nothing. No actor check, no `[skip ci]` marker, no commit-subject pattern to
-keep in sync. A future change to `--squash` would break this, which is the
-second independent reason that comment in `release.yml` is load-bearing.
+The version commit is pushed straight to `main` with the tag on that same
+commit, so the range from the tag is empty by construction. No actor check, no
+`[skip ci]` marker, no commit-subject pattern to keep in sync.
 
 ### Worked trace
 
@@ -220,9 +221,10 @@ path-classification loop moves.
 - **A skipped gate is a success, not a failure.** Skips are the common path
   (every docs merge, every release's own landing) and must not page anyone.
   The reason is written to the job summary.
-- **Publish failures stay loud.** The existing steps are unchanged: if the
-  gated-run approval never appears, the step fails and a human approves it, with
-  auto-merge already armed.
+- **Publish failures stay loud.** The commit and its tag land in one push, so
+  they never disagree. If that push cannot be made after five replay attempts,
+  the step fails with the version published but neither tagged nor on `main`;
+  a human lands the bump and tag, and nothing else is lost.
 
 ### Testing
 

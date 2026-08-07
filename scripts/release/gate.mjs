@@ -76,10 +76,10 @@ export function parseCommits(raw) {
  * The release decision.
  *
  * Both skip paths are normal operation, not errors. The empty-commits skip is
- * the loop guard: because the version PR lands with `--merge`, the tag is an
- * ancestor of main and the only commit after it is the merge commit, which
- * `--no-merges` filters away. Nothing here inspects the actor or the commit
- * subject to detect our own release — it falls out of the merge strategy.
+ * the loop guard: the release pushes its version commit straight to main with
+ * the tag on that same commit, so the range from the tag is empty. Nothing here
+ * inspects the actor or the commit subject to detect our own release — it falls
+ * out of where the tag sits.
  *
  * @param {{commits: string[], files: string[], lastTag?: string}} input
  * @returns {{release: boolean, bump: "patch"|"minor"|"major"|null, reason: string}}
@@ -89,7 +89,7 @@ export function decide({ commits, files, lastTag = "the last tag" }) {
     return {
       release: false,
       bump: null,
-      reason: `No non-merge commits since ${lastTag} — nothing to release (this is what a release's own version PR landing looks like).`,
+      reason: `No non-merge commits since ${lastTag} — nothing to release (this is what a release's own version commit landing looks like).`,
     };
   }
 

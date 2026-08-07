@@ -36,13 +36,8 @@ on:
         required: true
 
 permissions:
-  contents: write
+  contents: write # push the version commit + tag straight to main
   packages: write
-  # Landing the version commit via PR needs more than contents: an explicit
-  # permissions block zeroes everything unlisted, which broke `gh pr create`
-  # ("Resource not accessible by integration") on the v1.0.1 release.
-  pull-requests: write # create + auto-merge the version PR
-  actions: write # approve the version PR's gated CI run
   # The called downstream-upgrade.yml requests issues: write (adoption pass
   # files component-request issues); a reusable workflow may not request more
   # than its caller grants, so omitting this fails the run at startup.
@@ -166,14 +161,17 @@ jobs:
       # here is stale and a relative bump would regenerate an already-published
       # version. GitHub Packages will not accept a republish, so that failure
       # costs a manual bump to escape.
-      - name: Set version and tag
+      - name: Set version
         id: version
         env:
           VERSION: ${{ needs.gate.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          npm version "$VERSION" -m "chore: release v%s"
+          # --no-git-tag-version: the commit and tag are made later, on top of
+          # main's tip, by the landing step. Here we only need package.json to
+          # carry the right version into the tarball.
+          npm version --no-git-tag-version "$VERSION"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Publish to GitHub Packages
@@ -181,54 +179,43 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # main's ruleset requires changes via PR with CI Success, so the version
-      # commit can't be pushed directly (the v1.0.0 release learned this the
-      # hard way: tag+publish landed, the commit bounced). Push the tag, then
-      # land the version commit through an auto-merged PR.
-      - name: Push tag
-        run: git push origin "v${{ steps.version.outputs.version }}"
-
-      - name: Land version commit via PR
-        run: |
-          BRANCH="release/v${{ steps.version.outputs.version }}"
-          # `HEAD:refs/heads/${BRANCH}`, never `HEAD:${BRANCH}`. The gate hands
-          # this job an exact sha, so the checkout above leaves HEAD DETACHED.
-          # Pushing a detached HEAD to an unqualified destination fails: git
-          # can only infer the `refs/heads/` prefix when <src> is itself a ref
-          # under refs/heads, and a detached HEAD is a bare commit object. The
-          # unqualified form worked for every release up to v1.2.1 only because
-          # the checkout had no `ref:` and HEAD was attached to main; v1.3.0
-          # published and tagged, then bounced here.
-          git push origin "HEAD:refs/heads/${BRANCH}"
-          gh pr create --head "${BRANCH}" --base main \
-            --title "chore: release v${{ steps.version.outputs.version }}" \
-            --body "Version commit for the published v${{ steps.version.outputs.version }} release. Auto-merges when CI passes."
-          # --merge (not --squash) so the tagged commit itself becomes
-          # reachable from main instead of dangling behind the tag.
-          gh pr merge "${BRANCH}" --auto --merge --delete-branch
-          # The PR's CI run is born gated: pull_request runs for bot-created
-          # PRs sit in "action_required" until approved, and only checks from
-          # the pull_request suite count toward the PR's required "CI Success"
-          # check — a workflow_dispatch run's checks attach to the commit but
-          # never associate with the PR (learned the hard way on v1.0.2).
-          # Wait for the gated run to appear, then approve it. Auto-merge is
-          # already armed above, so if approval fails this step fails loudly
-          # and a human just approves the run — nothing else is lost.
-          RUN_ID=""
-          for _ in $(seq 1 24); do
-            RUN_ID=$(gh run list --branch "${BRANCH}" --event pull_request \
-              --json databaseId,conclusion \
-              --jq '[.[] | select(.conclusion == "action_required")][0].databaseId // empty')
-            [ -n "${RUN_ID}" ] && break
-            sleep 5
-          done
-          if [ -z "${RUN_ID}" ]; then
-            echo "::error::No gated pull_request CI run appeared for ${BRANCH}"
-            exit 1
-          fi
-          gh api -X POST "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/approve"
+      # The version commit and tag go straight onto `main`. `main-protection`
+      # still requires a PR with a green `CI Success` for every human change;
+      # the GitHub Actions app is the ruleset's single bypass actor, which is
+      # what makes this push legal.
+      #
+      # Every earlier design here routed the commit through an auto-merged PR
+      # and none were stable. The PR is created with GITHUB_TOKEN, so its
+      # `pull_request` CI run is born gated in `action_required` and has to be
+      # polled for and approved before the required check can go green. When
+      # that run was slow to appear the poll timed out (v1.3.1), leaving a
+      # published-and-tagged version whose commit never landed, plus an orphaned
+      # PR that went permanently CONFLICTING once the next release landed.
+      # Removing the gate beats racing it.
+      - name: Land version commit and tag on main
         env:
-          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Replay the bump on main's *current* tip rather than pushing the
+          # detached gate sha: main can have moved since CI verified that sha,
+          # and this push must stay a fast-forward. Retry the whole
+          # read-modify-push cycle if main moves underneath us.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main --no-tags
+            # -f discards the publish-time package.json edit; it has already
+            # shipped in the tarball and `npm version` below recreates it.
+            git checkout -f -B version-bump origin/main
+            git tag -d "v${VERSION}" 2>/dev/null || true
+            npm version "$VERSION" -m "chore: release v%s"
+            if git push origin "version-bump:refs/heads/main" --follow-tags; then
+              echo "Landed v${VERSION} on main (attempt ${attempt})."
+              exit 0
+            fi
+            echo "main moved under us — retrying (attempt ${attempt})."
+            sleep $((attempt * 5))
+          done
+          echo "::error::Could not land the v${VERSION} version commit on main"
+          exit 1
 
       - name: Create GitHub Release
         run: |
