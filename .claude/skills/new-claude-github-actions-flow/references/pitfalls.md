@@ -259,6 +259,8 @@ chore(<name>-audit): advance sweep state
 
 The original reason for the marker — "the state commit re-triggers the audit" — doesn't hold: the audit workflows trigger on `schedule` and `workflow_dispatch`, never on `push`, so there is no loop to break. What a plain message does cost is a CI run on a JSON-only change, and the fix for that is a path classifier inside CI rather than a marker outside it (see below).
 
+**The subject line is matched literally, even when you're only talking about it.** GitHub scans the text, not the intent, so a commit that merely _mentions_ the marker skips its own CI. The commit that first removed this pattern from the repo was titled `fix(ci): stop [skip ci] from permanently blocking merges` — and was silently skipped, landing on a PR with an empty check rollup that looked identical to the bug it fixed. Write `skip-ci marker` in prose; never let the bracketed token appear in a commit subject.
+
 **Keep CI cheap without blocking merges.** Do the filtering in a job, never in `on.*.paths-ignore` — a top-level path filter suppresses the run and reproduces the exact deadlock above. Instead: one cheap `changes` job classifies the diff, the expensive jobs gate on its output, and the aggregating check uses `if: always()` so a skipped-as-irrelevant job counts as a pass:
 
 ```yaml
