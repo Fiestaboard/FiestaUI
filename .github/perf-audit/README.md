@@ -74,6 +74,15 @@ past the visual gate would defeat the entire loop.
 3. **Re-running capture** is idempotent. If the maintainer adds an explanatory
    comment after closing, dispatch `claude-perf-audit-feedback.yml` with the PR
    number and the existing line is replaced rather than duplicated.
+4. **Rejected issues** feed a second log. The same workflow triggers on
+   `issues.closed`; when the issue carries `perf-explore` and was closed as
+   **not planned**, it records the issue body and comments into
+   `rejected-findings.jsonl`. This exists because the perf-explore loop only
+   files issues and never opens a PR — with PR capture alone it would have no
+   rejection signal at all and would refile the same wrong conclusion each time
+   its theme came round. Issues closed as **completed** are deliberately not
+   recorded: those were fixed, not rejected, and logging them would train the
+   loop to stop reporting real problems.
 
 ## Writing a useful close comment
 
@@ -101,16 +110,33 @@ One JSON object per line. Schema:
 | `reviews`         | array  | Review-level comments.                                                   |
 | `inline_comments` | array  | Per-line review comments.                                                |
 
+## File: `rejected-findings.jsonl`
+
+One JSON object per line, for issues rejected rather than fixed. Schema:
+
+| Field          | Type   | Notes                                                                |
+| -------------- | ------ | -------------------------------------------------------------------- |
+| `issue`        | int    | Issue number. Primary key — re-capture replaces the prior line.      |
+| `title`        | string | Original issue title.                                                |
+| `closed_at`    | string | ISO 8601.                                                            |
+| `state_reason` | string | Always `not_planned`; completed issues are never recorded.           |
+| `author`       | string | Who filed it — `github-actions[bot]` for the explorer.               |
+| `labels`       | array  | Label names at close time.                                           |
+| `body`         | string | Issue body as filed by the bot.                                      |
+| `comments`     | array  | `{author, body, created_at}` — where the reason for the close lives. |
+
 ## File: `build_rejection.py`
 
-The script the workflow runs. Can be invoked locally with `DRY_RUN=1` to print
-the record to stdout without modifying the log:
+The script the workflow runs, in two modes. Can be invoked locally with
+`DRY_RUN=1` to print the record to stdout without modifying either log:
 
 ```bash
-DRY_RUN=1 python3 .github/perf-audit/build_rejection.py 42
+DRY_RUN=1 python3 .github/perf-audit/build_rejection.py 42          # a PR
+DRY_RUN=1 python3 .github/perf-audit/build_rejection.py --issue 71  # an issue
 ```
 
-It refuses to record a merged PR as a rejection.
+It refuses to record a merged PR, an open issue, or an issue closed as
+completed — none of those are rejections.
 
 ## Manually clearing a stale rejection
 
@@ -123,6 +149,8 @@ text editor can do this.
 
 - `.github/perf-audit-state.json` — the sweep's progress (round, files
   remaining, files audited). Deleting `files_remaining` forces a fresh round.
+- `.github/perf-explore-state.json` — the thematic loop's backlog. See
+  `docs/superpowers/specs/2026-08-07-perf-explore-loop-design.md`.
 - `.github/workflows/claude-perf-audit.yml` — the audit cron.
 - `.github/workflows/claude-perf-audit-review.yml` — the perf auto-review that
   runs on every PR touching `src/`.

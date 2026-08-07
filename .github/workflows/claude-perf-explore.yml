@@ -1,0 +1,468 @@
+name: "Claude: Perf Explore"
+
+# =============================================================================
+# Weekly THEMATIC performance investigation, as opposed to the daily per-file
+# sweep in claude-perf-audit.yml.
+#
+# The sweep's unit of work is one file in alphabetical order, which means it
+# structurally cannot ask cross-cutting questions: whether importing one Button
+# drags in `ogl`, whether every rAF loop honours prefers-reduced-motion, where a
+# re-render cascade crosses component boundaries. Those live in the edges
+# between files. This loop works a theme backlog instead, ranked by measured
+# cost, and hands each finding to the existing issue-triage workflow.
+#
+# It FILES ISSUES ONLY. It never edits src/. Thematic findings are multi-file
+# and judgement-heavy by construction — exactly what the sweep's bucket-A
+# definition excludes — so fixes flow through `claude-fix` into
+# claude-issue-triage.yml, which does a full thinking pass per issue. The
+# explorer finds; the existing triage fixes. That split also keeps the two
+# loops from contending for the sweep's 3-open-PR cap.
+#
+# Cadence: weekly, Sunday 09:00-10:30 America/Los_Angeles. Same DST handling as
+# the daily sweep — the cron pair fires twice in UTC and the local-hour gate
+# admits exactly one per season.
+#
+# See docs/superpowers/specs/2026-08-07-perf-explore-loop-design.md.
+# =============================================================================
+
+on:
+  schedule:
+    - cron: "17 16 * * 0" # 09:17 PDT (summer) — 08:17 PST, gated off in winter
+    - cron: "17 17 * * 0" # 09:17 PST (winter) — 10:17 PDT, blocked by cooldown
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Serialize. Two parallel runs would read the same theme backlog, pick the same
+# theme, and file duplicate issues. cancel-in-progress=false so a manual
+# dispatch waits its turn rather than aborting a run mid state-write.
+concurrency:
+  group: perf-explore
+  cancel-in-progress: false
+
+jobs:
+  explore:
+    name: Perf Explore with Claude
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Gate on America/Los_Angeles local hour window
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch — bypassing the local-hour gate."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          hour=$(TZ=America/Los_Angeles date +%H)
+          minute=$(TZ=America/Los_Angeles date +%M)
+          echo "Local time: ${hour}:${minute} PT"
+          if [ "$hour" = "09" ] || { [ "$hour" = "10" ] && [ "$minute" -le 30 ]; }; then
+            echo "In window (09:00-10:30 PT)."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Outside the 09:00-10:30 PT window — skipping."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # FiestaUI has no RELEASE_PAT; it mints a GitHub App installation token,
+      # matching claude-perf-audit.yml. This is what lets the state commit push
+      # to `main` past branch protection.
+      - name: Mint app token
+        id: app-token
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.CLAUDE_BOT_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Cooldown and queue check
+        id: dedup
+        if: steps.gate.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch — bypassing cooldown and queue caps."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # In PDT both UTC crons land inside the local gate; this stops the
+          # second one. 48h rather than the sweep's 6h because this is weekly.
+          last=$(jq -r '.last_run_at // empty' .github/perf-explore-state.json)
+          if [ -n "$last" ]; then
+            last_epoch=$(date -u -d "$last" +%s 2>/dev/null || echo 0)
+            now_epoch=$(date -u +%s)
+            if [ "$last_epoch" -gt 0 ]; then
+              age_h=$(( (now_epoch - last_epoch) / 3600 ))
+              if [ "$age_h" -lt 48 ]; then
+                echo "Skipping: last run was ${age_h}h ago (<48h cooldown)."
+                echo "go=false" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            fi
+          fi
+          explore_open=$(gh issue list --label perf-explore --state open --limit 200 --json number --jq 'length')
+          if [ "$explore_open" -ge 10 ]; then
+            echo "Skipping: ${explore_open} open perf-explore issues (cap 10)."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The two loops share one human review queue, so a hot perf-audit
+          # backlog throttles this one too.
+          audit_open=$(gh issue list --label perf-audit --state open --limit 200 --json number --jq 'length')
+          if [ "$audit_open" -gt 30 ]; then
+            echo "Skipping: shared perf-audit queue is hot (${audit_open} open)."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Open perf-explore: ${explore_open} (cap 10). Shared perf-audit queue: ${audit_open}."
+          echo "go=true" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        if: steps.dedup.outputs.go == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.dedup.outputs.go == 'true'
+        run: npm ci --no-audit
+
+      - name: Install Playwright chromium
+        if: steps.dedup.outputs.go == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Measure bundle cost
+        if: steps.dedup.outputs.go == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p .github/perf-explore
+          npm run build
+          node scripts/perf/bundle.mjs measure --out .github/perf-explore/snapshot-bundle.json
+
+      # Non-fatal. A failed bench must not cost us the whole thematic run — the
+      # prompt is told to treat a missing report as "runtime cost unmeasured"
+      # and to lean on the bundle snapshot instead.
+      - name: Measure runtime cost
+        id: bench
+        if: steps.dedup.outputs.go == 'true'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          npm run build-storybook
+          npx http-server storybook-static --port 6007 --silent &
+          for _ in $(seq 1 30); do
+            if curl -sf -o /dev/null http://localhost:6007/index.json; then break; fi
+            sleep 1
+          done
+          node scripts/perf/bench.mjs measure \
+            --out .github/perf-explore/snapshot-bench.json \
+            --markdown "$RUNNER_TEMP/bench.md"
+          cat "$RUNNER_TEMP/bench.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Configure git identity
+        if: steps.dedup.outputs.go == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run Claude perf-explore
+        if: steps.dedup.outputs.go == 'true'
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BENCH_OUTCOME: ${{ steps.bench.outcome }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Without this the action prints "full output hidden for security"
+          # and a run that was silently denied every tool call looks like a
+          # clean success. Never remove it.
+          show_full_output: "true"
+          # No Edit/Write on src — this loop has no source-editing path at all.
+          # Its only writes are its own state and snapshot files.
+          claude_args: >-
+            --model claude-opus-4-8
+            --max-turns 250
+            --allowed-tools "Read,Glob,Grep,Edit,Write,Bash(ls:*),Bash(cat:*),Bash(find:*),Bash(grep:*),Bash(rg:*),Bash(wc:*),Bash(du:*),Bash(date:*),Bash(jq:*),Bash(node scripts/perf/bundle.mjs:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git fetch:*),Bash(git checkout:*),Bash(git rev-parse:*),Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue create:*),Bash(gh issue edit:*),Bash(gh pr list:*),Bash(gh label list:*),Bash(gh label create:*)"
+          prompt: |
+            You are the FiestaUI performance explorer. You run unattended once
+            a week. Unlike the daily perf-audit sweep, which reads one file at
+            a time in alphabetical order, you investigate ONE THEME across the
+            whole codebase, using measured cost to decide what matters.
+
+            FiestaUI is a React 19 component library built on Base UI with
+            Tailwind v4 tokens, shipped as `@fiestaboard/ui`. Every byte and
+            every wasted frame is paid for by every downstream app.
+
+            ## What you are for
+
+            The daily sweep cannot see anything that lives between files. You
+            can. Your findings should be the ones that are invisible when you
+            read a single file in isolation: what the module graph forces on a
+            consumer, whether a policy holds across every component that needs
+            it, where a re-render crosses a component boundary.
+
+            If a finding would have been just as visible reading one file on
+            its own, it belongs to the daily sweep, not to you. Skip it.
+
+            ## You do not edit source. At all.
+
+            You file issues. You never create a branch, never open a PR, never
+            modify anything under `src/`. Your only writes are:
+
+              - `.github/perf-explore-state.json`
+              - `.github/perf-explore/*.json`
+
+            Fixes are somebody else's job: label each issue `claude-fix` and
+            the existing issue-triage workflow picks it up with a full
+            thinking pass. You find; it fixes.
+
+            ## Read these before anything else
+
+            1. `.github/perf-audit/rejected-edits.jsonl` — PRs a human closed
+               without merging. Each line has `body`, `files` (with patches),
+               and every human comment. The comments contain the REASON.
+            2. `.github/perf-audit/rejected-findings.jsonl` — issues a human
+               closed as `not planned`, i.e. findings that were wrong. Each
+               line has the issue body and its comments.
+
+            Both may be missing or empty; proceed normally if so. Otherwise:
+            never re-propose a rejected change or refile a rejected finding,
+            anywhere in the repo, not just in the same file. Generalize —
+            most perf rejections expose a whole CLASS of false positive. Cite
+            the PR or issue number in your wrap-up when a past rejection is
+            why you skipped something.
+
+            ## The measurements
+
+            Two reports were generated for you before this step:
+
+            - `.github/perf-explore/snapshot-bundle.json` — absolute gzipped
+              cost per public export, plus the externals each one actually
+              pulls in. This is what a consumer pays to import one thing.
+            - `.github/perf-explore/snapshot-bench.json` — runtime cost per
+              story: mount ms, frame p50/p95, long tasks, and retention.
+              Bench step outcome for this run: **$BENCH_OUTCOME**. If that is
+              not `success`, the file may be missing or stale — say so in your
+              wrap-up and rely on the bundle snapshot and static reading.
+
+            **How to read the bench, carefully.**
+
+            - A `null` value means the measurement was too noisy to report.
+              That is UNKNOWN, not FINE. Never describe an unmeasured metric
+              as healthy, and never quote a suppressed number.
+            - **Retention is NOT calibrated. You may not file a memory-leak
+              issue based on it.** Check `retentionCalibrated` in the report:
+              it is `false`, every `retention.verdict` is `unknown`, and the
+              numbers in `retention.heapKbByCycle` and `rawSlopeKb` are raw
+              measurements that include a large artifact.
+
+              Why: Storybook's own per-render retention scales with how much
+              a story renders. A trivial Button measures ~141 KB/cycle, and
+              `design-system-inventory--all-components` ~504 KB/cycle — that
+              spread is story size, not leaks. An earlier version of this
+              harness reported all 13 Aurora stories as leaking ~155 KB/cycle,
+              then all 19 Button stories at ~146, then 9 of 45 components in
+              near-perfect mount-cost order. All artifacts.
+
+              So: a large retention number tells you a story renders a lot.
+              It tells you NOTHING about disposal. If you want to claim a
+              teardown bug, read the cleanup code and argue it from the
+              source — and say explicitly in the issue that the bench could
+              not confirm it.
+            - Frame p95 sitting at ~16.7ms is the vsync floor, i.e. a story
+              hitting 60fps. It is not a finding.
+            - Scores are normalised WITHIN one run, and exclude retention.
+              Comparing them to another run or machine is meaningless.
+            - `selection.mode` is normally `one-per-component`: only the first
+              story of each component was measured. Do not conclude anything
+              about an unmeasured variant, and check `storiesMeasured` against
+              `storiesAvailable` before saying "all stories".
+
+            ## Picking this run's theme
+
+            State file: `.github/perf-explore-state.json`. Each theme has
+            `{id, title, question, surfaces, status, source, added_at,
+            last_investigated_at, findings, notes}`; `status` is one of
+            `pending | active | done | dropped`.
+
+            1. Read the state file.
+            2. Consider every theme with status `pending`.
+            3. Rank them by the measured cost of the surfaces they touch —
+               join `surfaces` globs against the two snapshots. A theme
+               covering the most expensive exports and the highest-cost
+               stories comes first.
+            4. Pick the top theme. Set its status to `active`.
+            5. If NO theme is `pending`, do not invent busywork: re-open the
+               single theme whose `last_investigated_at` is oldest, and say in
+               the wrap-up that the backlog was drained.
+
+            Investigate exactly ONE theme per run. Depth is the entire point
+            of this loop — a shallow pass over three themes is worth less than
+            a real answer to one.
+
+            ## Investigating
+
+            Answer the theme's `question` for the whole codebase, not for one
+            file. Read every file the `surfaces` globs cover. Trace imports
+            across module boundaries. Check call sites before concluding
+            anything is hot or cold. Where the snapshots have a number, use
+            it; where they do not, say that the claim is reasoned rather than
+            measured.
+
+            Findings must be concrete. "The barrel could be better shaped" is
+            not a finding. "Importing `Button` pulls in `ogl` because
+            `src/index.ts` re-exports Aurora and `sideEffects` does not cover
+            X, costing every consumer N KB gzipped" is a finding.
+
+            ## Discovering new themes
+
+            If the investigation surfaces a genuinely different cross-cutting
+            question, append it to `themes` with `source: "discovered"`,
+            `status: "pending"`, and a real `question` and `surfaces`. Add at
+            most 2 per run. A human prunes these in review, so do not pad the
+            list — a discovered theme you would not spend a whole run on
+            should not be there.
+
+            ## Filing issues
+
+            Dedupe first, always:
+              `gh issue list --label perf-explore --state open --limit 200 --search "<key phrase>"`
+              `gh issue list --label perf-audit --state open --limit 200 --search "<key phrase>"`
+            The daily sweep may already have filed a per-file version of your
+            finding. If so, comment on that issue with the cross-cutting
+            context instead of filing a duplicate.
+
+            Cap: **6 issues per run.** If the theme yields more, file the
+            highest-cost ones and note the remainder in the theme's `notes`.
+
+            Title: `perf(<theme-id>): <one-line summary of the cost>`
+
+            Body must include:
+              - The theme and the question being answered.
+              - The file paths involved — all of them, since this is
+                cross-cutting by definition.
+              - What the cost is and WHEN it is paid: per render, per frame,
+                per mount, or once at import.
+              - The measured evidence, quoted from the snapshots, with units.
+                If the claim is reasoned rather than measured, say so plainly
+                in its own sentence.
+              - A suggested fix, and whether it can be visually neutral or
+                would change rendered output.
+              - A footer naming this workflow and the theme id.
+
+            Labels: `perf`, `perf-audit`, `perf-explore`, then `claude-fix`.
+            Carrying `perf-audit` is deliberate: it feeds the daily sweep's
+            effort calculation, because both loops share one review queue.
+            Create labels if missing:
+              `gh label create perf --color 5319E7 --description "Performance: render cost, memory, bundle weight" || true`
+              `gh label create perf-audit --color BFD4F2 --description "Filed by the perf-audit cron" || true`
+              `gh label create perf-explore --color 1D76DB --description "Filed by the thematic perf-explore cron" || true`
+              `gh label create claude-fix --color 0E8A16 --description "Run the Claude issue-triage workflow on this issue" || true`
+
+            ## State commit
+
+            After filing:
+            1. Set the theme's `status` to `done` (or back to `pending` if you
+               genuinely could not finish it), `last_investigated_at` to now,
+               and append the issue numbers to `findings`.
+            2. Set `last_run_at` to now (ISO8601 UTC).
+            3. Write the JSON back with 2-space indent, trailing newline, keys
+               in their existing order.
+            4. Commit `.github/perf-explore-state.json` and
+               `.github/perf-explore/*.json` directly to `main` with the
+               message `chore(perf-explore): advance theme backlog`. This is
+               the ONLY commit you make. If the push is rejected because
+               `main` is protected, put it on a branch and open a PR for it.
+
+            NEVER put `[skip ci]` (or `[ci skip]`, `[no ci]`, `[skip
+            actions]`) in a commit message. GitHub honours those by not
+            creating the workflow run at all, so the required `CI Success`
+            check never reports and the PR can never be merged.
+
+            ## Hard rules
+
+            - Never modify anything under `src/`. You have no source-editing
+              role in this repo.
+            - Never modify anything under `vrt/`, including `skip.json`.
+            - Never modify `*.stories.tsx`.
+            - Never open a PR except the state-commit fallback above.
+            - Never force-push, never `--no-verify`, never `--no-gpg-sign`.
+            - Never file more than 6 issues, or investigate more than 1 theme.
+            - Never report a suppressed (`null`) measurement as a number, and
+              never describe an unmeasured metric as healthy.
+            - When dedup says skip, skip.
+
+            ## Wrap up
+
+            Print a one-screen summary:
+              THEME: <id> — <title>
+              Ranked by: <what the snapshots said about its surfaces>
+              Bench: <success|unavailable — and what you did about it>
+              Issues filed: <#A #B ...>
+              Duplicates commented on instead: <#N ... or "none">
+              Skipped due to past rejections: <PR/issue numbers, or "none">
+              Themes discovered: <ids, or "none">
+              Backlog: <n> pending, <n> done
+
+      - name: Push state changes (fallback)
+        if: steps.dedup.outputs.go == 'true'
+        # Defensive: if the Claude step exits early (rate limit, allowlist
+        # denial), the state may be modified but never pushed. The snapshot
+        # files are regenerated every run, so the thing worth rescuing is the
+        # theme backlog. Replayed onto a clean origin/main so a concurrent
+        # push mid-run just retries.
+        #
+        # Deliberately NOT tagged `[skip ci]`: when `main` is protected this
+        # push is rejected and the state lands on a PR branch instead, where a
+        # skip marker suppresses the whole CI run and the required `CI Success`
+        # check can never report — blocking the merge permanently.
+        run: |
+          set -euo pipefail
+          STATE=.github/perf-explore-state.json
+          SNAPSHOTS=.github/perf-explore
+          if git diff --quiet -- "$STATE" && git diff --quiet -- "$SNAPSHOTS" && [ -z "$(git status --porcelain -- "$SNAPSHOTS")" ]; then
+            echo "State and snapshots unchanged."
+            exit 0
+          fi
+          tmp=$(mktemp -d)
+          cp "$STATE" "$tmp/state.json"
+          if [ -d "$SNAPSHOTS" ]; then cp -r "$SNAPSHOTS" "$tmp/snapshots"; fi
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git checkout -f -B state-push origin/main
+            cp "$tmp/state.json" "$STATE"
+            if [ -d "$tmp/snapshots" ]; then
+              mkdir -p "$SNAPSHOTS"
+              cp -r "$tmp/snapshots/." "$SNAPSHOTS/"
+            fi
+            git add "$STATE" "$SNAPSHOTS"
+            if git diff --cached --quiet; then
+              echo "Already matches main — nothing to push."
+              exit 0
+            fi
+            git commit -m "chore(perf-explore): advance theme backlog"
+            if git push origin HEAD:main; then
+              echo "State pushed on attempt ${attempt}."
+              exit 0
+            fi
+            echo "Push rejected (attempt ${attempt}) — refetching main and replaying."
+            sleep 3
+          done
+          echo "Could not push the state after 5 attempts."
+          exit 1

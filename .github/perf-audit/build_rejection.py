@@ -1,18 +1,28 @@
 #!/usr/bin/env python3
-"""Capture why a perf-audit PR was closed without merging.
+"""Capture why a perf finding was rejected.
 
-Run as: build_rejection.py <pr_number>
+Run as:
+    build_rejection.py <pr_number>          # a PR closed without merging
+    build_rejection.py --issue <number>     # an issue closed as "not planned"
 
-Reads the PR's metadata, full diff, every comment / review / inline comment
-via `gh`, then writes one JSONL line into
-`.github/perf-audit/rejected-edits.jsonl`. The next perf-audit cron run loads
-that file and uses it to avoid repeating the same wrong change and to
-generalize from the closer's explanation.
+Two loops feed two logs, because they produce two different kinds of output:
 
-Idempotent: a re-run for the same PR replaces that PR's existing line rather
-than appending a duplicate. This lets the GitHub Action be triggered manually
-(workflow_dispatch) after a maintainer has added a later explanatory comment
-without polluting the log.
+  * The perf-audit sweep and the triage worker open PRs. A closed-unmerged PR
+    means "this change was wrong", and the record keeps the diff so the next
+    run can avoid re-proposing the same swap. -> rejected-edits.jsonl
+  * The perf-explore loop only ever files issues. It has no PR to close, so
+    without issue capture it would have no rejection signal at all and would
+    refile the same wrong conclusion every time its theme came round again.
+    -> rejected-findings.jsonl
+
+Only issues closed as NOT PLANNED count. An issue closed as completed was
+fixed, not rejected, and recording it would teach the loop to stop reporting
+things that turned out to be real.
+
+Idempotent: a re-run for the same PR or issue replaces that record's existing
+line rather than appending a duplicate. This lets the GitHub Action be
+triggered manually (workflow_dispatch) after a maintainer has added a later
+explanatory comment without polluting the log.
 """
 
 from __future__ import annotations
@@ -24,6 +34,7 @@ import sys
 from pathlib import Path
 
 LOG_PATH = Path(".github/perf-audit/rejected-edits.jsonl")
+FINDINGS_LOG_PATH = Path(".github/perf-audit/rejected-findings.jsonl")
 
 
 def gh_json(*args: str):
@@ -65,10 +76,7 @@ def build_record(pr: str) -> dict:
     diff = gh_text("pr", "diff", pr)
     files = parse_diff(diff)
 
-    repo = subprocess.check_output(
-        ["gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"],
-        text=True,
-    ).strip()
+    repo = repo_name()
 
     issue_comments = gh_json(
         "api", f"repos/{repo}/issues/{pr}/comments",
@@ -101,8 +109,48 @@ def build_record(pr: str) -> dict:
     }
 
 
-def write_log(record: dict, path: Path = LOG_PATH) -> None:
-    """Replace any prior line for this PR; append the new one."""
+def repo_name() -> str:
+    return subprocess.check_output(
+        ["gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"],
+        text=True,
+    ).strip()
+
+
+def build_issue_record(number: str) -> dict:
+    """Capture an issue a maintainer closed as 'not planned'."""
+    meta = gh_json(
+        "issue", "view", number,
+        "--json", "number,title,closedAt,author,body,state,stateReason,labels",
+    )
+    if meta.get("state") != "CLOSED":
+        raise SystemExit(f"Issue #{number} is not closed — nothing to record.")
+
+    # `gh` reports this as NOT_PLANNED; the REST API uses lowercase.
+    reason = (meta.get("stateReason") or "").upper()
+    if reason != "NOT_PLANNED":
+        raise SystemExit(
+            f"Issue #{number} was closed as {reason or 'COMPLETED'} — that is a fix, not a rejection."
+        )
+
+    comments = gh_json(
+        "api", f"repos/{repo_name()}/issues/{number}/comments",
+        "--jq", "[.[] | {author: .user.login, body: .body, created_at: .created_at}]",
+    )
+
+    return {
+        "issue": meta["number"],
+        "title": meta["title"],
+        "closed_at": meta["closedAt"],
+        "state_reason": "not_planned",
+        "author": (meta.get("author") or {}).get("login"),
+        "labels": [label["name"] for label in meta.get("labels") or []],
+        "body": meta.get("body") or "",
+        "comments": comments,
+    }
+
+
+def write_log(record: dict, path: Path = LOG_PATH, key: str = "pr") -> None:
+    """Replace any prior line for this record; append the new one."""
     path.parent.mkdir(parents=True, exist_ok=True)
     existing: list[str] = []
     if path.exists():
@@ -110,7 +158,7 @@ def write_log(record: dict, path: Path = LOG_PATH) -> None:
 
     def keep(line: str) -> bool:
         try:
-            return json.loads(line).get("pr") != record["pr"]
+            return json.loads(line).get(key) != record[key]
         except json.JSONDecodeError:
             return True  # preserve hand-edited lines
 
@@ -120,15 +168,21 @@ def write_log(record: dict, path: Path = LOG_PATH) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        sys.exit("usage: build_rejection.py <pr_number>")
-    pr = sys.argv[1]
-    record = build_record(pr)
+    args = sys.argv[1:]
+    if len(args) == 2 and args[0] == "--issue":
+        record = build_issue_record(args[1])
+        path, key, label = FINDINGS_LOG_PATH, "issue", f"issue #{record['issue']}"
+    elif len(args) == 1 and not args[0].startswith("-"):
+        record = build_record(args[0])
+        path, key, label = LOG_PATH, "pr", f"PR #{record['pr']}"
+    else:
+        sys.exit("usage: build_rejection.py <pr_number> | build_rejection.py --issue <number>")
+
     if os.environ.get("DRY_RUN") == "1":
         print(json.dumps(record, ensure_ascii=False, indent=2))
         return
-    write_log(record)
-    print(f"Captured PR #{record['pr']} into {LOG_PATH}")
+    write_log(record, path, key)
+    print(f"Captured {label} into {path}")
 
 
 if __name__ == "__main__":
