@@ -1,7 +1,15 @@
 name: Release
 
-# Manually triggered release: bumps the version, tags, publishes to the
-# GitHub Packages npm registry, and creates a GitHub Release.
+# Continuous release: every merge to `main` that changes shipped code bumps the
+# version, tags, publishes to the GitHub Packages npm registry, and creates a
+# GitHub Release. `workflow_dispatch` remains as the manual override — for
+# forcing a bump, or for re-running after an infrastructure failure.
+#
+# The trigger is `workflow_run` on CI rather than `push` on `main`: the required
+# check tests the PR head, not the merge result, so two independently green PRs
+# can combine into a red `main`. Waiting for CI to go green on `main` itself is
+# what keeps a broken merge from being published and opened as a downstream
+# upgrade PR. See docs/superpowers/specs/2026-08-07-continuous-release-design.md.
 #
 # Publishing authenticates with the workflow's built-in GITHUB_TOKEN
 # (`packages: write`) — no npm account, no long-lived secrets, nothing to
@@ -14,10 +22,14 @@ name: Release
 # If the package later moves to registry.npmjs.org, switch this workflow
 # to npm Trusted Publishing (OIDC).
 on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       bump:
-        description: "Semver bump type"
+        description: "Semver bump type (manual override; the gate derives this automatically)"
         type: choice
         options: [patch, minor, major]
         default: patch
@@ -30,7 +42,7 @@ permissions:
   # permissions block zeroes everything unlisted, which broke `gh pr create`
   # ("Resource not accessible by integration") on the v1.0.1 release.
   pull-requests: write # create + auto-merge the version PR
-  actions: write # dispatch ci.yml on the release branch
+  actions: write # approve the version PR's gated CI run
   # The called downstream-upgrade.yml requests issues: write (adoption pass
   # files component-request issues); a reusable workflow may not request more
   # than its caller grants, so omitting this fails the run at startup.
@@ -41,7 +53,89 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Decides whether this merge earns a release and at what version, so the
+  # release job below stays exactly the sequence of steps it has always been.
+  # The decision logic itself lives in scripts/release/gate.mjs as pure
+  # functions over plain data — unit-tested in CI's `automation` job, and
+  # runnable locally to explain a skip:
+  #   node scripts/release/gate.mjs main
+  gate:
+    name: Decide whether to release
+    # CI also runs on `pull_request`, and those runs must not reach the gate —
+    # they would release from a PR branch's CI. `branches: [main]` above filters
+    # on the triggering run's head branch, which for a PR is the PR's own
+    # branch, so this is belt-and-braces on a mistake that publishes.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      release: ${{ steps.decide.outputs.release }}
+      version: ${{ steps.decide.outputs.version }}
+      sha: ${{ steps.decide.outputs.sha }}
+    steps:
+      # The sha CI verified — NOT `main`'s current tip. Releasing the tip would
+      # publish a commit whose CI has not finished. fetch-depth: 0 for the tags
+      # and the commit range.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      # Pinned rather than relying on the runner image's preinstalled node: this
+      # job decides what gets published, so its behaviour should not change with
+      # an image bump. No `npm ci` — the gate is dependency-free.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Decide
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          IS_MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
+          FORCED_BUMP: ${{ inputs.bump }}
+        run: |
+          set -euo pipefail
+
+          echo "sha=${RELEASE_SHA}" >> "$GITHUB_OUTPUT"
+
+          if [ "$IS_MANUAL" = "true" ]; then
+            echo "Manual dispatch — forcing a ${FORCED_BUMP} release."
+            node scripts/release/gate.mjs "$RELEASE_SHA" --bump="$FORCED_BUMP" > gate.out
+          else
+            # Coalesce a burst of merges into one version. If a newer commit is
+            # already on `main` AND its own CI is green, its release run covers
+            # this one too, so stand down. A green tip with no release run is
+            # impossible; a tip with no CI run at all is not — a release's own
+            # PR merge uses GITHUB_TOKEN, and events caused by that token never
+            # create workflow runs. So "no CI run" must mean proceed, not skip,
+            # or work merged during a release would strand unpublished.
+            TIP=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
+            if [ "$RELEASE_SHA" != "$TIP" ]; then
+              TIP_CI=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TIP}/check-runs" \
+                --jq '[.check_runs[] | select(.name == "CI Success")] | first | .conclusion // "none"')
+              if [ "$TIP_CI" = "success" ]; then
+                echo "release=false" >> "$GITHUB_OUTPUT"
+                echo "Superseded by ${TIP}, which is green and will release this work too." \
+                  | tee -a "$GITHUB_STEP_SUMMARY"
+                exit 0
+              fi
+              echo "Tip ${TIP} is not releasable on its own (CI: ${TIP_CI}) — proceeding."
+            fi
+
+            node scripts/release/gate.mjs "$RELEASE_SHA" > gate.out
+          fi
+
+          cat gate.out >> "$GITHUB_OUTPUT"
+          sed -n 's/^reason=//p' gate.out >> "$GITHUB_STEP_SUMMARY"
+
   release:
+    needs: gate
+    if: needs.gate.outputs.release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -49,6 +143,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ needs.gate.outputs.sha }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v7
@@ -64,13 +159,22 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Bump version and tag
+      # An explicit version, not a bump type: the gate computes it from the
+      # highest tag in the repo rather than from this checkout's package.json.
+      # The two disagree whenever a release landed while this commit's CI was
+      # running — that release is not in this sha's ancestry, so package.json
+      # here is stale and a relative bump would regenerate an already-published
+      # version. GitHub Packages will not accept a republish, so that failure
+      # costs a manual bump to escape.
+      - name: Set version and tag
         id: version
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          npm version "${{ inputs.bump }}" -m "chore: release v%s"
-          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          npm version "$VERSION" -m "chore: release v%s"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Publish to GitHub Packages
         run: npm publish
