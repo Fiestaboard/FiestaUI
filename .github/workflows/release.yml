@@ -191,7 +191,15 @@ jobs:
       - name: Land version commit via PR
         run: |
           BRANCH="release/v${{ steps.version.outputs.version }}"
-          git push origin "HEAD:${BRANCH}"
+          # `HEAD:refs/heads/${BRANCH}`, never `HEAD:${BRANCH}`. The gate hands
+          # this job an exact sha, so the checkout above leaves HEAD DETACHED.
+          # Pushing a detached HEAD to an unqualified destination fails: git
+          # can only infer the `refs/heads/` prefix when <src> is itself a ref
+          # under refs/heads, and a detached HEAD is a bare commit object. The
+          # unqualified form worked for every release up to v1.2.1 only because
+          # the checkout had no `ref:` and HEAD was attached to main; v1.3.0
+          # published and tagged, then bounced here.
+          git push origin "HEAD:refs/heads/${BRANCH}"
           gh pr create --head "${BRANCH}" --base main \
             --title "chore: release v${{ steps.version.outputs.version }}" \
             --body "Version commit for the published v${{ steps.version.outputs.version }} release. Auto-merges when CI passes."
