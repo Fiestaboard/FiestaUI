@@ -34,7 +34,18 @@ export default function DecryptedText({
   const [isScrambling, setIsScrambling] = useState(false);
   const [revealedIndices, setRevealedIndices] = useState<Set<number>>(new Set());
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const containerRef = useRef<HTMLSpanElement>(null);
+
+  // Respect the OS reduced-motion preference: when set, skip the scramble loop
+  // entirely and render the resolved text. A change listener honors a runtime flip.
+  useEffect(() => {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setPrefersReducedMotion(reducedMotion.matches);
+    update();
+    reducedMotion.addEventListener("change", update);
+    return () => reducedMotion.removeEventListener("change", update);
+  }, []);
 
   const getNextIndex = useCallback(
     (revealedSet: Set<number>): number => {
@@ -79,7 +90,7 @@ export default function DecryptedText({
         .join("");
     };
 
-    if (isHovering) {
+    if (isHovering && !prefersReducedMotion) {
       setIsScrambling(true);
       interval = setInterval(() => {
         setRevealedIndices((prevRevealed) => {
@@ -116,7 +127,7 @@ export default function DecryptedText({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isHovering, text, speed, maxIterations, sequential, characters, getNextIndex]);
+  }, [isHovering, prefersReducedMotion, text, speed, maxIterations, sequential, characters, getNextIndex]);
 
   useEffect(() => {
     if (animateOn !== "view" && animateOn !== "both") return;
