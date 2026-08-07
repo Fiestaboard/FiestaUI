@@ -115,5 +115,8 @@ jobs:
             exit 0
           fi
           git add .github/perf-audit/rejected-edits.jsonl
-          git commit -m "chore(perf-audit): capture rejection from PR #${PR_NUMBER} [skip ci]"
+          # No `[skip ci]`: if this push is ever rejected and the commit has to
+          # travel via a PR, a skip marker would suppress the CI run entirely
+          # and leave the required `CI Success` check unable to report.
+          git commit -m "chore(perf-audit): capture rejection from PR #${PR_NUMBER}"
           git push origin HEAD:main
