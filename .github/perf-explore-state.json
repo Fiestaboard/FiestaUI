@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
-  "last_run_at": null,
+  "last_run_at": "2026-08-07T19:09:05Z",
   "themes": [
     {
       "id": "barrel-tree-shaking",
       "title": "Barrel and tree-shaking shape",
       "question": "What does a consumer who imports one Button actually download, and does the barrel in src/index.ts plus package.json sideEffects let the rest be shaken out?",
       "surfaces": ["src/index.ts", "package.json", "vite.config.ts"],
-      "status": "pending",
+      "status": "done",
       "source": "seed",
       "added_at": "2026-08-07T00:00:00Z",
-      "last_investigated_at": null,
-      "findings": [],
-      "notes": "Rank against the absolute per-export costs in the bundle snapshot."
+      "last_investigated_at": "2026-08-07T19:09:05Z",
+      "findings": [52],
+      "notes": "Ranked #1: surfaces join to the whole export table (barrel totalBytes 145,597 B gz, the largest measured surface). Verdict: per-export tree-shaking WORKS. sideEffects:['**/*.css'] is effectively false for the JS graph (no .ts/.tsx imports .css); preserveModules emits one dist file per module; @base-ui via subpaths; lucide per-icon; type-only imports erased; ogl reachable ONLY via the Aurora export (aurora.tsx imported by no other non-story module); seasons decoupled from chrome (import type). The one cross-cutting gap = no per-component subpath exports despite dist already emitting the files -> RSC/imperfect bundlers traverse the whole barrel. Filed #52. Deferred to sibling themes: (a) ogl as a hard `dependency` vs optional peer = install-weight, belongs to ogl-reachability; (b) the ~8.5 KB tailwind-merge/clsx `cn` floor is counted per-export in the snapshot but deduped in real apps, so it is a reading caveat, not a defect (not filed, would be a false positive)."
     },
     {
       "id": "ogl-reachability",
