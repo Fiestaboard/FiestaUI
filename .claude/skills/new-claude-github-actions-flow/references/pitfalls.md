@@ -243,17 +243,42 @@ with:
 
 The cost: review comments are posted under `github-actions[bot]` instead of `claude[bot]`. The feedback-capture workflow's `allowed_bots` allowlist must include `github-actions` because the review badge is now from that identity.
 
-## State file must commit with `[skip ci]`
+## Never put `[skip ci]` in a commit message
 
-**Symptom:** every audit run triggers the audit again because the state-file commit fired `push` on `main`.
+**Symptom:** a bot-authored PR sits at `mergeStateStatus: BLOCKED` with an empty `statusCheckRollup` forever. No CI run was ever created, so the required check has nothing to report and no amount of re-running helps.
 
-**Fix:** include `[skip ci]` in the commit message:
+**Cause:** `[skip ci]` (and `[ci skip]`, `[no ci]`, `[skip actions]`) in the head commit message tells GitHub not to create the workflow run **at all**. If a required status check lives in that workflow, the check can never report, and a required check that never reports blocks the merge permanently. Nothing inside the workflow can rescue this — there is no run to rescue.
+
+This bites hardest on the state-file commit. It is written as a direct push to `main`, so `[skip ci]` looks free; but the moment `main` is protected, the push is rejected, the commit travels via a PR instead, and that PR is born unmergeable.
+
+**Fix:** don't use the marker. Keep the message plain:
 
 ```
-chore(<name>-audit): advance sweep state [skip ci]
+chore(<name>-audit): advance sweep state
 ```
 
-The audit workflow doesn't currently listen on push-to-main, but if the repo ever adds `on.push` to anything, the audit's own commit shouldn't be the trigger.
+The original reason for the marker — "the state commit re-triggers the audit" — doesn't hold: the audit workflows trigger on `schedule` and `workflow_dispatch`, never on `push`, so there is no loop to break. What a plain message does cost is a CI run on a JSON-only change, and the fix for that is a path classifier inside CI rather than a marker outside it (see below).
+
+**The subject line is matched literally, even when you're only talking about it.** GitHub scans the text, not the intent, so a commit that merely _mentions_ the marker skips its own CI. The commit that first removed this pattern from the repo was titled `fix(ci): stop [skip ci] from permanently blocking merges` — and was silently skipped, landing on a PR with an empty check rollup that looked identical to the bug it fixed. Write `skip-ci marker` in prose; never let the bracketed token appear in a commit subject.
+
+**Keep CI cheap without blocking merges.** Do the filtering in a job, never in `on.*.paths-ignore` — a top-level path filter suppresses the run and reproduces the exact deadlock above. Instead: one cheap `changes` job classifies the diff, the expensive jobs gate on its output, and the aggregating check uses `if: always()` so a skipped-as-irrelevant job counts as a pass:
+
+```yaml
+jobs:
+  changes:
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    # ...classify the diff; fail open to `true` when unsure
+
+  expensive-job:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
+  ci-success: # the required check
+    needs: [changes, cheap-job, expensive-job]
+    if: always()
+    # red only on 'failure' or 'cancelled' — 'skipped' is a pass
+```
 
 ## Hard rules in the prompt — bound the blast radius
 
@@ -301,7 +326,7 @@ If the Claude step exits early (rate limit, allowlist denial, hallucination), th
       exit 0
     fi
     git add .github/<name>-state.json
-    git commit -m "chore(<name>-audit): advance sweep state [skip ci]"
+    git commit -m "chore(<name>-audit): advance sweep state"
     git push origin HEAD:main
 ```
 
