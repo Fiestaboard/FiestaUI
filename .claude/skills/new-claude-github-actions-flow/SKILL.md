@@ -197,7 +197,7 @@ permissions:
 - The dynamic-effort step (queue depth → batch/cap).
 - The wrap-up summary.
 - The defensive state-file push at the end.
-- All the pitfall guards: `BRANCH_SUFFIX`, `show_full_output`, `concurrency.cancel-in-progress: false`, `RELEASE_PAT` for checkout, `TZ=…` gate, `[skip ci]` on the state commit.
+- All the pitfall guards: `BRANCH_SUFFIX`, `show_full_output`, `concurrency.cancel-in-progress: false`, `RELEASE_PAT` for checkout, `TZ=…` gate, and a state commit with **no** `[skip ci]` marker (it suppresses the run outright, so a required check can never report and the PR never merges).
 
 **`BRANCH_SUFFIX` in issues-only mode.** Even though no PR branches are created, keep the env var. It's cheap, it lets issue bodies reference the run (`round <N>, run $BRANCH_SUFFIX`), and it preserves the pattern so future-you can re-enable bucket A without re-engineering.
 

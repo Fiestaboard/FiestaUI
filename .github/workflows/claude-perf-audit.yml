@@ -528,8 +528,17 @@ jobs:
                indent, trailing newline, keys in the same order as the
                existing file).
             4. Commit to `main` directly with the message
-               `chore(perf-audit): advance sweep state [skip ci]` and push.
-               This is the ONLY direct-to-main commit you make.
+               `chore(perf-audit): advance sweep state` and push. This is the
+               ONLY direct-to-main commit you make. If the push is rejected
+               because `main` is protected, put the commit on a branch and
+               open a PR for it instead.
+
+            NEVER put `[skip ci]` (or `[ci skip]`, `[no ci]`, `[skip
+            actions]`) in a commit message. GitHub honours those markers by
+            not creating the workflow run at all, so the required `CI Success`
+            check never reports and the PR can never be merged. CI is already
+            cheap for a state-only change — ci.yml classifies the diff and
+            skips the expensive jobs on its own.
 
             ## Hard rules
 
@@ -576,7 +585,12 @@ jobs:
         # would land the whole feature branch on main. Instead the state file
         # is copied aside and replayed onto a clean `origin/main`, which also
         # gives us a natural retry when someone else pushes mid-run.
-        # [skip ci] keeps the commit from retriggering anything.
+        #
+        # Deliberately NOT tagged `[skip ci]`: when `main` is protected this
+        # push is rejected and the state lands on a PR branch instead, where
+        # a skip marker suppresses the whole CI run and the required `CI
+        # Success` check can never report — blocking the merge permanently.
+        # ci.yml's `changes` job already keeps a state-only commit cheap.
         run: |
           set -euo pipefail
           STATE=.github/perf-audit-state.json
@@ -595,7 +609,7 @@ jobs:
               exit 0
             fi
             git add "$STATE"
-            git commit -m "chore(perf-audit): advance sweep state [skip ci]"
+            git commit -m "chore(perf-audit): advance sweep state"
             if git push origin HEAD:main; then
               echo "State pushed on attempt ${attempt}."
               exit 0
