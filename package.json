@@ -45,6 +45,7 @@
     "vrt:update": "node scripts/vrt/vrt.mjs update",
     "vrt:serve": "http-server storybook-static --port 6007 --silent",
     "perf:bundle": "node scripts/perf/bundle.mjs",
+    "perf:bench": "node scripts/perf/bench.mjs",
     "perf:test": "node --test scripts/perf/tests/*.test.mjs",
     "release:test": "node --test scripts/ci/tests/*.test.mjs scripts/release/tests/*.test.mjs"
   },

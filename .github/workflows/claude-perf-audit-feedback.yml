@@ -19,6 +19,14 @@ name: "Claude: Perf Audit Feedback Capture"
 # to (a) never re-propose the same exact swap, and (b) generalize from the
 # closer's explanation.
 #
+# It also captures rejected ISSUES, into rejected-findings.jsonl. The
+# perf-explore loop only ever files issues — it has no source-editing role at
+# all — so PR capture alone would leave it with no rejection signal, and it
+# would refile the same wrong conclusion every time its theme came round
+# again. Only issues closed as NOT PLANNED are recorded: an issue closed as
+# completed was fixed, not rejected, and logging it would teach the loop to
+# stop reporting things that turned out to be real.
+#
 # `workflow_dispatch` re-runs capture for a given PR — useful when a
 # maintainer adds an explanatory comment after the original close. Re-running
 # replaces the prior line for that PR rather than appending.
@@ -34,11 +42,17 @@ name: "Claude: Perf Audit Feedback Capture"
 on:
   pull_request_target:
     types: [closed]
+  issues:
+    types: [closed]
   workflow_dispatch:
     inputs:
       pr_number:
         description: "PR number to (re)capture into the rejection log"
-        required: true
+        required: false
+        type: number
+      issue_number:
+        description: "Issue number (closed as 'not planned') to (re)capture into the findings log"
+        required: false
         type: number
 
 permissions:
@@ -50,31 +64,54 @@ concurrency:
 
 jobs:
   capture:
-    name: Capture rejected perf-audit edit
+    name: Capture rejected perf finding
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Three ways in: a manual dispatch, a perf PR closed unmerged, or a
+    # perf-explore issue closed as "not planned". An issue closed as completed
+    # is a fix and must not reach this job.
     if: >-
       ${{ github.event_name == 'workflow_dispatch' ||
-          (github.event.pull_request.merged == false &&
+          (github.event_name == 'pull_request_target' &&
+           github.event.pull_request.merged == false &&
            (startsWith(github.event.pull_request.head.ref, 'perf-audit/') ||
-            startsWith(github.event.pull_request.head.ref, 'perf/issue-'))) }}
+            startsWith(github.event.pull_request.head.ref, 'perf/issue-'))) ||
+          (github.event_name == 'issues' &&
+           github.event.issue.state_reason == 'not_planned' &&
+           contains(github.event.issue.labels.*.name, 'perf-explore')) }}
     permissions:
       contents: write
       pull-requests: read
       issues: read
     steps:
-      - name: Determine PR number
-        id: pr
+      - name: Determine capture target
+        id: target
         env:
           EVENT_NAME: ${{ github.event_name }}
           DISPATCH_PR: ${{ inputs.pr_number }}
+          DISPATCH_ISSUE: ${{ inputs.issue_number }}
           EVENT_PR: ${{ github.event.pull_request.number }}
+          EVENT_ISSUE: ${{ github.event.issue.number }}
         run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "number=${DISPATCH_PR}" >> "$GITHUB_OUTPUT"
-          else
-            echo "number=${EVENT_PR}" >> "$GITHUB_OUTPUT"
-          fi
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            pull_request_target) kind="pr";    number="$EVENT_PR" ;;
+            issues)              kind="issue"; number="$EVENT_ISSUE" ;;
+            workflow_dispatch)
+              if [ -n "${DISPATCH_ISSUE:-}" ]; then
+                kind="issue"; number="$DISPATCH_ISSUE"
+              elif [ -n "${DISPATCH_PR:-}" ]; then
+                kind="pr";    number="$DISPATCH_PR"
+              else
+                echo "::error::Provide either pr_number or issue_number."
+                exit 1
+              fi
+              ;;
+            *) echo "::error::Unsupported event ${EVENT_NAME}."; exit 1 ;;
+          esac
+          echo "kind=${kind}" >> "$GITHUB_OUTPUT"
+          echo "number=${number}" >> "$GITHUB_OUTPUT"
+          echo "Capturing ${kind} #${number}."
 
       # FiestaUI has no RELEASE_PAT — mint a GitHub App installation token so
       # the log commit can push to main past branch protection.
@@ -100,23 +137,35 @@ jobs:
       - name: Capture rejection
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          KIND: ${{ steps.target.outputs.kind }}
+          NUMBER: ${{ steps.target.outputs.number }}
         run: |
           set -euo pipefail
-          python3 .github/perf-audit/build_rejection.py "$PR_NUMBER"
+          if [ "$KIND" = "issue" ]; then
+            python3 .github/perf-audit/build_rejection.py --issue "$NUMBER"
+          else
+            python3 .github/perf-audit/build_rejection.py "$NUMBER"
+          fi
 
       - name: Commit and push
         env:
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          KIND: ${{ steps.target.outputs.kind }}
+          NUMBER: ${{ steps.target.outputs.number }}
         run: |
           set -euo pipefail
-          if git diff --quiet -- .github/perf-audit/rejected-edits.jsonl; then
-            echo "Log unchanged — script bailed (merged PR, or no diff)."
+          LOG=.github/perf-audit/rejected-edits.jsonl
+          NOUN="PR"
+          if [ "$KIND" = "issue" ]; then
+            LOG=.github/perf-audit/rejected-findings.jsonl
+            NOUN="issue"
+          fi
+          git add -- "$LOG"
+          if git diff --cached --quiet -- "$LOG"; then
+            echo "Log unchanged — script bailed (merged PR, completed issue, or no diff)."
             exit 0
           fi
-          git add .github/perf-audit/rejected-edits.jsonl
           # No `[skip ci]`: if this push is ever rejected and the commit has to
           # travel via a PR, a skip marker would suppress the CI run entirely
           # and leave the required `CI Success` check unable to report.
-          git commit -m "chore(perf-audit): capture rejection from PR #${PR_NUMBER}"
+          git commit -m "chore(perf-audit): capture rejection from ${NOUN} #${NUMBER}"
           git push origin HEAD:main

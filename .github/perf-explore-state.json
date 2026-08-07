@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "last_run_at": null,
+  "themes": [
+    {
+      "id": "barrel-tree-shaking",
+      "title": "Barrel and tree-shaking shape",
+      "question": "What does a consumer who imports one Button actually download, and does the barrel in src/index.ts plus package.json sideEffects let the rest be shaken out?",
+      "surfaces": ["src/index.ts", "package.json", "vite.config.ts"],
+      "status": "pending",
+      "source": "seed",
+      "added_at": "2026-08-07T00:00:00Z",
+      "last_investigated_at": null,
+      "findings": [],
+      "notes": "Rank against the absolute per-export costs in the bundle snapshot."
+    },
+    {
+      "id": "ogl-reachability",
+      "title": "ogl reachability from the main entry",
+      "question": "Is the WebGL dependency reachable from the package entry point, and can it move behind a lazy or split path so consumers who never render Aurora do not pay for it?",
+      "surfaces": ["src/components/ui/aurora.tsx", "src/components/seasons/**", "src/index.ts"],
+      "status": "pending",
+      "source": "seed",
+      "added_at": "2026-08-07T00:00:00Z",
+      "last_investigated_at": null,
+      "findings": [],
+      "notes": "The bundle snapshot records reachable externals per export — check it before reasoning about the module graph by hand."
+    },
+    {
+      "id": "animation-loop-policy",
+      "title": "Animation loop policy across every driven component",
+      "question": "Do all rAF, WebGL, and timer loops honour prefers-reduced-motion, pause on visibilitychange, and stop when off-screen? Treat this as one policy, not as a per-file question.",
+      "surfaces": ["src/components/ui/aurora.tsx", "src/components/seasons/**", "src/components/ui/react-bits/**"],
+      "status": "pending",
+      "source": "seed",
+      "added_at": "2026-08-07T00:00:00Z",
+      "last_investigated_at": null,
+      "findings": [],
+      "notes": "vrt/skip.json documents that Aurora's loop is free-running and does not honour prefers-reduced-motion. Fixing that also makes the component baseline-able, which closes a VRT coverage hole."
+    },
+    {
+      "id": "resource-disposal",
+      "title": "Resource disposal sweep",
+      "question": "Does every GPU resource, timer, observer, and listener have a teardown path on unmount?",
+      "surfaces": ["src/components/ui/aurora.tsx", "src/components/seasons/**", "src/components/ui/react-bits/**"],
+      "status": "pending",
+      "source": "seed",
+      "added_at": "2026-08-07T00:00:00Z",
+      "last_investigated_at": null,
+      "findings": [],
+      "notes": "The bench CANNOT help with this theme yet: retention is measured but uncalibrated, so every verdict is 'unknown' and the raw slopes track story size rather than leaks. Disposal must be argued from the teardown code itself. Do not quote a retention number as evidence of a leak."
+    },
+    {
+      "id": "rerender-cascades",
+      "title": "Re-render cascade mapping",
+      "question": "Where does a parent re-render cascade across component boundaries, and which context values or prop identities cause it?",
+      "surfaces": ["src/components/board/**", "src/components/chrome/**"],
+      "status": "pending",
+      "source": "seed",
+      "added_at": "2026-08-07T00:00:00Z",
+      "last_investigated_at": null,
+      "findings": [],
+      "notes": "This is the theme the per-file sweep structurally cannot see: the cost lives in the edges between components, not inside any one file."
+    },
+    {
+      "id": "css-paint-budget",
+      "title": "CSS paint and layer budget",
+      "question": "Which styles promote layers, force paint, or use unbounded will-change, and what does that cost across the whole stylesheet rather than per component?",
+      "surfaces": ["src/styles/**"],
+      "status": "pending",
+      "source": "seed",
+      "added_at": "2026-08-07T00:00:00Z",
+      "last_investigated_at": null,
+      "findings": [],
+      "notes": "Large blur radii and layer promotion show up in the bench as frame p95 above the vsync floor."
+    }
+  ]
+}
