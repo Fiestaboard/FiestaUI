@@ -99,9 +99,9 @@ test("code changes release at the derived bump", () => {
 });
 
 test("an empty commit range skips — this is the loop guard", () => {
-  // What a release's own version PR landing looks like: the tag is an ancestor
-  // of main and the only commit after it is the merge commit, which
-  // `--no-merges` filters away.
+  // What a release's own version commit landing looks like: it is pushed
+  // straight to main with the tag on that same commit, so the range from the
+  // tag has nothing in it.
   const result = decide({ commits: [], files: [], lastTag: "v1.2.1" });
   assert.equal(result.release, false);
   assert.equal(result.bump, null);
