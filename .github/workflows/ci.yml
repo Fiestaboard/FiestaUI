@@ -33,6 +33,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Pinned rather than relying on the runner image's preinstalled node:
+      # this job gates every other job, so its behaviour should not change with
+      # an image bump. No `npm ci` — the classifier is dependency-free.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
       # Prose and the audit crons' bookkeeping files can't move a pixel or a
       # byte of dist/, so build/a11y/VRT/bundle have nothing to say about them.
       # They are still fully checked: `npm run format:check` is `prettier
@@ -71,27 +78,13 @@ jobs:
           echo "Changed files:"
           echo "$files"
 
-          # A here-string, NOT a pipe: a pipe would run the loop in a subshell
-          # and every `code=true` would be discarded on exit.
-          code=false
-          while IFS= read -r f; do
-            case "$f" in
-              *.md | docs/*) ;;
-              .github/*-audit-state.json) ;;
-              .github/*-audit/rejected-edits.jsonl) ;;
-              *)
-                code=true
-                echo "Build input touched: $f"
-                ;;
-            esac
-          done <<< "$files"
-
-          echo "code=${code}" >> "$GITHUB_OUTPUT"
-          if [ "$code" = "true" ]; then
-            echo "Running the full suite."
-          else
-            echo "Content-only change — lint and automation cover this."
-          fi
+          # The path rule lives in scripts/ci/classify-changes.mjs, not inline
+          # here, because release.yml's gate has to apply the identical rule to
+          # decide whether a merge earns a version. Two copies would drift, and
+          # a drifted copy fails silently in the worst direction — releasing on
+          # every audit bookkeeping commit, or skipping a real change. The
+          # script writes `code=<bool>` to stdout and its rationale to stderr.
+          echo "$files" | node scripts/ci/classify-changes.mjs >> "$GITHUB_OUTPUT"
 
   vrt-seed:
     name: Seed VRT baselines
@@ -293,10 +286,15 @@ jobs:
         with:
           node-version: "24"
 
-      # No `npm ci` needed: compare.mjs is dependency-free and node --test is
+      # No `npm ci` needed: these modules are dependency-free and node --test is
       # built in. Keeps this job as fast as it is today.
       - name: Run perf harness unit tests
         run: npm run perf:test
+
+      # Guards the two decisions that publish: whether a merge changes shipped
+      # code, and what version it earns.
+      - name: Run release gate unit tests
+        run: npm run release:test
 
       - name: actionlint
         run: |
