@@ -17,15 +17,14 @@
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 /* Seasonal themes — one file per season, inert unless the season class
-   is stamped on <html>. Pride is live; the rest are design drafts. */
+   is stamped on <html>. Only the LIVE season (pride) is inlined here so
+   consumers get it automatically; the design drafts are NOT imported —
+   they'd ship ~18 KB of rule families keyed on classes the app never
+   stamps. A consumer that promotes a draft opts in with:
+     @import "@fiestaboard/ui/seasons/<id>.css";
+   (see README "Seasonal theming"). Storybook imports every draft
+   directly in storybook.css so the Season toolbar can preview them. */
 @import "./seasons/pride.css";
-@import "./seasons/halloween.css";
-@import "./seasons/thanksgiving.css";
-@import "./seasons/christmas.css";
-@import "./seasons/new-year.css";
-@import "./seasons/easter.css";
-@import "./seasons/mothers-day.css";
-@import "./seasons/fathers-day.css";
 
 @custom-variant dark (&:is(.dark *));
 
