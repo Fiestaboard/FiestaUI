@@ -4,6 +4,7 @@ import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import * as React from "react";
 
+import { stabilizeSelectItems } from "../../lib/select-items";
 import { cn } from "../../lib/utils";
 
 /**
@@ -41,10 +42,17 @@ type SelectProps = Omit<
 const SelectItemsContext = React.createContext<Array<{ value: unknown; label: React.ReactNode }>>([]);
 
 function Select({ children, onValueChange, ...props }: SelectProps) {
-  // Memoize so the recursive child walk and the context value stay stable
-  // across renders that don't change `children`; a fresh array each render
-  // would re-run the O(tree) walk and re-render every SelectValue consumer.
-  const items = React.useMemo(() => collectSelectItems(children), [children]);
+  // `children` is a freshly-built element tree on every parent render, so
+  // memoizing on its identity never holds (#62). Compare a content key of the
+  // collected items instead: renders that don't change the option set reuse
+  // the previous array, keeping the SelectItemsContext value and Base UI's
+  // `items` prop referentially stable. Render-phase state adjustment per
+  // react.dev's "adjusting state when props change" pattern.
+  const collected = collectSelectItems(children);
+  const [stableItems, setStableItems] = React.useState(() => stabilizeSelectItems(null, collected));
+  const nextStableItems = stabilizeSelectItems(stableItems, collected);
+  if (nextStableItems !== stableItems) setStableItems(nextStableItems);
+  const items = nextStableItems.items;
   const handleValueChange = React.useMemo(
     // Radix never emitted null (e.g. when a controlled value like ""
     // matches no item), so shield consumers from Base UI's null events.
