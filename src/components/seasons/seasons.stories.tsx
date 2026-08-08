@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Calendar, FileText, Home, Puzzle, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { ALL_SEASONS } from "../../lib/seasons";
+import { ALL_SEASONS } from "../../lib/seasons-drafts";
 import { Sidebar, type SidebarNavItem, type SidebarProps } from "../chrome/sidebar";
 import { ThemeToggle } from "../chrome/theme-toggle";
 

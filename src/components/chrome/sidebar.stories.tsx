@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { ALL_SEASONS, type Season } from "../../lib/seasons";
+import { type Season } from "../../lib/seasons";
+import { ALL_SEASONS } from "../../lib/seasons-drafts";
 import { cn } from "../../lib/utils";
 import { BoardSelector } from "./board-selector";
 import { Sidebar, type SidebarNavItem, type SidebarProps } from "./sidebar";

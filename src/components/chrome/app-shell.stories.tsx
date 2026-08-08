@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Calendar, FileText, GalleryHorizontalEnd, Home, Puzzle, Settings } from "lucide-react";
 import { useState } from "react";
 
-import { ALL_SEASONS, type Season } from "../../lib/seasons";
+import { type Season } from "../../lib/seasons";
+import { ALL_SEASONS } from "../../lib/seasons-drafts";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
