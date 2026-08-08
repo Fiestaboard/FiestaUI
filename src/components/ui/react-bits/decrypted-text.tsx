@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "../../../lib/utils";
 
@@ -33,9 +33,12 @@ export default function DecryptedText({
   const [isHovering, setIsHovering] = useState(false);
   const [isScrambling, setIsScrambling] = useState(false);
   const [revealedIndices, setRevealedIndices] = useState<Set<number>>(new Set());
-  const [hasAnimated, setHasAnimated] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const containerRef = useRef<HTMLSpanElement>(null);
+  // Source of truth for the scramble loop so the interval body stays pure — no
+  // side effects inside a setState updater (which React runs twice in StrictMode).
+  const revealedRef = useRef<Set<number>>(new Set());
+  const hasAnimatedRef = useRef(false);
 
   // Respect the OS reduced-motion preference: when set, skip the scramble loop
   // entirely and render the resolved text. A change listener honors a runtime flip.
@@ -93,34 +96,33 @@ export default function DecryptedText({
     if (isHovering && !prefersReducedMotion) {
       setIsScrambling(true);
       interval = setInterval(() => {
-        setRevealedIndices((prevRevealed) => {
-          if (sequential) {
-            if (prevRevealed.size < text.length) {
-              const nextIndex = getNextIndex(prevRevealed);
-              const newRevealed = new Set(prevRevealed);
-              newRevealed.add(nextIndex);
-              setDisplayText(shuffleText(text, newRevealed));
-              return newRevealed;
-            } else {
-              clearInterval(interval);
-              setIsScrambling(false);
-              return prevRevealed;
-            }
+        if (sequential) {
+          const prevRevealed = revealedRef.current;
+          if (prevRevealed.size < text.length) {
+            const nextIndex = getNextIndex(prevRevealed);
+            const newRevealed = new Set(prevRevealed);
+            newRevealed.add(nextIndex);
+            revealedRef.current = newRevealed;
+            setRevealedIndices(newRevealed);
+            setDisplayText(shuffleText(text, newRevealed));
           } else {
-            setDisplayText(shuffleText(text, prevRevealed));
-            currentIteration++;
-            if (currentIteration >= maxIterations) {
-              clearInterval(interval);
-              setIsScrambling(false);
-              setDisplayText(text);
-            }
-            return prevRevealed;
+            clearInterval(interval);
+            setIsScrambling(false);
           }
-        });
+        } else {
+          setDisplayText(shuffleText(text, revealedRef.current));
+          currentIteration++;
+          if (currentIteration >= maxIterations) {
+            clearInterval(interval);
+            setIsScrambling(false);
+            setDisplayText(text);
+          }
+        }
       }, speed);
     } else {
       setDisplayText(text);
       setRevealedIndices(new Set());
+      revealedRef.current = new Set();
       setIsScrambling(false);
     }
 
@@ -135,9 +137,9 @@ export default function DecryptedText({
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && !hasAnimated) {
+          if (entry.isIntersecting && !hasAnimatedRef.current) {
             setIsHovering(true);
-            setHasAnimated(true);
+            hasAnimatedRef.current = true;
           }
         });
       },
@@ -147,10 +149,8 @@ export default function DecryptedText({
     const currentRef = containerRef.current;
     if (currentRef) observer.observe(currentRef);
 
-    return () => {
-      if (currentRef) observer.unobserve(currentRef);
-    };
-  }, [animateOn, hasAnimated]);
+    return () => observer.disconnect();
+  }, [animateOn]);
 
   const hoverProps =
     animateOn === "hover" || animateOn === "both"
@@ -160,11 +160,15 @@ export default function DecryptedText({
         }
       : {};
 
+  // Split once per displayText change instead of on every render — hover/scramble
+  // state toggles re-render this component without changing the string.
+  const chars = useMemo(() => displayText.split(""), [displayText]);
+
   return (
     <span ref={containerRef} className={cn("inline-block", parentClassName)} {...hoverProps}>
-      <span className="sr-only">{displayText}</span>
+      <span className="sr-only">{text}</span>
       <span aria-hidden className={className}>
-        {displayText.split("").map((char, index) => {
+        {chars.map((char, index) => {
           const isRevealedOrDone = revealedIndices.has(index) || !isScrambling || !isHovering;
           return (
             <span key={index} className={isRevealedOrDone ? className : encryptedClassName}>
