@@ -15,6 +15,7 @@ import { memo, useMemo } from "react";
 import { messageToGrid } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
+import { gapClasses, paddingClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
 
 export interface StaticBoardDisplayProps {
   message: string | null;
@@ -53,27 +54,6 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
     () => messageToGrid(message ?? "", dims.rows, dims.cols, deviceType),
     [message, dims.rows, dims.cols, deviceType],
   );
-
-  const sizeClasses: Record<string, string> = {
-    sm: "w-[14px] h-[18px]",
-    md: "w-[14px] h-[20px] sm:w-[20px] sm:h-[28px] md:w-[24px] md:h-[34px] lg:w-[28px] lg:h-[40px]",
-    lg: "w-[18px] h-[26px] sm:w-[24px] sm:h-[34px] md:w-[28px] md:h-[40px] lg:w-[32px] lg:h-[46px]",
-  };
-  const textSizeClasses: Record<string, string> = {
-    sm: "text-[7px]",
-    md: "text-[7px] sm:text-[10px] md:text-[13px] lg:text-[16px]",
-    lg: "text-[10px] sm:text-[13px] md:text-[16px] lg:text-[20px]",
-  };
-  const paddingClasses: Record<string, string> = {
-    sm: "px-3 py-4",
-    md: "px-2 py-3 sm:px-4 sm:py-6 md:px-5 md:py-8 lg:px-6 lg:py-10",
-    lg: "px-3 py-4 sm:px-5 sm:py-7 md:px-6 md:py-9 lg:px-8 lg:py-12",
-  };
-  const gapClasses: Record<string, string> = {
-    sm: "gap-[3px]",
-    md: "gap-[2px] sm:gap-[4px] md:gap-[5px]",
-    lg: "gap-[3px] sm:gap-[5px] md:gap-[6px] lg:gap-[7px]",
-  };
 
   // Seam gap: additional left/top margin applied at Note physical boundaries
   const seamGap = size === "sm" ? "6px" : size === "md" ? "8px" : "10px";
