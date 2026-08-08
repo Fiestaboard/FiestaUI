@@ -119,10 +119,27 @@ function festiveOptedOut(cookieString: string): boolean {
   return cookieString.split("; ").some((c) => c === `${HIDE_FESTIVE_COOKIE}=true`);
 }
 
+// Memoize the last resolution. getActiveSeason is deterministic in
+// (month, cookieString), so N consumers resolving in the same month with the
+// same cookie share one SEASONS scan + cookie parse instead of repeating both
+// per call. Keyed by inputs, so a month rollover or cookie change recomputes.
+let cachedMonth = -1;
+let cachedCookie: string | null = null;
+let cachedSeason: Season | null = null;
+
 /** The season active for `now`, or null (calendar + opt-out cookie). */
 export function getActiveSeason(now: Date = new Date(), cookieString = ""): Season | null {
-  if (festiveOptedOut(cookieString)) return null;
-  return SEASONS.find((s) => s.months.includes(now.getMonth())) ?? null;
+  const month = now.getMonth();
+  if (month !== cachedMonth || cookieString !== cachedCookie) {
+    cachedMonth = month;
+    cachedCookie = cookieString;
+    if (festiveOptedOut(cookieString)) {
+      cachedSeason = null;
+    } else {
+      cachedSeason = SEASONS.find((s) => s.months.includes(month)) ?? null;
+    }
+  }
+  return cachedSeason;
 }
 
 /**
