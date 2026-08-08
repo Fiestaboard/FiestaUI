@@ -136,10 +136,24 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
+      # The landing push below goes straight to `main`, which only the Claude
+      # bot app may do (it is main-protection's sole bypass actor). GITHUB_TOKEN
+      # is the GitHub Actions app — NOT a bypass actor — so a push with the
+      # default checkout credentials bounces off the ruleset every time (the
+      # v1.3.3 and v1.4.0 releases published and tagged, then failed here).
+      # Mint the app token and check out with it, exactly like the perf loops.
+      - name: Mint app token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.CLAUDE_BOT_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.gate.outputs.sha }}
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/setup-node@v7
         with:
@@ -181,8 +195,8 @@ jobs:
 
       # The version commit and tag go straight onto `main`. `main-protection`
       # still requires a PR with a green `CI Success` for every human change;
-      # the GitHub Actions app is the ruleset's single bypass actor, which is
-      # what makes this push legal.
+      # the Claude bot app is the ruleset's single bypass actor, and the
+      # checkout above holds its token, which is what makes this push legal.
       #
       # Every earlier design here routed the commit through an auto-merged PR
       # and none were stable. The PR is created with GITHUB_TOKEN, so its
