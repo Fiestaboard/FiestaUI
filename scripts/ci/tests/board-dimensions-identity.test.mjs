@@ -96,14 +96,8 @@ test("zero, negative, and NaN inputs clamp to 1", () => {
 });
 
 test("fractional inputs clamp to integers (floor)", () => {
-  assert.equal(
-    mod.resolveDimensions("note_array", 2.9, 3.7),
-    mod.resolveDimensions("note_array", 2, 3),
-  );
-  assert.equal(
-    mod.resolveDimensions("note_array", 1.0001, 1.9999),
-    mod.resolveDimensions("note_array", 1, 1),
-  );
+  assert.equal(mod.resolveDimensions("note_array", 2.9, 3.7), mod.resolveDimensions("note_array", 2, 3));
+  assert.equal(mod.resolveDimensions("note_array", 1.0001, 1.9999), mod.resolveDimensions("note_array", 1, 1));
 });
 
 // ── Cache bounding ────────────────────────────────────────────────────────────
@@ -125,9 +119,6 @@ test("1000 distinct invalid pairs do not grow the cache unboundedly", () => {
     const tall = i % 2 === 0 ? i / 7 : Number.MAX_SAFE_INTEGER - i;
     const dims = mod.resolveDimensions("note_array", wide, tall);
     const match = [...canonical.values()].some((ref) => ref === dims);
-    assert.ok(
-      match,
-      `unclamped input (${wide}, ${tall}) produced a reference outside the bounded key space`,
-    );
+    assert.ok(match, `unclamped input (${wide}, ${tall}) produced a reference outside the bounded key space`);
   }
 });
