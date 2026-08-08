@@ -35,11 +35,20 @@ void main(){
   fragColor = vec4(ramp, intensity);
 }`;
 
+// Softness that used to come from a CSS blur(6px) filter on the canvas —
+// a second full-surface compositor blur every animated frame (issue #65).
+// Instead we render the backing store at a fraction of the CSS size and let
+// the compositor's bilinear upscale diffuse it in a single pass. 0.07 makes
+// the bilinear tent's stddev ((1/scale)/sqrt(6) px) match the old 6px
+// Gaussian, and won the pixel-diff sweep against the pre-change stories
+// (0.05 / 0.07 / 0.1 / 0.15 / 1.0 tried — see issue #65's fix PR).
+const RESOLUTION_SCALE = 0.07;
+
 // Seasonal decor: rendered by Sidebar only while a season is active, in that
 // season's palette — colors is required so the aurora can't appear unseasoned.
 export const SidebarAurora = memo(function SidebarAurora({ colors }: { colors: string[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  useAuroraCanvas(canvasRef, FRAG, colors, "SidebarAurora");
+  useAuroraCanvas(canvasRef, FRAG, colors, "SidebarAurora", RESOLUTION_SCALE);
 
   return (
     <div
@@ -52,16 +61,7 @@ export const SidebarAurora = memo(function SidebarAurora({ colors }: { colors: s
         pointerEvents: "none",
       }}
     >
-      <canvas
-        ref={canvasRef}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          filter: "blur(6px)",
-        }}
-      />
+      <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
     </div>
   );
 });
