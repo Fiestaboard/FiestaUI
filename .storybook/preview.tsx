@@ -3,7 +3,8 @@ import "../src/styles/storybook.css";
 import type { Preview } from "@storybook/react-vite";
 import { useEffect } from "react";
 
-import { ALL_SEASONS, SEASONS } from "../src/lib/seasons";
+import { SEASONS } from "../src/lib/seasons";
+import { ALL_SEASONS } from "../src/lib/seasons-drafts";
 
 // Same class-based dark mode contract as the app: the `dark` class on
 // <html>. (FiestaBoard's use-theme hook does this at runtime; Storybook

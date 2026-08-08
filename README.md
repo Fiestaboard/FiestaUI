@@ -52,6 +52,8 @@ FiestaUI ships **no compiled utility CSS**. The consuming app runs Tailwind v4 a
 
 Import the file for a season only once you've promoted it (moved its entry into `SEASONS` and taught the app shell to stamp its `htmlClass`). All drafts are previewable in Storybook's **Season** toolbar without any consumer setup.
 
+> **Migration (breaking):** the draft season data (`DRAFT_SEASONS`, `ALL_SEASONS`) is no longer exported from `"@fiestaboard/ui"` — it's Storybook-only data and now tree-shakes out of production bundles. If you previewed drafts, import them from the subpath instead: `import { ALL_SEASONS } from "@fiestaboard/ui/lib/seasons-drafts"`. The live-season API (`SEASONS`, `getActiveSeason`, `useActiveSeason`, …) is unchanged.
+
 ## Usage
 
 ```tsx
