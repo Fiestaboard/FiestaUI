@@ -1,5 +1,6 @@
 /* Storybook-only Tailwind entry. Consumers do this themselves — see theme.css. */
 @import "tailwindcss";
+@import "./fonts.css";
 @import "./theme.css";
 
 /* Draft seasons are opt-in for consumers (theme.css inlines only the live
