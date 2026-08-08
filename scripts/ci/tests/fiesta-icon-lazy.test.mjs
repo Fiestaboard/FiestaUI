@@ -34,10 +34,7 @@ test("no React elements are created at module scope", () => {
   const initializer = source.search(/function\s+getIconChildren\s*\(/);
   assert.ok(firstJsx !== -1, "expected the <g key=...> JSX to still exist somewhere");
   assert.ok(initializer !== -1, "expected a getIconChildren() initializer (see next test)");
-  assert.ok(
-    firstJsx > initializer,
-    "JSX group elements are created before getIconChildren() — i.e. at module scope",
-  );
+  assert.ok(firstJsx > initializer, "JSX group elements are created before getIconChildren() — i.e. at module scope");
 });
 
 test("children come from a lazy memoized initializer", () => {
@@ -60,9 +57,5 @@ test("children come from a lazy memoized initializer", () => {
   assert.match(getter[0], /return\s+iconChildren\s*;/, "getIconChildren must return the cached tree");
 
   // ...and the component renders the getter's result.
-  assert.match(
-    source,
-    /\{getIconChildren\(\)\}/,
-    "FiestaIcon's render must use {getIconChildren()}",
-  );
+  assert.match(source, /\{getIconChildren\(\)\}/, "FiestaIcon's render must use {getIconChildren()}");
 });
