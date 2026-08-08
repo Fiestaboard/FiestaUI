@@ -22,8 +22,8 @@
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
 import { test } from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { buildSync } from "esbuild";
 
@@ -80,8 +80,7 @@ for (const variant of variants) {
   }
 }
 
-const caseKey = ({ variant, size, className }) =>
-  JSON.stringify([variant ?? null, size ?? null, className ?? null]);
+const caseKey = ({ variant, size, className }) => JSON.stringify([variant ?? null, size ?? null, className ?? null]);
 
 const oldForm = ({ variant, size, className }) => cn(buttonVariants({ variant, size, className }));
 const newForm = ({ variant, size, className }) => cn(buttonVariants({ variant, size }), className);
@@ -90,9 +89,6 @@ const newForm = ({ variant, size, className }) => cn(buttonVariants({ variant, s
 // from src/components/ui/switch.tsx; the assertions prove that wrapping them
 // in cn() was a byte-identical no-op, so the hoist cannot change rendering.
 const HOISTED_STATICS = {
-  "switch.tsx root": [
-    "peer data-[checked]:bg-primary data-[unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-[color,background-color,border-color,box-shadow] duration-150 outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
-  ],
   "switch.tsx thumb": [
     "bg-background dark:data-[unchecked]:bg-foreground dark:data-[checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[checked]:translate-x-[calc(100%-2px)] data-[unchecked]:translate-x-0",
   ],

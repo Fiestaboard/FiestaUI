@@ -48,7 +48,7 @@ function List({ as = "ul", className, marker, gap, ...props }: ListProps) {
 
 /** Semantic list item — unstyled; compose Flex/Text inside as needed. */
 function ListItem({ className, ...props }: React.ComponentProps<"li">) {
-  return <li data-slot="list-item" className={cn(className)} {...props} />;
+  return <li data-slot="list-item" className={className} {...props} />;
 }
 
 export { List, ListItem, listVariants };

@@ -5,6 +5,12 @@ import * as React from "react";
 
 import { cn } from "../../lib/utils";
 
+// Static — hoisted so the thumb skips a per-render cn() pass over a
+// 200+ char literal (scripts/ci/tests/cn-equivalence.test.mjs proves the
+// hoist is byte-identical).
+const thumbClassName =
+  "bg-background dark:data-[unchecked]:bg-foreground dark:data-[checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[checked]:translate-x-[calc(100%-2px)] data-[unchecked]:translate-x-0";
+
 function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimitive.Root>) {
   return (
     <SwitchPrimitive.Root
@@ -19,12 +25,7 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
       )}
       {...props}
     >
-      <SwitchPrimitive.Thumb
-        data-slot="switch-thumb"
-        className={cn(
-          "bg-background dark:data-[unchecked]:bg-foreground dark:data-[checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[checked]:translate-x-[calc(100%-2px)] data-[unchecked]:translate-x-0",
-        )}
-      />
+      <SwitchPrimitive.Thumb data-slot="switch-thumb" className={thumbClassName} />
     </SwitchPrimitive.Root>
   );
 }

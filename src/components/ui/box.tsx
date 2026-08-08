@@ -22,7 +22,7 @@ interface BoxProps extends React.HTMLAttributes<HTMLElement> {
  */
 function Box({ as = "div", className, ...props }: BoxProps) {
   const Component = as as React.ElementType;
-  return <Component data-slot="box" className={cn(className)} {...props} />;
+  return <Component data-slot="box" className={className} {...props} />;
 }
 
 export { Box };
