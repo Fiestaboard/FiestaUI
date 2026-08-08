@@ -1,0 +1,10 @@
+<!--
+  The default theme is dark (see initialGlobals.theme in preview.tsx). Stamp
+  the `dark` class on <html> before first paint so stories render dark
+  immediately instead of painting light and flipping in ThemeSync's effect —
+  which forced a whole-document restyle + repaint on every mount. ThemeSync
+  still owns toolbar flips (it toggles the class off for the light theme).
+-->
+<script>
+  document.documentElement.classList.add("dark");
+</script>

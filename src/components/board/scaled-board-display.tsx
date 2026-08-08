@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { memo, useLayoutEffect, useRef, useState } from "react";
 
 import { isNoteArray } from "../../lib/board-dimensions";
 import { cn } from "../../lib/utils";
@@ -61,7 +61,7 @@ export interface ScaledBoardDisplayProps extends BoardDisplayProps {
  * with no vertical clipping. The toggle is only rendered for note arrays,
  * so flagship/note previews are visually unchanged.
  */
-export function ScaledBoardDisplay({
+function ScaledBoardDisplayImpl({
   previewSizeLabel = "Preview size",
   fitModeLabel = "Fit",
   actualModeLabel = "Actual size",
@@ -116,11 +116,16 @@ export function ScaledBoardDisplay({
       }
       return container;
     };
+    // The constraint ancestor's DOM position is fixed while mounted, so it
+    // can't change between effect runs — resolve it once here and reuse the
+    // same element in compute() and the observer below, instead of re-walking
+    // the ancestors (a getComputedStyle per level) on every rAF frame. This
+    // also guarantees the observed and recomputed elements stay in sync.
+    const constraint = findConstraint();
 
     let rafId: number | null = null;
     const compute = () => {
       rafId = null;
-      const constraint = findConstraint();
       // clientWidth INCLUDES padding, but overflow clips at the padding
       // edge while the visible slot for content is the content box —
       // subtract the constraint's own padding or the board renders
@@ -158,7 +163,7 @@ export function ScaledBoardDisplay({
 
     compute();
     const ro = new ResizeObserver(recompute);
-    ro.observe(findConstraint());
+    ro.observe(constraint);
     ro.observe(container);
     ro.observe(board);
     return () => {
@@ -250,3 +255,11 @@ export function ScaledBoardDisplay({
     </div>
   );
 }
+
+/**
+ * Memoized so a parent re-render with unchanged props doesn't re-render the
+ * wrapper (its children include the toggle UI). The heavyweight
+ * {@link BoardDisplay} below is already memoized with a custom comparator;
+ * this keeps the wrapper from being the weak link in that chain.
+ */
+export const ScaledBoardDisplay = memo(ScaledBoardDisplayImpl);

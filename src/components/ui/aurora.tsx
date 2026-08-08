@@ -1,6 +1,5 @@
 "use client";
 
-import { Color, Mesh, Program, Renderer, Triangle } from "ogl";
 import { useEffect, useRef } from "react";
 
 const VERT = `#version 300 es
@@ -132,114 +131,137 @@ export function Aurora({
     const ctn = containerRef.current;
     if (!ctn) return;
 
-    const renderer = new Renderer({
-      alpha: true,
-      premultipliedAlpha: true,
-      antialias: true,
-    });
-    const gl = renderer.gl;
-    gl.clearColor(0, 0, 0, 0);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    gl.canvas.style.backgroundColor = "transparent";
+    // ogl is loaded lazily so it never enters any consumer's synchronous
+    // module graph — Aurora is the only export that reaches it (issue #64).
+    // WebGL init already happens post-mount, so the extra microtask (or async
+    // chunk fetch) before the first frame is invisible: the canvas fades in
+    // from transparent either way.
+    let cancelled = false;
+    let teardown: (() => void) | undefined;
 
-    const geometry = new Triangle(gl);
-    if (geometry.attributes.uv) {
-      delete geometry.attributes.uv;
-    }
+    void (async () => {
+      const { Color, Mesh, Program, Renderer, Triangle } = await import("ogl");
+      // Unmounted while the import was in flight: bail before touching the
+      // DOM or creating any GL resources.
+      if (cancelled) return;
 
-    // Convert hex color stops to rgb triples, memoized on the stop values so
-    // the conversion (and its allocations) only happens when they change,
-    // not on every rAF frame.
-    let cachedStopsKey = "";
-    let cachedStops: number[][] = [];
-    const toColorStops = (stops: [string, string, string]) => {
-      const key = stops.join(",");
-      if (key !== cachedStopsKey) {
-        cachedStopsKey = key;
-        cachedStops = stops.map((hex) => {
-          const c = new Color(hex);
-          return [c.r, c.g, c.b];
-        });
+      const renderer = new Renderer({
+        alpha: true,
+        premultipliedAlpha: true,
+        antialias: true,
+      });
+      const gl = renderer.gl;
+      gl.clearColor(0, 0, 0, 0);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.canvas.style.backgroundColor = "transparent";
+
+      const geometry = new Triangle(gl);
+      if (geometry.attributes.uv) {
+        delete geometry.attributes.uv;
       }
-      return cachedStops;
-    };
 
-    const program: Program = new Program(gl, {
-      vertex: VERT,
-      fragment: FRAG,
-      uniforms: {
-        uTime: { value: 0 },
-        uAmplitude: { value: propsRef.current.amplitude },
-        uColorStops: { value: toColorStops(propsRef.current.colorStops) },
-        uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
-        uBlend: { value: propsRef.current.blend },
-      },
-    });
+      // Convert hex color stops to rgb triples, memoized on the stop values so
+      // the conversion (and its allocations) only happens when they change,
+      // not on every rAF frame.
+      let cachedStopsKey = "";
+      let cachedStops: number[][] = [];
+      const toColorStops = (stops: [string, string, string]) => {
+        const key = stops.join(",");
+        if (key !== cachedStopsKey) {
+          cachedStopsKey = key;
+          cachedStops = stops.map((hex) => {
+            const c = new Color(hex);
+            return [c.r, c.g, c.b];
+          });
+        }
+        return cachedStops;
+      };
 
-    const mesh = new Mesh(gl, { geometry, program });
+      const program = new Program(gl, {
+        vertex: VERT,
+        fragment: FRAG,
+        uniforms: {
+          uTime: { value: 0 },
+          uAmplitude: { value: propsRef.current.amplitude },
+          uColorStops: { value: toColorStops(propsRef.current.colorStops) },
+          uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
+          uBlend: { value: propsRef.current.blend },
+        },
+      });
 
-    const renderFrame = (t: number) => {
-      const props = propsRef.current;
-      const timeVal = props.time ?? t * 0.01;
-      program.uniforms.uTime.value = timeVal * (props.speed ?? 1.0) * 0.1;
-      program.uniforms.uAmplitude.value = props.amplitude ?? 1.0;
-      program.uniforms.uBlend.value = props.blend ?? 0.5;
-      program.uniforms.uColorStops.value = toColorStops(props.colorStops);
-      renderer.render({ scene: mesh });
-    };
+      const mesh = new Mesh(gl, { geometry, program });
 
-    // prefers-reduced-motion: freeze the aurora on a single frame instead of
-    // running the rAF loop — the colour ramp stays, only the movement stops.
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const renderFrame = (t: number) => {
+        const props = propsRef.current;
+        const timeVal = props.time ?? t * 0.01;
+        program.uniforms.uTime.value = timeVal * (props.speed ?? 1.0) * 0.1;
+        program.uniforms.uAmplitude.value = props.amplitude ?? 1.0;
+        program.uniforms.uBlend.value = props.blend ?? 0.5;
+        program.uniforms.uColorStops.value = toColorStops(props.colorStops);
+        renderer.render({ scene: mesh });
+      };
 
-    function resize() {
-      if (!ctn) return;
-      const width = ctn.offsetWidth;
-      const height = ctn.offsetHeight;
-      renderer.setSize(width, height);
-      program.uniforms.uResolution.value = [width, height];
-      if (reducedMotion.matches) renderFrame(0);
-    }
-    window.addEventListener("resize", resize);
+      // prefers-reduced-motion: freeze the aurora on a single frame instead of
+      // running the rAF loop — the colour ramp stays, only the movement stops.
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-    ctn.appendChild(gl.canvas);
+      function resize() {
+        if (!ctn) return;
+        const width = ctn.offsetWidth;
+        const height = ctn.offsetHeight;
+        renderer.setSize(width, height);
+        program.uniforms.uResolution.value = [width, height];
+        if (reducedMotion.matches) renderFrame(0);
+      }
+      window.addEventListener("resize", resize);
 
-    let animateId = 0;
-    const update = (t: number) => {
-      animateId = requestAnimationFrame(update);
-      renderFrame(t);
-    };
+      ctn.appendChild(gl.canvas);
 
-    // Pause the rAF loop while the container is scrolled out of view — a
-    // visible tab keeps firing rAF for off-screen elements, so without this
-    // the shader keeps painting frames nobody can see. Restart on re-entry.
-    let onScreen = true;
-    const startOrFreeze = () => {
-      cancelAnimationFrame(animateId);
-      if (reducedMotion.matches) renderFrame(0);
-      else if (onScreen) animateId = requestAnimationFrame(update);
-    };
-    reducedMotion.addEventListener("change", startOrFreeze);
+      let animateId = 0;
+      const update = (t: number) => {
+        animateId = requestAnimationFrame(update);
+        renderFrame(t);
+      };
 
-    const observer = new IntersectionObserver((entries) => {
-      onScreen = entries[0].intersectionRatio > 0;
+      // Pause the rAF loop while the container is scrolled out of view — a
+      // visible tab keeps firing rAF for off-screen elements, so without this
+      // the shader keeps painting frames nobody can see. Restart on re-entry.
+      let onScreen = true;
+      const startOrFreeze = () => {
+        cancelAnimationFrame(animateId);
+        if (reducedMotion.matches) renderFrame(0);
+        else if (onScreen) animateId = requestAnimationFrame(update);
+      };
+      reducedMotion.addEventListener("change", startOrFreeze);
+
+      const observer = new IntersectionObserver((entries) => {
+        onScreen = entries[0].intersectionRatio > 0;
+        startOrFreeze();
+      });
+      observer.observe(ctn);
+
+      resize();
       startOrFreeze();
-    });
-    observer.observe(ctn);
 
-    resize();
-    startOrFreeze();
+      teardown = () => {
+        cancelAnimationFrame(animateId);
+        observer.disconnect();
+        reducedMotion.removeEventListener("change", startOrFreeze);
+        window.removeEventListener("resize", resize);
+        if (ctn && gl.canvas.parentNode === ctn) {
+          ctn.removeChild(gl.canvas);
+        }
+        gl.getExtension("WEBGL_lose_context")?.loseContext();
+      };
+    })();
 
     return () => {
-      cancelAnimationFrame(animateId);
-      observer.disconnect();
-      reducedMotion.removeEventListener("change", startOrFreeze);
-      window.removeEventListener("resize", resize);
-      if (ctn && gl.canvas.parentNode === ctn) {
-        ctn.removeChild(gl.canvas);
-      }
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      // Handles both states: before init resolves (`cancelled` stops the
+      // pending IIFE from touching anything) and after (`teardown` releases
+      // the GL context, listeners, and canvas).
+      cancelled = true;
+      teardown?.();
     };
   }, []);
 

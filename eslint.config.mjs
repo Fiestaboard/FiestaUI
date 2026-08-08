@@ -38,6 +38,7 @@ const eslintConfig = [
       react: { version: REACT_VERSION },
     },
     rules: {
+      ...jsxA11y.flatConfigs.recommended.rules,
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/set-state-in-effect": "warn",
@@ -62,6 +63,25 @@ const eslintConfig = [
     rules: {
       "no-console": "off",
     },
+  },
+  {
+    // These primitives are headless wrappers around a single native element
+    // whose content — and, for the label, its control association — is
+    // forwarded from the call site through `children`/`{...props}`. The
+    // jsx-a11y rules below inspect the literal JSX at the definition site and
+    // cannot follow props, so they false-positive here. The rules stay `error`
+    // everywhere else, so a genuinely empty heading, an unassociated label, or
+    // a contentless anchor in real markup is still caught.
+    files: ["src/components/ui/alert.tsx"],
+    rules: { "jsx-a11y/heading-has-content": "off" },
+  },
+  {
+    files: ["src/components/ui/label.tsx"],
+    rules: { "jsx-a11y/label-has-associated-control": "off" },
+  },
+  {
+    files: ["src/components/ui/text-link.tsx"],
+    rules: { "jsx-a11y/anchor-has-content": "off" },
   },
   {
     // scripts/ holds CLI tools whose job is to write to stdout — the CI
