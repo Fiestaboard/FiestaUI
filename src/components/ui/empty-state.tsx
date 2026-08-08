@@ -12,6 +12,13 @@ export interface EmptyStateProps {
   action?: React.ReactNode;
   /** Optional illustration (e.g. SVG) shown instead of icon when provided */
   illustration?: React.ReactNode;
+  /**
+   * Announce the empty state to assistive technology when it appears (applies
+   * `role="status"`). Opt in only when the empty state mounts as the result of
+   * a data change; a statically rendered empty state should stay the default
+   * plain labelled region so it is not announced on page load.
+   */
+  announce?: boolean;
   className?: string;
 }
 
@@ -19,14 +26,21 @@ export interface EmptyStateProps {
  * Consistent empty state for lists and grids (e.g. no pages, no collections).
  * Use with an icon, title, optional description, optional CTA, and optional illustration.
  */
-export function EmptyState({ icon: Icon, title, description, action, illustration, className }: EmptyStateProps) {
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  action,
+  illustration,
+  announce = false,
+  className,
+}: EmptyStateProps) {
   const titleId = React.useId();
   return (
     <div
       data-slot="empty-state"
       className={cn("flex flex-col items-center justify-center text-center py-8 px-4", className)}
-      role="status"
-      aria-live="polite"
+      role={announce ? "status" : "region"}
       aria-labelledby={titleId}
     >
       {illustration ? (
