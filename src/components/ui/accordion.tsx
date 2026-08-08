@@ -6,6 +6,8 @@ import * as React from "react";
 
 import { cn } from "../../lib/utils";
 
+const toArray = (v: string | string[] | undefined) => (v === undefined ? undefined : Array.isArray(v) ? v : [v]);
+
 type AccordionProps = Omit<
   React.ComponentProps<typeof AccordionPrimitive.Root>,
   "value" | "defaultValue" | "onValueChange" | "multiple"
@@ -27,19 +29,20 @@ function Accordion({
   onValueChange,
   ...props
 }: AccordionProps) {
-  const toArray = (v: string | string[] | undefined) => (v === undefined ? undefined : Array.isArray(v) ? v : [v]);
+  const arrayValue = React.useMemo(() => toArray(value), [value]);
+  const arrayDefaultValue = React.useMemo(() => toArray(defaultValue), [defaultValue]);
+  const handleValueChange = React.useCallback(
+    (values: string[]) =>
+      type === "multiple" ? onValueChange?.(values) : onValueChange?.(values[values.length - 1] ?? ""),
+    [onValueChange, type],
+  );
   return (
     <AccordionPrimitive.Root
       data-slot="accordion"
       multiple={type === "multiple"}
-      value={toArray(value)}
-      defaultValue={toArray(defaultValue)}
-      onValueChange={
-        onValueChange
-          ? (values: string[]) =>
-              type === "multiple" ? onValueChange(values) : onValueChange(values[values.length - 1] ?? "")
-          : undefined
-      }
+      value={arrayValue}
+      defaultValue={arrayDefaultValue}
+      onValueChange={onValueChange ? handleValueChange : undefined}
       {...props}
     />
   );

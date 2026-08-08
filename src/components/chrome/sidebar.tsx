@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Menu, Sparkles, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import type { Season } from "../../lib/seasons";
 import { cn } from "../../lib/utils";
@@ -11,6 +11,58 @@ import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { FIESTA_ICON_DATA_URI } from "./fiesta-icon";
 import { FiestaLogo } from "./fiesta-logo";
+
+// Static class strings are hoisted and their active/collapsed variants are
+// merged once at import (via cn, so twMerge dedup matches the per-render form
+// byte-for-byte) instead of on every Sidebar render — which happens on each
+// resize tick. Selecting a precomputed constant replaces the per-item cn()
+// call in the mobile/desktop nav loops with a plain ternary.
+const NAV_ITEM_ACTIVE = "nav-active font-semibold";
+const NAV_ITEM_INACTIVE = "text-sidebar-foreground nav-active-hover";
+
+const MOBILE_ITEM_BASE = "flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium min-h-[48px]";
+const MOBILE_ITEM_ACTIVE = cn(MOBILE_ITEM_BASE, NAV_ITEM_ACTIVE);
+const MOBILE_ITEM_INACTIVE = cn(MOBILE_ITEM_BASE, NAV_ITEM_INACTIVE);
+
+const MOBILE_AI_BASE = "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-base font-medium min-h-[48px]";
+const MOBILE_AI_ACTIVE = cn(MOBILE_AI_BASE, NAV_ITEM_ACTIVE);
+const MOBILE_AI_INACTIVE = cn(MOBILE_AI_BASE, NAV_ITEM_INACTIVE);
+
+const DESKTOP_LINK_BASE =
+  "flex items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium transition-colors";
+const DESKTOP_LINK_ACTIVE = cn(DESKTOP_LINK_BASE, NAV_ITEM_ACTIVE);
+const DESKTOP_LINK_INACTIVE = cn(DESKTOP_LINK_BASE, NAV_ITEM_INACTIVE);
+
+const DESKTOP_AI_BASE =
+  "flex w-full items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium transition-colors";
+const DESKTOP_AI_ACTIVE = cn(DESKTOP_AI_BASE, NAV_ITEM_ACTIVE);
+const DESKTOP_AI_INACTIVE = cn(DESKTOP_AI_BASE, NAV_ITEM_INACTIVE);
+
+const NAV_LABEL_BASE = "whitespace-nowrap overflow-hidden transition-opacity duration-100";
+const NAV_LABEL_COLLAPSED = cn(NAV_LABEL_BASE, "opacity-0 max-w-0");
+const NAV_LABEL_EXPANDED = cn(NAV_LABEL_BASE, "opacity-100 max-w-48 delay-150");
+
+const MOBILE_BACKDROP_BASE =
+  "lg:hidden fixed inset-0 z-[var(--z-mobile-backdrop)] bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 pointer-events-none";
+const MOBILE_BACKDROP_OPEN = cn(MOBILE_BACKDROP_BASE, "opacity-100 pointer-events-auto");
+const MOBILE_BACKDROP_CLOSED = cn(MOBILE_BACKDROP_BASE, "opacity-0");
+
+const MOBILE_MENU_BASE =
+  "lg:hidden fixed top-[calc(var(--mobile-header-height,56px)+16px)] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
+const MOBILE_MENU_OPEN = cn(MOBILE_MENU_BASE, "opacity-100");
+const MOBILE_MENU_CLOSED = cn(MOBILE_MENU_BASE, "opacity-0 pointer-events-none");
+
+// The clip-path/transition style object is otherwise reallocated every render.
+const MOBILE_MENU_TRANSITION =
+  "clip-path var(--motion-duration-slower) var(--motion-ease-spring), opacity var(--motion-duration-exit) var(--motion-ease-standard)";
+const MOBILE_MENU_STYLE_OPEN: React.CSSProperties = {
+  clipPath: "inset(0 0 0 0 round var(--radius-chrome-mobile, 16px))",
+  transition: MOBILE_MENU_TRANSITION,
+};
+const MOBILE_MENU_STYLE_CLOSED: React.CSSProperties = {
+  clipPath: "inset(0 0 100% 0 round var(--radius-chrome-mobile, 16px))",
+  transition: MOBILE_MENU_TRANSITION,
+};
 
 export interface SidebarNavItem {
   key: string;
@@ -120,13 +172,31 @@ export function Sidebar({
   useEffect(() => {
     const header = headerRef.current;
     if (!header) return;
-    const publish = () =>
-      document.documentElement.style.setProperty("--mobile-header-height", `${header.offsetHeight}px`);
-    const ro = new ResizeObserver(publish);
+    let rafId: number | null = null;
+    let last = "";
+    const publish = () => {
+      rafId = null;
+      const next = `${header.offsetHeight}px`;
+      // Skip the write when the height is unchanged (the common case — the
+      // header only changes height when it wraps): the CSS-var write on
+      // <html> invalidates style for the whole document.
+      if (next === last) return;
+      last = next;
+      document.documentElement.style.setProperty("--mobile-header-height", next);
+    };
+    // Coalesce ResizeObserver callbacks via rAF — the header can fire dozens
+    // of events per second while the viewport is dragged, and each callback
+    // reads offsetHeight (forced layout). One write per frame is plenty.
+    const recompute = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(publish);
+    };
+    const ro = new ResizeObserver(recompute);
     ro.observe(header);
     publish();
     return () => {
       ro.disconnect();
+      if (rafId !== null) cancelAnimationFrame(rafId);
       document.documentElement.style.removeProperty("--mobile-header-height");
     };
   }, []);
@@ -143,18 +213,31 @@ export function Sidebar({
   }, [mobileMenuOpen]);
 
   useEffect(() => {
-    const update = () => setAppInset(Math.max(0, (document.body.clientWidth - maxWidth) / 2));
+    let rafId: number | null = null;
+    const update = () => {
+      rafId = null;
+      const next = Math.max(0, (document.body.clientWidth - maxWidth) / 2);
+      // Bail before re-rendering when the inset is unchanged — it's 0
+      // whenever the viewport is at or below maxWidth (the common case on
+      // laptop screens). update reads body.clientWidth (forced layout).
+      setAppInset((prev) => (prev === next ? prev : next));
+    };
+    // Coalesce resize events via rAF — a window drag fires dozens per second.
+    const recompute = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(update);
+    };
     update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    window.addEventListener("resize", recompute);
+    return () => {
+      window.removeEventListener("resize", recompute);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, [maxWidth]);
 
   function renderMobileNavItem(item: SidebarNavItem) {
     const Icon = item.icon;
-    const mobileClassName = cn(
-      "flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium min-h-[48px]",
-      item.active ? "nav-active font-semibold" : "text-sidebar-foreground nav-active-hover",
-    );
+    const mobileClassName = item.active ? MOBILE_ITEM_ACTIVE : MOBILE_ITEM_INACTIVE;
 
     if (item.external) {
       return (
@@ -196,22 +279,12 @@ export function Sidebar({
 
   function renderDesktopNavItem(item: SidebarNavItem) {
     const Icon = item.icon;
-    const linkClassName = cn(
-      "flex items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium transition-colors",
-      item.active ? "nav-active font-semibold" : "text-sidebar-foreground nav-active-hover",
-    );
+    const linkClassName = item.active ? DESKTOP_LINK_ACTIVE : DESKTOP_LINK_INACTIVE;
 
     const inner = (
       <>
         <Icon className="h-5 w-5 flex-shrink-0" />
-        <span
-          className={cn(
-            "whitespace-nowrap overflow-hidden transition-opacity duration-100",
-            collapsed ? "opacity-0 max-w-0" : "opacity-100 max-w-48 delay-150",
-          )}
-        >
-          {item.label}
-        </span>
+        <span className={collapsed ? NAV_LABEL_COLLAPSED : NAV_LABEL_EXPANDED}>{item.label}</span>
       </>
     );
 
@@ -239,14 +312,21 @@ export function Sidebar({
       )
     );
 
+    // Expanded items render no TooltipContent, so the Tooltip state machine and
+    // its React.Children.only walk provide zero UI — return the bare link and
+    // only pay for tooltip machinery when collapsed (where the label tooltip
+    // actually shows). A keyed Fragment adds no DOM node, matching the
+    // asChild trigger which also renders the link directly.
+    if (!collapsed) {
+      return <Fragment key={item.key}>{link}</Fragment>;
+    }
+
     return (
       <Tooltip key={item.key}>
         <TooltipTrigger asChild>{link as React.ReactElement}</TooltipTrigger>
-        {collapsed && (
-          <TooltipContent side="right" className="font-medium">
-            {item.label}
-          </TooltipContent>
-        )}
+        <TooltipContent side="right" className="font-medium">
+          {item.label}
+        </TooltipContent>
       </Tooltip>
     );
   }
@@ -321,32 +401,20 @@ export function Sidebar({
       {/* Mobile Menu Backdrop */}
       <div
         data-testid="mobile-backdrop"
-        className={cn(
-          "lg:hidden fixed inset-0 z-[var(--z-mobile-backdrop)] bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 pointer-events-none",
-          mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0",
-        )}
+        className={mobileMenuOpen ? MOBILE_BACKDROP_OPEN : MOBILE_BACKDROP_CLOSED}
         onClick={() => setMobileMenuOpen(false)}
         aria-hidden="true"
       />
 
       {/* Mobile Menu */}
       <div
-        className={cn(
-          "lg:hidden fixed top-[calc(var(--mobile-header-height,56px)+16px)] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal",
-          mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none",
-        )}
+        className={mobileMenuOpen ? MOBILE_MENU_OPEN : MOBILE_MENU_CLOSED}
         role={mobileMenuOpen ? "dialog" : undefined}
         aria-modal={mobileMenuOpen ? true : undefined}
         aria-label={mobileMenuOpen ? labels.navigationMenu : undefined}
         aria-hidden={!mobileMenuOpen}
         inert={!mobileMenuOpen ? true : undefined}
-        style={{
-          clipPath: mobileMenuOpen
-            ? "inset(0 0 0 0 round var(--radius-chrome-mobile, 16px))"
-            : "inset(0 0 100% 0 round var(--radius-chrome-mobile, 16px))",
-          transition:
-            "clip-path var(--motion-duration-slower) var(--motion-ease-spring), opacity var(--motion-duration-exit) var(--motion-ease-standard)",
-        }}
+        style={mobileMenuOpen ? MOBILE_MENU_STYLE_OPEN : MOBILE_MENU_STYLE_CLOSED}
       >
         <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {primaryItems.map(renderMobileNavItem)}
@@ -357,10 +425,7 @@ export function Sidebar({
                 ai.onOpen();
                 setMobileMenuOpen(false);
               }}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-base font-medium min-h-[48px]",
-                ai.active ? "nav-active font-semibold" : "text-sidebar-foreground nav-active-hover",
-              )}
+              className={ai.active ? MOBILE_AI_ACTIVE : MOBILE_AI_INACTIVE}
             >
               <Sparkles className="h-5 w-5" />
               {labels.aiAssistant}
@@ -441,18 +506,10 @@ export function Sidebar({
                         type="button"
                         onClick={ai.onOpen}
                         aria-label={labels.aiAssistant}
-                        className={cn(
-                          "flex w-full items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium transition-colors",
-                          ai.active ? "nav-active font-semibold" : "text-sidebar-foreground nav-active-hover",
-                        )}
+                        className={ai.active ? DESKTOP_AI_ACTIVE : DESKTOP_AI_INACTIVE}
                       >
                         <Sparkles className="h-5 w-5 flex-shrink-0" />
-                        <span
-                          className={cn(
-                            "whitespace-nowrap overflow-hidden transition-opacity duration-100",
-                            collapsed ? "opacity-0 max-w-0" : "opacity-100 max-w-48 delay-150",
-                          )}
-                        >
+                        <span className={collapsed ? NAV_LABEL_COLLAPSED : NAV_LABEL_EXPANDED}>
                           {labels.aiAssistant}
                         </span>
                       </button>

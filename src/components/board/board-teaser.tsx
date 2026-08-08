@@ -16,6 +16,7 @@ import { memo, useMemo } from "react";
 
 import { type BoardToken, parseLine } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
+import { gapClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
 
 export interface BoardTeaserProps {
   /** Literal board line, e.g. `"{66}AAPL +1.88%"`. */
@@ -57,23 +58,9 @@ export const BoardTeaser = memo(function BoardTeaser({
     return text || "Board teaser";
   }, [teaser]);
 
-  // Tile metrics shared with StaticBoardDisplay so a teaser strip matches a
-  // full board row rendered at the same size.
-  const sizeClasses: Record<string, string> = {
-    sm: "w-[14px] h-[18px]",
-    md: "w-[14px] h-[20px] sm:w-[20px] sm:h-[28px] md:w-[24px] md:h-[34px] lg:w-[28px] lg:h-[40px]",
-    lg: "w-[18px] h-[26px] sm:w-[24px] sm:h-[34px] md:w-[28px] md:h-[40px] lg:w-[32px] lg:h-[46px]",
-  };
-  const textSizeClasses: Record<string, string> = {
-    sm: "text-[7px]",
-    md: "text-[7px] sm:text-[10px] md:text-[13px] lg:text-[16px]",
-    lg: "text-[10px] sm:text-[13px] md:text-[16px] lg:text-[20px]",
-  };
-  const gapClasses: Record<string, string> = {
-    sm: "gap-[3px]",
-    md: "gap-[2px] sm:gap-[4px] md:gap-[5px]",
-    lg: "gap-[3px] sm:gap-[5px] md:gap-[6px] lg:gap-[7px]",
-  };
+  // Tile metrics (sizeClasses/textSizeClasses/gapClasses) come from
+  // ../../lib/board-metrics so a teaser strip matches a full board row rendered
+  // at the same size and the shared maps can't drift between renderers.
 
   const tileBoxShadow =
     size === "sm"

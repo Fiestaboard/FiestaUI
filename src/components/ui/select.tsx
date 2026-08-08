@@ -74,15 +74,21 @@ function SelectValue({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Value> & { placeholder?: React.ReactNode }) {
   const items = React.useContext(SelectItemsContext);
+  // Index the items by value so the render prop is an O(1) lookup instead of
+  // an O(n) `find` scan; `items` is a stable reference from context.
+  const labels = React.useMemo(() => new Map(items.map((item) => [item.value, item.label])), [items]);
+  const renderValue = React.useCallback(
+    (value: unknown) => {
+      // Radix showed the placeholder for empty values and nothing for a
+      // value with no matching item; Base UI would render the raw value.
+      if (value == null || value === "") return placeholder;
+      return labels.has(value) ? labels.get(value) : placeholder;
+    },
+    [labels, placeholder],
+  );
   return (
     <SelectPrimitive.Value data-slot="select-value" {...props}>
-      {(value: unknown) => {
-        // Radix showed the placeholder for empty values and nothing for a
-        // value with no matching item; Base UI would render the raw value.
-        if (value == null || value === "") return placeholder;
-        const match = items.find((item) => item.value === value);
-        return match ? match.label : placeholder;
-      }}
+      {renderValue}
     </SelectPrimitive.Value>
   );
 }
@@ -141,6 +147,11 @@ function SelectContent({
   side,
   align,
   sideOffset = 4,
+  // `position` was a Radix concept; Base UI always positions popper-style
+  // here (alignItemWithTrigger is disabled to match). Destructure it away
+  // rather than `delete`-ing off `props`, which would push the object into
+  // dictionary mode and de-opt the `{...props}` spread below.
+  position: _position,
   disableHeightConstraint = false,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Popup> & {
@@ -150,9 +161,6 @@ function SelectContent({
   position?: "popper" | "item-aligned";
   disableHeightConstraint?: boolean;
 }) {
-  // `position` was a Radix concept; Base UI always positions popper-style
-  // here (alignItemWithTrigger is disabled to match).
-  delete (props as Record<string, unknown>).position;
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Positioner

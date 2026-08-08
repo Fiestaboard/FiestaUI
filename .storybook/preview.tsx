@@ -67,6 +67,14 @@ const preview: Preview = {
       },
     },
     a11y: {
+      // a11y is enforced in the test-runner path (.storybook/test-runner.ts,
+      // run by the a11y-tests CI job), not in the preview iframe. Without
+      // `test: "off"` the addon's default (`test: "todo"`) runs a full axe
+      // pass from its `afterEach` on every story render, so the runtime bench
+      // (frameP95/longTasks) and VRT would be partly measuring axe rather than
+      // the component. Off here keeps the manual addon panel available while
+      // taking axe off the render hot path.
+      test: "off",
       config: {
         rules: [
           { id: "page-has-heading-one", enabled: false },

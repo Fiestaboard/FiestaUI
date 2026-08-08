@@ -13,7 +13,7 @@
  * props (`loadingLabel` / `emptyLabel` / `messageLabel`, `animationsEnabled`).
  */
 
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, memo, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   BOARD_CHARS,
@@ -27,49 +27,212 @@ import {
 } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
+import { gapClasses, paddingClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
 
-// Shared CSS keyframes — injected once into the document head instead of
-// being duplicated inside every CharTile render (~132 per board).
-let keyframesInjected = false;
-function ensureKeyframesInjected() {
-  if (keyframesInjected || typeof document === "undefined") return;
-  keyframesInjected = true;
-  const style = document.createElement("style");
-  style.setAttribute("data-board-keyframes", "");
-  style.textContent = `
+// Shared split-flap keyframes. Rendered once from BoardDisplay as a
+// <style href precedence> element — React 19 dedupes it by href and hoists it
+// to <head> before paint, so it lands once per document no matter how many
+// boards/tiles mount. Previously this was appended to document.head from
+// CharTile's render body (~132 calls per board render), a render-phase side
+// effect that recalced styles mid-reconciliation and blocked React Compiler.
+const FLAP_KEYFRAMES = `
     @keyframes flapDown { from { transform: rotateX(0deg); } to { transform: rotateX(-90deg); } }
     @keyframes flapUp { from { transform: rotateX(90deg); } to { transform: rotateX(0deg); } }
     @keyframes flapShadow { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
   `;
-  document.head.appendChild(style);
-}
 
-// Render-invariant class maps — keyed by size, identical for every tile/board.
-// Hoisted to module scope so they are allocated once at import instead of on
-// every render. During loading each of the ~132 tiles re-renders every 80ms,
-// so re-allocating these per render churned continuously across the grid.
-const sizeClasses: Record<"sm" | "md" | "lg", string> = {
-  sm: "w-[14px] h-[18px]", // Small previews stay fixed size
-  md: "w-[14px] h-[20px] sm:w-[20px] sm:h-[28px] md:w-[24px] md:h-[34px] lg:w-[28px] lg:h-[40px]", // Responsive
-  lg: "w-[18px] h-[26px] sm:w-[24px] sm:h-[34px] md:w-[28px] md:h-[40px] lg:w-[32px] lg:h-[46px]", // Responsive
+// Render-invariant class maps (size → Tailwind classes) live at module scope in
+// ../../lib/board-metrics so they are allocated once at import instead of on
+// every render, and so the animated, static, and teaser renderers share one
+// source and can't drift. During loading each of the ~132 tiles re-renders
+// every 80ms, so re-allocating these per render churned continuously across the
+// grid (PR #31 / issue #24).
+
+// ---------------------------------------------------------------------------
+// Render-invariant style data — hoisted to module scope (same technique as the
+// class maps above, from PR #31). The values here are either fully static or
+// derivable from a two-key space (boardType, plus the constant flap timings),
+// so keeping them at import scope avoids re-allocating fresh style objects and
+// re-building multi-line boxShadow template strings inside every CharTile /
+// BoardDisplay render — the hottest path during loading, where ~132 tiles each
+// re-render every 80ms. Values are byte-for-byte identical to the originals, so
+// rendering is unchanged.
+// ---------------------------------------------------------------------------
+
+// CharTile 3D flip-tile shadow — depends only on board type.
+const charTileBoxShadow: Record<"black" | "white", string> = {
+  white: `
+      0 2px 4px rgba(0,0,0,0.2),
+      inset 0 1px 2px rgba(0,0,0,0.1),
+      inset 0 -1px 2px rgba(255,255,255,0.5),
+      inset 1px 0 1px rgba(0,0,0,0.08),
+      inset -1px 0 1px rgba(255,255,255,0.4)
+    `,
+  black: `
+      0 2px 4px rgba(0,0,0,0.5),
+      inset 0 1px 2px rgba(0,0,0,0.8),
+      inset 0 -1px 1px rgba(255,255,255,0.08),
+      inset 1px 0 1px rgba(0,0,0,0.5),
+      inset -1px 0 1px rgba(255,255,255,0.05)
+    `,
 };
 
-const textSizeClasses: Record<"sm" | "md" | "lg", string> = {
-  sm: "text-[7px]", // Small previews stay fixed size
-  md: "text-[7px] sm:text-[10px] md:text-[13px] lg:text-[16px]", // Responsive
-  lg: "text-[10px] sm:text-[13px] md:text-[16px] lg:text-[20px]", // Responsive
+// Outer CharTile wrapper style, keyed by board type. The non-animating variant
+// is returned as-is (zero per-render allocation); the animating variant adds
+// perspective/isolation for the flap layers, exactly as the inline spread did.
+const charTileBaseStyle: Record<"black" | "white", CSSProperties> = {
+  black: {
+    backgroundColor: "var(--color-board-surface-dark)",
+    boxShadow: charTileBoxShadow.black,
+    contain: "layout style paint",
+  },
+  white: {
+    backgroundColor: "var(--color-board-surface-light)",
+    boxShadow: charTileBoxShadow.white,
+    contain: "layout style paint",
+  },
+};
+const charTileAnimatingStyle: Record<"black" | "white", CSSProperties> = {
+  black: { ...charTileBaseStyle.black, perspective: "800px", isolation: "isolate" },
+  white: { ...charTileBaseStyle.white, perspective: "800px", isolation: "isolate" },
 };
 
-const paddingClasses: Record<"sm" | "md" | "lg", string> = {
-  sm: "px-3 py-4", // Small previews stay fixed size
-  md: "px-2 py-3 sm:px-4 sm:py-6 md:px-5 md:py-8 lg:px-6 lg:py-10", // Responsive
-  lg: "px-3 py-4 sm:px-5 sm:py-7 md:px-6 md:py-9 lg:px-8 lg:py-12", // Responsive
+// Inset shadow shared by static color tiles (both the standalone color-tile and
+// the color glyph rendered inside a character tile). Fully static.
+const colorTileBoxShadow = `
+      0 2px 4px rgba(0,0,0,0.3),
+      inset 0 1px 1px rgba(255,255,255,0.15),
+      inset 0 -1px 1px rgba(0,0,0,0.25),
+      inset 1px 0 1px rgba(255,255,255,0.1),
+      inset -1px 0 1px rgba(0,0,0,0.2)
+    `;
+
+// Split-flap timing (ms). animationDuration matches Vestaboard "Fast" mode
+// (~60 RPM, 62 flaps) — a parity contract; see the file header. Every derived
+// flap duration is a compile-time constant, so the layer style objects below
+// (which embed them in `animation` strings) are render-invariant and hoistable.
+const FLAP_DURATION = 80;
+const FLAP_TOP_DUR = Math.round(FLAP_DURATION * 0.55);
+const FLAP_BOT_DELAY = Math.round(FLAP_DURATION * 0.35);
+const FLAP_BOT_DUR = Math.round(FLAP_DURATION * 0.55);
+
+// Flap-animation layer styles. The four masks/flaps are fully static; the two
+// hinge/shadow gradients vary only by board type.
+const flapStaticTopStyle: CSSProperties = {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  height: "50%",
+  overflow: "hidden",
+  zIndex: 1,
+};
+const flapStaticBottomStyle: CSSProperties = {
+  position: "absolute",
+  top: "50%",
+  left: 0,
+  right: 0,
+  height: "50%",
+  overflow: "hidden",
+  zIndex: 1,
+};
+const flapTopFlapStyle: CSSProperties = {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  height: "50%",
+  overflow: "hidden",
+  zIndex: 3,
+  transformOrigin: "bottom center",
+  backfaceVisibility: "hidden",
+  willChange: "transform",
+  animation: `flapDown ${FLAP_TOP_DUR}ms ease-in forwards`,
+};
+const flapHingeShadowStyle: CSSProperties = {
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  height: "30%",
+  background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.12))",
+  pointerEvents: "none",
+};
+const flapBottomFlapStyle: CSSProperties = {
+  position: "absolute",
+  top: "50%",
+  left: 0,
+  right: 0,
+  height: "50%",
+  overflow: "hidden",
+  zIndex: 2,
+  transformOrigin: "top center",
+  backfaceVisibility: "hidden",
+  willChange: "transform",
+  transform: "rotateX(90deg)",
+  animation: `flapUp ${FLAP_BOT_DUR}ms cubic-bezier(0.33, 0, 0.15, 1) ${FLAP_BOT_DELAY}ms forwards`,
+};
+const flapHingeHighlightStyle: Record<"black" | "white", CSSProperties> = {
+  white: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "30%",
+    background: "linear-gradient(to bottom, rgba(0,0,0,0.06), transparent)",
+    pointerEvents: "none",
+  },
+  black: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "30%",
+    background: "linear-gradient(to bottom, rgba(0,0,0,0.15), transparent)",
+    pointerEvents: "none",
+  },
+};
+const flapCastShadowStyle: Record<"black" | "white", CSSProperties> = {
+  white: {
+    position: "absolute",
+    top: "50%",
+    left: 0,
+    right: 0,
+    height: "50%",
+    background: "linear-gradient(to bottom, rgba(0,0,0,0.06), transparent)",
+    zIndex: 4,
+    pointerEvents: "none",
+    opacity: 0,
+    animation: `flapShadow ${FLAP_DURATION}ms ease-in-out forwards`,
+  },
+  black: {
+    position: "absolute",
+    top: "50%",
+    left: 0,
+    right: 0,
+    height: "50%",
+    background: "linear-gradient(to bottom, rgba(0,0,0,0.3), transparent)",
+    zIndex: 4,
+    pointerEvents: "none",
+    opacity: 0,
+    animation: `flapShadow ${FLAP_DURATION}ms ease-in-out forwards`,
+  },
 };
 
-const gapClasses: Record<"sm" | "md" | "lg", string> = {
-  sm: "gap-[3px]", // Small previews stay fixed size
-  md: "gap-[2px] sm:gap-[4px] md:gap-[5px]", // Responsive
-  lg: "gap-[3px] sm:gap-[5px] md:gap-[6px] lg:gap-[7px]", // Responsive
+// BoardDisplay outer-bezel depth shadow — depends only on board type.
+const bezelBoxShadow: Record<"black" | "white", string> = {
+  white: `
+      0 8px 32px rgba(0,0,0,0.12),
+      0 4px 16px rgba(0,0,0,0.08),
+      inset 0 1px 2px rgba(255,255,255,0.9),
+      inset 0 0 0 1px rgba(255,255,255,0.5)
+    `,
+  black: `
+      0 8px 32px rgba(0,0,0,0.6),
+      0 4px 16px rgba(0,0,0,0.4),
+      inset 0 1px 1px rgba(255,255,255,0.08),
+      inset 0 0 0 1px rgba(255,255,255,0.03)
+    `,
 };
 
 // ---------------------------------------------------------------------------
@@ -283,6 +446,39 @@ const GridRow = memo(
   },
 );
 
+// Shared loading ticker — a single 80ms interval for the whole app instead of
+// one setInterval per CharTile. A flagship board renders ~132 tiles; while
+// loading, each used to own its own timer (~132 concurrent intervals, each
+// firing its own setState on its own callback, which timer jitter kept out of
+// phase so React could not batch them). Now every loading tile subscribes to
+// this one ticker: on each tick the store calls all subscribers synchronously,
+// so their setState updates land in a single batched render pass and stay in
+// lockstep. The interval only runs while at least one tile is subscribed.
+//
+// 80ms matches the per-character step duration below (`animationDuration`) —
+// the Vestaboard "Fast" mode parity contract — so cadence is unchanged.
+const LOADING_TICK_MS = 80;
+const loadingTickSubscribers = new Set<() => void>();
+let loadingTickIntervalId: ReturnType<typeof setInterval> | null = null;
+
+function subscribeLoadingTick(callback: () => void): () => void {
+  loadingTickSubscribers.add(callback);
+  if (loadingTickIntervalId === null) {
+    loadingTickIntervalId = setInterval(() => {
+      // Iterate a snapshot: a subscriber's setState is async and cannot mutate
+      // the set mid-loop, but snapshotting keeps this robust regardless.
+      for (const cb of [...loadingTickSubscribers]) cb();
+    }, LOADING_TICK_MS);
+  }
+  return () => {
+    loadingTickSubscribers.delete(callback);
+    if (loadingTickSubscribers.size === 0 && loadingTickIntervalId !== null) {
+      clearInterval(loadingTickIntervalId);
+      loadingTickIntervalId = null;
+    }
+  };
+}
+
 // Individual character tile component - memoized to prevent unnecessary re-renders
 // Now pre-renders all 71 characters and uses CSS to show/hide them
 const CharTile = memo(
@@ -320,7 +516,7 @@ const CharTile = memo(
     const targetCharIndex = getCharIndex(targetChar);
 
     // All tiles flip in sync - same duration, no random delay
-    const animationDuration = 80; // ms per character step — matches Vestaboard "Fast" mode (~60 RPM, 62 flaps)
+    const animationDuration = FLAP_DURATION; // ms per character step — matches Vestaboard "Fast" mode (~60 RPM, 62 flaps)
 
     // State for current character index during animation
     // Always start from target character - tiles are set by the parent component
@@ -379,17 +575,18 @@ const CharTile = memo(
           setCurrentCharIndex(targetCharIndex);
         }
 
-        // Cycle through all characters in order, one per tick
-        // Continue cycling indefinitely while isAnimating is true
-        intervalRef.current = setInterval(() => {
+        // Cycle through all characters in order, one per tick, driven by the
+        // shared board ticker (one interval for the whole app) instead of a
+        // per-tile setInterval. Each tile still advances its own glyph from its
+        // own position, so the per-tile cycle is unchanged — only the timer is
+        // shared, which keeps every loading tile in phase and batches their
+        // updates into one render pass. Continues while isAnimating is true.
+        const unsubscribe = subscribeLoadingTick(() => {
           setCurrentCharIndex((prev) => (prev + 1) % BOARD_CHARS.length);
-        }, animationDuration);
+        });
 
         return () => {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
+          unsubscribe();
         };
       } else if (wasAnimating) {
         // Just stopped loading - transition from current position to target
@@ -627,31 +824,12 @@ const CharTile = memo(
       }
     }, [targetCharIndex, isAnimating, isTransitioning, animationDuration, animationsEnabled]);
 
-    // Enhanced 3D shadows for flip tile effect
-    const boxShadow = isWhiteBoard
-      ? `
-      0 2px 4px rgba(0,0,0,0.2),
-      inset 0 1px 2px rgba(0,0,0,0.1),
-      inset 0 -1px 2px rgba(255,255,255,0.5),
-      inset 1px 0 1px rgba(0,0,0,0.08),
-      inset -1px 0 1px rgba(255,255,255,0.4)
-    `
-      : `
-      0 2px 4px rgba(0,0,0,0.5),
-      inset 0 1px 2px rgba(0,0,0,0.8),
-      inset 0 -1px 1px rgba(255,255,255,0.08),
-      inset 1px 0 1px rgba(0,0,0,0.5),
-      inset -1px 0 1px rgba(255,255,255,0.05)
-    `;
-
     // Color tiles also animate - they cycle through all characters during loading
     // No special handling needed - they go through the same animation logic below
 
     const currentChar = BOARD_CHARS[currentCharIndex];
     const prevCharIndex = (currentCharIndex - 1 + BOARD_CHARS.length) % BOARD_CHARS.length;
     const prevChar = BOARD_CHARS[prevCharIndex];
-
-    ensureKeyframesInjected();
 
     return (
       <>
@@ -662,12 +840,7 @@ const CharTile = memo(
           data-target-char={targetChar}
           data-is-animating={isAnimating}
           data-is-transitioning={isTransitioning}
-          style={{
-            backgroundColor: tileBg,
-            boxShadow,
-            contain: "layout style paint",
-            ...(isAnimating || isTransitioning ? { perspective: "800px", isolation: "isolate" } : {}),
-          }}
+          style={isAnimating || isTransitioning ? charTileAnimatingStyle[boardType] : charTileBaseStyle[boardType]}
         >
           {/* Static display - show target character when not animating and not transitioning */}
           {!isAnimating &&
@@ -699,13 +872,7 @@ const CharTile = memo(
                         width: "calc(100% - (var(--color-margin-h) * 2))",
                         height: "calc(100% - (var(--color-margin-top) + var(--color-margin-bottom)))",
                         backgroundColor: bgColor,
-                        boxShadow: `
-                      0 2px 4px rgba(0,0,0,0.3),
-                      inset 0 1px 1px rgba(255,255,255,0.15),
-                      inset 0 -1px 1px rgba(0,0,0,0.25),
-                      inset 1px 0 1px rgba(255,255,255,0.1),
-                      inset -1px 0 1px rgba(0,0,0,0.2)
-                    `,
+                        boxShadow: colorTileBoxShadow,
                       }}
                     >
                       <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/10" />
@@ -758,13 +925,7 @@ const CharTile = memo(
                       className="absolute inset-0 rounded-[3px]"
                       style={{
                         backgroundColor: charBg,
-                        boxShadow: `
-                      0 2px 4px rgba(0,0,0,0.3),
-                      inset 0 1px 1px rgba(255,255,255,0.15),
-                      inset 0 -1px 1px rgba(0,0,0,0.25),
-                      inset 1px 0 1px rgba(255,255,255,0.1),
-                      inset -1px 0 1px rgba(0,0,0,0.2)
-                    `,
+                        boxShadow: colorTileBoxShadow,
                       }}
                     />
                   )}
@@ -780,10 +941,6 @@ const CharTile = memo(
           {(isAnimating || isTransitioning) &&
             (() => {
               const newChar = currentChar;
-              const flipDur = animationDuration;
-              const topDur = Math.round(flipDur * 0.55);
-              const botDelay = Math.round(flipDur * 0.35);
-              const botDur = Math.round(flipDur * 0.55);
 
               const renderHalf = (char: string, isTop: boolean) => {
                 const isColor = isColorTile(char);
@@ -818,120 +975,27 @@ const CharTile = memo(
               return (
                 <>
                   {/* Layer 1: new char top half — sits behind falling top flap */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: "50%",
-                      overflow: "hidden",
-                      zIndex: 1,
-                    }}
-                  >
-                    {renderHalf(newChar, true)}
-                  </div>
+                  <div style={flapStaticTopStyle}>{renderHalf(newChar, true)}</div>
 
                   {/* Layer 2: old char bottom half — sits behind unfolding bottom flap */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "50%",
-                      left: 0,
-                      right: 0,
-                      height: "50%",
-                      overflow: "hidden",
-                      zIndex: 1,
-                    }}
-                  >
-                    {renderHalf(prevChar, false)}
-                  </div>
+                  <div style={flapStaticBottomStyle}>{renderHalf(prevChar, false)}</div>
 
                   {/* Layer 3: top flap — old char top half, folds DOWN (hinged at midpoint) */}
-                  <div
-                    key={`ft-${currentCharIndex}`}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: "50%",
-                      overflow: "hidden",
-                      zIndex: 3,
-                      transformOrigin: "bottom center",
-                      backfaceVisibility: "hidden",
-                      willChange: "transform",
-                      animation: `flapDown ${topDur}ms ease-in forwards`,
-                    }}
-                  >
+                  <div key={`ft-${currentCharIndex}`} style={flapTopFlapStyle}>
                     {renderHalf(prevChar, true)}
                     {/* Hinge shadow at bottom edge of flap */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        height: "30%",
-                        background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.12))",
-                        pointerEvents: "none",
-                      }}
-                    />
+                    <div style={flapHingeShadowStyle} />
                   </div>
 
                   {/* Layer 4: bottom flap — new char bottom half, UNFOLDS into place */}
-                  <div
-                    key={`fb-${currentCharIndex}`}
-                    style={{
-                      position: "absolute",
-                      top: "50%",
-                      left: 0,
-                      right: 0,
-                      height: "50%",
-                      overflow: "hidden",
-                      zIndex: 2,
-                      transformOrigin: "top center",
-                      backfaceVisibility: "hidden",
-                      willChange: "transform",
-                      transform: "rotateX(90deg)",
-                      animation: `flapUp ${botDur}ms cubic-bezier(0.33, 0, 0.15, 1) ${botDelay}ms forwards`,
-                    }}
-                  >
+                  <div key={`fb-${currentCharIndex}`} style={flapBottomFlapStyle}>
                     {renderHalf(newChar, false)}
                     {/* Hinge highlight at top edge of flap */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: "30%",
-                        background: isWhiteBoard
-                          ? "linear-gradient(to bottom, rgba(0,0,0,0.06), transparent)"
-                          : "linear-gradient(to bottom, rgba(0,0,0,0.15), transparent)",
-                        pointerEvents: "none",
-                      }}
-                    />
+                    <div style={flapHingeHighlightStyle[boardType]} />
                   </div>
 
                   {/* Shadow cast by falling flap onto bottom half */}
-                  <div
-                    key={`fs-${currentCharIndex}`}
-                    style={{
-                      position: "absolute",
-                      top: "50%",
-                      left: 0,
-                      right: 0,
-                      height: "50%",
-                      background: isWhiteBoard
-                        ? "linear-gradient(to bottom, rgba(0,0,0,0.06), transparent)"
-                        : "linear-gradient(to bottom, rgba(0,0,0,0.3), transparent)",
-                      zIndex: 4,
-                      pointerEvents: "none",
-                      opacity: 0,
-                      animation: `flapShadow ${flipDur}ms ease-in-out forwards`,
-                    }}
-                  />
+                  <div key={`fs-${currentCharIndex}`} style={flapCastShadowStyle[boardType]} />
 
                   {/* Split line at midpoint */}
                   <div
@@ -1047,20 +1111,8 @@ export const BoardDisplay = memo(
     const bezelBg = isWhiteBoard ? "var(--color-board-bezel-light)" : "var(--color-board-bezel-dark)";
     const borderColor = isWhiteBoard ? "var(--color-board-bezel-border-light)" : "var(--color-board-bezel-border-dark)";
 
-    // Enhanced shadow for depth
-    const boxShadow = isWhiteBoard
-      ? `
-      0 8px 32px rgba(0,0,0,0.12),
-      0 4px 16px rgba(0,0,0,0.08),
-      inset 0 1px 2px rgba(255,255,255,0.9),
-      inset 0 0 0 1px rgba(255,255,255,0.5)
-    `
-      : `
-      0 8px 32px rgba(0,0,0,0.6),
-      0 4px 16px rgba(0,0,0,0.4),
-      inset 0 1px 1px rgba(255,255,255,0.08),
-      inset 0 0 0 1px rgba(255,255,255,0.03)
-    `;
+    // Enhanced shadow for depth — keyed by board type, hoisted to module scope.
+    const boxShadow = bezelBoxShadow[boardType];
 
     // Width is determined entirely by tile CSS classes × col count; no fixed minimum.
 
@@ -1083,6 +1135,13 @@ export const BoardDisplay = memo(
 
     return (
       <div className={`w-full flex justify-center`}>
+        {/* Split-flap keyframes — only the animated path uses them. React 19
+            hoists this to <head> and dedupes by href across every board. */}
+        {!isStatic && (
+          <style href="board-flap-keyframes" precedence="default">
+            {FLAP_KEYFRAMES}
+          </style>
+        )}
         <div
           role="img"
           aria-label={boardText}
