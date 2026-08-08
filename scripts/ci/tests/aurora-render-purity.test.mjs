@@ -66,7 +66,7 @@ test("aurora syncs propsRef inside useLayoutEffect, not in the render body", () 
 test("aurora's window resize listener is rAF-coalesced with an in-flight guard", () => {
   // The listener must not be the raw resize() function.
   const listenerMatch = src.match(/window\.addEventListener\(\s*["']resize["']\s*,\s*(\w+)\s*\)/);
-  assert.ok(listenerMatch, "expected window.addEventListener(\"resize\", <handler>) in aurora.tsx");
+  assert.ok(listenerMatch, 'expected window.addEventListener("resize", <handler>) in aurora.tsx');
   const handler = listenerMatch[1];
   assert.notEqual(
     handler,
