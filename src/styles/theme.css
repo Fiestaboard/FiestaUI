@@ -700,6 +700,16 @@
     opacity: 0;
   }
 }
+/* Wrapper so the 48 particles append to the live tree in a single mutation
+   and share one animationend listener. Fixed (out of flow) so the empty
+   container never affects body layout; no transform/filter/contain here, so
+   the fixed particles still resolve against the viewport. */
+.pride-burst {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
 .pride-burst-particle {
   position: fixed;
   width: 7px;
@@ -709,6 +719,14 @@
   z-index: var(--z-confetti);
   /* 0.8s default is a one-off (JS overrides via --dur), so it stays inline */
   animation: pride-burst var(--dur, 0.8s) var(--motion-ease-out) forwards;
+}
+
+/* fireSeasonBurst() already skips the burst under reduced motion, but mirror
+   every other motion surface in this file with a CSS gate as a backstop. */
+@media (prefers-reduced-motion: reduce) {
+  .pride-burst-particle {
+    animation: none !important;
+  }
 }
 
 /* Board switch transition — the app-wide board selector wraps its state
