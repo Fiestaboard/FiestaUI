@@ -427,25 +427,22 @@
   }
 }
 
-/* Accordion animations — grid-row technique avoids layout-triggering height animation */
-@keyframes accordion-down {
-  from {
-    grid-template-rows: 0fr;
-  }
-  to {
-    grid-template-rows: 1fr;
-  }
-}
-
-@keyframes accordion-up {
-  from {
-    grid-template-rows: 1fr;
-  }
-  to {
-    grid-template-rows: 0fr;
-  }
-}
-
+/* Accordion animation classes.
+ *
+ * These resolve to tw-animate-css's `accordion-down`/`accordion-up`
+ * keyframes (registered via its @theme import at the top of this file),
+ * which animate `height: 0 <-> var(--radix-accordion-content-height,
+ * ... auto)`. That is the ONLY version of these keyframes that has ever
+ * shipped: a same-named grid-template-rows pair that used to live here was
+ * silently discarded by the Tailwind build in favor of tw-animate's
+ * (issue #71). Restoring the grid technique means renaming the keyframes
+ * (fui- prefix) and re-wiring these classes — a behavior change that needs
+ * visual review, tracked separately from the dead-CSS cleanup.
+ *
+ * `display: grid` is kept deliberately: it shipped with these classes all
+ * along, and removing it is a rendered-layout change (grid vs block
+ * formatting context) outside the pixel-identical scope of the cleanup.
+ */
 .animate-accordion-down {
   display: grid;
   animation: accordion-down var(--motion-duration-base) var(--motion-ease-out);
@@ -454,167 +451,6 @@
 .animate-accordion-up {
   display: grid;
   animation: accordion-up var(--motion-duration-base) var(--motion-ease-out);
-}
-
-/* Tailwind animate utilities for Radix UI */
-@keyframes enter {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes exit {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes slide-in-from-right {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slide-out-to-right {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes slide-in-from-left {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slide-out-to-left {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-100%);
-  }
-}
-
-@keyframes slide-in-from-top {
-  from {
-    transform: translateY(-100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-@keyframes slide-out-to-top {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-100%);
-  }
-}
-
-@keyframes slide-in-from-bottom {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-@keyframes slide-out-to-bottom {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(100%);
-  }
-}
-
-.animate-in {
-  animation: enter var(--motion-duration-slow) var(--motion-ease-spring);
-}
-
-.animate-out {
-  animation: exit var(--motion-duration-slow) var(--motion-ease-spring);
-}
-
-.fade-in-0 {
-  animation: fade-in var(--motion-duration-base) var(--motion-ease-out);
-}
-
-.fade-out-0 {
-  animation: fade-out var(--motion-duration-base) var(--motion-ease-out);
-}
-
-.slide-in-from-right {
-  animation: slide-in-from-right var(--motion-duration-slow) var(--motion-ease-spring);
-}
-
-.slide-out-to-right {
-  animation: slide-out-to-right var(--motion-duration-exit) var(--motion-ease-in);
-}
-
-.slide-in-from-left {
-  animation: slide-in-from-left var(--motion-duration-slow) var(--motion-ease-spring);
-}
-
-.slide-out-to-left {
-  animation: slide-out-to-left var(--motion-duration-exit) var(--motion-ease-in);
-}
-
-.slide-in-from-top {
-  animation: slide-in-from-top var(--motion-duration-slow) var(--motion-ease-spring);
-}
-
-.slide-out-to-top {
-  animation: slide-out-to-top var(--motion-duration-exit) var(--motion-ease-in);
-}
-
-.slide-in-from-bottom {
-  animation: slide-in-from-bottom var(--motion-duration-slow) var(--motion-ease-spring);
-}
-
-.slide-out-to-bottom {
-  animation: slide-out-to-bottom var(--motion-duration-exit) var(--motion-ease-in);
 }
 
 /* ===== 60FPS SHEET/DRAWER ANIMATIONS ===== */
