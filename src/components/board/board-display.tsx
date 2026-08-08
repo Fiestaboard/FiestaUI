@@ -283,6 +283,39 @@ const GridRow = memo(
   },
 );
 
+// Shared loading ticker — a single 80ms interval for the whole app instead of
+// one setInterval per CharTile. A flagship board renders ~132 tiles; while
+// loading, each used to own its own timer (~132 concurrent intervals, each
+// firing its own setState on its own callback, which timer jitter kept out of
+// phase so React could not batch them). Now every loading tile subscribes to
+// this one ticker: on each tick the store calls all subscribers synchronously,
+// so their setState updates land in a single batched render pass and stay in
+// lockstep. The interval only runs while at least one tile is subscribed.
+//
+// 80ms matches the per-character step duration below (`animationDuration`) —
+// the Vestaboard "Fast" mode parity contract — so cadence is unchanged.
+const LOADING_TICK_MS = 80;
+const loadingTickSubscribers = new Set<() => void>();
+let loadingTickIntervalId: ReturnType<typeof setInterval> | null = null;
+
+function subscribeLoadingTick(callback: () => void): () => void {
+  loadingTickSubscribers.add(callback);
+  if (loadingTickIntervalId === null) {
+    loadingTickIntervalId = setInterval(() => {
+      // Iterate a snapshot: a subscriber's setState is async and cannot mutate
+      // the set mid-loop, but snapshotting keeps this robust regardless.
+      for (const cb of [...loadingTickSubscribers]) cb();
+    }, LOADING_TICK_MS);
+  }
+  return () => {
+    loadingTickSubscribers.delete(callback);
+    if (loadingTickSubscribers.size === 0 && loadingTickIntervalId !== null) {
+      clearInterval(loadingTickIntervalId);
+      loadingTickIntervalId = null;
+    }
+  };
+}
+
 // Individual character tile component - memoized to prevent unnecessary re-renders
 // Now pre-renders all 71 characters and uses CSS to show/hide them
 const CharTile = memo(
@@ -379,17 +412,18 @@ const CharTile = memo(
           setCurrentCharIndex(targetCharIndex);
         }
 
-        // Cycle through all characters in order, one per tick
-        // Continue cycling indefinitely while isAnimating is true
-        intervalRef.current = setInterval(() => {
+        // Cycle through all characters in order, one per tick, driven by the
+        // shared board ticker (one interval for the whole app) instead of a
+        // per-tile setInterval. Each tile still advances its own glyph from its
+        // own position, so the per-tile cycle is unchanged — only the timer is
+        // shared, which keeps every loading tile in phase and batches their
+        // updates into one render pass. Continues while isAnimating is true.
+        const unsubscribe = subscribeLoadingTick(() => {
           setCurrentCharIndex((prev) => (prev + 1) % BOARD_CHARS.length);
-        }, animationDuration);
+        });
 
         return () => {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
+          unsubscribe();
         };
       } else if (wasAnimating) {
         // Just stopped loading - transition from current position to target
