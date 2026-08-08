@@ -24,7 +24,7 @@ test("empty-state exposes an opt-in announce prop", () => {
 });
 
 test("empty-state role is conditional on the announce prop", () => {
-  assert.ok(!source.includes('role="status"'), "role=\"status\" must not be applied unconditionally");
+  assert.ok(!source.includes('role="status"'), 'role="status" must not be applied unconditionally');
   const conditionalRole = source.match(/role=\{[^}]*announce[^}]*\}/);
   assert.ok(conditionalRole, "role must be computed from the announce prop");
   assert.match(conditionalRole[0], /"status"/, "announcing empty states must use role=status");
