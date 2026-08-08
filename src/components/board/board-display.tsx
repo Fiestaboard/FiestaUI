@@ -29,21 +29,17 @@ import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
 import { gapClasses, paddingClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
 
-// Shared CSS keyframes — injected once into the document head instead of
-// being duplicated inside every CharTile render (~132 per board).
-let keyframesInjected = false;
-function ensureKeyframesInjected() {
-  if (keyframesInjected || typeof document === "undefined") return;
-  keyframesInjected = true;
-  const style = document.createElement("style");
-  style.setAttribute("data-board-keyframes", "");
-  style.textContent = `
+// Shared split-flap keyframes. Rendered once from BoardDisplay as a
+// <style href precedence> element — React 19 dedupes it by href and hoists it
+// to <head> before paint, so it lands once per document no matter how many
+// boards/tiles mount. Previously this was appended to document.head from
+// CharTile's render body (~132 calls per board render), a render-phase side
+// effect that recalced styles mid-reconciliation and blocked React Compiler.
+const FLAP_KEYFRAMES = `
     @keyframes flapDown { from { transform: rotateX(0deg); } to { transform: rotateX(-90deg); } }
     @keyframes flapUp { from { transform: rotateX(90deg); } to { transform: rotateX(0deg); } }
     @keyframes flapShadow { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
   `;
-  document.head.appendChild(style);
-}
 
 // Render-invariant class maps (size → Tailwind classes) live at module scope in
 // ../../lib/board-metrics so they are allocated once at import instead of on
@@ -801,8 +797,6 @@ const CharTile = memo(
     const prevCharIndex = (currentCharIndex - 1 + BOARD_CHARS.length) % BOARD_CHARS.length;
     const prevChar = BOARD_CHARS[prevCharIndex];
 
-    ensureKeyframesInjected();
-
     return (
       <>
         <div
@@ -1107,6 +1101,13 @@ export const BoardDisplay = memo(
 
     return (
       <div className={`w-full flex justify-center`}>
+        {/* Split-flap keyframes — only the animated path uses them. React 19
+            hoists this to <head> and dedupes by href across every board. */}
+        {!isStatic && (
+          <style href="board-flap-keyframes" precedence="default">
+            {FLAP_KEYFRAMES}
+          </style>
+        )}
         <div
           role="img"
           aria-label={boardText}
