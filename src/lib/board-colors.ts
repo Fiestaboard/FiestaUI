@@ -50,8 +50,12 @@ export const COLOR_CODE_MAP: Record<string, string> = {
   "71": BOARD_COLORS.black, // Filled tile
 };
 
-// Combined mapping for both numeric codes and named colors
-export const ALL_COLOR_CODES: Record<string, string> = {
+// Combined mapping for both numeric codes and named colors.
+// Built on a null-prototype object so that inherited keys (`toString`,
+// `constructor`, …) can never masquerade as valid colors: a message
+// containing `{toString}` must not pass the lookup guards in parseLine and
+// resolveColorCode. Lookups also skip the prototype chain on a miss.
+export const ALL_COLOR_CODES: Record<string, string> = Object.assign(Object.create(null), {
   // Numeric codes
   ...COLOR_CODE_MAP,
   // Named aliases
@@ -64,7 +68,7 @@ export const ALL_COLOR_CODES: Record<string, string> = {
   purple: BOARD_COLORS.violet, // alias
   white: BOARD_COLORS.white,
   black: BOARD_COLORS.black,
-};
+});
 
 // List of available color names for pickers/selectors
 export const AVAILABLE_COLORS: BoardColorName[] = [
@@ -100,7 +104,7 @@ export function getBoardColor(nameOrCode: string): string {
 // Helper function to check if a string is a valid color
 export function isValidBoardColor(value: string): boolean {
   const lowerKey = value.toLowerCase();
-  return value in ALL_COLOR_CODES || lowerKey in ALL_COLOR_CODES;
+  return Object.hasOwn(ALL_COLOR_CODES, value) || Object.hasOwn(ALL_COLOR_CODES, lowerKey);
 }
 
 /**
