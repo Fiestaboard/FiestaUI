@@ -80,7 +80,16 @@ export function useAuroraCanvas(
   label: string,
   resolutionScale = 1,
 ) {
+  // Key the setup effect on the colours' *content*, not the array's identity:
+  // a caller passing an inline array would otherwise trigger a full shader
+  // recompile + program link + observer re-registration on every render.
+  // Mirrors the cachedStopsKey technique in ui/aurora.tsx.
+  const colorsKey = colors.join(",");
   useEffect(() => {
+    // Rebuild the array from the key so the effect closes over content, not
+    // the (possibly unstable) `colors` reference. Hex stops never contain
+    // commas, so the round-trip is lossless.
+    const colors = colorsKey.split(",");
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -202,5 +211,5 @@ export function useAuroraCanvas(
       gl.deleteShader(frag);
       gl.deleteBuffer(buf);
     };
-  }, [canvasRef, fragSource, colors, label, resolutionScale]);
+  }, [canvasRef, fragSource, colorsKey, label, resolutionScale]);
 }
