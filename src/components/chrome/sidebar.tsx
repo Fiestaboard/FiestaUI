@@ -64,6 +64,13 @@ const MOBILE_MENU_STYLE_CLOSED: React.CSSProperties = {
   transition: MOBILE_MENU_TRANSITION,
 };
 
+// Everything the mobile menu can contain that takes keyboard focus. Used by
+// the aria-modal focus trap below; kept dependency-free (no focus-trap lib)
+// to match the rest of the chrome, and computed per keydown so items added
+// or removed while the menu is open (e.g. slot content) are always current.
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export interface SidebarNavItem {
   key: string;
   href: string;
@@ -165,6 +172,10 @@ export function Sidebar({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [appInset, setAppInset] = useState(0);
   const headerRef = useRef<HTMLElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  // The element that opened the menu (the hamburger button), captured at open
+  // so focus can be restored to it when the menu closes (issue #59).
+  const menuTriggerRef = useRef<HTMLElement | null>(null);
 
   // The mobile header wraps on narrow viewports, so its height is dynamic.
   // Publish it as --mobile-header-height for the mobile menu and
@@ -211,6 +222,55 @@ export function Sidebar({
       document.body.style.overflow = "";
     };
   }, [mobileMenuOpen]);
+
+  // aria-modal contract for the mobile menu (issue #59): move focus in on
+  // open, restore it to the hamburger trigger on close, and close on Escape
+  // no matter where focus sits (a tap on the menu's padding can drop focus to
+  // <body>, so the listener lives on the document, not the menu). Focus only
+  // ever moves in response to the open-state change — nothing autofocuses in
+  // the default closed state, keeping VRT screenshots untouched.
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const menu = mobileMenuRef.current;
+      const first = menu?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      (first ?? menu)?.focus();
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setMobileMenuOpen(false);
+      };
+      document.addEventListener("keydown", onKeyDown);
+      return () => document.removeEventListener("keydown", onKeyDown);
+    }
+    const trigger = menuTriggerRef.current;
+    menuTriggerRef.current = null;
+    trigger?.focus();
+  }, [mobileMenuOpen]);
+
+  // Focus trap while the menu is open: Tab from the last focusable wraps to
+  // the first and Shift+Tab from the first wraps to the last, so keyboard
+  // focus can never escape the "modal" into the inert-free page behind the
+  // backdrop. The menu itself gets `inert` when closed; this covers open.
+  function handleMobileMenuKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== "Tab") return;
+    const menu = mobileMenuRef.current;
+    if (!menu) return;
+    const focusable = menu.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+    if (focusable.length === 0) {
+      e.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey) {
+      if (active === first || active === menu) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else if (active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 
   useEffect(() => {
     let rafId: number | null = null;
@@ -388,7 +448,12 @@ export function Sidebar({
             variant="ghost"
             size="icon"
             className="h-9 w-9 flex-shrink-0 -ml-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={(e) => {
+              // Capture the trigger before opening so close (Escape, backdrop,
+              // nav click, or this same toggle) can restore focus to it.
+              if (!mobileMenuOpen) menuTriggerRef.current = e.currentTarget;
+              setMobileMenuOpen(!mobileMenuOpen);
+            }}
             aria-label={mobileMenuOpen ? labels.closeMenu : labels.openMenu}
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -408,12 +473,17 @@ export function Sidebar({
 
       {/* Mobile Menu */}
       <div
+        ref={mobileMenuRef}
         className={mobileMenuOpen ? MOBILE_MENU_OPEN : MOBILE_MENU_CLOSED}
         role={mobileMenuOpen ? "dialog" : undefined}
         aria-modal={mobileMenuOpen ? true : undefined}
         aria-label={mobileMenuOpen ? labels.navigationMenu : undefined}
         aria-hidden={!mobileMenuOpen}
         inert={!mobileMenuOpen ? true : undefined}
+        // Focus fallback target when the menu has no focusable children;
+        // also lets the Shift+Tab trap treat container-focus as "at first".
+        tabIndex={mobileMenuOpen ? -1 : undefined}
+        onKeyDown={handleMobileMenuKeyDown}
         style={mobileMenuOpen ? MOBILE_MENU_STYLE_OPEN : MOBILE_MENU_STYLE_CLOSED}
       >
         <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
