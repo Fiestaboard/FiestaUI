@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "last_run_at": "2026-08-07T19:09:05Z",
+  "last_run_at": "2026-08-08T07:47:48Z",
   "themes": [
     {
       "id": "barrel-tree-shaking",
@@ -55,12 +55,12 @@
       "title": "Re-render cascade mapping",
       "question": "Where does a parent re-render cascade across component boundaries, and which context values or prop identities cause it?",
       "surfaces": ["src/components/board/**", "src/components/chrome/**"],
-      "status": "pending",
+      "status": "done",
       "source": "seed",
       "added_at": "2026-08-07T00:00:00Z",
-      "last_investigated_at": null,
-      "findings": [],
-      "notes": "This is the theme the per-file sweep structurally cannot see: the cost lives in the edges between components, not inside any one file."
+      "last_investigated_at": "2026-08-08T07:47:48Z",
+      "findings": [62, 63],
+      "notes": "Ranked #1: surfaces join to the most expensive exports (BoardSelector 68,431 B, LanguageSelector 55,378 B, Sidebar 51,839 B) AND the highest-mount bench stories (chrome-sidebar--ai-active 54.8ms, chrome-appshell--collapsed 54.5ms, board-scaledboarddisplay 42.4ms). Verdict: the BOARD + SEASONS families are already thoroughly and correctly memoized (BoardDisplay/StaticBoardDisplay/BoardTeaser + internal StaticTile/GridRow/CharTile + both auroras, all with custom comparators; messageLabel default hoisted to module scope; class maps hoisted per recent commits) — spreading {...props} through ScaledBoardDisplay into memoized BoardDisplay is SAFE (props keep stable refs across resize), so NOT filed (would be a false positive). Two genuine cross-boundary findings: #62 Select's `useMemo(collectSelectItems(children),[children])` never memoizes because children identity changes every parent render at both call sites (board-selector.tsx, language-selector.tsx) -> O(tree) walk re-runs + SelectItemsContext value churns + fresh items array into Base UI Root, per re-render of the two largest chrome exports. #63 the memo POLICY holds for board/seasons but is applied to ZERO chrome components, so app-shell state (theme/collapse/route) cascades through Sidebar (rebuilds ~8 Base UI Tooltip trees; Tooltip = 34,149 B, heaviest primitive) + selectors. Re-render cost is REASONED not measured: bench is one-per-component with no scripted interaction, all chrome frame p95 at the 16.7ms vsync floor. Single-file aggravator noted for the daily sweep: Sidebar appInset uses an unthrottled window resize listener (sidebar.tsx:145-150). Discovered theme prop-contract-stability spun out (container prop contracts force unstable identities that defeat downstream memo)."
     },
     {
       "id": "css-paint-budget",
@@ -73,6 +73,18 @@
       "last_investigated_at": null,
       "findings": [],
       "notes": "Large blur radii and layer promotion show up in the bench as frame p95 above the vsync floor."
+    },
+    {
+      "id": "prop-contract-stability",
+      "title": "Prop contracts that force unstable identities on consumers",
+      "question": "Which public component APIs force consumers to pass referentially-unstable props (inline arrays, objects, callbacks, render-props) on every render, so that no amount of downstream memo can prevent a cascade? Treat this as an API-design audit, not a per-render-site audit.",
+      "surfaces": ["src/components/chrome/**", "src/components/board/scaled-board-display.tsx", "src/components/ui/select.tsx"],
+      "status": "pending",
+      "source": "discovered",
+      "added_at": "2026-08-08T07:47:48Z",
+      "last_investigated_at": null,
+      "findings": [],
+      "notes": "Spun out of rerender-cascades (#62, #63). Memoizing container components (Sidebar.primaryItems/secondaryItems/renderLink; Select via children) is useless while the contract forces the consumer to build those identities inline every render. The fix is at the API boundary — accept data props over render-props/children, and provide module-scope stable defaults — not at the call site. This is distinct from rerender-cascades: that mapped WHERE cascades happen today; this asks WHICH APIs make them unavoidable."
     }
   ]
 }

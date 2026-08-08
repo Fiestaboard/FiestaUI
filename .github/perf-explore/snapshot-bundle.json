@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "ref": "7875c0f071e87ab41bf7ccc2fd601880788b73d1",
+  "ref": "f9d2d6f6d31415d7c6656c0b124ed12a48ba5ff3",
   "barrel": {
     "externals": [
       "@base-ui/react",
@@ -11,8 +11,8 @@
       "react",
       "tailwind-merge"
     ],
-    "firstPartyBytes": 28600,
-    "totalBytes": 145597
+    "firstPartyBytes": 29051,
+    "totalBytes": 146049
   },
   "exports": {
     "ALL_COLOR_CODES": {
@@ -38,7 +38,7 @@
         "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 314,
+      "firstPartyBytes": 315,
       "totalBytes": 9116
     },
     "AccordionContent": {
@@ -49,8 +49,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 346,
-      "totalBytes": 17631
+      "firstPartyBytes": 348,
+      "totalBytes": 17632
     },
     "AccordionItem": {
       "externals": [
@@ -243,8 +243,8 @@
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 5035,
-      "totalBytes": 5035
+      "firstPartyBytes": 5039,
+      "totalBytes": 5039
     },
     "BoardIcon": {
       "externals": [
@@ -264,14 +264,21 @@
       "firstPartyBytes": 2197,
       "totalBytes": 68431
     },
+    "BoardTeaser": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 1625,
+      "totalBytes": 1625
+    },
     "Box": {
       "externals": [
         "clsx",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 198,
-      "totalBytes": 8742
+      "firstPartyBytes": 196,
+      "totalBytes": 8740
     },
     "Button": {
       "externals": [
@@ -337,7 +344,7 @@
         "tailwind-merge"
       ],
       "firstPartyBytes": 230,
-      "totalBytes": 8767
+      "totalBytes": 8768
     },
     "CardHeader": {
       "externals": [
@@ -373,7 +380,7 @@
         "tailwind-merge"
       ],
       "firstPartyBytes": 235,
-      "totalBytes": 8778
+      "totalBytes": 8777
     },
     "Collapsible": {
       "externals": [
@@ -417,7 +424,7 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 1164,
+      "firstPartyBytes": 1165,
       "totalBytes": 9700
     },
     "Dialog": {
@@ -457,7 +464,7 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 286,
+      "firstPartyBytes": 287,
       "totalBytes": 31297
     },
     "DialogFooter": {
@@ -490,7 +497,7 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 342,
+      "firstPartyBytes": 343,
       "totalBytes": 31347
     },
     "DialogPortal": {
@@ -610,7 +617,7 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 565,
+      "firstPartyBytes": 566,
       "totalBytes": 60150
     },
     "DropdownMenuSeparator": {
@@ -621,7 +628,7 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 312,
+      "firstPartyBytes": 313,
       "totalBytes": 10644
     },
     "DropdownMenuShortcut": {
@@ -731,7 +738,7 @@
         "tailwind-merge"
       ],
       "firstPartyBytes": 322,
-      "totalBytes": 8849
+      "totalBytes": 8848
     },
     "Flex": {
       "externals": [
@@ -786,7 +793,7 @@
         "tailwind-merge"
       ],
       "firstPartyBytes": 245,
-      "totalBytes": 8778
+      "totalBytes": 8777
     },
     "LanguageSelector": {
       "externals": [
@@ -831,7 +838,7 @@
         "tailwind-merge"
       ],
       "firstPartyBytes": 453,
-      "totalBytes": 8972
+      "totalBytes": 8971
     },
     "NOTE_COLS": {
       "externals": [],
@@ -882,7 +889,7 @@
         "tailwind-merge"
       ],
       "firstPartyBytes": 306,
-      "totalBytes": 8839
+      "totalBytes": 8837
     },
     "SEASONS": {
       "externals": [
@@ -897,8 +904,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 6102,
-      "totalBytes": 14565
+      "firstPartyBytes": 6105,
+      "totalBytes": 14569
     },
     "ScrollArea": {
       "externals": [
@@ -1056,7 +1063,7 @@
         "tailwind-merge"
       ],
       "firstPartyBytes": 960,
-      "totalBytes": 33080
+      "totalBytes": 33081
     },
     "SheetDescription": {
       "externals": [
@@ -1079,7 +1086,7 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 482,
+      "firstPartyBytes": 481,
       "totalBytes": 31771
     },
     "SheetHeader": {
@@ -1091,7 +1098,7 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 474,
+      "firstPartyBytes": 473,
       "totalBytes": 31759
     },
     "SheetOverlay": {
@@ -1125,7 +1132,7 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 466,
+      "firstPartyBytes": 465,
       "totalBytes": 31753
     },
     "SheetTrigger": {
@@ -1171,7 +1178,7 @@
         "tailwind-merge"
       ],
       "firstPartyBytes": 217,
-      "totalBytes": 8754
+      "totalBytes": 8753
     },
     "SkipToContent": {
       "externals": [
@@ -1325,8 +1332,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 262,
-      "totalBytes": 8791
+      "firstPartyBytes": 264,
+      "totalBytes": 8790
     },
     "Textarea": {
       "externals": [
@@ -1335,7 +1342,7 @@
         "tailwind-merge"
       ],
       "firstPartyBytes": 365,
-      "totalBytes": 8878
+      "totalBytes": 8877
     },
     "ThemeToggle": {
       "externals": [
@@ -1399,7 +1406,7 @@
         "react"
       ],
       "firstPartyBytes": 696,
-      "totalBytes": 1146
+      "totalBytes": 1147
     },
     "cn": {
       "externals": [
@@ -1407,7 +1414,7 @@
         "tailwind-merge"
       ],
       "firstPartyBytes": 125,
-      "totalBytes": 8665
+      "totalBytes": 8664
     },
     "fireSeasonBurst": {
       "externals": [
@@ -1422,7 +1429,7 @@
         "react"
       ],
       "firstPartyBytes": 343,
-      "totalBytes": 819
+      "totalBytes": 820
     },
     "getActiveSeason": {
       "externals": [
@@ -1464,8 +1471,8 @@
     },
     "isColorTile": {
       "externals": [],
-      "firstPartyBytes": 103,
-      "totalBytes": 103
+      "firstPartyBytes": 107,
+      "totalBytes": 107
     },
     "isNoteArray": {
       "externals": [],
@@ -1529,7 +1536,7 @@
         "class-variance-authority",
         "react"
       ],
-      "firstPartyBytes": 263,
+      "firstPartyBytes": 264,
       "totalBytes": 738
     },
     "textVariants": {
@@ -1538,7 +1545,7 @@
         "react"
       ],
       "firstPartyBytes": 279,
-      "totalBytes": 754
+      "totalBytes": 755
     },
     "tokensEqual": {
       "externals": [],
