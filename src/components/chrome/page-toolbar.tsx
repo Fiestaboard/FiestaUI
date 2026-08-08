@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { cn } from "../../lib/utils";
 
 // Render-invariant: hoisted so the shell's frequent re-renders reuse one object.
@@ -9,7 +11,7 @@ interface PageToolbarProps {
   className?: string;
 }
 
-export function PageToolbar({ left, right, className }: PageToolbarProps) {
+export const PageToolbar = memo(function PageToolbar({ left, right, className }: PageToolbarProps) {
   return (
     <div
       className={cn(
@@ -23,4 +25,4 @@ export function PageToolbar({ left, right, className }: PageToolbarProps) {
       {right && <div className="flex items-center gap-3">{right}</div>}
     </div>
   );
-}
+});

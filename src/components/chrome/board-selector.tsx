@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 import { cn } from "../../lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -38,7 +38,7 @@ interface BoardSelectorProps {
  * multi-tenant apps. Collapsed, it shrinks to an icon-only trigger with a
  * tooltip showing the current board name.
  */
-export function BoardSelector({
+export const BoardSelector = memo(function BoardSelector({
   boards,
   value,
   onChange,
@@ -110,4 +110,4 @@ export function BoardSelector({
       <SelectContent>{items}</SelectContent>
     </Select>
   );
-}
+});

@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { Moon, Sun } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -25,7 +27,7 @@ interface ThemeToggleProps {
  * during hydration (`suppressHydrationWarning`), so no mounted gate or
  * placeholder render is needed.
  */
-export function ThemeToggle({ theme, onToggle, label }: ThemeToggleProps) {
+export const ThemeToggle = memo(function ThemeToggle({ theme, onToggle, label }: ThemeToggleProps) {
   return (
     <Button
       variant="ghost"
@@ -40,4 +42,4 @@ export function ThemeToggle({ theme, onToggle, label }: ThemeToggleProps) {
       <span className="sr-only">{label}</span>
     </Button>
   );
-}
+});

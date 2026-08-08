@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { cn } from "../../lib/utils";
 
 interface FiestaLogoProps {
@@ -5,7 +7,7 @@ interface FiestaLogoProps {
   className?: string;
 }
 
-export function FiestaLogo({ size = "md", className }: FiestaLogoProps) {
+export const FiestaLogo = memo(function FiestaLogo({ size = "md", className }: FiestaLogoProps) {
   const isSm = size === "sm";
 
   return (
@@ -20,4 +22,4 @@ export function FiestaLogo({ size = "md", className }: FiestaLogoProps) {
       <span className="font-light text-sidebar-foreground">Board</span>
     </span>
   );
-}
+});

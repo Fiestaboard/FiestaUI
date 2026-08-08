@@ -11,6 +11,8 @@
  */
 import type { ReactNode } from "react";
 
+import { memo } from "react";
+
 /** Encoded pixel rectangles: "x,y,w,h" or "x,y,w,h,a" (a = opacity in eighths, omitted when fully opaque). */
 interface FiestaIconSlot {
   /** Semantic palette slot, e.g. "shell" — themed via `--fiesta-icon-<name>`. */
@@ -197,7 +199,7 @@ interface FiestaIconProps {
   className?: string;
 }
 
-export function FiestaIcon({ size = 32, className }: FiestaIconProps) {
+export const FiestaIcon = memo(function FiestaIcon({ size = 32, className }: FiestaIconProps) {
   return (
     <svg
       viewBox="0 0 32 32"
@@ -211,4 +213,4 @@ export function FiestaIcon({ size = 32, className }: FiestaIconProps) {
       {getIconChildren()}
     </svg>
   );
-}
+});

@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 /**
  * Vestaboard-shaped icon: a wide rounded frame with rows of split-flap tile
  * dots. Used wherever the UI points at a physical board (board switcher,
@@ -6,7 +8,7 @@
  * Drawn in the lucide style (24×24 viewBox, stroke-based, currentColor) so it
  * sits seamlessly next to real lucide icons.
  */
-export function BoardIcon({ className }: { className?: string }) {
+export const BoardIcon = memo(function BoardIcon({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -24,4 +26,4 @@ export function BoardIcon({ className }: { className?: string }) {
       <path d="M6.5 14.5h.01M10.17 14.5h.01M13.84 14.5h.01M17.5 14.5h.01" />
     </svg>
   );
-}
+});
