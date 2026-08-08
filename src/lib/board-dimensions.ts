@@ -56,7 +56,7 @@ export function isNoteArray(deviceType: string): boolean {
  * @returns           { rows, cols }
  */
 export function resolveDimensions(deviceType: string, notes_wide = 1, notes_tall = 1): BoardDimensions {
-  if (deviceType in DEVICE_DIMENSIONS) {
+  if (Object.hasOwn(DEVICE_DIMENSIONS, deviceType)) {
     return DEVICE_DIMENSIONS[deviceType];
   }
   if (deviceType === "note_array") {
