@@ -424,11 +424,6 @@
      * computed overflow-y to `auto`, recreating a nested scrollbar. */
     overflow-x: hidden;
   }
-  /* Prevent Radix UI Select from removing scrollbar when opened */
-  body[data-scroll-locked] {
-    overflow-y: scroll !important;
-    margin-right: 0 !important;
-  }
 }
 
 /* Accordion animations — grid-row technique avoids layout-triggering height animation */
