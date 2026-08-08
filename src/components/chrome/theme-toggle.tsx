@@ -1,7 +1,6 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
 
 import { Button } from "../ui/button";
 
@@ -17,21 +16,27 @@ interface ThemeToggleProps {
 /**
  * Controlled presentational theme toggle. Theme state/persistence stays in
  * the app (FiestaBoard wires this to its use-theme hook).
+ *
+ * Both icons are always in the DOM; the visible one is selected by CSS keyed
+ * on the prop-driven `data-resolved-theme` attribute, so the icon still
+ * follows the `theme` prop (the component's contract) rather than the root
+ * `.dark` class. Server and client markup differ at most by one attribute
+ * value when the theme resolves differently server-side — patched cheaply
+ * during hydration (`suppressHydrationWarning`), so no mounted gate or
+ * placeholder render is needed.
  */
 export function ThemeToggle({ theme, onToggle, label }: ThemeToggleProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <Button variant="ghost" size="icon" className="w-9 h-9" aria-label={label} disabled />;
-  }
-
   return (
-    <Button variant="ghost" size="icon" onClick={onToggle} className="w-9 h-9">
-      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={onToggle}
+      className="w-9 h-9"
+      data-resolved-theme={theme}
+      suppressHydrationWarning
+    >
+      <Sun className="hidden h-4 w-4 [[data-resolved-theme=dark]_&]:block" />
+      <Moon className="h-4 w-4 [[data-resolved-theme=dark]_&]:hidden" />
       <span className="sr-only">{label}</span>
     </Button>
   );
