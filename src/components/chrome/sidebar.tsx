@@ -382,6 +382,8 @@ export function Sidebar({
         ref={headerRef}
         className="lg:hidden fixed top-2 left-3 right-3 z-[var(--z-mobile-header)] overflow-hidden sidebar-gradient-horizontal"
       >
+        {/* Compositor-driven gradient scroll — see .sidebar-gradient-layer in theme.css (#57) */}
+        <div aria-hidden className="sidebar-gradient-layer" />
         {season && <SidebarAuroraHorizontal colors={season.colors} />}
         <div className="relative z-[1] flex min-h-14 flex-wrap items-center gap-y-2 px-4 py-2">
           <Button
@@ -416,6 +418,7 @@ export function Sidebar({
         inert={!mobileMenuOpen ? true : undefined}
         style={mobileMenuOpen ? MOBILE_MENU_STYLE_OPEN : MOBILE_MENU_STYLE_CLOSED}
       >
+        <div aria-hidden className="sidebar-gradient-layer" />
         <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {primaryItems.map(renderMobileNavItem)}
           {ai && (
@@ -461,6 +464,9 @@ export function Sidebar({
             }
           }}
         >
+          {/* Compositor-driven gradient scroll — the layer (not the aside) clips,
+              because the edge toggle button below overhangs the aside (#57) */}
+          <div aria-hidden className="sidebar-gradient-layer" />
           {season && <SidebarAurora colors={season.colors} />}
           {/* Edge toggle button -- sits on the sidebar border, Jira-style */}
           <Tooltip>
