@@ -461,20 +461,56 @@ const LOADING_TICK_MS = 80;
 const loadingTickSubscribers = new Set<() => void>();
 let loadingTickIntervalId: ReturnType<typeof setInterval> | null = null;
 
+// prefers-reduced-motion gate (issue #58). The loading cycle is JS state
+// driven by this ticker, so a CSS `@media (prefers-reduced-motion)` block
+// cannot reach it — the ticker itself must consult the preference. While
+// `reduce` matches, the shared interval never runs: loading tiles stay frozen
+// on their current character (a static loading state; each cycle starts at the
+// tile's target glyph, so a load that begins under reduced motion shows the
+// message characters). The `change` listener freezes/resumes live, mirroring
+// aurora.tsx and decrypted-text.tsx: continuous animation stops, settled
+// states — including the brief flip-to-target on message change — are kept.
+// Guarded for SSR: this module renders on the server, where matchMedia does
+// not exist; subscriptions only happen in effects, so `null` is never
+// consulted there.
+const reducedMotionQuery = typeof window === "undefined" ? null : window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function startLoadingTickInterval(): void {
+  if (loadingTickIntervalId !== null) return;
+  loadingTickIntervalId = setInterval(() => {
+    // Iterate a snapshot: a subscriber's setState is async and cannot mutate
+    // the set mid-loop, but snapshotting keeps this robust regardless.
+    for (const cb of [...loadingTickSubscribers]) cb();
+  }, LOADING_TICK_MS);
+}
+
+function stopLoadingTickInterval(): void {
+  if (loadingTickIntervalId === null) return;
+  clearInterval(loadingTickIntervalId);
+  loadingTickIntervalId = null;
+}
+
+// Module-level singleton listener — lives for the page's lifetime, one per
+// document no matter how many boards mount.
+reducedMotionQuery?.addEventListener("change", () => {
+  if (reducedMotionQuery.matches) {
+    stopLoadingTickInterval();
+  } else if (loadingTickSubscribers.size > 0) {
+    startLoadingTickInterval();
+  }
+});
+
 function subscribeLoadingTick(callback: () => void): () => void {
   loadingTickSubscribers.add(callback);
-  if (loadingTickIntervalId === null) {
-    loadingTickIntervalId = setInterval(() => {
-      // Iterate a snapshot: a subscriber's setState is async and cannot mutate
-      // the set mid-loop, but snapshotting keeps this robust regardless.
-      for (const cb of [...loadingTickSubscribers]) cb();
-    }, LOADING_TICK_MS);
+  // Reduced motion freezes the shared ticker: subscribers register (so a
+  // later `change` back to no-preference resumes them) but no interval runs.
+  if (!reducedMotionQuery?.matches) {
+    startLoadingTickInterval();
   }
   return () => {
     loadingTickSubscribers.delete(callback);
-    if (loadingTickSubscribers.size === 0 && loadingTickIntervalId !== null) {
-      clearInterval(loadingTickIntervalId);
-      loadingTickIntervalId = null;
+    if (loadingTickSubscribers.size === 0) {
+      stopLoadingTickInterval();
     }
   };
 }
