@@ -1,6 +1,7 @@
 "use client";
 
 import { Globe } from "lucide-react";
+import { memo } from "react";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
@@ -25,7 +26,13 @@ interface LanguageSelectorProps {
  * Controlled presentational language picker. Locale registry, cookie
  * persistence, and the i18next mutation stay in the app wrapper.
  */
-export function LanguageSelector({ value, options, onChange, label, disabled }: LanguageSelectorProps) {
+export const LanguageSelector = memo(function LanguageSelector({
+  value,
+  options,
+  onChange,
+  label,
+  disabled,
+}: LanguageSelectorProps) {
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
       <SelectTrigger className="h-8 w-[130px] text-xs gap-1" aria-label={label}>
@@ -41,4 +48,4 @@ export function LanguageSelector({ value, options, onChange, label, disabled }: 
       </SelectContent>
     </Select>
   );
-}
+});

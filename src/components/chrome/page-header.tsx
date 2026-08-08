@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { memo } from "react";
 
 import { cn } from "../../lib/utils";
 
@@ -20,7 +21,7 @@ interface PageHeaderProps {
  * Mount <PageIconGradientDefs /> once near the app root (FiestaBoard does
  * this in root.tsx) or the icon falls back to an unstroked glyph.
  */
-export function PageHeader({
+export const PageHeader = memo(function PageHeader({
   icon: Icon,
   title,
   description,
@@ -43,7 +44,7 @@ export function PageHeader({
       {children}
     </div>
   );
-}
+});
 
 /**
  * Global SVG defs for the page-icon gradient. Stops read the --icon-g1..6
@@ -51,7 +52,7 @@ export function PageHeader({
  * (including the pride-month rainbow override). Render exactly once,
  * anywhere in the document.
  */
-export function PageIconGradientDefs() {
+export const PageIconGradientDefs = memo(function PageIconGradientDefs() {
   return (
     <svg width="0" height="0" aria-hidden="true" style={DEFS_SVG_STYLE}>
       <defs>
@@ -66,4 +67,4 @@ export function PageIconGradientDefs() {
       </defs>
     </svg>
   );
-}
+});

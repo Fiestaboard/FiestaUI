@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 
 import { cn } from "../../lib/utils";
 
@@ -24,7 +24,7 @@ interface MainContentProps {
  * The app's main landmark. Layout math is presentational; collapse/AI-panel
  * state and route awareness are injected by the app shell.
  */
-export function MainContent({
+export const MainContent = memo(function MainContent({
   children,
   collapsed,
   transitioning = false,
@@ -58,4 +58,4 @@ export function MainContent({
       {children}
     </main>
   );
-}
+});
