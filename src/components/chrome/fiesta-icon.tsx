@@ -164,6 +164,20 @@ export const FIESTA_ICON_DATA_URI = `data:image/svg+xml,${FIESTA_ICON_SVG.replac
   .replace(/</g, "%3C")
   .replace(/>/g, "%3E")}`;
 
+/**
+ * The grouped `<rect>` children of the mark, built once at module load. They
+ * depend on no props — `size`/`className` only touch the root `<svg>` — and
+ * React elements are immutable, so every `FiestaIcon` render can reuse this
+ * same tree instead of rebuilding 345 elements (15 `<g>` + 330 `<rect>`).
+ */
+const ICON_CHILDREN = GROUPS.map((group) => (
+  <g key={group.name} fill={group.fill}>
+    {group.rects.map((r, i) => (
+      <rect key={i} x={r.x} y={r.y} width={r.width} height={r.height} opacity={r.opacity} />
+    ))}
+  </g>
+));
+
 interface FiestaIconProps {
   size?: number;
   className?: string;
@@ -180,13 +194,7 @@ export function FiestaIcon({ size = 32, className }: FiestaIconProps) {
       focusable="false"
       className={className}
     >
-      {GROUPS.map((group) => (
-        <g key={group.name} fill={group.fill}>
-          {group.rects.map((r, i) => (
-            <rect key={i} x={r.x} y={r.y} width={r.width} height={r.height} opacity={r.opacity} />
-          ))}
-        </g>
-      ))}
+      {ICON_CHILDREN}
     </svg>
   );
 }
