@@ -17,19 +17,15 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..")
 //   export { Renderer } from "ogl";
 // but NOT type-only imports (`import type { ... } from "ogl"`), which are
 // erased at compile time and never reach the bundle.
-const STATIC_OGL_VALUE_IMPORT =
-  /(?:^|\n)\s*(?:import(?!\s+type\b)|export)\s[^;]*?from\s*["']ogl["']/;
+const STATIC_OGL_VALUE_IMPORT = /(?:^|\n)\s*(?:import(?!\s+type\b)|export)\s[^;]*?from\s*["']ogl["']/;
 
 test("aurora.tsx has no static top-level value import of ogl", () => {
-  const src = readFileSync(
-    join(repoRoot, "src", "components", "ui", "aurora.tsx"),
-    "utf8",
-  );
+  const src = readFileSync(join(repoRoot, "src", "components", "ui", "aurora.tsx"), "utf8");
   assert.ok(
     !STATIC_OGL_VALUE_IMPORT.test(src),
     "src/components/ui/aurora.tsx statically imports ogl at top level; " +
       'it must use `await import("ogl")` inside the mount effect instead ' +
-      "(a type-only `import type ... from \"ogl\"` is fine)",
+      '(a type-only `import type ... from "ogl"` is fine)',
   );
 });
 
@@ -49,6 +45,6 @@ test("dist aurora module loads ogl via dynamic import only", (t) => {
   );
   assert.ok(
     !/from\s*["']ogl["']/.test(dist),
-    "dist/components/ui/aurora.js must not contain a static `from \"ogl\"` import",
+    'dist/components/ui/aurora.js must not contain a static `from "ogl"` import',
   );
 });
