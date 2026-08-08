@@ -105,3 +105,51 @@ test("shrinking and dropping an external are recorded as wins", () => {
   assert.ok(result.wins.some((w) => w.kind === "dropped-external"));
   assert.ok(result.wins.some((w) => w.kind === "shrink"));
 });
+
+test("css growth past both thresholds fails", () => {
+  const base = report({ css: { "theme.css": { bytes: 10000 } } });
+  const head = report({ css: { "theme.css": { bytes: 10300 } } });
+  const result = compareReports(base, head);
+  assert.equal(result.ok, false);
+  assert.equal(result.failures[0].kind, "css-bytes");
+  assert.equal(result.failures[0].entry, "theme.css");
+});
+
+test("css growth under the absolute floor does not fail", () => {
+  const base = report({ css: { "theme.css": { bytes: 10000 } } });
+  const head = report({ css: { "theme.css": { bytes: 10150 } } });
+  const result = compareReports(base, head);
+  assert.equal(result.ok, true);
+});
+
+test("css shrink is recorded as a win", () => {
+  const base = report({ css: { "theme.css": { bytes: 10000 } } });
+  const head = report({ css: { "theme.css": { bytes: 9000 } } });
+  const result = compareReports(base, head);
+  assert.equal(result.ok, true);
+  assert.ok(result.wins.some((w) => w.kind === "css-shrink"));
+});
+
+test("a new css asset is reported but never fails", () => {
+  const base = report({ css: { "theme.css": { bytes: 10000 } } });
+  const head = report({
+    css: { "theme.css": { bytes: 10000 }, "seasons/pride.css": { bytes: 9999 } },
+  });
+  const result = compareReports(base, head);
+  assert.equal(result.ok, true);
+  assert.ok(result.cssRows.some((r) => r.entry === "seasons/pride.css" && r.added));
+});
+
+test("a removed css asset warns but does not fail", () => {
+  const base = report({ css: { "theme.css": { bytes: 10000 } } });
+  const head = report({ css: {} });
+  const result = compareReports(base, head);
+  assert.equal(result.ok, true);
+  assert.ok(result.warnings.some((w) => w.kind === "removed-css"));
+});
+
+test("reports without a css section compare cleanly", () => {
+  const result = compareReports(report(), report());
+  assert.deepEqual(result.cssRows, []);
+  assert.equal(result.ok, true);
+});

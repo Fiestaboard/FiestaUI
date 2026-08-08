@@ -24,7 +24,7 @@
  * See docs/superpowers/specs/2026-08-05-perf-bundle-harness-design.md.
  */
 
-import { readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { gzipSync } from "node:zlib";
@@ -153,6 +153,40 @@ async function measureEntry(contents, resolveDir) {
   };
 }
 
+/**
+ * Gzip the stylesheets dist/ ships verbatim.
+ *
+ * theme.css and each seasons/*.css are copied into dist/ untouched by the build
+ * (see package.json's build script), so unlike the JS exports there is nothing
+ * to bundle — a consumer pays their gzipped size as shipped. Measure that
+ * directly, at the same gzip level as the JS numbers, so compare.mjs can gate
+ * CSS growth the way it already gates JS.
+ */
+async function measureCss(distDir) {
+  const relPaths = ["theme.css"];
+  const seasonsDir = path.join(distDir, "seasons");
+  try {
+    const entries = await readdir(seasonsDir);
+    for (const file of entries.filter((name) => name.endsWith(".css")).sort()) {
+      relPaths.push(`seasons/${file}`);
+    }
+  } catch {
+    // No seasons/ directory in this dist; theme.css alone still counts.
+  }
+
+  const css = {};
+  for (const rel of relPaths) {
+    let source;
+    try {
+      source = await readFile(path.join(distDir, ...rel.split("/")));
+    } catch {
+      continue; // Stylesheet absent from this dist — nothing to measure.
+    }
+    css[rel] = { bytes: gzipSync(source, { level: 9 }).length };
+  }
+  return css;
+}
+
 async function measure(args) {
   if (!args.out) {
     console.error("measure requires --out <file>");
@@ -173,14 +207,19 @@ async function measure(args) {
     exports[name] = await measureEntry(source, resolveDir);
   }
 
+  const css = await measureCss(args.dist);
+
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     ref: process.env.GITHUB_SHA ?? "local",
     barrel,
     exports,
+    css,
   };
   await writeFile(args.out, `${JSON.stringify(report, null, 2)}\n`);
-  log(`Wrote ${args.out} — barrel ${barrel.firstPartyBytes}B first-party`);
+  const themeBytes = css["theme.css"]?.bytes;
+  const themeNote = themeBytes === undefined ? "" : `, theme.css ${themeBytes}B gz`;
+  log(`Wrote ${args.out} — barrel ${barrel.firstPartyBytes}B first-party${themeNote}`);
 }
 
 function renderMarkdown(result) {
@@ -225,7 +264,23 @@ function renderMarkdown(result) {
     }
   }
 
-  lines.push("", `_${result.rows.length} entries measured._`);
+  const cssChanged = result.cssRows.filter((row) => row.added || row.deltaBytes !== 0);
+
+  lines.push("", "### CSS assets", "");
+  if (result.cssRows.length === 0) {
+    lines.push("No CSS assets measured.");
+  } else if (cssChanged.length === 0) {
+    lines.push("No CSS asset changed size.");
+  } else {
+    lines.push("| Asset | Base | head | Delta |", "| --- | ---: | ---: | ---: |");
+    for (const row of cssChanged) {
+      const base = row.baseBytes === null ? "—" : `${row.baseBytes}B`;
+      const delta = row.added ? "new" : `${row.deltaBytes >= 0 ? "+" : ""}${row.deltaBytes}B`;
+      lines.push(`| \`${row.entry}\` | ${base} | ${row.headBytes}B | ${delta} |`);
+    }
+  }
+
+  lines.push("", `_${result.rows.length} entries, ${result.cssRows.length} CSS asset(s) measured._`);
   return `${lines.join("\n")}\n`;
 }
 
