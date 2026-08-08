@@ -143,12 +143,22 @@ export function useActiveSeason(): Season | null {
  * Spawns the seasonal confetti burst at the click position. Particles use
  * the `.pride-burst-particle` class from theme.css and clean themselves up
  * on animation end. Pure DOM — callers layer their own toast on top.
+ *
+ * All 48 particles are built off-tree and appended to a single container in
+ * one DOM mutation; a single delegated `animationend` listener on the
+ * container removes the whole subtree once the last particle finishes. No
+ * burst plays when the user prefers reduced motion.
  */
 export function fireSeasonBurst(e: { clientX: number; clientY: number }, colors: string[] = PRIDE_SEASON.colors) {
-  for (let i = 0; i < 48; i++) {
+  if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const count = 48;
+  const container = document.createElement("div");
+  container.className = "pride-burst";
+  for (let i = 0; i < count; i++) {
     const p = document.createElement("div");
     p.className = "pride-burst-particle";
-    const angle = (i / 48) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+    const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
     const dist = 80 + Math.random() * 160;
     p.style.setProperty("--tx", `${Math.cos(angle) * dist}px`);
     p.style.setProperty("--ty", `${Math.sin(angle) * dist}px`);
@@ -157,9 +167,19 @@ export function fireSeasonBurst(e: { clientX: number; clientY: number }, colors:
     p.style.background = colors[i % colors.length];
     p.style.left = `${e.clientX - 3.5}px`;
     p.style.top = `${e.clientY - 3.5}px`;
-    document.body.appendChild(p);
-    p.addEventListener("animationend", () => p.remove());
+    container.appendChild(p);
   }
+
+  let remaining = count;
+  container.addEventListener("animationend", () => {
+    if (--remaining === 0) container.remove();
+  });
+  // Backstop: if the animations never fire (e.g. reduced-motion flips on
+  // mid-burst and the CSS backstop sets animation: none), animationend
+  // never arrives — remove the container after the longest possible
+  // particle duration (1s) plus slack so it can't leak.
+  setTimeout(() => container.remove(), 1500);
+  document.body.appendChild(container);
 }
 
 /* ---- Legacy pride-only API (kept for FiestaBoard back-compat) ---- */
