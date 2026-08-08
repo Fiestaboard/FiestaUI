@@ -33,6 +33,11 @@ const meta = {
       control: false,
       description: "Optional illustration (e.g. inline SVG) shown instead of the icon",
     },
+    announce: {
+      control: "boolean",
+      description:
+        'Opt into AT announcement (role="status") for empty states that appear from a data change; off by default so static empty states are a plain labelled region',
+    },
     className: {
       control: "text",
       description: "Additional Tailwind classes merged onto the container",
@@ -78,6 +83,8 @@ export const NoSearchResults: Story = {
     title: "No results found",
     description: 'No plugins match "weathr". Try a different search term.',
     action: <Button variant="outline">Clear search</Button>,
+    // Appears as the result of a search (data change), so opt into announcement.
+    announce: true,
   },
 };
 
