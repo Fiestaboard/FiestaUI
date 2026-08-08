@@ -31,6 +31,11 @@ export default defineConfig({
         preserveModules: true,
         preserveModulesRoot: "src",
         entryFileNames: "[name].js",
+        // Keep sourcemaps for debuggability but drop the embedded original
+        // source text (`sourcesContent`), which accounts for ~70% of map bytes
+        // in the published package. Consumers still get maps that point back to
+        // the shipped `src/` via file paths.
+        sourcemapExcludeSources: true,
       },
     },
     sourcemap: true,
