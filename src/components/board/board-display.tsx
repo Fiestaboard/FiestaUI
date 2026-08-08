@@ -27,6 +27,7 @@ import {
 } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
+import { gapClasses, paddingClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
 
 // Shared CSS keyframes — injected once into the document head instead of
 // being duplicated inside every CharTile render (~132 per board).
@@ -44,33 +45,12 @@ function ensureKeyframesInjected() {
   document.head.appendChild(style);
 }
 
-// Render-invariant class maps — keyed by size, identical for every tile/board.
-// Hoisted to module scope so they are allocated once at import instead of on
-// every render. During loading each of the ~132 tiles re-renders every 80ms,
-// so re-allocating these per render churned continuously across the grid.
-const sizeClasses: Record<"sm" | "md" | "lg", string> = {
-  sm: "w-[14px] h-[18px]", // Small previews stay fixed size
-  md: "w-[14px] h-[20px] sm:w-[20px] sm:h-[28px] md:w-[24px] md:h-[34px] lg:w-[28px] lg:h-[40px]", // Responsive
-  lg: "w-[18px] h-[26px] sm:w-[24px] sm:h-[34px] md:w-[28px] md:h-[40px] lg:w-[32px] lg:h-[46px]", // Responsive
-};
-
-const textSizeClasses: Record<"sm" | "md" | "lg", string> = {
-  sm: "text-[7px]", // Small previews stay fixed size
-  md: "text-[7px] sm:text-[10px] md:text-[13px] lg:text-[16px]", // Responsive
-  lg: "text-[10px] sm:text-[13px] md:text-[16px] lg:text-[20px]", // Responsive
-};
-
-const paddingClasses: Record<"sm" | "md" | "lg", string> = {
-  sm: "px-3 py-4", // Small previews stay fixed size
-  md: "px-2 py-3 sm:px-4 sm:py-6 md:px-5 md:py-8 lg:px-6 lg:py-10", // Responsive
-  lg: "px-3 py-4 sm:px-5 sm:py-7 md:px-6 md:py-9 lg:px-8 lg:py-12", // Responsive
-};
-
-const gapClasses: Record<"sm" | "md" | "lg", string> = {
-  sm: "gap-[3px]", // Small previews stay fixed size
-  md: "gap-[2px] sm:gap-[4px] md:gap-[5px]", // Responsive
-  lg: "gap-[3px] sm:gap-[5px] md:gap-[6px] lg:gap-[7px]", // Responsive
-};
+// Render-invariant class maps (size → Tailwind classes) live at module scope in
+// ../../lib/board-metrics so they are allocated once at import instead of on
+// every render, and so the animated, static, and teaser renderers share one
+// source and can't drift. During loading each of the ~132 tiles re-renders
+// every 80ms, so re-allocating these per render churned continuously across the
+// grid (PR #31 / issue #24).
 
 // ---------------------------------------------------------------------------
 // Static rendering path — used for non-animated previews (e.g. chat cards).
