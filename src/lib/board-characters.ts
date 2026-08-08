@@ -114,9 +114,13 @@ export function tokensEqual(a: BoardToken, b: BoardToken): boolean {
   return false;
 }
 
+/** Color-tile codes (63–71) as strings. Hoisted so the per-tile `isColorTile`
+ * check does not allocate a fresh array on every call in the board render path. */
+const COLOR_TILE_CODES = ["63", "64", "65", "66", "67", "68", "69", "70", "71"];
+
 /** Check if a character is a color tile (codes 63–71 rendered as strings). */
 export const isColorTile = (char: string) => {
-  return ["63", "64", "65", "66", "67", "68", "69", "70", "71"].includes(char);
+  return COLOR_TILE_CODES.includes(char);
 };
 
 /** Find a character's index in BOARD_CHARS; unknown characters map to blank (0). */
