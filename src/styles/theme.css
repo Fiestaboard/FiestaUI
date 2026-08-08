@@ -1077,10 +1077,7 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
   .sidebar-gradient {
     animation: none;
-    background-position:
-      0 0,
-      0 0,
-      50% 25%;
+    background-position: 50% 25%;
   }
   .sidebar-gradient-horizontal {
     animation: none;
@@ -1092,10 +1089,7 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 }
 .reduce-motion .sidebar-gradient {
   animation: none;
-  background-position:
-    0 0,
-    0 0,
-    50% 25%;
+  background-position: 50% 25%;
 }
 .reduce-motion .sidebar-gradient-horizontal {
   animation: none;
