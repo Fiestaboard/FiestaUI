@@ -61,6 +61,9 @@ test("stabilizeSelectItems adopts the new array when content changes", () => {
   assert.notEqual(second, first);
   assert.equal(second.items, changed);
   // And it re-stabilizes on the new content afterwards.
-  const third = stabilizeSelectItems(second, second.items.map((item) => ({ ...item })));
+  const third = stabilizeSelectItems(
+    second,
+    second.items.map((item) => ({ ...item })),
+  );
   assert.equal(third, second);
 });
