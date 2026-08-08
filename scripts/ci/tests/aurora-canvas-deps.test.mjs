@@ -9,10 +9,7 @@ import { test } from "node:test";
 // There is no React test runner in this repo, so this asserts the contract
 // statically against the source.
 
-const source = readFileSync(
-  new URL("../../../src/components/seasons/aurora-canvas.ts", import.meta.url),
-  "utf8",
-);
+const source = readFileSync(new URL("../../../src/components/seasons/aurora-canvas.ts", import.meta.url), "utf8");
 
 /** The dependency array of the setup effect, e.g. `canvasRef, fragSource, ...`. */
 function effectDeps() {
@@ -23,22 +20,16 @@ function effectDeps() {
 
 test("setup effect does not depend on the colors array's identity", () => {
   const deps = effectDeps();
-  assert.ok(
-    !deps.includes("colors"),
-    `effect deps [${deps.join(", ")}] must not contain the raw \`colors\` array`,
-  );
+  assert.ok(!deps.includes("colors"), `effect deps [${deps.join(", ")}] must not contain the raw \`colors\` array`);
 });
 
 test("setup effect is keyed on a content-derived colors key", () => {
   const deps = effectDeps();
-  assert.ok(
-    deps.includes("colorsKey"),
-    `effect deps [${deps.join(", ")}] must contain \`colorsKey\``,
-  );
+  assert.ok(deps.includes("colorsKey"), `effect deps [${deps.join(", ")}] must contain \`colorsKey\``);
   assert.match(
     source,
     /const colorsKey = colors\.join\(","\);/,
-    "colorsKey must be derived from the colors content via colors.join(\",\")",
+    'colorsKey must be derived from the colors content via colors.join(",")',
   );
 });
 
