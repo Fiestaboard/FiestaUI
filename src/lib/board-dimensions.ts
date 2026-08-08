@@ -44,11 +44,25 @@ export function isNoteArray(deviceType: string): boolean {
 }
 
 /**
+ * Cache of computed note-array dimensions, keyed by "wide×tall".
+ *
+ * Guarantees a stable object identity per grid size: repeat calls with the
+ * same dimensions return the same reference (matching the shared identity that
+ * flagship/note already have via DEVICE_DIMENSIONS), so consumers can safely
+ * pass the result into a useMemo/useEffect/memo dependency array. Allocation
+ * stays at zero for repeat calls.
+ */
+const noteArrayCache = new Map<string, BoardDimensions>();
+
+/**
  * Resolve board dimensions for any device type.
  *
  * - "flagship" | "note"  → looks up DEVICE_DIMENSIONS (w/h ignored)
- * - "note_array"         → computes from notes_wide × notes_tall
+ * - "note_array"         → computes from notes_wide × notes_tall (cached)
  * - unknown              → falls back to flagship
+ *
+ * The returned object identity is stable for a given (deviceType, notes_wide,
+ * notes_tall): the same reference is returned on every call.
  *
  * @param deviceType  "flagship" | "note" | "note_array"
  * @param notes_wide  Number of notes wide (only used for "note_array"; default 1)
@@ -60,7 +74,13 @@ export function resolveDimensions(deviceType: string, notes_wide = 1, notes_tall
     return DEVICE_DIMENSIONS[deviceType];
   }
   if (deviceType === "note_array") {
-    return noteArrayDimensions(notes_wide, notes_tall);
+    const key = `${notes_wide}×${notes_tall}`;
+    let dims = noteArrayCache.get(key);
+    if (dims === undefined) {
+      dims = noteArrayDimensions(notes_wide, notes_tall);
+      noteArrayCache.set(key, dims);
+    }
+    return dims;
   }
   // Unknown: fall back to flagship
   return DEVICE_DIMENSIONS.flagship;
