@@ -100,8 +100,12 @@ export const BOARD_CHARS = [
   "71",
 ];
 
-/** Extended characters that are not in BOARD_CHARS but can appear from device substitutions. */
-export const EXTRA_CHARS: Record<string, boolean> = { "♥": true };
+/** Extended characters that are not in BOARD_CHARS but can appear from device substitutions.
+ * Null-prototype object so inherited keys (`toString`, `constructor`, …) cannot pass the
+ * `EXTRA_CHARS[token.value]` truthiness guard in board-display and be treated as printable. */
+export const EXTRA_CHARS: Record<string, boolean> = Object.assign(Object.create(null), {
+  "♥": true,
+});
 
 /** A parsed board cell: either a printable character or a color-tile code. */
 export type BoardToken = { type: "char"; value: string } | { type: "color"; code: string };
