@@ -32,11 +32,13 @@ FiestaUI ships **no compiled utility CSS**. The consuming app runs Tailwind v4 a
 
 ```css
 @import "tailwindcss";
+@import "@fiestaboard/ui/fonts.css";
 @import "@fiestaboard/ui/theme.css";
 @source "../node_modules/@fiestaboard/ui/dist";
 ```
 
-- `theme.css` carries the design tokens (`@theme inline`, `:root` / `.dark` custom properties), the base layer, the component animation keyframes, the Geist font-face registrations, and the `dark` custom variant.
+- `theme.css` carries the design tokens (`@theme inline`, `:root` / `.dark` custom properties), the base layer, the component animation keyframes, and the `dark` custom variant.
+- `fonts.css` is the **opt-in** Geist font registration (`@fontsource-variable/geist` + `@fontsource-variable/geist-mono` `@font-face` rules, ~52 KB fetched for a Latin-only page). Import it alongside `theme.css` unless your app supplies Geist itself — e.g. via `next/font`, a CDN, or a self-hosted subset. If you self-host, skip `fonts.css` and register faces named `"Geist Variable"` / `"Geist Mono Variable"` (the names `theme.css`'s `--font-geist-sans` / `--font-geist-mono` tokens reference); without either, the tokens degrade gracefully to the system font stack.
 - The `@source` line is **mandatory** — Tailwind v4 does not scan `node_modules` by default, and without it component styles silently vanish. Adjust the relative path to wherever your CSS file lives.
 - Dark mode is class-based: toggle the `dark` class on `<html>`. FiestaUI only defines the variant; your app owns the toggle.
 

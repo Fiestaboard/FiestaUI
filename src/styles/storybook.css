@@ -1,3 +1,4 @@
 /* Storybook-only Tailwind entry. Consumers do this themselves — see theme.css. */
 @import "tailwindcss";
+@import "./fonts.css";
 @import "./theme.css";
