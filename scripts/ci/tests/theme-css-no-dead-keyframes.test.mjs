@@ -28,15 +28,7 @@ import { fileURLToPath } from "node:url";
  * shipped before the cleanup) — only the colliding keyframes are banned.
  */
 
-const themeCssPath = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  "..",
-  "src",
-  "styles",
-  "theme.css",
-);
+const themeCssPath = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "src", "styles", "theme.css");
 const themeCss = readFileSync(themeCssPath, "utf8");
 
 // Exact names of the removed dead code — hardcoded on purpose.
