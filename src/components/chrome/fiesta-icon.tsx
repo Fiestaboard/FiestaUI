@@ -9,6 +9,7 @@
  * (`/icons/favicon-32x32.png` in the app): pixels were quantized onto this
  * semantic palette and merged into maximal same-color rectangles.
  */
+import type { ReactNode } from "react";
 
 /** Encoded pixel rectangles: "x,y,w,h" or "x,y,w,h,a" (a = opacity in eighths, omitted when fully opaque). */
 interface FiestaIconSlot {
@@ -165,18 +166,31 @@ export const FIESTA_ICON_DATA_URI = `data:image/svg+xml,${FIESTA_ICON_SVG.replac
   .replace(/>/g, "%3E")}`;
 
 /**
- * The grouped `<rect>` children of the mark, built once at module load. They
- * depend on no props — `size`/`className` only touch the root `<svg>` — and
- * React elements are immutable, so every `FiestaIcon` render can reuse this
- * same tree instead of rebuilding 345 elements (15 `<g>` + 330 `<rect>`).
+ * Memoized cache for the grouped `<rect>` children of the mark. `null` until
+ * the first `FiestaIcon` render asks for it — importing this module allocates
+ * no React elements (issue #84's import-time complaint).
  */
-const ICON_CHILDREN = GROUPS.map((group) => (
-  <g key={group.name} fill={group.fill}>
-    {group.rects.map((r, i) => (
-      <rect key={i} x={r.x} y={r.y} width={r.width} height={r.height} opacity={r.opacity} />
-    ))}
-  </g>
-));
+let iconChildren: ReactNode | null = null;
+
+/**
+ * Lazily builds the mark's children on first use, then reuses them forever.
+ * They depend on no props — `size`/`className` only touch the root `<svg>` —
+ * and React elements are immutable, so every `FiestaIcon` render can share
+ * this same tree instead of rebuilding 345 elements (15 `<g>` + 330 `<rect>`),
+ * and non-rendering importers pay nothing.
+ */
+function getIconChildren(): ReactNode {
+  if (iconChildren === null) {
+    iconChildren = GROUPS.map((group) => (
+      <g key={group.name} fill={group.fill}>
+        {group.rects.map((r, i) => (
+          <rect key={i} x={r.x} y={r.y} width={r.width} height={r.height} opacity={r.opacity} />
+        ))}
+      </g>
+    ));
+  }
+  return iconChildren;
+}
 
 interface FiestaIconProps {
   size?: number;
@@ -194,7 +208,7 @@ export function FiestaIcon({ size = 32, className }: FiestaIconProps) {
       focusable="false"
       className={className}
     >
-      {ICON_CHILDREN}
+      {getIconChildren()}
     </svg>
   );
 }
