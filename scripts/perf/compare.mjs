@@ -13,6 +13,10 @@ export const THRESHOLDS = {
   entryBytesPct: 0.02,
   entryBytesAbs: 200,
   barrelBytesPct: 0.01,
+  // CSS ships verbatim, so a byte of growth is a byte a consumer pays. Gate it
+  // on the same pct/abs pair as the JS entries.
+  cssBytesPct: 0.02,
+  cssBytesAbs: 200,
 };
 
 /** "@scope/pkg/sub" -> "@scope/pkg"; "react-dom/client" -> "react-dom". */
@@ -152,5 +156,64 @@ export function compareReports(base, head, thresholds = THRESHOLDS) {
     }
   }
 
-  return { ok: failures.length === 0, failures, warnings, wins, rows };
+  // CSS assets. Older reports predate the css section; treat a missing one as
+  // empty so this comparison is a no-op against them rather than a crash.
+  const cssRows = [];
+  const baseCss = base.css ?? {};
+  const headCss = head.css ?? {};
+
+  for (const [name, headEntry] of Object.entries(headCss)) {
+    const baseEntry = baseCss[name];
+
+    if (!baseEntry) {
+      cssRows.push({
+        entry: name,
+        baseBytes: null,
+        headBytes: headEntry.bytes,
+        deltaBytes: null,
+        deltaPct: null,
+        added: true,
+      });
+      continue;
+    }
+
+    const delta = headEntry.bytes - baseEntry.bytes;
+    const ratio = pct(delta, baseEntry.bytes);
+
+    if (ratio > thresholds.cssBytesPct && delta > thresholds.cssBytesAbs) {
+      failures.push({
+        kind: "css-bytes",
+        entry: name,
+        detail: formatDelta(delta, ratio),
+      });
+    }
+    if (delta < 0) {
+      wins.push({
+        kind: "css-shrink",
+        entry: name,
+        detail: formatDelta(delta, ratio),
+      });
+    }
+
+    cssRows.push({
+      entry: name,
+      baseBytes: baseEntry.bytes,
+      headBytes: headEntry.bytes,
+      deltaBytes: delta,
+      deltaPct: ratio,
+      added: false,
+    });
+  }
+
+  for (const name of Object.keys(baseCss)) {
+    if (!headCss[name]) {
+      warnings.push({
+        kind: "removed-css",
+        entry: name,
+        detail: "present at base, absent at head — stylesheet no longer shipped",
+      });
+    }
+  }
+
+  return { ok: failures.length === 0, failures, warnings, wins, rows, cssRows };
 }

@@ -141,7 +141,7 @@ upgrade.
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "ref": "<git sha>",
   "barrel": {
     "externals": ["@base-ui/react", "clsx", "ogl"],
@@ -154,11 +154,16 @@ upgrade.
       "firstPartyBytes": 1204,
       "totalBytes": 38112
     }
+  },
+  "css": {
+    "theme.css": { "bytes": 10312 },
+    "seasons/christmas.css": { "bytes": 843 }
   }
 }
 ```
 
-Byte values are gzipped sizes of minified ESM output.
+Byte values are gzipped sizes of minified ESM output (for `css`, gzipped sizes
+of the stylesheets as shipped).
 
 ### How each number is produced
 
@@ -167,9 +172,15 @@ Byte values are gzipped sizes of minified ESM output.
 - **`externals`** — collect the bare specifiers recorded in that same build's
   metafile, reduced to package names (`@scope/pkg` or `pkg`), sorted.
 - **`totalBytes`** — bundle again with only `react` and `react-dom` external.
+- **`css`** — `dist/theme.css` and each `dist/seasons/*.css` gzipped directly.
+  The build copies these into `dist/` verbatim, so unlike the JS exports there
+  is nothing to bundle: a consumer pays their gzipped size as shipped. Keyed by
+  path relative to `dist/`. Gated on the same pct/abs pair as the JS entries
+  (`cssBytesPct` / `cssBytesAbs`).
 
-No CSS handling is required: FiestaUI's JS imports no stylesheets, shipping
-`theme.css` as a separate entry point instead.
+Emitted Tailwind utilities (`tw-animate-css` output) and the woff2 font assets
+are not yet measured; the `css` section tracks the stylesheets that ship
+verbatim, which is where the audit findings (#57, #65, #71) landed.
 
 ## CI wiring
 
