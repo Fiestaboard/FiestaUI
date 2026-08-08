@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 const VERT = `#version 300 es
 in vec2 position;
@@ -125,7 +125,13 @@ export function Aurora({
 }: AuroraProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const propsRef = useRef({ colorStops, amplitude, blend, speed, time });
-  propsRef.current = { colorStops, amplitude, blend, speed, time };
+  // Sync the ref before paint rather than during render: a render-phase ref
+  // write runs on discarded/concurrent renders too, and React 19 warns
+  // against it. useLayoutEffect fires before the browser paints, so the rAF
+  // loop below still reads fresh values on the same frame.
+  useLayoutEffect(() => {
+    propsRef.current = { colorStops, amplitude, blend, speed, time };
+  });
 
   useEffect(() => {
     const ctn = containerRef.current;
@@ -206,15 +212,34 @@ export function Aurora({
       // running the rAF loop — the colour ramp stays, only the movement stops.
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+      let appliedWidth = 0;
+      let appliedHeight = 0;
       function resize() {
         if (!ctn) return;
         const width = ctn.offsetWidth;
         const height = ctn.offsetHeight;
+        // renderer.setSize re-allocates the drawing buffer — skip when the
+        // container hasn't actually changed size.
+        if (width === appliedWidth && height === appliedHeight) return;
+        appliedWidth = width;
+        appliedHeight = height;
         renderer.setSize(width, height);
         program.uniforms.uResolution.value = [width, height];
         if (reducedMotion.matches) renderFrame(0);
       }
-      window.addEventListener("resize", resize);
+      // Coalesce resize events to one applied size per frame — a window drag
+      // fires dozens of events per second, and each un-coalesced call would
+      // re-allocate the GL drawing buffer (see scaled-board-display.tsx for
+      // the same pattern).
+      let resizeRafId: number | null = null;
+      const onResize = () => {
+        if (resizeRafId !== null) return;
+        resizeRafId = requestAnimationFrame(() => {
+          resizeRafId = null;
+          resize();
+        });
+      };
+      window.addEventListener("resize", onResize);
 
       ctn.appendChild(gl.canvas);
 
@@ -248,7 +273,8 @@ export function Aurora({
         cancelAnimationFrame(animateId);
         observer.disconnect();
         reducedMotion.removeEventListener("change", startOrFreeze);
-        window.removeEventListener("resize", resize);
+        window.removeEventListener("resize", onResize);
+        if (resizeRafId !== null) cancelAnimationFrame(resizeRafId);
         if (ctn && gl.canvas.parentNode === ctn) {
           ctn.removeChild(gl.canvas);
         }
