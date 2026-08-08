@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { cn } from "../../lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
@@ -44,8 +46,18 @@ export function BoardSelector({
   collapsed = false,
   variant = "sidebar",
 }: BoardSelectorProps) {
-  const current = boards.find((b) => b.id === value);
-  const currentName = current?.name || labels.unnamedBoard;
+  // Boards change rarely while the shell re-renders often; memoize the option
+  // list so those re-renders reuse the same element refs (React can then skip
+  // re-rendering the items) instead of rebuilding one SelectItem per board.
+  const items = useMemo(
+    () =>
+      boards.map((board) => (
+        <SelectItem key={board.id} value={board.id}>
+          {board.name || labels.unnamedBoard}
+        </SelectItem>
+      )),
+    [boards, labels.unnamedBoard],
+  );
 
   const trigger = (
     <SelectTrigger
@@ -89,19 +101,13 @@ export function BoardSelector({
         <Tooltip>
           <TooltipTrigger asChild>{trigger}</TooltipTrigger>
           <TooltipContent side="right" className="font-medium">
-            {currentName}
+            {boards.find((b) => b.id === value)?.name || labels.unnamedBoard}
           </TooltipContent>
         </Tooltip>
       ) : (
         trigger
       )}
-      <SelectContent>
-        {boards.map((board) => (
-          <SelectItem key={board.id} value={board.id}>
-            {board.name || labels.unnamedBoard}
-          </SelectItem>
-        ))}
-      </SelectContent>
+      <SelectContent>{items}</SelectContent>
     </Select>
   );
 }
