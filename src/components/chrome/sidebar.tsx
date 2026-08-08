@@ -120,13 +120,31 @@ export function Sidebar({
   useEffect(() => {
     const header = headerRef.current;
     if (!header) return;
-    const publish = () =>
-      document.documentElement.style.setProperty("--mobile-header-height", `${header.offsetHeight}px`);
-    const ro = new ResizeObserver(publish);
+    let rafId: number | null = null;
+    let last = "";
+    const publish = () => {
+      rafId = null;
+      const next = `${header.offsetHeight}px`;
+      // Skip the write when the height is unchanged (the common case — the
+      // header only changes height when it wraps): the CSS-var write on
+      // <html> invalidates style for the whole document.
+      if (next === last) return;
+      last = next;
+      document.documentElement.style.setProperty("--mobile-header-height", next);
+    };
+    // Coalesce ResizeObserver callbacks via rAF — the header can fire dozens
+    // of events per second while the viewport is dragged, and each callback
+    // reads offsetHeight (forced layout). One write per frame is plenty.
+    const recompute = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(publish);
+    };
+    const ro = new ResizeObserver(recompute);
     ro.observe(header);
     publish();
     return () => {
       ro.disconnect();
+      if (rafId !== null) cancelAnimationFrame(rafId);
       document.documentElement.style.removeProperty("--mobile-header-height");
     };
   }, []);
@@ -143,10 +161,26 @@ export function Sidebar({
   }, [mobileMenuOpen]);
 
   useEffect(() => {
-    const update = () => setAppInset(Math.max(0, (document.body.clientWidth - maxWidth) / 2));
+    let rafId: number | null = null;
+    const update = () => {
+      rafId = null;
+      const next = Math.max(0, (document.body.clientWidth - maxWidth) / 2);
+      // Bail before re-rendering when the inset is unchanged — it's 0
+      // whenever the viewport is at or below maxWidth (the common case on
+      // laptop screens). update reads body.clientWidth (forced layout).
+      setAppInset((prev) => (prev === next ? prev : next));
+    };
+    // Coalesce resize events via rAF — a window drag fires dozens per second.
+    const recompute = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(update);
+    };
     update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    window.addEventListener("resize", recompute);
+    return () => {
+      window.removeEventListener("resize", recompute);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, [maxWidth]);
 
   function renderMobileNavItem(item: SidebarNavItem) {
