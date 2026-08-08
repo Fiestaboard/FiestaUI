@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Menu, Sparkles, X } from "lucide-react";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, memo, useEffect, useRef, useState } from "react";
 
 import type { Season } from "../../lib/seasons";
 import { cn } from "../../lib/utils";
@@ -141,7 +141,7 @@ export interface SidebarProps {
   sidebarInset: number;
 }
 
-export function Sidebar({
+export const Sidebar = memo(function Sidebar({
   labels,
   primaryItems,
   secondaryItems,
@@ -557,4 +557,4 @@ export function Sidebar({
       </TooltipProvider>
     </>
   );
-}
+});

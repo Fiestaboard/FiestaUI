@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 interface SkipToContentProps {
   /** Localized link text, e.g. "Skip to main content". */
   label: string;
@@ -7,7 +9,7 @@ interface SkipToContentProps {
   targetId?: string;
 }
 
-export function SkipToContent({ label, targetId = "main-content" }: SkipToContentProps) {
+export const SkipToContent = memo(function SkipToContent({ label, targetId = "main-content" }: SkipToContentProps) {
   return (
     <a
       href={`#${targetId}`}
@@ -16,4 +18,4 @@ export function SkipToContent({ label, targetId = "main-content" }: SkipToConten
       {label}
     </a>
   );
-}
+});

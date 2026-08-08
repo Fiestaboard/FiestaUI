@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { cn } from "../../lib/utils";
 
 interface PageLayoutProps {
@@ -9,7 +11,12 @@ interface PageLayoutProps {
   fillHeight?: boolean;
 }
 
-export function PageLayout({ children, className, outerClassName, fillHeight }: PageLayoutProps) {
+export const PageLayout = memo(function PageLayout({
+  children,
+  className,
+  outerClassName,
+  fillHeight,
+}: PageLayoutProps) {
   return (
     <div
       className={cn(
@@ -38,4 +45,4 @@ export function PageLayout({ children, className, outerClassName, fillHeight }: 
       </div>
     </div>
   );
-}
+});
