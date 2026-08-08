@@ -708,6 +708,10 @@
   position: fixed;
   top: 0;
   left: 0;
+  /* The fixed container forms a stacking context, trapping the particles'
+     z-index inside it — so the container itself must sit at confetti level
+     or the burst paints under sheets/modals/tooltips. */
+  z-index: var(--z-confetti);
   pointer-events: none;
 }
 .pride-burst-particle {

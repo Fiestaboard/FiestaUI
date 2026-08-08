@@ -174,6 +174,11 @@ export function fireSeasonBurst(e: { clientX: number; clientY: number }, colors:
   container.addEventListener("animationend", () => {
     if (--remaining === 0) container.remove();
   });
+  // Backstop: if the animations never fire (e.g. reduced-motion flips on
+  // mid-burst and the CSS backstop sets animation: none), animationend
+  // never arrives — remove the container after the longest possible
+  // particle duration (1s) plus slack so it can't leak.
+  setTimeout(() => container.remove(), 1500);
   document.body.appendChild(container);
 }
 
