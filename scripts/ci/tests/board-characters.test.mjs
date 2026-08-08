@@ -36,8 +36,9 @@ await build({
   outfile,
 });
 
-const { BOARD_CHARS, getCharIndex, isColorTile, parseLine, messageToGrid, tokensEqual } =
-  await import(pathToFileURL(outfile).href);
+const { BOARD_CHARS, getCharIndex, isColorTile, parseLine, messageToGrid, tokensEqual } = await import(
+  pathToFileURL(outfile).href
+);
 
 after(() => {
   rmSync(outDir, { recursive: true, force: true });
@@ -74,11 +75,7 @@ test("getCharIndex: duplicate entries resolve to first occurrence, matching inde
   assert.equal(getCharIndex(" "), BOARD_CHARS.indexOf(" "));
   // Full parity sweep: every entry resolves exactly as the old linear scan did.
   for (let i = 0; i < BOARD_CHARS.length; i++) {
-    assert.equal(
-      getCharIndex(BOARD_CHARS[i]),
-      BOARD_CHARS.indexOf(BOARD_CHARS[i]),
-      `code ${i} ("${BOARD_CHARS[i]}")`,
-    );
+    assert.equal(getCharIndex(BOARD_CHARS[i]), BOARD_CHARS.indexOf(BOARD_CHARS[i]), `code ${i} ("${BOARD_CHARS[i]}")`);
   }
 });
 
@@ -99,13 +96,7 @@ test("isColorTile: exactly the 63-71 code strings are color tiles", () => {
 // --- parseLine --------------------------------------------------------------
 
 test("parseLine: uppercases characters and tokenizes color markers", () => {
-  assert.deepEqual(parseLine("hi {66}!"), [
-    char("H"),
-    char("I"),
-    char(" "),
-    color("66"),
-    char("!"),
-  ]);
+  assert.deepEqual(parseLine("hi {66}!"), [char("H"), char("I"), char(" "), color("66"), char("!")]);
   // Named colors are case-insensitive; end tags render nothing.
   assert.deepEqual(parseLine("{Red}a{/red}{/}"), [color("red"), char("A")]);
   // Invalid markers fall through as literal characters.
@@ -135,11 +126,7 @@ test("parseLine: maxTokens equals old full-parse-then-slice semantics", () => {
   ];
   for (const line of lines) {
     for (const cap of [0, 1, 5, 22, 100]) {
-      assert.deepEqual(
-        parseLine(line, cap),
-        parseLine(line).slice(0, cap),
-        `line "${line}" cap ${cap}`,
-      );
+      assert.deepEqual(parseLine(line, cap), parseLine(line).slice(0, cap), `line "${line}" cap ${cap}`);
     }
   }
   // Hand-computed expectation, not just self-consistency:
