@@ -43,8 +43,11 @@ export const SEASONS: Season[] = [PRIDE_SEASON];
  * never consults them, so consuming apps ship only SEASONS. Promote a
  * finished design by moving its entry into SEASONS.
  *
- * Each draft's CSS lives in src/styles/seasons/<id>.css (imported by
- * theme.css — inert unless the class is stamped on <html>).
+ * Each draft's CSS lives in src/styles/seasons/<id>.css and ships to
+ * dist/seasons/<id>.css. It is NOT imported by theme.css (only the live
+ * pride season is) — a consumer promoting a draft opts in with
+ * `@import "@fiestaboard/ui/seasons/<id>.css"`. Storybook imports every
+ * draft in storybook.css so the Season toolbar previews them.
  *
  * `colors` MUST mirror the season CSS's --icon-g1..6 ramp: the CSS is the
  * design intent, and the aurora/confetti render alongside the CSS-tinted

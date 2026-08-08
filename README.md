@@ -40,6 +40,16 @@ FiestaUI ships **no compiled utility CSS**. The consuming app runs Tailwind v4 a
 - The `@source` line is **mandatory** — Tailwind v4 does not scan `node_modules` by default, and without it component styles silently vanish. Adjust the relative path to wherever your CSS file lives.
 - Dark mode is class-based: toggle the `dark` class on `<html>`. FiestaUI only defines the variant; your app owns the toggle.
 
+### Seasonal theming
+
+`theme.css` inlines only the **live** season (Pride) — it activates automatically when the app shell stamps `.pride-month` on `<html>`. The other seasons are design drafts and are shipped as **opt-in** stylesheets rather than bundled into every consumer, so you only pay for the ones you use:
+
+```css
+@import "@fiestaboard/ui/seasons/christmas.css";
+```
+
+Import the file for a season only once you've promoted it (moved its entry into `SEASONS` and taught the app shell to stamp its `htmlClass`). All drafts are previewable in Storybook's **Season** toolbar without any consumer setup.
+
 ## Usage
 
 ```tsx
