@@ -2,6 +2,10 @@ import type { LucideIcon } from "lucide-react";
 
 import { cn } from "../../lib/utils";
 
+// Render-invariant styles, hoisted so re-renders reuse one object each.
+const ICON_GRADIENT_STYLE: React.CSSProperties = { stroke: "url(#page-icon-gradient)" };
+const DEFS_SVG_STYLE: React.CSSProperties = { position: "absolute" };
+
 interface PageHeaderProps {
   icon: LucideIcon;
   title: string;
@@ -31,7 +35,7 @@ export function PageHeader({
     >
       <div className="min-w-0">
         <h1 className="page-title flex items-center gap-3">
-          <Icon className="h-5 w-5 flex-shrink-0" style={{ stroke: "url(#page-icon-gradient)" }} aria-hidden="true" />
+          <Icon className="h-5 w-5 flex-shrink-0" style={ICON_GRADIENT_STYLE} aria-hidden="true" />
           {title}
         </h1>
         <p className="page-description">{description}</p>
@@ -49,7 +53,7 @@ export function PageHeader({
  */
 export function PageIconGradientDefs() {
   return (
-    <svg width="0" height="0" aria-hidden="true" style={{ position: "absolute" }}>
+    <svg width="0" height="0" aria-hidden="true" style={DEFS_SVG_STYLE}>
       <defs>
         <linearGradient id="page-icon-gradient" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="24" y2="24">
           <stop offset="0%" stopColor="var(--icon-g1)" />

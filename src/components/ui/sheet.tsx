@@ -39,14 +39,16 @@ function SheetClose({
 
 const SheetPortal = SheetPrimitive.Portal;
 
+const SHEET_OVERLAY_STYLE: React.CSSProperties = {
+  animation: "sheet-overlay-in var(--motion-duration-slow) var(--motion-ease-out)",
+};
+
 function SheetOverlay({ className, ...props }: React.ComponentProps<typeof SheetPrimitive.Backdrop>) {
   return (
     <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
       className={cn("fixed inset-0 z-[var(--z-sheet)] bg-overlay", className)}
-      style={{
-        animation: "sheet-overlay-in var(--motion-duration-slow) var(--motion-ease-out)",
-      }}
+      style={SHEET_OVERLAY_STYLE}
       {...props}
     />
   );
@@ -66,6 +68,38 @@ const sheetVariants = cva("fixed z-[var(--z-sheet)] gap-4 bg-background p-6 shad
   },
 });
 
+type SheetSide = "top" | "bottom" | "left" | "right";
+
+const SHEET_SLIDE_TIMING = "var(--motion-duration-slowest) var(--motion-ease-standard)";
+
+// Frozen per-side style lookup built once at module load. `willChange` is
+// intentionally omitted: the `sheet-slide-in-*` keyframes animate `translate3d`,
+// which already promotes the panel to a compositor layer for the duration of the
+// entrance animation (see theme.css) — a permanent `willChange: transform` would
+// keep a full-height panel on a GPU layer for its entire mounted lifetime.
+const SHEET_STYLE_BY_SIDE: Record<SheetSide, React.CSSProperties> = {
+  top: {
+    animation: `sheet-slide-in-top ${SHEET_SLIDE_TIMING}`,
+    backfaceVisibility: "hidden",
+    contain: "layout style paint",
+  },
+  bottom: {
+    animation: `sheet-slide-in-bottom ${SHEET_SLIDE_TIMING}`,
+    backfaceVisibility: "hidden",
+    contain: "layout style paint",
+  },
+  left: {
+    animation: `sheet-slide-in-left ${SHEET_SLIDE_TIMING}`,
+    backfaceVisibility: "hidden",
+    contain: "layout style paint",
+  },
+  right: {
+    animation: `sheet-slide-in-right ${SHEET_SLIDE_TIMING}`,
+    backfaceVisibility: "hidden",
+    contain: "layout style paint",
+  },
+};
+
 interface SheetContentProps
   extends React.ComponentProps<typeof SheetPrimitive.Popup>, VariantProps<typeof sheetVariants> {
   /**
@@ -84,21 +118,18 @@ function SheetContent({
   onKeyDown,
   ...props
 }: SheetContentProps) {
-  const getAnimation = (side: string) => {
-    const timing = "var(--motion-duration-slowest) var(--motion-ease-standard)";
-    switch (side) {
-      case "right":
-        return `sheet-slide-in-right ${timing}`;
-      case "left":
-        return `sheet-slide-in-left ${timing}`;
-      case "top":
-        return `sheet-slide-in-top ${timing}`;
-      case "bottom":
-        return `sheet-slide-in-bottom ${timing}`;
-      default:
-        return `sheet-slide-in-right ${timing}`;
-    }
-  };
+  const handleKeyDown = React.useCallback(
+    (event: Parameters<NonNullable<React.ComponentProps<typeof SheetPrimitive.Popup>["onKeyDown"]>>[0]) => {
+      onKeyDown?.(event);
+      if (event.key === "Escape" && onEscapeKeyDown) {
+        onEscapeKeyDown(event);
+        if (event.defaultPrevented) {
+          event.stopPropagation();
+        }
+      }
+    },
+    [onKeyDown, onEscapeKeyDown],
+  );
 
   return (
     <SheetPortal>
@@ -106,22 +137,8 @@ function SheetContent({
       <SheetPrimitive.Popup
         data-slot="sheet-content"
         className={cn(sheetVariants({ side }), className)}
-        onKeyDown={(event) => {
-          onKeyDown?.(event);
-          if (event.key === "Escape" && onEscapeKeyDown) {
-            onEscapeKeyDown(event);
-            if (event.defaultPrevented) {
-              event.stopPropagation();
-            }
-          }
-        }}
-        style={{
-          animation: getAnimation(side || "right"),
-          willChange: "transform",
-          backfaceVisibility: "hidden",
-          // CSS containment for better perf - isolate this from rest of page
-          contain: "layout style paint",
-        }}
+        onKeyDown={handleKeyDown}
+        style={SHEET_STYLE_BY_SIDE[side ?? "right"]}
         {...props}
       >
         {children}

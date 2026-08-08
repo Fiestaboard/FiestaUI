@@ -66,12 +66,19 @@ export function hexToRgb(hex: string): [number, number, number] {
 /**
  * Compiles `fragSource`, uploads the 6 colour stops, and runs the RAF
  * render loop with parent-sized canvas. `label` prefixes console errors.
+ *
+ * `resolutionScale` (0–1, default 1) shrinks the canvas backing store
+ * relative to its CSS size; the compositor's bilinear upscale then supplies
+ * free softness. Auroras are decorative, so a variant that used to stack a
+ * CSS `blur()` on top of the shader (issue #65) can instead render fewer
+ * pixels and get the same diffuse look from a single pass.
  */
 export function useAuroraCanvas(
   canvasRef: RefObject<HTMLCanvasElement | null>,
   fragSource: string,
   colors: string[],
   label: string,
+  resolutionScale = 1,
 ) {
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -133,12 +140,14 @@ export function useAuroraCanvas(
       const parent = canvas!.parentElement;
       if (!parent) return;
       const { width: w, height: h } = parent.getBoundingClientRect();
-      canvas!.width = Math.floor(w);
-      canvas!.height = Math.floor(h);
+      const bw = Math.max(1, Math.round(w * resolutionScale));
+      const bh = Math.max(1, Math.round(h * resolutionScale));
+      canvas!.width = bw;
+      canvas!.height = bh;
       canvas!.style.width = `${w}px`;
       canvas!.style.height = `${h}px`;
-      gl!.viewport(0, 0, Math.floor(w), Math.floor(h));
-      gl!.uniform2f(uRes, w, h);
+      gl!.viewport(0, 0, bw, bh);
+      gl!.uniform2f(uRes, bw, bh);
     }
 
     let rafId = 0;
@@ -193,5 +202,5 @@ export function useAuroraCanvas(
       gl.deleteShader(frag);
       gl.deleteBuffer(buf);
     };
-  }, [canvasRef, fragSource, colors, label]);
+  }, [canvasRef, fragSource, colors, label, resolutionScale]);
 }
