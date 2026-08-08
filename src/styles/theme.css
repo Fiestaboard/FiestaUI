@@ -1058,21 +1058,34 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
 }
 
-/* Sidebar collapse/expand transition.
-   Sidebar animates width; main animates padding-left and padding-right.
-   All use the same 300ms easing so they move in sync and never collide. */
+/* Sidebar collapse/expand transition (#92).
+   Only the fixed sidebar transitions width — its layout scope is just the
+   sidebar itself (the contain below keeps that honest). The content root
+   (<main id="main-content">) must never transition layout properties: every
+   frame of a width/padding transition there relayouts the whole page
+   subtree. Instead, MainContent snaps its paddings instantly and slides an
+   inner .content-shift wrapper with a compositor-only transform (FLIP),
+   using the same 300ms easing so sidebar and content move in sync. */
 .sidebar-transition {
-  transition:
-    width var(--motion-duration-slow) var(--motion-ease-out-cubic),
-    padding-left var(--motion-duration-slow) var(--motion-ease-out-cubic),
-    padding-right var(--motion-duration-slow) var(--motion-ease-out-cubic);
+  transition: width var(--motion-duration-slow) var(--motion-ease-out-cubic);
   contain: layout style;
 }
-.sidebar-transition.is-transitioning {
-  will-change: width, padding-left, padding-right;
+/* Content root: keeps the containment it always had; paddings snap. */
+.content-root {
+  contain: layout style;
+}
+/* Inner content wrapper: the only thing that moves during the slide.
+   will-change is scoped to the transition — transform is compositor-promoted,
+   so (unlike the old width/padding hint) the hint actually does something. */
+.content-shift {
+  transition: transform var(--motion-duration-slow) var(--motion-ease-out-cubic);
+}
+.content-shift.is-transitioning {
+  will-change: transform;
 }
 @media (prefers-reduced-motion: reduce) {
-  .sidebar-transition {
+  .sidebar-transition,
+  .content-shift {
     transition: none;
   }
   .sidebar-gradient {
@@ -1084,7 +1097,8 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
     background-position: 25% 50%;
   }
 }
-.reduce-motion .sidebar-transition {
+.reduce-motion .sidebar-transition,
+.reduce-motion .content-shift {
   transition: none;
 }
 .reduce-motion .sidebar-gradient {

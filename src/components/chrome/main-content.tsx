@@ -1,8 +1,12 @@
 "use client";
 
-import { useCallback } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 import { cn } from "../../lib/utils";
+
+/** lg: left padding of the content root — must match the classes below. */
+const EXPANDED_PL = 268;
+const COLLAPSED_PL = 76;
 
 interface MainContentProps {
   children: React.ReactNode;
@@ -16,13 +20,20 @@ interface MainContentProps {
   isAuthScreen?: boolean;
   /** App max width in px (FiestaBoard passes MAX_APP_WIDTH). */
   maxWidth?: number;
-  /** Fired when the padding-left transition completes. */
+  /** Fired when the collapse/expand slide completes. */
   onTransitionEnd?: () => void;
 }
 
 /**
  * The app's main landmark. Layout math is presentational; collapse/AI-panel
  * state and route awareness are injected by the app shell.
+ *
+ * Sidebar collapse/expand (#92): the paddings on <main> snap instantly (one
+ * layout pass) and an inner wrapper FLIPs — it starts translated at the old
+ * visual offset and slides to identity via a compositor-only transform
+ * transition — instead of transitioning padding-left, which relayouted the
+ * entire content subtree on every animation frame. The settled state carries
+ * no transform (the inline style is cleared, so computed transform is none).
  */
 export function MainContent({
   children,
@@ -33,29 +44,60 @@ export function MainContent({
   maxWidth,
   onTransitionEnd,
 }: MainContentProps) {
-  const handleTransitionEnd = useCallback(
-    (e: React.TransitionEvent<HTMLElement>) => {
-      if (e.target === e.currentTarget && e.propertyName === "padding-left") {
-        onTransitionEnd?.();
-      }
-    },
-    [onTransitionEnd],
-  );
+  const rootRef = useRef<HTMLElement>(null);
+  const shiftRef = useRef<HTMLDivElement>(null);
+  const prevCollapsed = useRef(collapsed);
+
+  useLayoutEffect(() => {
+    if (prevCollapsed.current === collapsed) return;
+    prevCollapsed.current = collapsed;
+    const root = rootRef.current;
+    const shift = shiftRef.current;
+    if (!root || !shift || isAuthScreen) return;
+    // Below lg the sidebar padding doesn't apply, so there is nothing to slide.
+    if (!window.matchMedia("(min-width: 1024px)").matches) return;
+    // Reduced motion (media query or the app's .reduce-motion class) zeroes
+    // the transition — the instant padding snap is the whole "animation".
+    if (parseFloat(getComputedStyle(shift).transitionDuration) === 0) return;
+    // FLIP: React has already snapped the padding to its final value, moving
+    // the content in a single layout pass. Start the wrapper at the old
+    // visual offset with the transition suppressed, flush, then release —
+    // the .content-shift transition slides it to identity on the compositor.
+    const delta = collapsed ? EXPANDED_PL - COLLAPSED_PL : COLLAPSED_PL - EXPANDED_PL;
+    // Clip the in-flight overhang at the root's padding box so the slide
+    // never grows the page's scrollable overflow; removed when it settles.
+    root.style.overflowX = "clip";
+    shift.style.transition = "none";
+    shift.style.transform = `translateX(${delta}px)`;
+    void shift.getBoundingClientRect();
+    shift.style.transition = "";
+    shift.style.transform = "";
+  }, [collapsed, isAuthScreen]);
 
   return (
     <main
+      ref={rootRef}
       id="main-content"
       className={cn(
         "min-h-dvh flex flex-col w-full mx-auto",
-        !isAuthScreen && "pt-[calc(var(--mobile-header-height,56px)+16px)] lg:pt-0 sidebar-transition",
+        !isAuthScreen && "pt-[calc(var(--mobile-header-height,56px)+16px)] lg:pt-0 content-root",
         !isAuthScreen && (collapsed ? "lg:pl-[76px]" : "lg:pl-[268px]"),
         !isAuthScreen && (aiPanelOpen ? "lg:pr-[384px]" : "lg:pr-0"),
-        !isAuthScreen && transitioning && "is-transitioning",
       )}
       style={{ maxWidth: isAuthScreen ? undefined : maxWidth }}
-      onTransitionEnd={handleTransitionEnd}
     >
-      {children}
+      <div
+        ref={shiftRef}
+        className={cn("flex grow flex-col content-shift", !isAuthScreen && transitioning && "is-transitioning")}
+        onTransitionEnd={(e) => {
+          if (e.target === e.currentTarget && e.propertyName === "transform") {
+            if (rootRef.current) rootRef.current.style.overflowX = "";
+            onTransitionEnd?.();
+          }
+        }}
+      >
+        {children}
+      </div>
     </main>
   );
 }
