@@ -5,7 +5,7 @@ import { Moon, Sun } from "lucide-react";
 import { Button } from "../ui/button";
 
 interface ThemeToggleProps {
-  /** Current resolved theme. Kept in the API for label/analytics wiring; icon display is CSS-driven. */
+  /** Current resolved theme. */
   theme: "light" | "dark";
   /** Called when the user clicks the toggle. */
   onToggle: () => void;
@@ -17,17 +17,26 @@ interface ThemeToggleProps {
  * Controlled presentational theme toggle. Theme state/persistence stays in
  * the app (FiestaBoard wires this to its use-theme hook).
  *
- * Both icons are always in the DOM; the visible one is selected by the
- * `dark:` variant (keyed on the `.dark` root class, see theme.css's
- * `@custom-variant dark`). Server and client markup are therefore identical
- * even when the `theme` prop resolves differently server-side, so no
- * mounted gate or placeholder render is needed.
+ * Both icons are always in the DOM; the visible one is selected by CSS keyed
+ * on the prop-driven `data-resolved-theme` attribute, so the icon still
+ * follows the `theme` prop (the component's contract) rather than the root
+ * `.dark` class. Server and client markup differ at most by one attribute
+ * value when the theme resolves differently server-side — patched cheaply
+ * during hydration (`suppressHydrationWarning`), so no mounted gate or
+ * placeholder render is needed.
  */
-export function ThemeToggle({ onToggle, label }: ThemeToggleProps) {
+export function ThemeToggle({ theme, onToggle, label }: ThemeToggleProps) {
   return (
-    <Button variant="ghost" size="icon" onClick={onToggle} className="w-9 h-9">
-      <Sun className="hidden h-4 w-4 dark:block" />
-      <Moon className="h-4 w-4 dark:hidden" />
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={onToggle}
+      className="w-9 h-9"
+      data-resolved-theme={theme}
+      suppressHydrationWarning
+    >
+      <Sun className="hidden h-4 w-4 [[data-resolved-theme=dark]_&]:block" />
+      <Moon className="h-4 w-4 [[data-resolved-theme=dark]_&]:hidden" />
       <span className="sr-only">{label}</span>
     </Button>
   );
