@@ -63,7 +63,13 @@ export const MainContent = memo(function MainContent({
     // the content in a single layout pass. Start the wrapper at the old
     // visual offset with the transition suppressed, flush, then release —
     // the .content-shift transition slides it to identity on the compositor.
-    const delta = collapsed ? EXPANDED_PL - COLLAPSED_PL : COLLAPSED_PL - EXPANDED_PL;
+    // Compound with any in-flight slide: if the user toggles again mid-
+    // transition, the wrapper sits at some interpolated translateX — the new
+    // start offset must add it, or the content teleports back to the full
+    // ±delta before re-sliding (main's old padding transition retargeted
+    // smoothly; this preserves that).
+    const inFlight = new DOMMatrixReadOnly(getComputedStyle(shift).transform).e;
+    const delta = (collapsed ? EXPANDED_PL - COLLAPSED_PL : COLLAPSED_PL - EXPANDED_PL) + inFlight;
     // Clip the in-flight overhang at the root's padding box so the slide
     // never grows the page's scrollable overflow; removed when it settles.
     root.style.overflowX = "clip";
