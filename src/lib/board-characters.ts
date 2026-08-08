@@ -106,6 +106,11 @@ export const EXTRA_CHARS: Record<string, boolean> = { "♥": true };
 /** A parsed board cell: either a printable character or a color-tile code. */
 export type BoardToken = { type: "char"; value: string } | { type: "color"; code: string };
 
+/** Shared blank cell reused for grid padding. Tokens are read-only in the
+ * render path (compared via {@link tokensEqual}, never mutated), so one frozen
+ * instance can back every pad cell instead of allocating a fresh object each. */
+const BLANK_TOKEN: BoardToken = Object.freeze({ type: "char", value: " " });
+
 /** Structural equality for tokens (used by the memoized tile comparators). */
 export function tokensEqual(a: BoardToken, b: BoardToken): boolean {
   if (a.type !== b.type) return false;
@@ -114,19 +119,30 @@ export function tokensEqual(a: BoardToken, b: BoardToken): boolean {
   return false;
 }
 
-/** Color-tile codes (63–71) as strings. Hoisted so the per-tile `isColorTile`
- * check does not allocate a fresh array on every call in the board render path. */
-const COLOR_TILE_CODES = ["63", "64", "65", "66", "67", "68", "69", "70", "71"];
+/** Color-tile codes (63–71) as strings, held in a Set so the per-tile
+ * `isColorTile` check is O(1) instead of a linear `includes` scan on every
+ * call in the board render path. */
+const COLOR_TILE_CODE_SET = new Set(["63", "64", "65", "66", "67", "68", "69", "70", "71"]);
 
 /** Check if a character is a color tile (codes 63–71 rendered as strings). */
 export const isColorTile = (char: string) => {
-  return COLOR_TILE_CODES.includes(char);
+  return COLOR_TILE_CODE_SET.has(char);
 };
+
+/** Character → BOARD_CHARS index, so `getCharIndex` is O(1) instead of a linear
+ * `indexOf` scan run per tile (including inside the flap-animation path). Built
+ * first-occurrence-wins to match `indexOf`: the duplicate ' ' placeholders
+ * (codes 43, 45, 51, 57, 58, 61) must not override blank at index 0. */
+const CHAR_INDEX = new Map<string, number>();
+for (let i = 0; i < BOARD_CHARS.length; i++) {
+  const char = BOARD_CHARS[i];
+  if (!CHAR_INDEX.has(char)) CHAR_INDEX.set(char, i);
+}
 
 /** Find a character's index in BOARD_CHARS; unknown characters map to blank (0). */
 export function getCharIndex(char: string): number {
-  const index = BOARD_CHARS.indexOf(char);
-  return index >= 0 ? index : 0; // Default to space if not found
+  const index = CHAR_INDEX.get(char);
+  return index !== undefined ? index : 0; // Default to space if not found
 }
 
 /** Get the display character from a token (color tiles are represented by their code). */
@@ -144,11 +160,11 @@ export function getCharFromToken(token: BoardToken): string {
  * a message reaches the preview, template rendering has normalized colors to
  * single brackets. End tags (`{/red}`, `{/}`) render nothing.
  */
-export function parseLine(line: string): BoardToken[] {
+export function parseLine(line: string, maxTokens: number = Infinity): BoardToken[] {
   const tokens: BoardToken[] = [];
   let i = 0;
 
-  while (i < line.length) {
+  while (i < line.length && tokens.length < maxTokens) {
     // Check for single-bracket color markers: {63}, {red}, {/red}, {/}
     // (After template rendering, colors are normalized to single brackets)
     if (line[i] === "{") {
@@ -207,7 +223,9 @@ export function messageToGrid(
 
   for (let row = 0; row < rows; row++) {
     const line = lines[row] || "";
-    const tokens = parseLine(line);
+    // Only the first `cols` tokens survive the fill below, so stop parsing there
+    // instead of tokenizing the whole line and discarding the overflow.
+    const tokens = parseLine(line, cols);
     const rowTokens: BoardToken[] = [];
 
     // Fill to cols width
@@ -221,7 +239,7 @@ export function messageToGrid(
           rowTokens.push(token);
         }
       } else {
-        rowTokens.push({ type: "char", value: " " });
+        rowTokens.push(BLANK_TOKEN);
       }
     }
     grid.push(rowTokens);
