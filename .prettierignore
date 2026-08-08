@@ -4,3 +4,8 @@ storybook-static/
 package-lock.json
 # claude.ai/design sync artifacts (not repo source)
 .design-sync/
+# machine-written state the perf loops push straight to main — formatting
+# them would make every loop push turn main's CI red
+.github/perf-audit-state.json
+.github/perf-explore-state.json
+.github/perf-explore/
