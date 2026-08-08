@@ -1,8 +1,7 @@
 "use client";
 
-import { memo } from "react";
-
 import { Moon, Sun } from "lucide-react";
+import { memo } from "react";
 
 import { Button } from "../ui/button";
 

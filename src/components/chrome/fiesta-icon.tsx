@@ -10,7 +10,6 @@
  * semantic palette and merged into maximal same-color rectangles.
  */
 import type { ReactNode } from "react";
-
 import { memo } from "react";
 
 /** Encoded pixel rectangles: "x,y,w,h" or "x,y,w,h,a" (a = opacity in eighths, omitted when fully opaque). */
