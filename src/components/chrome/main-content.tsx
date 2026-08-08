@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback } from "react";
+
 import { cn } from "../../lib/utils";
 
 interface MainContentProps {
@@ -31,6 +33,15 @@ export function MainContent({
   maxWidth,
   onTransitionEnd,
 }: MainContentProps) {
+  const handleTransitionEnd = useCallback(
+    (e: React.TransitionEvent<HTMLElement>) => {
+      if (e.target === e.currentTarget && e.propertyName === "padding-left") {
+        onTransitionEnd?.();
+      }
+    },
+    [onTransitionEnd],
+  );
+
   return (
     <main
       id="main-content"
@@ -42,11 +53,7 @@ export function MainContent({
         !isAuthScreen && transitioning && "is-transitioning",
       )}
       style={{ maxWidth: isAuthScreen ? undefined : maxWidth }}
-      onTransitionEnd={(e) => {
-        if (e.target === e.currentTarget && e.propertyName === "padding-left") {
-          onTransitionEnd?.();
-        }
-      }}
+      onTransitionEnd={handleTransitionEnd}
     >
       {children}
     </main>

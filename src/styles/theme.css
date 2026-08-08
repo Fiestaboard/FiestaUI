@@ -5,7 +5,8 @@
  * app/globals.css. It must be imported into a Tailwind v4 pipeline:
  *
  *   @import "tailwindcss";
- *   @import "@fiestaboard/ui/theme.css";
+ *   @import "@fiestaboard/ui/fonts.css";   <- opt-in Geist @font-face registrations;
+ *   @import "@fiestaboard/ui/theme.css";      skip fonts.css if you self-host Geist
  *   @source "../node_modules/@fiestaboard/ui/dist";
  *
  * Dark mode is class-based: toggle the `dark` class on <html>.
@@ -14,18 +15,15 @@
  * token values here without a parity check on the consumer side.
  */
 @import "tw-animate-css";
-@import "@fontsource-variable/geist";
-@import "@fontsource-variable/geist-mono";
 /* Seasonal themes — one file per season, inert unless the season class
-   is stamped on <html>. Pride is live; the rest are design drafts. */
+   is stamped on <html>. Only the LIVE season (pride) is inlined here so
+   consumers get it automatically; the design drafts are NOT imported —
+   they'd ship ~18 KB of rule families keyed on classes the app never
+   stamps. A consumer that promotes a draft opts in with:
+     @import "@fiestaboard/ui/seasons/<id>.css";
+   (see README "Seasonal theming"). Storybook imports every draft
+   directly in storybook.css so the Season toolbar can preview them. */
 @import "./seasons/pride.css";
-@import "./seasons/halloween.css";
-@import "./seasons/thanksgiving.css";
-@import "./seasons/christmas.css";
-@import "./seasons/new-year.css";
-@import "./seasons/easter.css";
-@import "./seasons/mothers-day.css";
-@import "./seasons/fathers-day.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -138,12 +136,15 @@
 }
 
 :root {
-  /* Font families self-hosted via @fontsource-variable/geist (and
-     @fontsource-variable/geist-mono). The font-family names below
-     match the @font-face declarations those packages register at
-     module load. Previously these CSS vars were set by Next.js's
-     next/font wrapper in layout.tsx — moved here so they're owned by
-     the stylesheet, not a build-time JS wrapper. */
+  /* Font family tokens. The "Geist Variable" / "Geist Mono Variable"
+     names match the @font-face declarations registered by the opt-in
+     @fiestaboard/ui/fonts.css subpath (which wraps
+     @fontsource-variable/geist and @fontsource-variable/geist-mono).
+     Consumers that self-host Geist (next/font, CDN, subset) skip
+     fonts.css; without it these tokens degrade gracefully to the
+     system stacks below. Previously these CSS vars were set by
+     Next.js's next/font wrapper in layout.tsx — moved here so they're
+     owned by the stylesheet, not a build-time JS wrapper. */
   --font-geist-sans: "Geist Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-geist-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, "SF Mono", Monaco, Menlo, monospace;
   --radius: 0.625rem;
@@ -424,11 +425,6 @@
      * computed overflow-y to `auto`, recreating a nested scrollbar. */
     overflow-x: hidden;
   }
-  /* Prevent Radix UI Select from removing scrollbar when opened */
-  body[data-scroll-locked] {
-    overflow-y: scroll !important;
-    margin-right: 0 !important;
-  }
 }
 
 /* Accordion animations — grid-row technique avoids layout-triggering height animation */
@@ -700,6 +696,20 @@
     opacity: 0;
   }
 }
+/* Wrapper so the 48 particles append to the live tree in a single mutation
+   and share one animationend listener. Fixed (out of flow) so the empty
+   container never affects body layout; no transform/filter/contain here, so
+   the fixed particles still resolve against the viewport. */
+.pride-burst {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* The fixed container forms a stacking context, trapping the particles'
+     z-index inside it — so the container itself must sit at confetti level
+     or the burst paints under sheets/modals/tooltips. */
+  z-index: var(--z-confetti);
+  pointer-events: none;
+}
 .pride-burst-particle {
   position: fixed;
   width: 7px;
@@ -709,6 +719,14 @@
   z-index: var(--z-confetti);
   /* 0.8s default is a one-off (JS overrides via --dur), so it stays inline */
   animation: pride-burst var(--dur, 0.8s) var(--motion-ease-out) forwards;
+}
+
+/* fireSeasonBurst() already skips the burst under reduced motion, but mirror
+   every other motion surface in this file with a CSS gate as a backstop. */
+@media (prefers-reduced-motion: reduce) {
+  .pride-burst-particle {
+    animation: none !important;
+  }
 }
 
 /* Board switch transition — the app-wide board selector wraps its state
@@ -1059,10 +1077,7 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
   .sidebar-gradient {
     animation: none;
-    background-position:
-      0 0,
-      0 0,
-      50% 25%;
+    background-position: 50% 25%;
   }
   .sidebar-gradient-horizontal {
     animation: none;
@@ -1074,10 +1089,7 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 }
 .reduce-motion .sidebar-gradient {
   animation: none;
-  background-position:
-    0 0,
-    0 0,
-    50% 25%;
+  background-position: 50% 25%;
 }
 .reduce-motion .sidebar-gradient-horizontal {
   animation: none;

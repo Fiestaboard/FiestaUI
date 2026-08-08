@@ -285,9 +285,14 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
+          cache: npm
 
-      # No `npm ci` needed: these modules are dependency-free and node --test is
-      # built in. Keeps this job as fast as it is today.
+      # The perf/release test suites started as dependency-free, but newer
+      # regression tests import real modules from src/ (bundled with esbuild)
+      # and their runtime deps (tailwind-merge, clsx), so the job now installs.
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run perf harness unit tests
         run: npm run perf:test
 

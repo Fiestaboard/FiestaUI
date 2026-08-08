@@ -1,0 +1,16 @@
+/**
+ * FiestaUI self-hosted Geist fonts — opt-in subpath export.
+ *
+ * Registers the "Geist Variable" and "Geist Mono Variable" @font-face
+ * declarations that theme.css's --font-geist-sans / --font-geist-mono
+ * tokens reference. Import it alongside theme.css:
+ *
+ *   @import "@fiestaboard/ui/fonts.css";
+ *   @import "@fiestaboard/ui/theme.css";
+ *
+ * Skip this import if your app supplies Geist itself (next/font, CDN,
+ * self-hosted subset) — the theme tokens degrade gracefully to the
+ * system font stack when these faces are not registered.
+ */
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
