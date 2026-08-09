@@ -94,7 +94,20 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Dispatched on `main`, the push below lands on the default branch, which
+      # `main-protection` covers. GITHUB_TOKEN is not a bypass actor on that
+      # ruleset — the Claude bot app is the only one — so checking out with the
+      # default credentials makes the push bounce. Same reason as release.yml.
+      - name: Mint app token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.CLAUDE_BOT_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/setup-node@v7
         with:
@@ -134,7 +147,26 @@ jobs:
             echo "Baselines unchanged — nothing to commit"
             exit 0
           fi
-          git commit -m "chore(vrt): update visual baselines"
+
+          # Name every baseline this rewrites — see the same block in
+          # vrt-update.yml for why a silent rebaseline is the failure mode.
+          changed=()
+          while IFS= read -r f; do changed+=("$f"); done \
+            < <(git diff --cached --name-only -- vrt/baselines)
+          {
+            echo "chore(vrt): seed visual baselines"
+            echo
+            echo "${#changed[@]} baseline image(s) changed:"
+            echo
+            printf '%s\n' "${changed[@]#vrt/baselines/}" | sed 's/^/- /'
+          } > "${RUNNER_TEMP}/vrt-commit-msg.txt"
+
+          {
+            echo "### Baselines seeded (${#changed[@]})"
+            printf '%s\n' "${changed[@]#vrt/baselines/}" | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          git commit -F "${RUNNER_TEMP}/vrt-commit-msg.txt"
           git push origin "HEAD:${GITHUB_REF_NAME}"
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
