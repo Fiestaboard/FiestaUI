@@ -99,10 +99,6 @@ export function useAuroraCanvas(
       return;
     }
 
-    gl.clearColor(0, 0, 0, 0);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
     function compileShader(type: number, src: string) {
       const s = gl!.createShader(type);
       if (!s) return null;
@@ -115,35 +111,68 @@ export function useAuroraCanvas(
       return s;
     }
 
-    const vert = compileShader(gl.VERTEX_SHADER, AURORA_VERT);
-    const frag = compileShader(gl.FRAGMENT_SHADER, fragSource);
-    if (!vert || !frag) return;
+    // GPU objects and uniform locations, rebuilt by bootstrap(). Held in mutable
+    // bindings (not consts) so a webglcontextrestored can recreate them after the
+    // browser invalidates the originals; deleteProgram(null) etc. are safe no-ops
+    // if a loss happens mid-bootstrap.
+    let prog: WebGLProgram | null = null;
+    let vert: WebGLShader | null = null;
+    let frag: WebGLShader | null = null;
+    let buf: WebGLBuffer | null = null;
+    let uTime: WebGLUniformLocation | null = null;
+    let uRes: WebGLUniformLocation | null = null;
 
-    const prog = gl.createProgram();
-    if (!prog) return;
-    gl.attachShader(prog, vert);
-    gl.attachShader(prog, frag);
-    gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      console.error(`${label} link error:`, gl.getProgramInfoLog(prog));
-      return;
+    // Compile the program, upload geometry + constant uniforms, and cache the
+    // per-frame uniform locations. Runs once at mount and again on context
+    // restore. Returns false if any step fails (matching the original early-outs).
+    function bootstrap() {
+      // Nothing compiles or links while the context is lost; bail without
+      // logging a shader error that only says "the GPU went away".
+      if (gl!.isContextLost()) return false;
+
+      gl!.clearColor(0, 0, 0, 0);
+      gl!.enable(gl!.BLEND);
+      gl!.blendFunc(gl!.SRC_ALPHA, gl!.ONE_MINUS_SRC_ALPHA);
+
+      vert = compileShader(gl!.VERTEX_SHADER, AURORA_VERT);
+      frag = compileShader(gl!.FRAGMENT_SHADER, fragSource);
+      if (!vert || !frag) return false;
+
+      prog = gl!.createProgram();
+      if (!prog) return false;
+      gl!.attachShader(prog, vert);
+      gl!.attachShader(prog, frag);
+      gl!.linkProgram(prog);
+      if (!gl!.getProgramParameter(prog, gl!.LINK_STATUS)) {
+        console.error(`${label} link error:`, gl!.getProgramInfoLog(prog));
+        return false;
+      }
+      gl!.useProgram(prog);
+
+      buf = gl!.createBuffer();
+      gl!.bindBuffer(gl!.ARRAY_BUFFER, buf);
+      gl!.bufferData(gl!.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl!.STATIC_DRAW);
+      const posLoc = gl!.getAttribLocation(prog, "position");
+      gl!.enableVertexAttribArray(posLoc);
+      gl!.vertexAttribPointer(posLoc, 2, gl!.FLOAT, false, 0, 0);
+
+      uTime = gl!.getUniformLocation(prog, "uTime");
+      const uStops = gl!.getUniformLocation(prog, "uColorStops");
+      uRes = gl!.getUniformLocation(prog, "uResolution");
+      const uBlend = gl!.getUniformLocation(prog, "uBlend");
+
+      gl!.uniform3fv(uStops, new Float32Array(colors.slice(0, 6).flatMap(hexToRgb)));
+      gl!.uniform1f(uBlend, 0.75);
+      return true;
     }
-    gl.useProgram(prog);
 
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    const posLoc = gl.getAttribLocation(prog, "position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
-    const uTime = gl.getUniformLocation(prog, "uTime");
-    const uStops = gl.getUniformLocation(prog, "uColorStops");
-    const uRes = gl.getUniformLocation(prog, "uResolution");
-    const uBlend = gl.getUniformLocation(prog, "uBlend");
-
-    gl.uniform3fv(uStops, new Float32Array(colors.slice(0, 6).flatMap(hexToRgb)));
-    gl.uniform1f(uBlend, 0.75);
+    // A bootstrap failure must NOT early-return: the effect can re-run on a
+    // retained canvas whose context is currently lost (a colour change alters
+    // the effect's deps), and returning here would leave that canvas with no
+    // loss/restore listeners and no cleanup — permanently blank once the
+    // context comes back. Carry on registering everything and let `ready` gate
+    // drawing until webglcontextrestored rebuilds the program.
+    let ready = bootstrap();
 
     function resize() {
       const parent = canvas!.parentElement;
@@ -160,7 +189,13 @@ export function useAuroraCanvas(
     }
 
     let rafId = 0;
+    // Tracks the context between webglcontextlost and webglcontextrestored, so
+    // the live callbacks that can fire in that window (IntersectionObserver,
+    // reduced-motion change, ResizeObserver) don't restart the loop against a
+    // dead context.
+    let contextLost = false;
     const draw = (time: number) => {
+      if (!ready || contextLost) return;
       gl!.uniform1f(uTime, time);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
       gl!.drawArrays(gl!.TRIANGLES, 0, 3);
@@ -178,6 +213,7 @@ export function useAuroraCanvas(
     let onScreen = true;
     const startOrFreeze = () => {
       cancelAnimationFrame(rafId);
+      if (!ready || contextLost) return;
       if (reducedMotion.matches) draw(0);
       else if (onScreen) rafId = requestAnimationFrame(tick);
     };
@@ -197,12 +233,37 @@ export function useAuroraCanvas(
     resize();
     startOrFreeze();
 
+    // WebGL context loss (GPU reset, OS graphics timeout, or the UA reclaiming a
+    // context after too many live ones — likelier the more WebGL surfaces a page
+    // mounts). preventDefault() opts into browser-driven restoration; without a
+    // restore handler the retained canvas would keep drawArrays against a dead
+    // context and stay blank for the rest of its mounted life.
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      contextLost = true;
+      cancelAnimationFrame(rafId);
+    };
+    const onContextRestored = () => {
+      // Every GPU object from the old context is invalid; rebuild the program,
+      // buffer, and uniforms, re-apply the viewport/resolution, then resume the
+      // loop through the existing reduced-motion / on-screen gating.
+      contextLost = false;
+      ready = bootstrap();
+      if (!ready) return;
+      resize();
+      startOrFreeze();
+    };
+    canvas.addEventListener("webglcontextlost", onContextLost);
+    canvas.addEventListener("webglcontextrestored", onContextRestored);
+
     // Do NOT call loseContext() — permanently destroys context, breaks React 18 Strict Mode remount.
     return () => {
       cancelAnimationFrame(rafId);
       io.disconnect();
       reducedMotion.removeEventListener("change", startOrFreeze);
       ro.disconnect();
+      canvas.removeEventListener("webglcontextlost", onContextLost);
+      canvas.removeEventListener("webglcontextrestored", onContextRestored);
       // Free the GPU objects built in this effect run so palette changes and
       // Strict-Mode remounts don't orphan them on the (deliberately kept-alive)
       // context. Deleting resources is distinct from loseContext().
