@@ -4,6 +4,12 @@ name: VRT Update Baselines
 # canonical rendering environment — see docs/VISUAL_REGRESSION.md) and
 # commits the result back to the branch the workflow was dispatched on.
 # Run this after intentional visual changes, or to seed baselines.
+#
+# Dispatched on `main`, the commit below lands on the default branch, which
+# `main-protection` covers. The Claude bot app is that ruleset's sole bypass
+# actor — GITHUB_TOKEN is the GitHub Actions app and is NOT — so a push with
+# the default checkout credentials bounces off the ruleset every time. Mint
+# the app token and check out with it, exactly like release.yml does.
 
 on:
   workflow_dispatch:
@@ -20,7 +26,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
+      - name: Mint app token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.CLAUDE_BOT_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/setup-node@v7
         with:
@@ -60,7 +75,32 @@ jobs:
             echo "Baselines unchanged — nothing to commit"
             exit 0
           fi
-          git commit -m "chore(vrt): update visual baselines"
+
+          # `vrt:update` re-shoots EVERY story, so this stages every baseline
+          # that moved — not just the ones that failed. Stories whose drift sat
+          # under the per-story pixel budget get silently re-accepted too, and
+          # that is how a budget quietly stops being a ratchet: the v1.6.0
+          # rebaseline rewrote 19 stories when CI had flagged only 11. Naming
+          # the changed files in the commit body and the job summary is what
+          # makes an unflagged rebaseline reviewable after the fact.
+          changed=()
+          while IFS= read -r f; do changed+=("$f"); done \
+            < <(git diff --cached --name-only -- vrt/baselines)
+          {
+            echo "chore(vrt): update visual baselines"
+            echo
+            echo "Regenerated on the Linux runner by the VRT Update Baselines"
+            echo "workflow. ${#changed[@]} baseline image(s) changed:"
+            echo
+            printf '%s\n' "${changed[@]#vrt/baselines/}" | sed 's/^/- /'
+          } > "${RUNNER_TEMP}/vrt-commit-msg.txt"
+
+          {
+            echo "### Baselines updated (${#changed[@]})"
+            printf '%s\n' "${changed[@]#vrt/baselines/}" | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          git commit -F "${RUNNER_TEMP}/vrt-commit-msg.txt"
           git push origin "HEAD:${GITHUB_REF_NAME}"
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
