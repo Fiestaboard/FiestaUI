@@ -53,7 +53,7 @@
     "perf:bench": "node scripts/perf/bench.mjs",
     "perf:test": "node --test scripts/perf/tests/*.test.mjs",
     "release:test": "node --test scripts/ci/tests/*.test.mjs scripts/release/tests/*.test.mjs",
-    "release:npmjs": "npm run build && npm publish --registry=https://registry.npmjs.org --access public"
+    "release:npmjs": "npm run build && npm publish"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -103,6 +103,7 @@
     "vite": "^8.1.5"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   }
 }

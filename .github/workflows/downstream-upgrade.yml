@@ -42,7 +42,6 @@ concurrency:
 
 permissions:
   contents: read
-  packages: read
   issues: write # adoption pass files component-request issues on this repo
 
 env:
@@ -110,15 +109,11 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: "24"
-          registry-url: "https://npm.pkg.github.com"
-          scope: "@fiestaboard"
 
       # Baseline: if FiestaBoard main is already red, the upgrade isn't to
       # blame — mark blocked and stop before spending Claude tokens.
       - name: Baseline check on FiestaBoard main
         id: baseline
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # --legacy-peer-deps matches FiestaBoard's own CI install flags.
           (cd "$FIESTABOARD_DIR/web" && npm ci --legacy-peer-deps --no-audit)
@@ -129,8 +124,6 @@ jobs:
           fi
 
       - name: Reset evergreen branch and bump
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd "$FIESTABOARD_DIR"
           git config user.name "fiestaui-automation[bot]"
@@ -197,7 +190,6 @@ jobs:
         id: fix
         if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true'
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           PREV_VERSION: ${{ steps.meta.outputs.prev }}
           NEW_VERSION: ${{ steps.meta.outputs.version }}
@@ -221,7 +213,6 @@ jobs:
         if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true' && steps.fix.outputs.green == 'true' && inputs.adopt != false
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # FiestaUI-scoped: issue filing
           NEW_VERSION: ${{ steps.meta.outputs.version }}
           UI_REPO: ${{ github.repository }}
@@ -238,7 +229,6 @@ jobs:
           REPO: ${{ env.TARGET_REPO }}
           BRANCH: ${{ env.UPGRADE_BRANCH }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PREV_VERSION: ${{ steps.meta.outputs.prev }}
           NEW_VERSION: ${{ steps.meta.outputs.version }}
         run: |

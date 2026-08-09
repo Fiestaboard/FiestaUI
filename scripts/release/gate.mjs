@@ -95,8 +95,8 @@ export function decide({ commits, files, lastTag = "the last tag" }) {
 
   // `shipped`, not `code`: CI-only infrastructure (workflows, scripts/ci, VRT
   // baselines) is worth the full suite but cannot move a byte of dist/, and
-  // publishing for it mints a version identical to the last one — which GitHub
-  // Packages then refuses to ever accept again. See isShippedFile.
+  // publishing for it mints a version identical to the last one — which npm
+  // then refuses to ever accept again. See isShippedFile.
   const { shipped, unshippedFiles } = classifyFiles(files);
   if (!shipped) {
     return {
@@ -137,7 +137,7 @@ export function parseTag(tag) {
  * tag reachable from HEAD. The commit being released is the sha CI verified,
  * and a release that landed while its CI was running is not in that sha's
  * ancestry — so `describe` would return a stale tag and the bump would
- * regenerate an already-published version. GitHub Packages does not allow
+ * regenerate an already-published version. npm does not allow
  * republishing a version, so that failure is unrecoverable without a manual
  * bump. Tags are global; version precedence should be too.
  *
