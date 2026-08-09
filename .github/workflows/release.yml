@@ -194,10 +194,21 @@ jobs:
       # Trusted Publishing needs npm >= 11.5.1; Node 24 ships an older 11.x.
       # Provenance is attested from the OIDC claims, linking the tarball to
       # this workflow run.
+      #
+      # NODE_AUTH_TOKEN is a fallback, not the primary path: the npm CLI tries
+      # OIDC first in a supported environment and only falls back to a token if
+      # that fails. The first OIDC release (run 31295890761) signed provenance
+      # successfully — proving `id-token: write` works — then took a 404 on the
+      # PUT, which is how npm reports an authorization refusal. That points at
+      # the trusted-publisher record on npmjs rather than at this workflow, so
+      # the token keeps releases moving while that is sorted out. Once OIDC
+      # publishes cleanly, drop the secret and this env block.
       - name: Publish to npmjs
         run: |
           npm install -g npm@latest
           npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # The version commit and tag go straight onto `main`. `main-protection`
       # still requires a PR with a green `CI Success` for every human change;
