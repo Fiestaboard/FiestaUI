@@ -128,6 +128,39 @@ test("an audit sweep-state commit skips", () => {
   assert.equal(result.release, false);
 });
 
+test("a CI-only range skips even though it runs the full suite", () => {
+  // The v1.6.1 lesson: these paths are worth 20 minutes of CI (editing ci.yml
+  // is editing the suite) but cannot move a byte of dist/. Releasing for them
+  // mints a version identical to the last, which GitHub Packages then refuses
+  // to ever accept again.
+  const result = decide({
+    commits: ["fix(ci): mint the app token before pushing baselines to main"],
+    files: [
+      ".github/workflows/ci.yml",
+      ".github/workflows/vrt-update.yml",
+      "scripts/ci/tests/main-push-app-token.test.mjs",
+    ],
+    lastTag: "v1.6.0",
+  });
+  assert.equal(result.release, false);
+  assert.equal(result.bump, null);
+  assert.match(result.reason, /CI infrastructure/);
+});
+
+test("a change to the publish path still releases", () => {
+  // release.yml and scripts/release/ never land in the tarball, but they decide
+  // how it is built and versioned — so they stay release-worthy.
+  for (const file of [".github/workflows/release.yml", "scripts/release/gate.mjs"]) {
+    const result = decide({
+      commits: ["fix(release): correct the bump rule"],
+      files: [file],
+      lastTag: "v1.6.0",
+    });
+    assert.equal(result.release, true, `${file} should earn a release`);
+    assert.equal(result.bump, "patch");
+  }
+});
+
 test("one code file among content changes still releases", () => {
   const result = decide({
     commits: ["docs: notes", "fix: correct focus ring"],

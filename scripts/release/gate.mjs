@@ -93,12 +93,16 @@ export function decide({ commits, files, lastTag = "the last tag" }) {
     };
   }
 
-  const { code, nonCodeFiles } = classifyFiles(files);
-  if (!code) {
+  // `shipped`, not `code`: CI-only infrastructure (workflows, scripts/ci, VRT
+  // baselines) is worth the full suite but cannot move a byte of dist/, and
+  // publishing for it mints a version identical to the last one — which GitHub
+  // Packages then refuses to ever accept again. See isShippedFile.
+  const { shipped, unshippedFiles } = classifyFiles(files);
+  if (!shipped) {
     return {
       release: false,
       bump: null,
-      reason: `${commits.length} commit(s) since ${lastTag} touched only content (${nonCodeFiles.length} path(s)) — nothing shipped changed.`,
+      reason: `${commits.length} commit(s) since ${lastTag} touched only content and CI infrastructure (${unshippedFiles.length} path(s)) — nothing shipped changed.`,
     };
   }
 
