@@ -67,3 +67,9 @@ export * from "./components/board/static-board-display";
 export * from "./lib/board-characters";
 export * from "./lib/board-colors";
 export * from "./lib/board-dimensions";
+export * from "./lib/board-previews";
+// Plugin directory — how a plugin is advertised on a card and a detail page.
+export * from "./components/plugin/board-showcase";
+export * from "./components/plugin/plugin-card";
+export * from "./components/plugin/plugin-category-badge";
+export * from "./components/plugin/scaled-board-teaser";

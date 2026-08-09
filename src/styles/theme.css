@@ -86,6 +86,23 @@
   --color-tag-formula: var(--tag-formula);
   --color-tag-formula-foreground: var(--tag-formula-foreground);
 
+  /* Plugin category accents (PluginCategoryBadge) — one hue per category so a
+     plugin reads the same on the marketplace and in the docs directory. */
+  --color-category-weather: var(--category-weather);
+  --color-category-weather-foreground: var(--category-weather-foreground);
+  --color-category-transit: var(--category-transit);
+  --color-category-transit-foreground: var(--category-transit-foreground);
+  --color-category-data: var(--category-data);
+  --color-category-data-foreground: var(--category-data-foreground);
+  --color-category-entertainment: var(--category-entertainment);
+  --color-category-entertainment-foreground: var(--category-entertainment-foreground);
+  --color-category-art: var(--category-art);
+  --color-category-art-foreground: var(--category-art-foreground);
+  --color-category-utility: var(--category-utility);
+  --color-category-utility-foreground: var(--category-utility-foreground);
+  --color-category-home: var(--category-home);
+  --color-category-home-foreground: var(--category-home-foreground);
+
   /* Overlay */
   --color-overlay: var(--overlay);
 
@@ -193,6 +210,20 @@
   --tag-success-foreground: oklch(0.35 0.1 160);
   --tag-formula: oklch(0.45 0.15 80);
   --tag-formula-foreground: oklch(0.35 0.1 80);
+  --category-weather: oklch(0.55 0.14 245);
+  --category-weather-foreground: oklch(0.42 0.11 245);
+  --category-transit: oklch(0.55 0.15 145);
+  --category-transit-foreground: oklch(0.42 0.12 145);
+  --category-data: oklch(0.55 0.16 305);
+  --category-data-foreground: oklch(0.42 0.13 305);
+  --category-entertainment: oklch(0.55 0.14 75);
+  --category-entertainment-foreground: oklch(0.42 0.11 75);
+  --category-art: oklch(0.55 0.16 30);
+  --category-art-foreground: oklch(0.42 0.13 30);
+  --category-utility: oklch(0.55 0.03 255);
+  --category-utility-foreground: oklch(0.42 0.03 255);
+  --category-home: oklch(0.55 0.12 180);
+  --category-home-foreground: oklch(0.42 0.1 180);
   --overlay: oklch(0 0 0 / 80%);
   /* Brand accent - darkened for WCAG 2.2 AA (≥4.5:1 on light bg) */
   --brand: oklch(0.56 0.15 75);
@@ -392,6 +423,20 @@
   --tag-success-foreground: oklch(0.85 0.08 160);
   --tag-formula: oklch(0.65 0.15 80);
   --tag-formula-foreground: oklch(0.85 0.08 80);
+  --category-weather: oklch(0.68 0.13 245);
+  --category-weather-foreground: oklch(0.85 0.08 245);
+  --category-transit: oklch(0.68 0.14 145);
+  --category-transit-foreground: oklch(0.85 0.09 145);
+  --category-data: oklch(0.68 0.14 305);
+  --category-data-foreground: oklch(0.85 0.09 305);
+  --category-entertainment: oklch(0.68 0.13 75);
+  --category-entertainment-foreground: oklch(0.85 0.08 75);
+  --category-art: oklch(0.68 0.14 30);
+  --category-art-foreground: oklch(0.85 0.09 30);
+  --category-utility: oklch(0.68 0.03 255);
+  --category-utility-foreground: oklch(0.85 0.02 255);
+  --category-home: oklch(0.68 0.11 180);
+  --category-home-foreground: oklch(0.85 0.07 180);
   --overlay: oklch(0 0 0 / 80%);
   --brand: oklch(0.78 0.14 75);
   --brand-emphasis: oklch(0.55 0.16 60);
