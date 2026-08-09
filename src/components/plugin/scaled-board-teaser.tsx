@@ -10,8 +10,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { BoardTeaser } from "../board/board-teaser";
 import { cn } from "../../lib/utils";
+import { BoardTeaser } from "../board/board-teaser";
 
 /** Intrinsic height of a `size="sm"` teaser strip, in px. */
 const STRIP_HEIGHT = 18;

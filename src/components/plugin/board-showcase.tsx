@@ -11,8 +11,6 @@
 
 import { useState } from "react";
 
-import { StaticBoardDisplay } from "../board/static-board-display";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import {
   type BoardPreviewEntry,
   DEFAULT_SHAPE_LABELS,
@@ -21,6 +19,8 @@ import {
   type PreviewShapeLabels,
 } from "../../lib/board-previews";
 import { cn } from "../../lib/utils";
+import { StaticBoardDisplay } from "../board/static-board-display";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
 export interface BoardShowcaseLabels extends PreviewShapeLabels {
   /** Accessible name for the shape tab list. */
@@ -53,9 +53,13 @@ export interface BoardShowcaseProps {
   className?: string;
 }
 
+/**
+ * Selected pills fill with `brand-emphasis`, not `brand`: in dark mode `brand`
+ * is a light amber that fails AA against `brand-foreground` (white).
+ */
 const PILL_CLASS =
   "rounded-full border px-4 py-1.5 text-xs font-medium transition-colors " +
-  "data-[active]:border-brand data-[active]:bg-brand data-[active]:text-brand-foreground " +
+  "data-[active]:border-brand-emphasis data-[active]:bg-brand-emphasis data-[active]:text-brand-foreground " +
   "data-[active]:font-semibold hover:border-brand hover:text-brand data-[active]:hover:text-brand-foreground";
 
 export function BoardShowcase({
@@ -127,7 +131,7 @@ export function BoardShowcase({
                 "first:rounded-l-full last:rounded-r-full [&:not(:last-child)]:border-r-0",
                 "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                 active
-                  ? "border-brand bg-brand font-semibold text-brand-foreground"
+                  ? "border-brand-emphasis bg-brand-emphasis font-semibold text-brand-foreground"
                   : "text-muted-foreground hover:border-brand hover:text-brand",
               )}
             >

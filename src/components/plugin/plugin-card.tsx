@@ -13,11 +13,11 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
-import { PluginCategoryBadge } from "./plugin-category-badge";
-import { ScaledBoardTeaser } from "./scaled-board-teaser";
+import { cn } from "../../lib/utils";
 import { Heading } from "../ui/heading";
 import { Text } from "../ui/text";
-import { cn } from "../../lib/utils";
+import { PluginCategoryBadge } from "./plugin-category-badge";
+import { ScaledBoardTeaser } from "./scaled-board-teaser";
 
 /** Applied to the element `renderLink` returns; stretches it over the card. */
 const STRETCHED_LINK_CLASS =

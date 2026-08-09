@@ -4,8 +4,8 @@
  * plugin directory. Unknown categories fall back to the neutral badge.
  */
 
-import { Badge } from "../ui/badge";
 import { cn } from "../../lib/utils";
+import { Badge } from "../ui/badge";
 
 /** The categories FiestaBoard plugins may declare (manifest `category`). */
 export const PLUGIN_CATEGORIES = ["art", "data", "entertainment", "home", "transit", "utility", "weather"] as const;
