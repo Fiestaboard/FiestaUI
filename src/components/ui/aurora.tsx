@@ -185,32 +185,55 @@ export function Aurora({
         return cachedStops;
       };
 
+      // Tracks the context between webglcontextlost and webglcontextrestored,
+      // so the live callbacks that can fire in that window (IntersectionObserver,
+      // reduced-motion change, window resize) don't restart the rAF loop against
+      // a dead context.
+      let contextLost = false;
+
       // Build the geometry/program/mesh. Held in mutable bindings so a
       // webglcontextrestored can rebuild them: the ogl resources reference GPU
       // objects the browser invalidates on context loss.
-      let program: InstanceType<typeof Program>;
-      let mesh: InstanceType<typeof Mesh>;
+      //
+      // Building on a lost context is not safe: ogl's Program links eagerly and
+      // silently leaves itself half-initialised when the link fails, so the
+      // first render() throws. That throw would reject this IIFE before
+      // `teardown` is assigned, leaking the canvas and its listeners on unmount.
+      // Skip the build (and catch anything else) so the bindings stay undefined
+      // until webglcontextrestored rebuilds them.
+      let program: InstanceType<typeof Program> | undefined;
+      let mesh: InstanceType<typeof Mesh> | undefined;
       const buildScene = () => {
-        const geometry = new Triangle(gl);
-        if (geometry.attributes.uv) {
-          delete geometry.attributes.uv;
+        program = undefined;
+        mesh = undefined;
+        if (gl.isContextLost()) return;
+        try {
+          const geometry = new Triangle(gl);
+          if (geometry.attributes.uv) {
+            delete geometry.attributes.uv;
+          }
+          program = new Program(gl, {
+            vertex: VERT,
+            fragment: FRAG,
+            uniforms: {
+              uTime: { value: 0 },
+              uAmplitude: { value: propsRef.current.amplitude },
+              uColorStops: { value: toColorStops(propsRef.current.colorStops) },
+              uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
+              uBlend: { value: propsRef.current.blend },
+            },
+          });
+          mesh = new Mesh(gl, { geometry, program });
+        } catch (err) {
+          program = undefined;
+          mesh = undefined;
+          console.error("Aurora scene build failed:", err);
         }
-        program = new Program(gl, {
-          vertex: VERT,
-          fragment: FRAG,
-          uniforms: {
-            uTime: { value: 0 },
-            uAmplitude: { value: propsRef.current.amplitude },
-            uColorStops: { value: toColorStops(propsRef.current.colorStops) },
-            uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
-            uBlend: { value: propsRef.current.blend },
-          },
-        });
-        mesh = new Mesh(gl, { geometry, program });
       };
       buildScene();
 
       const renderFrame = (t: number) => {
+        if (contextLost || !program || !mesh) return;
         const props = propsRef.current;
         const timeVal = props.time ?? t * 0.01;
         program.uniforms.uTime.value = timeVal * (props.speed ?? 1.0) * 0.1;
@@ -236,7 +259,7 @@ export function Aurora({
         appliedWidth = width;
         appliedHeight = height;
         renderer.setSize(width, height);
-        program.uniforms.uResolution.value = [width, height];
+        if (program) program.uniforms.uResolution.value = [width, height];
         if (reducedMotion.matches) renderFrame(0);
       }
       // Coalesce resize events to one applied size per frame — a window drag
@@ -267,6 +290,7 @@ export function Aurora({
       let onScreen = true;
       const startOrFreeze = () => {
         cancelAnimationFrame(animateId);
+        if (contextLost || !program) return;
         if (reducedMotion.matches) renderFrame(0);
         else if (onScreen) animateId = requestAnimationFrame(update);
       };
@@ -287,12 +311,14 @@ export function Aurora({
       // would keep rendering against a dead context and stay blank for good.
       const onContextLost = (event: Event) => {
         event.preventDefault();
+        contextLost = true;
         cancelAnimationFrame(animateId);
       };
       const onContextRestored = () => {
         // The ogl program/geometry reference GPU objects the browser has
         // invalidated; re-apply GL state, rebuild the scene, force a resize
         // (the drawing buffer is gone), then resume through the existing gating.
+        contextLost = false;
         initGLState();
         buildScene();
         appliedWidth = 0;

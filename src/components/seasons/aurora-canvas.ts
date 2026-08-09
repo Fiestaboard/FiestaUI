@@ -126,6 +126,10 @@ export function useAuroraCanvas(
     // per-frame uniform locations. Runs once at mount and again on context
     // restore. Returns false if any step fails (matching the original early-outs).
     function bootstrap() {
+      // Nothing compiles or links while the context is lost; bail without
+      // logging a shader error that only says "the GPU went away".
+      if (gl!.isContextLost()) return false;
+
       gl!.clearColor(0, 0, 0, 0);
       gl!.enable(gl!.BLEND);
       gl!.blendFunc(gl!.SRC_ALPHA, gl!.ONE_MINUS_SRC_ALPHA);
@@ -162,7 +166,13 @@ export function useAuroraCanvas(
       return true;
     }
 
-    if (!bootstrap()) return;
+    // A bootstrap failure must NOT early-return: the effect can re-run on a
+    // retained canvas whose context is currently lost (a colour change alters
+    // the effect's deps), and returning here would leave that canvas with no
+    // loss/restore listeners and no cleanup — permanently blank once the
+    // context comes back. Carry on registering everything and let `ready` gate
+    // drawing until webglcontextrestored rebuilds the program.
+    let ready = bootstrap();
 
     function resize() {
       const parent = canvas!.parentElement;
@@ -179,7 +189,13 @@ export function useAuroraCanvas(
     }
 
     let rafId = 0;
+    // Tracks the context between webglcontextlost and webglcontextrestored, so
+    // the live callbacks that can fire in that window (IntersectionObserver,
+    // reduced-motion change, ResizeObserver) don't restart the loop against a
+    // dead context.
+    let contextLost = false;
     const draw = (time: number) => {
+      if (!ready || contextLost) return;
       gl!.uniform1f(uTime, time);
       gl!.clear(gl!.COLOR_BUFFER_BIT);
       gl!.drawArrays(gl!.TRIANGLES, 0, 3);
@@ -197,6 +213,7 @@ export function useAuroraCanvas(
     let onScreen = true;
     const startOrFreeze = () => {
       cancelAnimationFrame(rafId);
+      if (!ready || contextLost) return;
       if (reducedMotion.matches) draw(0);
       else if (onScreen) rafId = requestAnimationFrame(tick);
     };
@@ -223,13 +240,16 @@ export function useAuroraCanvas(
     // context and stay blank for the rest of its mounted life.
     const onContextLost = (event: Event) => {
       event.preventDefault();
+      contextLost = true;
       cancelAnimationFrame(rafId);
     };
     const onContextRestored = () => {
       // Every GPU object from the old context is invalid; rebuild the program,
       // buffer, and uniforms, re-apply the viewport/resolution, then resume the
       // loop through the existing reduced-motion / on-screen gating.
-      if (!bootstrap()) return;
+      contextLost = false;
+      ready = bootstrap();
+      if (!ready) return;
       resize();
       startOrFreeze();
     };
