@@ -1,7 +1,7 @@
 name: Release
 
 # Continuous release: every merge to `main` that changes shipped code bumps the
-# version, tags, publishes to the GitHub Packages npm registry, and creates a
+# version, tags, publishes to registry.npmjs.org, and creates a
 # GitHub Release. `workflow_dispatch` remains as the manual override — for
 # forcing a bump, or for re-running after an infrastructure failure.
 #
@@ -11,16 +11,18 @@ name: Release
 # what keeps a broken merge from being published and opened as a downstream
 # upgrade PR. See docs/superpowers/specs/2026-08-07-continuous-release-design.md.
 #
-# Publishing authenticates with the workflow's built-in GITHUB_TOKEN
-# (`packages: write`) — no npm account, no long-lived secrets, nothing to
-# rotate. The package is published to https://npm.pkg.github.com under the
-# @fiestaboard scope (see package.json publishConfig) and inherits the
-# repo's public visibility.
+# Publishing uses npm Trusted Publishing (OIDC): the `id-token: write`
+# permission below lets the runner mint a short-lived credential that npm
+# exchanges for publish rights. There is no npm token anywhere — no secret
+# to store, leak, or rotate. This requires a trusted publisher configured
+# on the npmjs package (repo + this workflow's filename); without it the
+# publish step fails with a 404/403 rather than falling back to a token.
 #
-# NOTE: GitHub Packages requires authentication to INSTALL, even for
-# public packages. Consumers need a token with read:packages — see README.
-# If the package later moves to registry.npmjs.org, switch this workflow
-# to npm Trusted Publishing (OIDC).
+# The package is public on registry.npmjs.org, so consumers install it
+# anonymously — no auth, no .npmrc. It was previously on GitHub Packages,
+# whose npm registry requires authentication for every read even when the
+# package is public; that is what blocked fresh FiestaBoard clones
+# (Fiestaboard/FiestaBoard#1524).
 on:
   workflow_run:
     workflows: ["CI"]
@@ -37,7 +39,7 @@ on:
 
 permissions:
   contents: write # push the version commit + tag straight to main
-  packages: write
+  id-token: write # OIDC credential for npm Trusted Publishing
   # The called downstream-upgrade.yml requests issues: write (adoption pass
   # files component-request issues); a reusable workflow may not request more
   # than its caller grants, so omitting this fails the run at startup.
@@ -155,12 +157,13 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
+      # No dependency cache: npm's trusted-publishing guidance is to build
+      # release artifacts from a clean install, so a poisoned cache entry
+      # cannot reach a published tarball.
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
-          cache: npm
-          registry-url: "https://npm.pkg.github.com"
-          scope: "@fiestaboard"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: npm ci --no-audit
@@ -173,8 +176,8 @@ jobs:
       # The two disagree whenever a release landed while this commit's CI was
       # running — that release is not in this sha's ancestry, so package.json
       # here is stale and a relative bump would regenerate an already-published
-      # version. GitHub Packages will not accept a republish, so that failure
-      # costs a manual bump to escape.
+      # version. npm will not accept a republish, so that failure costs a
+      # manual bump to escape.
       - name: Set version
         id: version
         env:
@@ -188,10 +191,13 @@ jobs:
           npm version --no-git-tag-version "$VERSION"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Publish to GitHub Packages
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Trusted Publishing needs npm >= 11.5.1; Node 24 ships an older 11.x.
+      # Provenance is attested from the OIDC claims, linking the tarball to
+      # this workflow run.
+      - name: Publish to npmjs
+        run: |
+          npm install -g npm@latest
+          npm publish --provenance --access public
 
       # The version commit and tag go straight onto `main`. `main-protection`
       # still requires a PR with a green `CI Success` for every human change;

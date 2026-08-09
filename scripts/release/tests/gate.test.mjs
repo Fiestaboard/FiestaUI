@@ -131,7 +131,7 @@ test("an audit sweep-state commit skips", () => {
 test("a CI-only range skips even though it runs the full suite", () => {
   // The v1.6.1 lesson: these paths are worth 20 minutes of CI (editing ci.yml
   // is editing the suite) but cannot move a byte of dist/. Releasing for them
-  // mints a version identical to the last, which GitHub Packages then refuses
+  // mints a version identical to the last, which npm then refuses
   // to ever accept again.
   const result = decide({
     commits: ["fix(ci): mint the app token before pushing baselines to main"],

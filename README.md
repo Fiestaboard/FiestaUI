@@ -6,23 +6,18 @@ FiestaUI is the [FiestaBoard](https://github.com/Fiestaboard/FiestaBoard) design
 
 ## Installation
 
-The package is published to the **GitHub Packages npm registry** (not npmjs.com — yet). GitHub Packages requires authentication to install, even for public packages, so consumers need a one-time setup:
+```bash
+npm install @fiestaboard/ui
+```
 
-1. Create a [personal access token](https://github.com/settings/tokens) with the `read:packages` scope.
-2. Configure npm (in `~/.npmrc`, NOT committed to any repo):
+No token, no `.npmrc`, no registry configuration — the package is public on
+[registry.npmjs.org](https://www.npmjs.com/package/@fiestaboard/ui) and installs anonymously,
+in CI and Docker builds as much as locally.
 
-   ```ini
-   @fiestaboard:registry=https://npm.pkg.github.com
-   //npm.pkg.github.com/:_authToken=YOUR_TOKEN
-   ```
-
-3. Install:
-
-   ```bash
-   npm install @fiestaboard/ui
-   ```
-
-In GitHub Actions, use the workflow's `GITHUB_TOKEN` (with `packages: read`) as `NODE_AUTH_TOKEN` via `actions/setup-node`'s `registry-url`/`scope` options instead of a PAT.
+> Before 1.6.3 this package lived on the GitHub Packages npm registry, which requires
+> authentication for every read even when the package is public. If you still have a
+> `@fiestaboard:registry=https://npm.pkg.github.com` line in an `.npmrc` anywhere, delete it —
+> it will pin you to the old registry and to versions no longer published there.
 
 Peer dependencies: `react` / `react-dom` ^19, `lucide-react`, and `tailwindcss` ^4 in the consuming app.
 
@@ -96,17 +91,15 @@ npm run build && npm pack   # produces fiestaboard-ui-<version>.tgz
 
 ## Releasing
 
-Releases are manual: **Actions → Release → Run workflow**, choosing a `patch` / `minor` / `major` bump. The workflow bumps the version, tags `v<version>`, publishes to npm, and creates a GitHub Release.
+Releases are continuous: every merge to `main` that changes shipped code bumps the version, tags `v<version>`, publishes to [registry.npmjs.org](https://www.npmjs.com/package/@fiestaboard/ui), and creates a GitHub Release. `scripts/release/gate.mjs` decides whether a merge earns a release and how big a bump; CI-only changes (workflows, `scripts/ci`, VRT baselines) mint nothing. **Actions → Release → Run workflow** remains the manual override.
 
-Publishing authenticates with the workflow's built-in `GITHUB_TOKEN` (`packages: write`) — no npm account, no long-lived secrets, nothing to rotate.
+Publishing uses [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC). The workflow's `id-token: write` permission mints a short-lived credential that npm exchanges for publish rights, so there is no npm token anywhere — nothing to store, leak, or rotate. Provenance is attested from the OIDC claims, linking each tarball to the workflow run that built it.
 
-If the package later moves to registry.npmjs.org (which would allow anonymous installs), switch the release workflow to [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC); note that npm's [bypass-2FA token deprecation](https://github.blog/changelog/2026-07-08-npm-install-time-security-and-gat-bypass2fa-deprecation/) means the first npmjs publish must be done manually, satisfying 2FA interactively (see below).
+This requires a **trusted publisher configured on the npmjs package** — repository `Fiestaboard/FiestaUI`, workflow `release.yml`. Without it the publish step fails outright; it does not fall back to a token.
 
-### Bootstrapping the npmjs publish
+### Publishing by hand
 
-`npm run release:npmjs` performs that manual first publish. It is a local, human-run
-command by design: Trusted Publishing can only be configured on a package that already
-exists on npmjs, and the 2FA challenge cannot come from CI.
+`npm run release:npmjs` builds and publishes from a local checkout. It exists as an escape hatch for when the workflow is broken — normal releases should go through CI.
 
 ```bash
 npm login                            # once — web-based, completes 2FA in the browser
@@ -114,22 +107,9 @@ npm run release:npmjs -- --dry-run   # inspect the tarball contents first
 npm run release:npmjs                # publish; completes 2FA interactively
 ```
 
-The account's 2FA mode is `auth-and-writes` (check with `npm profile get`), so the
-publish itself needs a second factor. **Do not pass `--otp`** unless you have a TOTP
-authenticator app — with a passkey or hardware security key there is no code to type.
-With `auth-type=web` (npm's default) the CLI instead prints a
-`https://www.npmjs.com/login/<uuid>` URL; open it, satisfy the passkey, and the publish
-continues. `--otp=<code>` remains valid only for authenticator-app users.
+The account's 2FA mode is `auth-and-writes` (check with `npm profile get`), so the publish needs a second factor. **Do not pass `--otp`** unless you have a TOTP authenticator app — with a passkey or hardware security key there is no code to type. With `auth-type=web` (npm's default) the CLI prints a `https://www.npmjs.com/login/<uuid>` URL; open it, satisfy the passkey, and the publish continues.
 
-The script rebuilds before publishing (`files` ships only `dist`, and there is no
-`prepack` hook, so a stale `dist/` would otherwise publish silently-wrong contents) and
-passes `--access public` because scoped packages default to `restricted`. The
-`--registry` flag overrides `publishConfig.registry`, so this leaves the GitHub Packages
-release workflow untouched — both registries serve the same version until the migration
-completes.
-
-Publish from an up-to-date `main`. The version comes from `package.json`, so a stale
-checkout would point npmjs's `latest` tag at a superseded release.
+The script rebuilds first because `files` ships only `dist` and there is no `prepack` hook, so a stale `dist/` would otherwise publish silently-wrong contents — unrecoverable, since npm forbids republishing a version. Publish from an up-to-date `main`: the version comes from `package.json`, so a stale checkout would point npmjs's `latest` tag at a superseded release.
 
 ## Downstream upgrade automation
 

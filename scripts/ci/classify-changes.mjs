@@ -66,7 +66,7 @@ const PUBLISH_PATH_MATCHERS = [
  * — but it cannot move dist/, so publishing for it mints a version whose
  * contents are byte-identical to the last one. That is exactly what the
  * app-token fix (#148) did: an empty v1.6.1, unreleasable ever again because
- * GitHub Packages will not accept a republish.
+ * npm will not accept a republish.
  *
  * Everything in NON_CODE_MATCHERS is non-shipping too — if it is not even
  * worth building, it cannot have changed the build.
