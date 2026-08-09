@@ -100,7 +100,36 @@ Releases are manual: **Actions → Release → Run workflow**, choosing a `patch
 
 Publishing authenticates with the workflow's built-in `GITHUB_TOKEN` (`packages: write`) — no npm account, no long-lived secrets, nothing to rotate.
 
-If the package later moves to registry.npmjs.org (which would allow anonymous installs), switch the release workflow to [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC); note that npm's [bypass-2FA token deprecation](https://github.blog/changelog/2026-07-08-npm-install-time-security-and-gat-bypass2fa-deprecation/) means the first npmjs publish must be done manually with a 2FA OTP.
+If the package later moves to registry.npmjs.org (which would allow anonymous installs), switch the release workflow to [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC); note that npm's [bypass-2FA token deprecation](https://github.blog/changelog/2026-07-08-npm-install-time-security-and-gat-bypass2fa-deprecation/) means the first npmjs publish must be done manually, satisfying 2FA interactively (see below).
+
+### Bootstrapping the npmjs publish
+
+`npm run release:npmjs` performs that manual first publish. It is a local, human-run
+command by design: Trusted Publishing can only be configured on a package that already
+exists on npmjs, and the 2FA challenge cannot come from CI.
+
+```bash
+npm login                            # once — web-based, completes 2FA in the browser
+npm run release:npmjs -- --dry-run   # inspect the tarball contents first
+npm run release:npmjs                # publish; completes 2FA interactively
+```
+
+The account's 2FA mode is `auth-and-writes` (check with `npm profile get`), so the
+publish itself needs a second factor. **Do not pass `--otp`** unless you have a TOTP
+authenticator app — with a passkey or hardware security key there is no code to type.
+With `auth-type=web` (npm's default) the CLI instead prints a
+`https://www.npmjs.com/login/<uuid>` URL; open it, satisfy the passkey, and the publish
+continues. `--otp=<code>` remains valid only for authenticator-app users.
+
+The script rebuilds before publishing (`files` ships only `dist`, and there is no
+`prepack` hook, so a stale `dist/` would otherwise publish silently-wrong contents) and
+passes `--access public` because scoped packages default to `restricted`. The
+`--registry` flag overrides `publishConfig.registry`, so this leaves the GitHub Packages
+release workflow untouched — both registries serve the same version until the migration
+completes.
+
+Publish from an up-to-date `main`. The version comes from `package.json`, so a stale
+checkout would point npmjs's `latest` tag at a superseded release.
 
 ## Downstream upgrade automation
 
