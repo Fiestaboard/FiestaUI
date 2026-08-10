@@ -157,8 +157,8 @@ export const Invalid: Story = {
   args: {
     type: "text",
     defaultValue: "admin",
+    // aria-invalid alone is enough — Input carries the destructive recipe.
     "aria-invalid": true,
-    className: "border-destructive focus-visible:ring-destructive",
   },
 };
 

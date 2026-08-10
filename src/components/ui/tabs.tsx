@@ -27,7 +27,10 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-[color,background-color,box-shadow] duration-200 outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-background data-[active]:text-foreground data-[active]:shadow-sm",
+        // Hover is scoped to inactive tabs (`not-data-[active]:`) so it cannot
+        // dim the active tab, and rides the trigger's existing 200ms
+        // transition (issue #165).
+        "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-[color,background-color,box-shadow] duration-200 outline-none not-data-[active]:hover:bg-background/50 not-data-[active]:hover:text-foreground focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-background data-[active]:text-foreground data-[active]:shadow-sm",
         className,
       )}
       {...props}

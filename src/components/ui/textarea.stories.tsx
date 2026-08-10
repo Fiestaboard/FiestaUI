@@ -111,8 +111,8 @@ export const Invalid: Story = {
   ),
   args: {
     defaultValue: "Too short",
+    // aria-invalid alone is enough — Textarea carries the destructive recipe.
     "aria-invalid": true,
-    className: "border-destructive focus-visible:ring-destructive",
   },
 };
 
