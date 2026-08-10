@@ -34,7 +34,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     variant: "default",
-    className: "w-[450px]",
+    className: "w-full sm:w-[450px]",
     children: (
       <>
         <AlertTitle>Heads up!</AlertTitle>
@@ -47,7 +47,7 @@ export const Default: Story = {
 export const Destructive: Story = {
   args: {
     variant: "destructive",
-    className: "w-[450px]",
+    className: "w-full sm:w-[450px]",
     children: (
       <>
         <AlertCircle className="h-4 w-4" />
@@ -61,7 +61,7 @@ export const Destructive: Story = {
 export const InfoVariant: Story = {
   args: {
     variant: "info",
-    className: "w-[450px]",
+    className: "w-full sm:w-[450px]",
     children: (
       <>
         <Info className="h-4 w-4" />
@@ -75,7 +75,7 @@ export const InfoVariant: Story = {
 export const SuccessVariant: Story = {
   args: {
     variant: "success",
-    className: "w-[450px]",
+    className: "w-full sm:w-[450px]",
     children: (
       <>
         <CheckCircle2 className="h-4 w-4" />
@@ -89,7 +89,7 @@ export const SuccessVariant: Story = {
 export const WarningVariant: Story = {
   args: {
     variant: "warning",
-    className: "w-[450px]",
+    className: "w-full sm:w-[450px]",
     children: (
       <>
         <TriangleAlert className="h-4 w-4" />
@@ -103,7 +103,7 @@ export const WarningVariant: Story = {
 export const WithIcon: Story = {
   args: {
     variant: "default",
-    className: "w-[450px]",
+    className: "w-full sm:w-[450px]",
     children: (
       <>
         <Info className="h-4 w-4" />
@@ -117,7 +117,7 @@ export const WithIcon: Story = {
 export const TitleOnly: Story = {
   args: {
     variant: "default",
-    className: "w-[450px]",
+    className: "w-full sm:w-[450px]",
     children: (
       <>
         <Info className="h-4 w-4" />
@@ -128,7 +128,7 @@ export const TitleOnly: Story = {
 };
 
 export const Success = () => (
-  <Alert className="w-[450px]">
+  <Alert className="w-full sm:w-[450px]">
     <CheckCircle2 className="h-4 w-4" />
     <AlertTitle>Success</AlertTitle>
     <AlertDescription>Your changes have been saved successfully.</AlertDescription>
@@ -136,7 +136,7 @@ export const Success = () => (
 );
 
 export const Warning = () => (
-  <Alert className="w-[450px]">
+  <Alert className="w-full sm:w-[450px]">
     <TriangleAlert className="h-4 w-4" />
     <AlertTitle>Warning</AlertTitle>
     <AlertDescription>Your account is about to reach its usage limit.</AlertDescription>
@@ -148,7 +148,7 @@ export const Warning = () => (
 // of date again (issue #170). Each status alert carries an icon as well as a
 // tint, which is the redundant non-colour cue issue #174 is about.
 export const AllVariants = () => (
-  <div className="flex flex-col gap-4 w-[450px]">
+  <div className="flex flex-col gap-4 w-full sm:w-[450px]">
     <Alert>
       <Info className="h-4 w-4" />
       <AlertTitle>Default Alert</AlertTitle>
@@ -188,7 +188,7 @@ export const WrappedTitle = () => (
 );
 
 export const ConnectionLost = () => (
-  <Alert variant="destructive" className="w-[450px]">
+  <Alert variant="destructive" className="w-full sm:w-[450px]">
     <WifiOff className="h-4 w-4" />
     <AlertTitle>Board offline</AlertTitle>
     <AlertDescription>

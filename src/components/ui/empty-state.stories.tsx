@@ -116,7 +116,7 @@ export const WithIllustration: Story = {
 
 export const InCardExample: Story = {
   render: (args) => (
-    <Card className="w-96">
+    <Card className="w-full sm:w-96">
       <CardHeader>
         <CardTitle>Collections</CardTitle>
       </CardHeader>

@@ -55,7 +55,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     children: (
-      <Card className="w-80">
+      <Card className="w-full sm:w-80">
         <CardHeader>
           <CardTitle>Fade In Content</CardTitle>
           <CardDescription>Appears when scrolled into view</CardDescription>
@@ -76,7 +76,7 @@ export const Default: Story = {
 export const WithBlur: Story = {
   args: {
     children: (
-      <Card className="w-80">
+      <Card className="w-full sm:w-80">
         <CardHeader>
           <CardTitle>Blur + Fade Effect</CardTitle>
           <CardDescription>Fades in from blur</CardDescription>
@@ -134,7 +134,7 @@ export const WithDelay: Story = {
 export const LargeTranslation: Story = {
   args: {
     children: (
-      <Card className="w-80">
+      <Card className="w-full sm:w-80">
         <CardHeader>
           <CardTitle>Large Slide Distance</CardTitle>
         </CardHeader>
@@ -151,7 +151,7 @@ export const LargeTranslation: Story = {
 export const PureFade: Story = {
   args: {
     children: (
-      <Card className="w-80">
+      <Card className="w-full sm:w-80">
         <CardHeader>
           <CardTitle>No Movement</CardTitle>
         </CardHeader>

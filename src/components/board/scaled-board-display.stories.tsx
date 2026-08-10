@@ -102,6 +102,9 @@ export const NoteArrayWithToggle: Story = {
     notesTall: 1,
   },
   render: (args) => (
+    // Fixed width on purpose: "actual" mode scrolls the three-note array at
+    // full size, so a fluid container would be sized by that intrinsic width
+    // instead of clipping it.
     <div className="w-[560px] max-w-full overflow-hidden">
       <ScaledBoardDisplay {...args} />
     </div>
@@ -115,7 +118,7 @@ export const WhiteBoard: Story = {
     boardType: "white",
   },
   render: (args) => (
-    <div className="w-[420px] overflow-hidden">
+    <div className="w-full sm:w-[420px] overflow-hidden">
       <ScaledBoardDisplay {...args} />
     </div>
   ),
@@ -137,7 +140,7 @@ export const Playground: Story = {
     actualModeLabel: "Actual size",
   },
   render: (args) => (
-    <div className="w-[480px] max-w-full overflow-hidden">
+    <div className="w-full sm:w-[480px] max-w-full overflow-hidden">
       <ScaledBoardDisplay {...args} />
     </div>
   ),

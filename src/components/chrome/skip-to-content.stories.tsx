@@ -37,7 +37,7 @@ export const Default: Story = {
     targetId: "demo-main-content",
   },
   render: (args) => (
-    <div className="w-96 space-y-3 rounded-xl border border-border p-6">
+    <div className="w-full sm:w-96 space-y-3 rounded-xl border border-border p-6">
       <SkipToContent {...args} />
       <h2 className="text-sm font-semibold">Try it</h2>
       <p className="text-sm text-muted-foreground">

@@ -167,7 +167,7 @@ export const TerminalAccessPanel: Story = {
     animateOn: "view",
   },
   render: (args) => (
-    <div className="w-96 space-y-4 rounded-lg border bg-card p-6 font-mono text-card-foreground shadow-sm">
+    <div className="w-full sm:w-96 space-y-4 rounded-lg border bg-card p-6 font-mono text-card-foreground shadow-sm">
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>secure-terminal</span>
         <span aria-hidden>[]</span>

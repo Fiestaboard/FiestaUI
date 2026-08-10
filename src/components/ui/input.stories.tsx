@@ -164,7 +164,7 @@ export const Invalid: Story = {
 
 export const AllTypes: Story = {
   render: () => (
-    <div className="flex w-80 flex-col gap-4">
+    <div className="flex w-full sm:w-80 flex-col gap-4">
       <Input type="text" placeholder="Text input" aria-label="Text" />
       <Input type="email" placeholder="Email input" aria-label="Email" />
       <Input type="password" placeholder="Password input" aria-label="Password" />
@@ -181,7 +181,7 @@ export const AllTypes: Story = {
 
 export const LoginForm: Story = {
   render: () => (
-    <form className="w-80 space-y-4" onSubmit={(event) => event.preventDefault()}>
+    <form className="w-full sm:w-80 space-y-4" onSubmit={(event) => event.preventDefault()}>
       <div className="grid gap-1.5">
         <Label htmlFor="login-email">Email</Label>
         <Input id="login-email" type="email" placeholder="user@example.com" autoComplete="email" required />

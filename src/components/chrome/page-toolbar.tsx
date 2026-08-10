@@ -15,7 +15,7 @@ export const PageToolbar = memo(function PageToolbar({ left, right, className }:
   return (
     <div
       className={cn(
-        "mb-4 flex items-center animate-card-fade-in",
+        "mb-4 flex flex-wrap items-center gap-3 animate-card-fade-in",
         left && right ? "justify-between" : right ? "justify-end" : "justify-start",
         className,
       )}

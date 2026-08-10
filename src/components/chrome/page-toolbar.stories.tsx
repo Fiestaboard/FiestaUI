@@ -41,6 +41,22 @@ export const Default: Story = {
   },
 };
 
+/**
+ * Phone-width review case. The toolbar wraps its right-hand action group onto a
+ * second line instead of pushing it past the viewport edge — `flex-wrap` plus a
+ * container-level `gap-3` is the escape valve `justify-between` otherwise lacks.
+ */
+export const PhoneWidth: Story = {
+  args: Default.args,
+  decorators: [
+    (Story) => (
+      <div className="w-full sm:w-[390px] rounded-lg border border-dashed p-3">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
 export const LeftOnly: Story = {
   args: {
     left: <Badge variant="secondary">Read-only view</Badge>,

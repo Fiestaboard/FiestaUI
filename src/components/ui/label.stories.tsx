@@ -105,7 +105,7 @@ export const Disabled: Story = {
 
 export const SettingsFormExample: Story = {
   render: () => (
-    <form className="w-80 space-y-4" onSubmit={(event) => event.preventDefault()}>
+    <form className="w-full sm:w-80 space-y-4" onSubmit={(event) => event.preventDefault()}>
       <div className="grid gap-1.5">
         <Label htmlFor="settings-display-name">Display name</Label>
         <Input id="settings-display-name" type="text" placeholder="Board nickname" />

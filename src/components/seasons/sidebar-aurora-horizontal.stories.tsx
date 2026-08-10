@@ -25,7 +25,7 @@ const meta = {
   decorators: [
     // Mirrors the mobile header: a short, wide gradient bar the canvas fills.
     (Story) => (
-      <div className="sidebar-gradient-horizontal relative h-14 w-96 overflow-hidden rounded-2xl">
+      <div className="sidebar-gradient-horizontal relative h-14 w-full sm:w-96 overflow-hidden rounded-2xl">
         <Story />
       </div>
     ),

@@ -137,7 +137,7 @@ export const SingleAction = () => (
 );
 
 export const UnsavedChanges = () => (
-  <div className="flex w-[400px] items-center justify-between rounded-lg border p-4">
+  <div className="flex w-full sm:w-[400px] items-center justify-between rounded-lg border p-4">
     <div>
       <p className="text-sm font-medium">Morning briefing page</p>
       <p className="text-sm text-muted-foreground">Edited 2 minutes ago — unsaved</p>

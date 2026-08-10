@@ -145,7 +145,7 @@ export const WithCharacterCount: Story = {
 
 export const AllStates: Story = {
   render: () => (
-    <div className="flex w-80 flex-col gap-4">
+    <div className="flex w-full sm:w-80 flex-col gap-4">
       <div className="grid gap-1.5">
         <Label htmlFor="textarea-empty">Empty</Label>
         <Textarea id="textarea-empty" placeholder="Empty textarea" />
@@ -177,7 +177,7 @@ export const AllStates: Story = {
 
 export const FeedbackFormExample: Story = {
   render: () => (
-    <form className="w-80 space-y-4" onSubmit={(event) => event.preventDefault()}>
+    <form className="w-full sm:w-80 space-y-4" onSubmit={(event) => event.preventDefault()}>
       <div className="grid gap-1.5">
         <Label htmlFor="feedback-subject">Subject</Label>
         <Input id="feedback-subject" type="text" placeholder="Brief summary" required />
