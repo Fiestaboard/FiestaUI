@@ -213,6 +213,10 @@
   --info-foreground: oklch(0.985 0 0);
   --success: oklch(0.4 0.16 150);
   --success-foreground: oklch(0.985 0 0);
+  /* --warning must never collide with --brand (#157). In light they share a
+     near hue (70 vs 75) but are pulled apart by lightness — 1.61:1 between
+     them — so caution still reads as caution next to a brand accent. The
+     dark pair is separated on hue instead; see .dark. */
   --warning: oklch(0.45 0.16 70);
   --warning-foreground: oklch(0.985 0 0);
   --tag-variable: oklch(0.45 0.2 280);
@@ -430,7 +434,15 @@
   --info-foreground: oklch(0.15 0 0);
   --success: oklch(0.68 0.18 145);
   --success-foreground: oklch(0.15 0 0);
-  --warning: oklch(0.78 0.14 75);
+  /* Amber caution, deliberately OFF the brand hue (#157). This was
+     oklch(0.78 0.14 75) — byte-identical to --brand below, so "this is
+     FiestaBoard" and "be careful" rendered as the same pigment and neither
+     could be learned. Moved +20deg toward yellow and +0.08 lighter, which
+     puts 1.34:1 of luminance and a clear hue break between the two. The
+     22deg drift from the light --warning (hue 70) is intentional and small:
+     light must separate warning from brand on LIGHTNESS (it has to stay dark
+     enough to be readable text on white), dark separates them on HUE. */
+  --warning: oklch(0.86 0.16 95);
   --warning-foreground: oklch(0.15 0 0);
   --tag-variable: oklch(0.65 0.15 280);
   --tag-variable-foreground: oklch(0.85 0.08 280);
