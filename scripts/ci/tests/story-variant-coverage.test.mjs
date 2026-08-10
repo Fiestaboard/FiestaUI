@@ -45,11 +45,7 @@ const REGISTRY = [
 // reported as a diagnostic rather than a failure, so whoever fixes it does
 // not have to land a change to this file in the same commit. Deleting the
 // entry afterwards is the tidy-up, and the diagnostic is the reminder.
-const KNOWN_GAPS = {
-  // badge.tsx declares a `brand` variant; badge.stories.tsx AllVariants
-  // renders the other seven. Filed under issue #170.
-  "Badge → AllVariants": ["brand"],
-};
+const KNOWN_GAPS = {};
 
 // Compile the real src modules — components and their story files — to one
 // ESM bundle. React, Base UI and lucide stay external, so the bundle has to
