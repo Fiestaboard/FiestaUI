@@ -495,8 +495,18 @@
   --brand: oklch(0.78 0.14 75);
   --brand-emphasis: oklch(0.55 0.16 60);
   --brand-foreground: oklch(1 0 0);
-  /* Navigation active state — indigo palette (lighter for dark mode) */
-  --nav-active: oklch(0.59 0.19 265); /* indigo-500 */
+  /* Navigation active state — indigo palette.
+     NOT "lighter for dark mode" (#162): --nav-active is the solid FALLBACK
+     fill for the active nav pill, used whenever the frosted-glass treatment
+     can't run — no backdrop-filter support, prefers-reduced-transparency, and
+     prefers-contrast: more. At the old indigo-500 (0.59) white nav labels sat
+     at 4.26:1, i.e. BELOW AA for the 14px/600 labels Sidebar renders, which
+     made the explicit high-contrast path less accessible than the default
+     one. Darkened to clear AAA (7.47:1) instead. Kept as light as AAA allows
+     rather than the 0.42 the audit suggested (8.91:1), because darkening the
+     pill trades text contrast against the pill's own separation from the
+     surface behind it — see the fallback rules near .nav-active. */
+  --nav-active: oklch(0.46 0.19 265);
   --nav-active-foreground: oklch(1 0 0); /* white */
   --nav-active-hover: oklch(0.59 0.19 265 / 20%); /* indigo tint hover */
   /* Fiesta gradient palette — lighter for visibility on dark card backgrounds */
@@ -1126,6 +1136,15 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   background: var(--nav-active);
   color: var(--nav-active-foreground);
 }
+/* The dark --nav-active fill is deliberately dark enough for AAA white labels
+   (#162), which necessarily brings it closer in luminance to the near-black
+   surfaces it sits on. A 1px light inset keeps the pill's OWN boundary
+   identifiable (SC 1.4.11 — "state" of a component) without reintroducing the
+   transparency these fallbacks exist to avoid. Light mode needs no help: its
+   pill already sits 7.6:1 off --sidebar. */
+.dark .nav-active {
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.22);
+}
 .nav-active-hover:hover {
   background: var(--nav-active-hover);
 }
@@ -1170,7 +1189,10 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   .sidebar-gradient .nav-active,
   .sidebar-gradient-horizontal .nav-active {
     background: var(--nav-active);
-    box-shadow: none;
+    /* Keep the hairline (was `none`): the solid fill is only ~1.2-1.7:1 off
+       the gradient stops behind it in either theme, so the ring is what makes
+       the pill an identifiable shape (#162). */
+    box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.22);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -1186,7 +1208,8 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   .sidebar-gradient .nav-active,
   .sidebar-gradient-horizontal .nav-active {
     background: var(--nav-active);
-    box-shadow: none;
+    /* Same reasoning as the @supports fallback above (#162). */
+    box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.22);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -1198,6 +1221,10 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
 }
 
+/* This branch is where the old fallback was most wrong: users who explicitly
+   asked for MORE contrast got 4.26:1 in dark, below the 4.5:1 the default
+   frosted path achieved. --nav-active now targets AAA (7.47:1) so this path
+   is deliberately the most legible one, not the least (#162). */
 @media (prefers-contrast: more) {
   .sidebar-gradient .nav-active,
   .sidebar-gradient-horizontal .nav-active {
