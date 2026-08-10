@@ -47,7 +47,7 @@ export const Default: Story = {
   args: {
     defaultOpen: false,
     disabled: false,
-    className: "w-[350px] space-y-2",
+    className: "w-full sm:w-[350px] space-y-2",
     children: (
       <>
         <div className="flex items-center justify-between space-x-4 px-4">
@@ -72,7 +72,7 @@ export const Default: Story = {
 export const DefaultOpen: Story = {
   args: {
     defaultOpen: true,
-    className: "w-[350px] space-y-2",
+    className: "w-full sm:w-[350px] space-y-2",
     children: (
       <>
         <div className="flex items-center justify-between space-x-4 px-4">
@@ -97,7 +97,7 @@ export const DefaultOpen: Story = {
 export const Disabled: Story = {
   args: {
     disabled: true,
-    className: "w-[350px] space-y-2",
+    className: "w-full sm:w-[350px] space-y-2",
     children: (
       <>
         <div className="flex items-center justify-between space-x-4 px-4">
@@ -121,7 +121,7 @@ export const Controlled = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-[350px] space-y-2">
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full sm:w-[350px] space-y-2">
       <div className="flex items-center justify-between space-x-4 px-4">
         <h4 className="text-sm font-semibold">Controlled collapsible ({isOpen ? "open" : "closed"})</h4>
         <CollapsibleTrigger asChild>
@@ -143,7 +143,7 @@ export const ShowMoreList = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-[350px] space-y-2">
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full sm:w-[350px] space-y-2">
       <div className="rounded-md border px-4 py-3 text-sm">Weather — every 15 minutes</div>
       <div className="rounded-md border px-4 py-3 text-sm">Transit — every 5 minutes</div>
       <CollapsibleContent className="space-y-2">

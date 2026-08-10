@@ -50,7 +50,7 @@ export const Default: Story = {
   args: {
     defaultValue: "account",
     orientation: "horizontal",
-    className: "w-[400px]",
+    className: "w-full sm:w-[400px]",
     children: (
       <>
         <TabsList>
@@ -70,7 +70,7 @@ export const Default: Story = {
 
 export const ThreeTabs: Story = {
   render: () => (
-    <Tabs defaultValue="overview" className="w-[400px]">
+    <Tabs defaultValue="overview" className="w-full sm:w-[400px]">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -91,7 +91,7 @@ export const ThreeTabs: Story = {
 
 export const DisabledTab: Story = {
   render: () => (
-    <Tabs defaultValue="active" className="w-[400px]">
+    <Tabs defaultValue="active" className="w-full sm:w-[400px]">
       <TabsList>
         <TabsTrigger value="active">Active</TabsTrigger>
         <TabsTrigger value="disabled" disabled>
@@ -111,7 +111,7 @@ export const DisabledTab: Story = {
 
 export const WithIcons: Story = {
   render: () => (
-    <Tabs defaultValue="account" className="w-[450px]">
+    <Tabs defaultValue="account" className="w-full sm:w-[450px]">
       <TabsList>
         <TabsTrigger value="account">
           <User className="mr-2 h-4 w-4" />
@@ -141,7 +141,7 @@ export const WithIcons: Story = {
 
 export const Vertical: Story = {
   render: () => (
-    <Tabs defaultValue="profile" orientation="vertical" className="flex w-[480px] items-start gap-6">
+    <Tabs defaultValue="profile" orientation="vertical" className="flex w-full sm:w-[480px] items-start gap-6">
       <TabsList className="h-auto flex-col items-stretch">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="notifications">Notifications</TabsTrigger>
@@ -162,7 +162,7 @@ export const Vertical: Story = {
 
 export const AllVariations: Story = {
   render: () => (
-    <div className="space-y-8 w-[500px]">
+    <div className="space-y-8 w-full sm:w-[500px]">
       <div>
         <h3 className="text-sm font-medium mb-3">Two Tabs</h3>
         <Tabs defaultValue="tab1">
@@ -229,7 +229,7 @@ export const AllVariations: Story = {
 
 export const SettingsTabs: Story = {
   render: () => (
-    <Tabs defaultValue="account" className="w-[420px]">
+    <Tabs defaultValue="account" className="w-full sm:w-[420px]">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="account">Account</TabsTrigger>
         <TabsTrigger value="password">Password</TabsTrigger>

@@ -54,7 +54,7 @@ export const Playground: Story = {
 
 /** Recreates the app's `space-y-4` form sections with `space-y-1.5` field groups. */
 export const FormStack = () => (
-  <Stack gap="4" className="w-[360px]">
+  <Stack gap="4" className="w-full sm:w-[360px]">
     <Stack gap="1.5">
       <Label htmlFor="stack-board-name">Board name</Label>
       <Input id="stack-board-name" placeholder="Kitchen board" />
@@ -70,7 +70,7 @@ export const FormStack = () => (
 export const GapScale = () => (
   <div className="flex items-start gap-8">
     {(["1", "2", "4", "6"] as const).map((gap) => (
-      <Stack key={gap} gap="2" className="w-[120px]">
+      <Stack key={gap} gap="2" className="w-full sm:w-[120px]">
         <span className="text-sm font-medium">gap=&quot;{gap}&quot;</span>
         <Stack gap={gap}>
           <div className={box} />
@@ -85,7 +85,7 @@ export const GapScale = () => (
 export const AlignmentOptions = () => (
   <div className="flex items-start gap-8">
     {(["stretch", "start", "center", "end"] as const).map((align) => (
-      <Stack key={align} gap="2" className="w-[160px]">
+      <Stack key={align} gap="2" className="w-full sm:w-[160px]">
         <span className="text-sm font-medium">align=&quot;{align}&quot;</span>
         <Stack gap="2" align={align} className="rounded-md border border-dashed p-2">
           <div className={box}>Wide item</div>

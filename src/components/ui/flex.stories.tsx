@@ -74,7 +74,7 @@ export const Playground: Story = {
 
 /** Recreates the app's most common header pattern: `flex items-center justify-between`. */
 export const ToolbarRow = () => (
-  <Flex align="center" justify="between" className="w-[420px] rounded-md border px-4 py-3">
+  <Flex align="center" justify="between" className="w-full sm:w-[420px] rounded-md border px-4 py-3">
     <span className="text-sm font-medium">Kitchen board</span>
     <Flex align="center" gap="2">
       <Button variant="outline" size="sm">
@@ -100,7 +100,7 @@ export const InlineIconRow = () => (
 
 /** Recreates wrapping tag rows: `flex flex-wrap gap-2`. */
 export const WrappingRow = () => (
-  <Flex wrap gap="2" className="w-[320px]">
+  <Flex wrap gap="2" className="w-full sm:w-[320px]">
     <Badge variant="variable">{"{weather.temp}"}</Badge>
     <Badge variant="variable">{"{weather.condition}"}</Badge>
     <Badge variant="variable">{"{muni.next_arrival}"}</Badge>
@@ -116,7 +116,7 @@ export const WrappingRow = () => (
  * `justify` on the main axis.
  */
 export const Centered = () => (
-  <Flex align="center" justify="center" className="h-40 w-[420px] rounded-md border border-dashed">
+  <Flex align="center" justify="center" className="h-40 w-full sm:w-[420px] rounded-md border border-dashed">
     <div className={box}>Centered both ways</div>
   </Flex>
 );

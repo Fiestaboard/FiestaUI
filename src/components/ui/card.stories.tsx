@@ -32,7 +32,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    className: "w-[350px]",
+    className: "w-full sm:w-[350px]",
     children: (
       <>
         <CardHeader>
@@ -51,7 +51,7 @@ export const Default: Story = {
 };
 
 export const WithForm = () => (
-  <Card className="w-[350px]">
+  <Card className="w-full sm:w-[350px]">
     <CardHeader>
       <CardTitle>Create project</CardTitle>
       <CardDescription>Deploy your new project in one-click.</CardDescription>
@@ -74,7 +74,7 @@ export const WithForm = () => (
 );
 
 export const WithAction = () => (
-  <Card className="w-[350px]">
+  <Card className="w-full sm:w-[350px]">
     <CardHeader>
       <CardTitle>Notifications</CardTitle>
       <CardDescription>You have 3 unread messages.</CardDescription>
@@ -91,7 +91,7 @@ export const WithAction = () => (
 );
 
 export const Simple = () => (
-  <Card className="w-[350px]">
+  <Card className="w-full sm:w-[350px]">
     <CardContent>
       <p>A simple card with only content.</p>
     </CardContent>
@@ -99,7 +99,7 @@ export const Simple = () => (
 );
 
 export const MultipleCards = () => (
-  <div className="grid grid-cols-2 gap-4 w-[700px]">
+  <div className="grid grid-cols-2 gap-4 w-full sm:w-[700px]">
     <Card>
       <CardHeader>
         <CardTitle>Today</CardTitle>
@@ -124,7 +124,7 @@ export const MultipleCards = () => (
 );
 
 export const IntegrationCard = () => (
-  <Card className="w-[380px]">
+  <Card className="w-full sm:w-[380px]">
     <CardHeader>
       <CardTitle>Weather</CardTitle>
       <CardDescription>Current conditions and forecast for your board.</CardDescription>

@@ -273,7 +273,7 @@ export const IconButtons = () => (
 );
 
 export const PaginationToolbar = () => (
-  <div className="flex w-[420px] items-center justify-between rounded-lg border p-3">
+  <div className="flex w-full sm:w-[420px] items-center justify-between rounded-lg border p-3">
     <Button variant="outline" size="sm">
       <ChevronLeft className="h-4 w-4" />
       Previous

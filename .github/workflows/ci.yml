@@ -406,7 +406,10 @@ jobs:
   visual-regression:
     name: Visual Regression
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # VRT shoots every story at two viewports (desktop + mobile) x two themes,
+    # so the screenshot step costs roughly double what it did when this job was
+    # single-viewport. Budget = install/build (~7 min) + the 25 min step cap.
+    timeout-minutes: 35
     needs: changes
     if: needs.changes.outputs.code == 'true'
     steps:
@@ -438,7 +441,9 @@ jobs:
           sleep 5
 
       - name: Run visual regression
-        timeout-minutes: 12
+        # Two viewports doubles the shot count; 12 -> 25 keeps the same headroom
+        # over the observed runtime that the single-viewport budget had.
+        timeout-minutes: 25
         run: npm run vrt
 
       - name: Upload diff images

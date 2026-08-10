@@ -43,6 +43,9 @@ export const Default: Story = {
 
 export const Horizontal: Story = {
   args: {
+    // Intentionally a fixed viewport, at every screen width: the demo is a
+    // 384px window onto a ~3000px `w-max` row. Making it fluid would let the
+    // row's intrinsic width size the page instead of being scrolled.
     className: "w-96 whitespace-nowrap rounded-md border",
   },
   render: (args) => (
@@ -61,7 +64,7 @@ export const Horizontal: Story = {
 
 export const LongContent: Story = {
   args: {
-    className: "h-[200px] w-[350px] rounded-md border p-4",
+    className: "h-[200px] w-full sm:w-[350px] rounded-md border p-4",
   },
   render: (args) => (
     <ScrollArea {...args}>
@@ -80,6 +83,8 @@ export const LongContent: Story = {
 
 export const BothAxes: Story = {
   args: {
+    // Fixed at every width for the same reason as Horizontal — the point is a
+    // window smaller than the 600px content, so both scrollbars appear.
     className: "h-[220px] w-[350px] rounded-md border",
   },
   render: (args) => (
@@ -114,7 +119,7 @@ const files = [
 
 export const FileBrowser: Story = {
   args: {
-    className: "h-72 w-80 rounded-md border",
+    className: "h-72 w-full sm:w-80 rounded-md border",
   },
   render: (args) => (
     <ScrollArea {...args}>

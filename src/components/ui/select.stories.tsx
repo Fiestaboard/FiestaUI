@@ -203,7 +203,7 @@ export const DisabledItems: Story = {
 
 export const FormRow: Story = {
   render: () => (
-    <div className="grid w-[320px] gap-1.5">
+    <div className="grid w-full sm:w-[320px] gap-1.5">
       <Label htmlFor="notification-sound">Notification sound</Label>
       <Select defaultValue="chime">
         <SelectTrigger id="notification-sound">

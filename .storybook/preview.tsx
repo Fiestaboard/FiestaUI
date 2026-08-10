@@ -2,9 +2,21 @@ import "../src/styles/storybook.css";
 
 import type { Preview } from "@storybook/react-vite";
 import { useEffect } from "react";
+import { INITIAL_VIEWPORTS } from "storybook/viewport";
 
 import { SEASONS } from "../src/lib/seasons";
 import { ALL_SEASONS } from "../src/lib/seasons-drafts";
+
+// The two viewports the visual-regression harness captures
+// (scripts/vrt/vrt.mjs VIEWPORTS) are listed first and named after the VRT
+// keys, so "does this look right on a phone?" can be answered in the toolbar
+// with the exact geometry CI diffs against. See docs/VISUAL_REGRESSION.md.
+const VIEWPORTS = {
+  mobile: { name: "Mobile (VRT 390x844)", type: "mobile" as const, styles: { width: "390px", height: "844px" } },
+  desktop: { name: "Desktop (VRT 1200x800)", type: "desktop" as const, styles: { width: "1200px", height: "800px" } },
+  tablet: { name: "Tablet (768x1024)", type: "tablet" as const, styles: { width: "768px", height: "1024px" } },
+  ...INITIAL_VIEWPORTS,
+};
 
 // Same class-based dark mode contract as the app: the `dark` class on
 // <html>. (FiestaBoard's use-theme hook does this at runtime; Storybook
@@ -61,6 +73,7 @@ const preview: Preview = {
     season: "none",
   },
   parameters: {
+    viewport: { options: VIEWPORTS },
     controls: {
       matchers: {
         color: /(background|color)$/i,
@@ -101,7 +114,7 @@ const preview: Preview = {
               <Story />
             </div>
           ) : (
-            <main className="min-h-screen bg-background text-foreground p-8">
+            <main className="min-h-screen bg-background text-foreground p-4 sm:p-8">
               <Story />
             </main>
           )}

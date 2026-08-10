@@ -72,7 +72,7 @@ export const Default: Story = {
     type: "single",
     collapsible: true,
     disabled: false,
-    className: "w-[450px]",
+    className: "w-full sm:w-[450px]",
     children: faqItems,
   },
 };
@@ -80,7 +80,7 @@ export const Default: Story = {
 export const Multiple: Story = {
   args: {
     type: "multiple",
-    className: "w-[450px]",
+    className: "w-full sm:w-[450px]",
     children: faqItems,
   },
 };
@@ -90,7 +90,7 @@ export const DefaultOpen: Story = {
     type: "single",
     collapsible: true,
     defaultValue: "item-2",
-    className: "w-[450px]",
+    className: "w-full sm:w-[450px]",
     children: faqItems,
   },
 };
@@ -100,13 +100,13 @@ export const Disabled: Story = {
     type: "single",
     collapsible: true,
     disabled: true,
-    className: "w-[450px]",
+    className: "w-full sm:w-[450px]",
     children: faqItems,
   },
 };
 
 export const DisabledItem = () => (
-  <Accordion type="single" collapsible className="w-[450px]">
+  <Accordion type="single" collapsible className="w-full sm:w-[450px]">
     <AccordionItem value="item-1">
       <AccordionTrigger>Available section</AccordionTrigger>
       <AccordionContent>This section can be toggled normally.</AccordionContent>
@@ -126,7 +126,7 @@ export const AllTypes = () => (
   <div className="space-y-8">
     <div className="space-y-2">
       <h3 className="text-sm font-medium">Single (collapsible)</h3>
-      <Accordion type="single" collapsible className="w-[450px]">
+      <Accordion type="single" collapsible className="w-full sm:w-[450px]">
         <AccordionItem value="item-1">
           <AccordionTrigger>Section 1</AccordionTrigger>
           <AccordionContent>Only one section can be open at a time.</AccordionContent>
@@ -143,7 +143,7 @@ export const AllTypes = () => (
     </div>
     <div className="space-y-2">
       <h3 className="text-sm font-medium">Multiple</h3>
-      <Accordion type="multiple" className="w-[450px]">
+      <Accordion type="multiple" className="w-full sm:w-[450px]">
         <AccordionItem value="item-1">
           <AccordionTrigger>Section 1</AccordionTrigger>
           <AccordionContent>Multiple sections can be open simultaneously.</AccordionContent>
@@ -162,7 +162,7 @@ export const AllTypes = () => (
 );
 
 export const SettingsPanel = () => (
-  <Accordion type="single" collapsible defaultValue="general" className="w-[500px] rounded-lg border px-4">
+  <Accordion type="single" collapsible defaultValue="general" className="w-full sm:w-[500px] rounded-lg border px-4">
     <AccordionItem value="general">
       <AccordionTrigger>
         <span className="flex items-center gap-2">

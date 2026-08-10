@@ -7,18 +7,21 @@
  * Modes (all assume a served storybook-static build, default http://localhost:6006):
  *
  *   node scripts/vrt/vrt.mjs shoot --out <dir> [--url <base>]
- *     Screenshot every story (dark + light themes) into <dir>/<theme>/<id>.png
+ *     Screenshot every story (desktop + mobile viewports x dark + light themes)
+ *     into <dir>/<viewport>/<theme>/<id>.png
  *
  *   node scripts/vrt/vrt.mjs compare [--url <base>]
  *     Shoot to a temp dir, compare against committed baselines in vrt/baselines/.
  *     Failing stories get a diff image in vrt/diffs/. Exits nonzero on drift,
- *     missing baselines (new stories), or stale baselines (deleted stories).
+ *     missing baselines (new stories), or stale baselines (deleted stories,
+ *     retired viewports/themes, or a leftover pre-viewport baseline layout).
  *     If vrt/baselines/ is absent or empty, warns and exits 0 (not yet seeded).
  *
  *   node scripts/vrt/vrt.mjs update [--url <base>]
  *     Regenerate vrt/baselines/ wholesale (stale ids are deleted).
  *
- * Stories listed in vrt/skip.json (exact ids or "prefix*" globs) are excluded.
+ * Stories listed in vrt/skip.json (exact ids or "prefix*" globs) are excluded;
+ * an entry may narrow the skip to specific viewports with "viewports": [...].
  * See docs/VISUAL_REGRESSION.md for the full workflow.
  */
 
@@ -38,7 +41,14 @@ const DIFFS_DIR = path.join(ROOT, "vrt", "diffs");
 const SKIP_FILE = path.join(ROOT, "vrt", "skip.json");
 
 const THEMES = ["dark", "light"];
-const VIEWPORT = { width: 1200, height: 800 };
+// Baselines are keyed by viewport, so these names are part of the on-disk
+// layout: vrt/baselines/<viewport>/<theme>/<story-id>.png. Renaming, adding or
+// removing one invalidates that viewport's baselines and requires an update run.
+const VIEWPORTS = {
+  desktop: { width: 1200, height: 800 },
+  mobile: { width: 390, height: 844 }, // iPhone 12/13/14-class logical size
+};
+const VIEWPORT_NAMES = Object.keys(VIEWPORTS);
 const CONCURRENCY = 6;
 const SETTLE_MS = 350;
 const POST_FREEZE_MS = 100;
@@ -75,7 +85,22 @@ async function loadSkipList() {
     return raw.map((entry) => {
       const pattern = typeof entry === "string" ? entry : entry.id;
       if (!pattern) throw new Error(`skip.json entry missing "id": ${JSON.stringify(entry)}`);
-      return pattern;
+      // Optional: narrow a skip to specific viewports. Omitted = every viewport,
+      // which is the right default (most nondeterminism is width-independent).
+      const viewports = typeof entry === "string" ? null : (entry.viewports ?? null);
+      if (viewports !== null) {
+        if (!Array.isArray(viewports) || viewports.length === 0) {
+          throw new Error(`skip.json entry "${pattern}": "viewports" must be a non-empty array`);
+        }
+        for (const v of viewports) {
+          if (!VIEWPORT_NAMES.includes(v)) {
+            throw new Error(
+              `skip.json entry "${pattern}": unknown viewport "${v}" (expected one of ${VIEWPORT_NAMES})`,
+            );
+          }
+        }
+      }
+      return { pattern, viewports };
     });
   } catch (err) {
     if (err.code === "ENOENT") return [];
@@ -83,8 +108,12 @@ async function loadSkipList() {
   }
 }
 
-function isSkipped(id, skipPatterns) {
-  return skipPatterns.some((p) => (p.endsWith("*") ? id.startsWith(p.slice(0, -1)) : id === p));
+function isSkipped(id, viewport, skipEntries) {
+  return skipEntries.some(
+    ({ pattern, viewports }) =>
+      (pattern.endsWith("*") ? id.startsWith(pattern.slice(0, -1)) : id === pattern) &&
+      (viewports === null || viewports.includes(viewport)),
+  );
 }
 
 function fileNameFor(id) {
@@ -131,54 +160,75 @@ async function shootStory(page, baseUrl, id, theme, outFile) {
   }
 }
 
+/**
+ * Screenshot every non-skipped story into <outDir>/<viewport>/<theme>/<id>.png.
+ * Returns the shot ids per viewport (they can differ — skips are viewport-aware).
+ */
 async function shoot(baseUrl, outDir) {
-  const skipPatterns = await loadSkipList();
+  const skipEntries = await loadSkipList();
   const allIds = await fetchStoryIds(baseUrl);
-  const ids = allIds.filter((id) => !isSkipped(id, skipPatterns));
-  const skipped = allIds.length - ids.length;
-  log(`Shooting ${ids.length} stories x ${THEMES.length} themes (${skipped} skipped) from ${baseUrl}`);
+  const idsByViewport = Object.fromEntries(
+    VIEWPORT_NAMES.map((viewport) => [viewport, allIds.filter((id) => !isSkipped(id, viewport, skipEntries))]),
+  );
 
-  for (const theme of THEMES) await mkdir(path.join(outDir, theme), { recursive: true });
+  const tasks = VIEWPORT_NAMES.flatMap((viewport) =>
+    THEMES.flatMap((theme) => idsByViewport[viewport].map((id) => ({ id, theme, viewport }))),
+  );
+  const totalSkipped =
+    VIEWPORT_NAMES.reduce((n, v) => n + (allIds.length - idsByViewport[v].length), 0) * THEMES.length;
+  log(
+    `Shooting ${allIds.length} stories x ${VIEWPORT_NAMES.length} viewports (${VIEWPORT_NAMES.join(", ")}) x ` +
+      `${THEMES.length} themes = ${tasks.length} shots (${totalSkipped} skipped) from ${baseUrl}`,
+  );
 
-  const tasks = THEMES.flatMap((theme) => ids.map((id) => ({ id, theme })));
+  for (const viewport of VIEWPORT_NAMES) {
+    for (const theme of THEMES) await mkdir(path.join(outDir, viewport, theme), { recursive: true });
+  }
+
   const failures = [];
   const started = Date.now();
+  let done = 0;
 
   const browser = await chromium.launch();
   try {
-    const context = await browser.newContext({
-      viewport: VIEWPORT,
-      deviceScaleFactor: 1,
-      reducedMotion: "reduce",
-    });
-    let cursor = 0;
-    let done = 0;
-    const worker = async () => {
-      const page = await context.newPage();
-      while (cursor < tasks.length) {
-        const { id, theme } = tasks[cursor++];
-        const outFile = path.join(outDir, theme, fileNameFor(id));
-        try {
-          await shootStory(page, baseUrl, id, theme, outFile);
-        } catch (err) {
-          failures.push({ id, theme, error: err.message });
+    // One context per viewport (a context's viewport is fixed at creation), each
+    // drained by the same worker pool size so wall-clock scales linearly.
+    for (const viewport of VIEWPORT_NAMES) {
+      const viewportTasks = tasks.filter((t) => t.viewport === viewport);
+      const context = await browser.newContext({
+        viewport: VIEWPORTS[viewport],
+        deviceScaleFactor: 1,
+        reducedMotion: "reduce",
+      });
+      let cursor = 0;
+      const worker = async () => {
+        const page = await context.newPage();
+        while (cursor < viewportTasks.length) {
+          const { id, theme } = viewportTasks[cursor++];
+          const outFile = path.join(outDir, viewport, theme, fileNameFor(id));
+          try {
+            await shootStory(page, baseUrl, id, theme, outFile);
+          } catch (err) {
+            failures.push({ id, theme, viewport, error: err.message });
+          }
+          done++;
+          if (done % 50 === 0) log(`  ${done}/${tasks.length} shots...`);
         }
-        done++;
-        if (done % 50 === 0) log(`  ${done}/${tasks.length} shots...`);
-      }
-      await page.close();
-    };
-    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+        await page.close();
+      };
+      await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+      await context.close();
+    }
   } finally {
     await browser.close();
   }
 
   log(`Shot ${tasks.length - failures.length}/${tasks.length} in ${((Date.now() - started) / 1000).toFixed(1)}s`);
   if (failures.length > 0) {
-    for (const f of failures) console.error(`  SHOOT FAILED [${f.theme}] ${f.id}: ${f.error}`);
+    for (const f of failures) console.error(`  SHOOT FAILED [${f.viewport}/${f.theme}] ${f.id}: ${f.error}`);
     throw new Error(`${failures.length} stories failed to screenshot`);
   }
-  return ids;
+  return idsByViewport;
 }
 
 function padTo(png, width, height) {
@@ -202,60 +252,107 @@ function comparePair(expectedBuf, actualBuf) {
   return { diffPixels, budget, sizeMismatch, diffPng: diff, failed: sizeMismatch || diffPixels > budget };
 }
 
+async function readdirSafe(dir) {
+  try {
+    return await readdir(dir, { withFileTypes: true });
+  } catch (err) {
+    if (err.code === "ENOENT") return [];
+    throw err;
+  }
+}
+
+/**
+ * Inventory vrt/baselines/ under the <viewport>/<theme>/<id>.png layout.
+ *
+ * Also reports anything on disk that the layout does not account for — a
+ * retired viewport or theme directory, or the pre-viewport layout where the
+ * theme dirs sat at the top level. Those surface as stale-baseline failures so
+ * a half-migrated baseline tree can never quietly pass.
+ */
 async function listBaselineFiles() {
   const files = {};
-  for (const theme of THEMES) {
-    try {
-      files[theme] = (await readdir(path.join(BASELINES_DIR, theme))).filter((f) => f.endsWith(".png"));
-    } catch {
-      files[theme] = [];
+  const strays = [];
+  for (const viewport of VIEWPORT_NAMES) {
+    files[viewport] = {};
+    for (const theme of THEMES) {
+      files[viewport][theme] = (await readdirSafe(path.join(BASELINES_DIR, viewport, theme)))
+        .filter((e) => e.isFile() && e.name.endsWith(".png"))
+        .map((e) => e.name);
+    }
+    for (const entry of await readdirSafe(path.join(BASELINES_DIR, viewport))) {
+      if (!(entry.isDirectory() && THEMES.includes(entry.name))) strays.push(`${viewport}/${entry.name}`);
     }
   }
-  return files;
+  for (const entry of await readdirSafe(BASELINES_DIR)) {
+    if (!(entry.isDirectory() && VIEWPORT_NAMES.includes(entry.name))) strays.push(entry.name);
+  }
+  const total = VIEWPORT_NAMES.reduce((n, v) => n + THEMES.reduce((m, t) => m + files[v][t].length, 0), 0);
+  return { files, strays, total };
 }
 
 async function compare(baseUrl) {
-  const baselineFiles = await listBaselineFiles();
-  if (THEMES.every((theme) => baselineFiles[theme].length === 0)) {
+  const { files: baselineFiles, strays, total } = await listBaselineFiles();
+  if (total === 0 && strays.length === 0) {
     console.warn(
       "vrt: no baselines seeded yet — run the 'VRT Update Baselines' workflow (or `npm run vrt:update`) to seed vrt/baselines/. Skipping comparison.",
     );
     return;
   }
+  if (total === 0 && strays.length > 0) {
+    // Every expected <viewport>/<theme> dir is empty yet vrt/baselines/ is not:
+    // the tree predates the viewport layout (or names a viewport we no longer
+    // shoot). Fail loudly instead of falling through to the "not seeded" warning.
+    console.error(
+      `vrt: vrt/baselines/ does not match the expected <viewport>/<theme>/ layout ` +
+        `(viewports: ${VIEWPORT_NAMES.join(", ")}; themes: ${THEMES.join(", ")}).\n` +
+        `  Unrecognized entries: ${strays.join(", ")}\n` +
+        `  Run the VRT update workflow to regenerate baselines under the current layout.`,
+    );
+    process.exit(1);
+  }
 
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "fiestaui-vrt-"));
   const failures = [];
   try {
-    const ids = await shoot(baseUrl, tempDir);
+    const idsByViewport = await shoot(baseUrl, tempDir);
     await rm(DIFFS_DIR, { recursive: true, force: true });
 
-    for (const theme of THEMES) {
-      const expectedNames = new Set(baselineFiles[theme]);
-      for (const id of ids) {
-        const name = fileNameFor(id);
-        const baselinePath = path.join(BASELINES_DIR, theme, name);
-        const actualPath = path.join(tempDir, theme, name);
-        if (!expectedNames.has(name)) {
-          failures.push(`[${theme}] ${id}: new story — no baseline. Run the VRT update workflow.`);
-          continue;
+    for (const stray of strays) {
+      failures.push(
+        `[${stray}]: stale baseline path — not a <viewport>/<theme>/ directory. Run the VRT update workflow.`,
+      );
+    }
+
+    for (const viewport of VIEWPORT_NAMES) {
+      for (const theme of THEMES) {
+        const scope = `${viewport}/${theme}`;
+        const expectedNames = new Set(baselineFiles[viewport][theme]);
+        for (const id of idsByViewport[viewport]) {
+          const name = fileNameFor(id);
+          const baselinePath = path.join(BASELINES_DIR, viewport, theme, name);
+          const actualPath = path.join(tempDir, viewport, theme, name);
+          if (!expectedNames.has(name)) {
+            failures.push(`[${scope}] ${id}: new story — no baseline. Run the VRT update workflow.`);
+            continue;
+          }
+          expectedNames.delete(name);
+          const result = comparePair(await readFile(baselinePath), await readFile(actualPath));
+          if (result.failed) {
+            const diffDir = path.join(DIFFS_DIR, viewport, theme);
+            await mkdir(diffDir, { recursive: true });
+            const stem = name.replace(/\.png$/, "");
+            await writeFile(path.join(diffDir, `${stem}.diff.png`), PNG.sync.write(result.diffPng));
+            await writeFile(path.join(diffDir, `${stem}.actual.png`), await readFile(actualPath));
+            await writeFile(path.join(diffDir, `${stem}.expected.png`), await readFile(baselinePath));
+            const why = result.sizeMismatch
+              ? "size mismatch"
+              : `${result.diffPixels} pixels differ (budget ${result.budget})`;
+            failures.push(`[${scope}] ${id}: ${why}`);
+          }
         }
-        expectedNames.delete(name);
-        const result = comparePair(await readFile(baselinePath), await readFile(actualPath));
-        if (result.failed) {
-          const diffDir = path.join(DIFFS_DIR, theme);
-          await mkdir(diffDir, { recursive: true });
-          const stem = name.replace(/\.png$/, "");
-          await writeFile(path.join(diffDir, `${stem}.diff.png`), PNG.sync.write(result.diffPng));
-          await writeFile(path.join(diffDir, `${stem}.actual.png`), await readFile(actualPath));
-          await writeFile(path.join(diffDir, `${stem}.expected.png`), await readFile(baselinePath));
-          const why = result.sizeMismatch
-            ? "size mismatch"
-            : `${result.diffPixels} pixels differ (budget ${result.budget})`;
-          failures.push(`[${theme}] ${id}: ${why}`);
+        for (const orphan of expectedNames) {
+          failures.push(`[${scope}] ${orphan}: stale baseline — story no longer exists. Run the VRT update workflow.`);
         }
-      }
-      for (const orphan of expectedNames) {
-        failures.push(`[${theme}] ${orphan}: stale baseline — story no longer exists. Run the VRT update workflow.`);
       }
     }
   } finally {
@@ -284,7 +381,10 @@ async function update(baseUrl) {
       const { cp } = await import("node:fs/promises");
       await cp(tempDir, BASELINES_DIR, { recursive: true });
     });
-    log(`vrt: baselines updated in ${path.relative(ROOT, BASELINES_DIR)}/`);
+    // The rm above is what purges stale ids — and, on a layout change, any
+    // directory that is no longer a <viewport>/<theme> pair. Regeneration is
+    // always wholesale, so the tree can never be left half-migrated.
+    log(`vrt: baselines updated in ${path.relative(ROOT, BASELINES_DIR)}/<viewport>/<theme>/`);
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }

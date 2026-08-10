@@ -33,7 +33,7 @@ export const Default: Story = {
     teaser: "{66}AQI 45 CLEAR",
   },
   render: (args) => (
-    <div className="w-[320px] rounded-xl border bg-card p-4">
+    <div className="w-full sm:w-[320px] rounded-xl border bg-card p-4">
       <ScaledBoardTeaser {...args} />
     </div>
   ),
@@ -45,7 +45,7 @@ export const WhiteBoard: Story = {
     boardType: "white",
   },
   render: (args) => (
-    <div className="w-[320px] rounded-xl border bg-card p-4">
+    <div className="w-full sm:w-[320px] rounded-xl border bg-card p-4">
       <ScaledBoardTeaser {...args} />
     </div>
   ),

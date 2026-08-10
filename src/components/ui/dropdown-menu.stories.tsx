@@ -222,7 +222,7 @@ export const WithSubmenu: Story = {
 };
 
 export const BoardCardMenu = () => (
-  <div className="flex w-[320px] items-center justify-between rounded-lg border p-4">
+  <div className="flex w-full sm:w-[320px] items-center justify-between rounded-lg border p-4">
     <div>
       <p className="text-sm font-medium">Kitchen board</p>
       <p className="text-sm text-muted-foreground">6 pages, 2 schedules</p>

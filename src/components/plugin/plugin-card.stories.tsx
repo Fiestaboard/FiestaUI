@@ -49,7 +49,7 @@ const base = {
 export const Default: Story = {
   args: base,
   render: (args) => (
-    <div className="w-[340px]">
+    <div className="w-full sm:w-[340px]">
       <PluginCard {...args} />
     </div>
   ),
@@ -67,7 +67,7 @@ export const WithInstallAction: Story = {
     ),
   },
   render: (args) => (
-    <div className="w-[340px]">
+    <div className="w-full sm:w-[340px]">
       <PluginCard {...args} />
     </div>
   ),
@@ -84,7 +84,7 @@ export const Installed: Story = {
     ),
   },
   render: (args) => (
-    <div className="w-[340px]">
+    <div className="w-full sm:w-[340px]">
       <PluginCard {...args} />
     </div>
   ),
@@ -94,7 +94,7 @@ export const Installed: Story = {
 export const NoTeaser: Story = {
   args: { ...base, teaser: undefined },
   render: (args) => (
-    <div className="w-[340px]">
+    <div className="w-full sm:w-[340px]">
       <PluginCard {...args} />
     </div>
   ),
@@ -103,7 +103,7 @@ export const NoTeaser: Story = {
 export const Grid: Story = {
   args: base,
   render: (args) => (
-    <div className="grid w-[720px] grid-cols-2 gap-6">
+    <div className="grid w-full sm:w-[720px] grid-cols-2 gap-6">
       <PluginCard {...args} />
       <PluginCard
         {...args}

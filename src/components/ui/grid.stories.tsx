@@ -74,7 +74,7 @@ export const Playground: Story = {
 
 /** Recreates the dashboard card grid: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`. */
 export const CardGrid = () => (
-  <Grid cols="1" sm="2" lg="3" gap="4" className="w-[720px] max-w-full">
+  <Grid cols="1" sm="2" lg="3" gap="4" className="w-full sm:w-[720px] max-w-full">
     {["Weather", "Muni arrivals", "Stocks", "Air quality", "Surf report", "Date & time"].map((name) => (
       <Card key={name}>
         <CardHeader>
@@ -88,7 +88,7 @@ export const CardGrid = () => (
 
 /** Recreates two-column settings forms: `grid grid-cols-2 gap-4`. */
 export const FormGrid = () => (
-  <Grid cols="2" gap="4" className="w-[480px]">
+  <Grid cols="2" gap="4" className="w-full sm:w-[480px]">
     <Stack gap="1.5">
       <Label htmlFor="grid-lat">Latitude</Label>
       <Input id="grid-lat" placeholder="40.7128" />
