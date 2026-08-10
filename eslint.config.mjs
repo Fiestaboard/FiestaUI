@@ -73,20 +73,39 @@ const eslintConfig = [
     // NOT matched: the table allowlists a few (scroll-area `rounded-[inherit]`,
     // board tile `rounded-[3px]`) as true one-offs.
     //
-    // Stories are excluded: they are demo scaffolding, not shipped surface, and
-    // their prose strings legitimately contain the English word "rounded".
+    // Stories are in scope too (#194): a demo that hand-rolls an off-scale
+    // corner is exactly the drift this rule exists to catch, and stories are
+    // what VRT photographs. The only strings that legitimately contain the
+    // English word "rounded" are Storybook doc prose, which always lives under
+    // a `description` key (`parameters.docs.description.story|component`,
+    // `argTypes.*.description`) — so that subtree, and only that subtree, is
+    // excluded.
+    //
+    // The match itself stays a plain `Literal`/`TemplateElement` scan rather
+    // than something narrower like `JSXAttribute[name.name='className']`:
+    // class strings in this repo live in cva bases and variant maps, `cn()`
+    // arguments, module-level `const FOO_BASE = "..."` constants, string
+    // concatenations and ternaries — a JSX-attribute-scoped selector would
+    // silently stop guarding nearly all of them.
     files: ["src/components/**/*.{ts,tsx}"],
-    ignores: ["src/components/**/*.stories.{ts,tsx}"],
+    // TODO(#194): the last remaining exemption. board-display.stories.tsx:586
+    // renders its self-check failure banner with a bare `rounded`; it wants
+    // `rounded-lg` (surface — same role as `alert`, which is what that banner
+    // is). The file is owned by an in-flight branch, so the one-token fix and
+    // the removal of this line belong to whoever lands there next.
+    ignores: ["src/components/board/board-display.stories.tsx"],
     rules: {
       "no-restricted-syntax": [
         "error",
         {
-          selector: "Literal[value=/(?:^|\\s)rounded(?:-none)?(?:\\s|$)/]",
+          selector:
+            "Literal[value=/(?:^|\\s)rounded(?:-none)?(?:\\s|$)/]:not(Property[key.name='description'] Literal, Property[key.value='description'] Literal)",
           message:
             "Off-scale corner radius: use a radius role class (rounded-sm | rounded-md | rounded-lg | rounded-xl | rounded-full) from the role table in theme.css instead of bare `rounded`/`rounded-none`.",
         },
         {
-          selector: "TemplateElement[value.raw=/(?:^|\\s)rounded(?:-none)?(?:\\s|$)/]",
+          selector:
+            "TemplateElement[value.raw=/(?:^|\\s)rounded(?:-none)?(?:\\s|$)/]:not(Property[key.name='description'] TemplateElement, Property[key.value='description'] TemplateElement)",
           message:
             "Off-scale corner radius: use a radius role class (rounded-sm | rounded-md | rounded-lg | rounded-xl | rounded-full) from the role table in theme.css instead of bare `rounded`/`rounded-none`.",
         },

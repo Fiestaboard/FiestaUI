@@ -42,7 +42,7 @@ export const Default: Story = {
       <h2 className="text-sm font-semibold">Try it</h2>
       <p className="text-sm text-muted-foreground">
         The skip link is visually hidden until it receives keyboard focus. Click inside this canvas, then press{" "}
-        <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">Tab</kbd> — it appears
+        <kbd className="rounded-sm border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">Tab</kbd> — it appears
         pinned to the top-left corner. Activating it jumps to the target landmark below.
       </p>
       <div
