@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useState } from "react";
 
 import { AVAILABLE_COLORS, BOARD_COLORS, COLOR_DISPLAY } from "../../lib/board-colors";
-import { BoardDisplay } from "./board-display";
+import { tileScaleRows, verifyTileScale } from "../../lib/board-metrics";
+import { BoardDisplay, deriveFlapTiming, FLAP_SPEED_PRESETS, type FlapSpeedPreset } from "./board-display";
 
 const meta = {
   title: "Board/BoardDisplay",
@@ -49,7 +50,14 @@ const meta = {
     },
     animationsEnabled: {
       control: "boolean",
-      description: "Run the split-flap animation; when false tiles snap to their targets",
+      description:
+        "Run the split-flap animation; when false tiles snap to their targets. prefers-reduced-motion: reduce forces the same behaviour regardless.",
+    },
+    flapSpeed: {
+      control: "select",
+      options: Object.keys(FLAP_SPEED_PRESETS),
+      description:
+        "Milliseconds per character step, as a named cadence. `standard` (80ms) is the default; `hardware` is the device's own ~16ms. Pass `{ durationMs }` for anything else.",
     },
     emitCellMetadata: {
       control: "boolean",
@@ -500,6 +508,137 @@ THE TIME IS 9:45 AM
           continues flipping until it reaches its target character and stops.
         </p>
       </div>
+    </div>
+  );
+};
+
+// Issue #178: the flap step is a prop, not a constant. `standard` (80ms) is the
+// default and is unchanged from every previous version of this component;
+// `hardware` is the device's own ~16ms (60 RPM x 62 flaps), which is here to
+// show *why* the on-screen default deviates from it — a Latin glyph is barely
+// resolvable for one frame mid-cascade.
+export const FlapSpeeds = () => {
+  const [nonce, setNonce] = useState(0);
+  const messages = ["HELLO WORLD", "GOOD MORNING", "SPLIT FLAP TEST"];
+  const presets = Object.keys(FLAP_SPEED_PRESETS) as FlapSpeedPreset[];
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+      <button
+        onClick={() => setNonce((n) => n + 1)}
+        className="px-6 py-3 rounded-lg font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+      >
+        Flip every board
+      </button>
+
+      <div className="flex flex-col gap-6">
+        {presets.map((preset) => {
+          const step = FLAP_SPEED_PRESETS[preset];
+          const timing = deriveFlapTiming(step);
+          return (
+            <div key={preset} className="flex flex-col items-center gap-2">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{preset}</span> — {step}ms/step (top leaf 0–
+                {timing.topMs}ms, bottom leaf {timing.bottomDelayMs}–{timing.stepMs}ms)
+                {preset === "standard" ? " — default" : ""}
+              </div>
+              <BoardDisplay
+                message={messages[nonce % messages.length]}
+                size="sm"
+                deviceType="note"
+                flapSpeed={preset}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="text-sm text-muted-foreground text-center max-w-lg">
+        The two leaves tile each step exactly and never overlap (issue #177): the bottom leaf starts at the instant the
+        top leaf lands, so only one leaf is ever in motion.
+      </p>
+    </div>
+  );
+};
+
+// Issue #176: the same measurement table the audit produced, computed from the
+// tile scale itself. Every ratio should be flat down its column; `verifyTileScale`
+// re-derives each authored Tailwind class from its tile height.
+export const TileGeometry = () => {
+  const rows = tileScaleRows();
+  const issues = verifyTileScale();
+
+  const spread = (values: number[]) => {
+    const lo = Math.min(...values);
+    const hi = Math.max(...values);
+    return { lo, hi, pct: ((hi - lo) / lo) * 100 };
+  };
+  const columns = [
+    { label: "aspect (w/h)", target: 0.7, get: (r: (typeof rows)[number]) => r.aspect },
+    { label: "gutter/tile", target: 0.145 / 0.7, get: (r: (typeof rows)[number]) => r.gutterRatio },
+    { label: "glyph/tile", target: 0.39, get: (r: (typeof rows)[number]) => r.glyphRatio },
+    { label: "radius/tile", target: 0.075, get: (r: (typeof rows)[number]) => r.radiusRatio },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4 font-mono text-xs">
+      {issues.length > 0 ? (
+        <p className="rounded border border-destructive p-3 text-destructive">
+          {issues.length} authored class string(s) no longer match the derived scale:{" "}
+          {issues.map((i) => `${i.size}/${i.step} ${i.field}: ${i.actual} ≠ ${i.expected}`).join("; ")}
+        </p>
+      ) : (
+        <p className="text-muted-foreground">All authored classes match the ratios derived from their tile height.</p>
+      )}
+
+      <table className="border-collapse">
+        <thead>
+          <tr className="text-left">
+            {["size", "step", "w×h", "gutter", "glyph", "radius", ...columns.map((c) => c.label)].map((h) => (
+              <th key={h} className="border-b border-border px-3 py-1">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={`${r.size}-${r.step}`}>
+              <td className="px-3 py-1">{r.size}</td>
+              <td className="px-3 py-1">{r.step}</td>
+              <td className="px-3 py-1">{`${r.width}×${r.height}`}</td>
+              <td className="px-3 py-1">{r.gutter}</td>
+              <td className="px-3 py-1">{r.glyph}</td>
+              <td className="px-3 py-1">{r.radius}</td>
+              {columns.map((c) => (
+                <td key={c.label} className="px-3 py-1">
+                  {c.get(r).toFixed(3)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="text-muted-foreground">
+            <td className="border-t border-border px-3 py-1" colSpan={6}>
+              spread (max/min − 1)
+            </td>
+            {columns.map((c) => {
+              const s = spread(rows.map(c.get));
+              return (
+                <td key={c.label} className="border-t border-border px-3 py-1">
+                  {s.pct.toFixed(1)}%
+                </td>
+              );
+            })}
+          </tr>
+        </tfoot>
+      </table>
+
+      <p className="max-w-2xl font-sans text-sm text-muted-foreground">
+        Residual spread is integer-pixel quantisation — no dimension is more than 0.5px from its ideal value. Corner
+        radius is paint-only, so it is kept fractional and its ratio is exactly invariant.
+      </p>
     </div>
   );
 };
