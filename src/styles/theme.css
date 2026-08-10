@@ -36,15 +36,16 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
+  /* NOTE (#173): --chart-1..5 and --sidebar-primary(-foreground) used to be
+     exported here. They were stock shadcn leftovers, consumed by nothing in
+     this package, and carried 137-157 degree hue shifts between light and
+     dark — so a chart adopting them would silently re-encode its series on a
+     theme toggle. Deleted rather than redesigned: a design system should not
+     ship a palette it has not designed. If a data-viz component ever lands,
+     add a hue-STABLE five-series ramp (lightness varies per theme, hue does
+     not) plus a story that proves both themes. */
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -164,6 +165,12 @@
      owned by the stylesheet, not a build-time JS wrapper. */
   --font-geist-sans: "Geist Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-geist-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, "SF Mono", Monaco, Menlo, monospace;
+  /* Tell the UA which form-control palette to paint (#160). Without this,
+     every browser-drawn widget — accent-color'd checkboxes, file/date/number
+     chrome, scrollbars, autofill — renders in LIGHT chrome, which on the dark
+     default theme makes an unchecked Checkbox read as a filled/checked box.
+     Declared next to the palette it belongs to, once per theme. */
+  color-scheme: light;
   --radius: 0.625rem;
   --background: oklch(0.985 0 0);
   --foreground: oklch(0.145 0 0);
@@ -171,6 +178,17 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
+  /* ============================================================
+   * INVARIANT — "one token means 'this control is on'" (#156/#159).
+   * --primary is the single pigment that says a control is the primary
+   * action / is selected / is focused. --ring and --sidebar-ring are
+   * deliberately set to the SAME value in both themes so a focused
+   * control and an engaged control read as one idea. They are the only
+   * intentional value aliases in this file; do not "de-duplicate" them
+   * into separate hues, and do not let --primary drift to a neutral —
+   * that is what made the dark theme brandless (see .dark below).
+   * --primary carries the FiestaBoard warm orange in BOTH themes.
+   * ============================================================ */
   --primary: oklch(0.52 0.16 60);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.96 0 0);
@@ -182,26 +200,48 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.43 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
+  /* ============================================================
+   * --border vs --input: TWO DIFFERENT INTENTS, NOT ONE VALUE (#161).
+   *
+   * --border is DECORATION: table rules, card edges, dividers, list
+   *   separators. It separates content that is already legible on its
+   *   own, so WCAG 2.2 SC 1.4.11 does not apply and it is deliberately
+   *   allowed to stay whisper-subtle (~1.3:1). Raising it to 3:1 would
+   *   turn every card and table into a wireframe.
+   *
+   * --input is the CONTROL BOUNDARY: Input, Textarea, Select trigger and
+   *   Checkbox are `bg-transparent`, so this 1px edge is the ONLY thing
+   *   that says "a control lives here". That is exactly the "visual
+   *   information required to identify a user interface component" of
+   *   SC 1.4.11, so it MUST clear 3:1 against BOTH --background and
+   *   --card (a field can sit on either surface).
+   *
+   * Derived from --foreground as an alpha fraction so the boundary
+   * tracks the text color in every theme and season instead of being a
+   * hand-tuned grey per palette. Percentages are the smallest that clear
+   * 3:1 on both surfaces with headroom (light 48% -> 3.45/3.48,
+   * dark 38% -> 3.37/3.44); they differ because contrast ramps faster
+   * for light-on-dark than dark-on-light.
+   *
+   * DO NOT collapse these two tokens into one value in either direction.
+   * ============================================================ */
   --border: oklch(0.905 0 0);
-  --input: oklch(0.885 0 0);
-  --ring: oklch(0.52 0.16 60);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.65 0.189 84.429);
-  --chart-5: oklch(0.65 0.188 70.08);
+  --input: color-mix(in oklch, var(--foreground) 48%, transparent);
+  --ring: oklch(0.52 0.16 60); /* = --primary, see the invariant above */
   --sidebar: oklch(0.975 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.52 0.16 60);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.92 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.915 0 0);
-  --sidebar-ring: oklch(0.52 0.16 60);
+  --sidebar-ring: oklch(0.52 0.16 60); /* = --primary, see the invariant above */
   --info: oklch(0.45 0.15 250);
   --info-foreground: oklch(0.985 0 0);
   --success: oklch(0.4 0.16 150);
   --success-foreground: oklch(0.985 0 0);
+  /* --warning must never collide with --brand (#157). In light they share a
+     near hue (70 vs 75) but are pulled apart by lightness — 1.61:1 between
+     them — so caution still reads as caution next to a brand accent. The
+     dark pair is separated on hue instead; see .dark. */
   --warning: oklch(0.45 0.16 70);
   --warning-foreground: oklch(0.985 0 0);
   --tag-variable: oklch(0.45 0.2 280);
@@ -379,14 +419,25 @@
 }
 
 .dark {
+  color-scheme: dark; /* see the note in :root (#160) */
   --background: oklch(0.13 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.16 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.16 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  /* Brand-bearing primary (#156). This used to be oklch(0.922 0 0) — stock
+     shadcn's achromatic dark primary, never re-designed when the FiestaBoard
+     palette landed. Dark is the DEFAULT theme, so every default Button,
+     Badge, Switch track, Slider indicator and focus ring shipped with zero
+     brand hue. Same warm orange as :root, lifted in lightness for a dark
+     surface (light 0.52 -> dark 0.72) and held on the same hue family.
+     Upholds the "one token means 'this control is on'" invariant declared in
+     :root: --ring and --sidebar-ring below repeat this exact value. */
+  --primary: oklch(0.72 0.15 62);
+  /* Near-black on-accent foreground, matching every other dark accent
+     foreground in this block (destructive/info/success/warning all 0.15). */
+  --primary-foreground: oklch(0.15 0 0);
   --secondary: oklch(0.215 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.2 0 0);
@@ -395,27 +446,30 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.8 0.191 22.216);
   --destructive-foreground: oklch(0.15 0 0);
+  /* --border stays decorative-subtle; --input is the 3:1 control boundary.
+     Full rationale in the :root block — do not merge the two. */
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.55 0 0);
-  --chart-1: oklch(0.55 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  --input: color-mix(in oklch, var(--foreground) 38%, transparent);
+  --ring: oklch(0.72 0.15 62); /* = --primary, see the invariant in :root */
   --sidebar: oklch(0.145 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.28 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.55 0 0);
+  --sidebar-ring: oklch(0.72 0.15 62); /* = --primary, see the invariant in :root */
   --info: oklch(0.75 0.18 250);
   --info-foreground: oklch(0.15 0 0);
   --success: oklch(0.68 0.18 145);
   --success-foreground: oklch(0.15 0 0);
-  --warning: oklch(0.78 0.14 75);
+  /* Amber caution, deliberately OFF the brand hue (#157). This was
+     oklch(0.78 0.14 75) — byte-identical to --brand below, so "this is
+     FiestaBoard" and "be careful" rendered as the same pigment and neither
+     could be learned. Moved +20deg toward yellow and +0.08 lighter, which
+     puts 1.34:1 of luminance and a clear hue break between the two. The
+     22deg drift from the light --warning (hue 70) is intentional and small:
+     light must separate warning from brand on LIGHTNESS (it has to stay dark
+     enough to be readable text on white), dark separates them on HUE. */
+  --warning: oklch(0.86 0.16 95);
   --warning-foreground: oklch(0.15 0 0);
   --tag-variable: oklch(0.65 0.15 280);
   --tag-variable-foreground: oklch(0.85 0.08 280);
@@ -441,8 +495,18 @@
   --brand: oklch(0.78 0.14 75);
   --brand-emphasis: oklch(0.55 0.16 60);
   --brand-foreground: oklch(1 0 0);
-  /* Navigation active state — indigo palette (lighter for dark mode) */
-  --nav-active: oklch(0.59 0.19 265); /* indigo-500 */
+  /* Navigation active state — indigo palette.
+     NOT "lighter for dark mode" (#162): --nav-active is the solid FALLBACK
+     fill for the active nav pill, used whenever the frosted-glass treatment
+     can't run — no backdrop-filter support, prefers-reduced-transparency, and
+     prefers-contrast: more. At the old indigo-500 (0.59) white nav labels sat
+     at 4.26:1, i.e. BELOW AA for the 14px/600 labels Sidebar renders, which
+     made the explicit high-contrast path less accessible than the default
+     one. Darkened to clear AAA (7.47:1) instead. Kept as light as AAA allows
+     rather than the 0.42 the audit suggested (8.91:1), because darkening the
+     pill trades text contrast against the pill's own separation from the
+     surface behind it — see the fallback rules near .nav-active. */
+  --nav-active: oklch(0.46 0.19 265);
   --nav-active-foreground: oklch(1 0 0); /* white */
   --nav-active-hover: oklch(0.59 0.19 265 / 20%); /* indigo tint hover */
   /* Fiesta gradient palette — lighter for visibility on dark card backgrounds */
@@ -1072,6 +1136,15 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   background: var(--nav-active);
   color: var(--nav-active-foreground);
 }
+/* The dark --nav-active fill is deliberately dark enough for AAA white labels
+   (#162), which necessarily brings it closer in luminance to the near-black
+   surfaces it sits on. A 1px light inset keeps the pill's OWN boundary
+   identifiable (SC 1.4.11 — "state" of a component) without reintroducing the
+   transparency these fallbacks exist to avoid. Light mode needs no help: its
+   pill already sits 7.6:1 off --sidebar. */
+.dark .nav-active {
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.22);
+}
 .nav-active-hover:hover {
   background: var(--nav-active-hover);
 }
@@ -1116,7 +1189,10 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   .sidebar-gradient .nav-active,
   .sidebar-gradient-horizontal .nav-active {
     background: var(--nav-active);
-    box-shadow: none;
+    /* Keep the hairline (was `none`): the solid fill is only ~1.2-1.7:1 off
+       the gradient stops behind it in either theme, so the ring is what makes
+       the pill an identifiable shape (#162). */
+    box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.22);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -1132,7 +1208,8 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   .sidebar-gradient .nav-active,
   .sidebar-gradient-horizontal .nav-active {
     background: var(--nav-active);
-    box-shadow: none;
+    /* Same reasoning as the @supports fallback above (#162). */
+    box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.22);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -1144,6 +1221,10 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
 }
 
+/* This branch is where the old fallback was most wrong: users who explicitly
+   asked for MORE contrast got 4.26:1 in dark, below the 4.5:1 the default
+   frosted path achieved. --nav-active now targets AAA (7.47:1) so this path
+   is deliberately the most legible one, not the least (#162). */
 @media (prefers-contrast: more) {
   .sidebar-gradient .nav-active,
   .sidebar-gradient-horizontal .nav-active {
