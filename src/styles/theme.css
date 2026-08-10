@@ -151,6 +151,42 @@
   --shadow-card: var(--elevation-card);
   --shadow-card-hover: var(--elevation-card-hover);
   --shadow-modal: var(--elevation-modal);
+
+  /* ============================================================
+   * Motion scale → Tailwind utilities (issue #182).
+   *
+   * The `duration-*` utility resolves through the `--transition-duration-*`
+   * namespace and `ease-*` through `--ease-*` (Tailwind v4). Exporting the
+   * motion tokens here is what makes `duration-base` in a component and
+   * `var(--motion-duration-base)` in this file the SAME number — retuning a
+   * token in :root now moves the component layer with it, instead of the two
+   * silently drifting apart (which raw `duration-200` allowed).
+   *
+   * Declared inside `@theme inline`, so a utility emits
+   * `transition-duration: var(--motion-duration-base)` rather than a baked
+   * copy of `200ms` — the indirection is what carries a retune through.
+   *
+   * Bare numeric durations (`duration-200`) still compile; they are banned in
+   * src/components by scripts/ci/tests/no-bare-duration-utility.test.mjs.
+   *
+   * Not exported on purpose:
+   *   --motion-ease-out (`ease-out`) — Tailwind already ships `--ease-out`
+   *     with a DIFFERENT curve (cubic-bezier(0, 0, 0.2, 1)). Overriding it
+   *     would silently retime every existing `ease-out` utility, so the
+   *     keyword stays a CSS-only token.
+   *   --motion-ease-in — identical to Tailwind's stock `--ease-in`
+   *     (cubic-bezier(0.4, 0, 1, 1)), so `ease-in` is already on-scale.
+   * ============================================================ */
+  --transition-duration-fast: var(--motion-duration-fast);
+  --transition-duration-control: var(--motion-duration-control);
+  --transition-duration-base: var(--motion-duration-base);
+  --transition-duration-exit: var(--motion-duration-exit);
+  --transition-duration-slow: var(--motion-duration-slow);
+  --transition-duration-slower: var(--motion-duration-slower);
+  --transition-duration-slowest: var(--motion-duration-slowest);
+  --ease-spring: var(--motion-ease-spring);
+  --ease-out-cubic: var(--motion-ease-out-cubic);
+  --ease-standard: var(--motion-ease-standard);
 }
 
 :root {
@@ -313,6 +349,10 @@
    * Deliberately left inline (true one-offs): 117s sidebar gradient
    * flow, 220ms board-switch exits, 0.8s pride-burst, 1s card-fade-in,
    * 50ms page-toolbar stagger delay.
+   *
+   * The component layer reaches these through Tailwind utilities
+   * (`duration-base`, `ease-spring`, …), not raw `duration-200` — see the
+   * motion export block in `@theme inline` at the top of this file.
    * ============================================================ */
   --motion-duration-fast: 100ms;
   --motion-duration-control: 150ms;
@@ -1299,4 +1339,65 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ============================================================
+ * Reduced-motion backstop (issue #180)
+ *
+ * The blocks above gate the animations this file OWNS. Three sources of
+ * motion are structurally out of their reach, and all three shipped
+ * running under `prefers-reduced-motion: reduce`:
+ *
+ *   1. Tailwind utilities — `animate-pulse` (Skeleton) and `animate-spin`
+ *      carry no motion gate, and both are INFINITE, which also engages
+ *      WCAG 2.2.2 (Pause, Stop, Hide).
+ *   2. tw-animate-css — its `enter`/`exit` keyframes (Dialog, AlertDialog,
+ *      Select, Tooltip …) contain no `prefers-reduced-motion` rule at all.
+ *   3. Inline `style` animations — `sheet.tsx` sets `animation` as an
+ *      element style, which no ordinary CSS rule can reach. `!important`
+ *      can: it outranks the style attribute.
+ *
+ * Hence the universal rule. 1ms rather than 0s on purpose: a zero-length
+ * animation/transition is skipped entirely by some engines, which would
+ * silently drop the `animationend`/`transitionend` that Base UI waits on
+ * before unmounting an exiting popup. 1ms still fires the event on the
+ * next frame, so anything gated on completion still completes; anything
+ * animating in from `opacity: 0` still lands at `opacity: 1`.
+ *
+ * This is a BACKSTOP, not the whole answer. Where a frozen frame is worse
+ * than a bespoke pose, the component states it itself and wins by being
+ * more specific — Skeleton uses `motion-reduce:animate-none` for a static
+ * `bg-accent` placeholder rather than an arbitrary mid-pulse frame, and
+ * Spinner swaps its rotating arc for a static complete ring.
+ * ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+
+  /* Exemption: these two must read back EXACTLY 0s.
+     `main-content.tsx` gates its FLIP slide on
+     `parseFloat(getComputedStyle(shift).transitionDuration) === 0`, then —
+     once past that gate — pins `overflow-x: clip` on <main> until a
+     `transitionend` for `transform` clears it. The reduced-motion rule
+     above keeps `transition-property: none`, so that event never arrives;
+     leaving the universal 1ms in place would push the computed duration to
+     0.001s, defeat the `=== 0` early return, and strand the clip. Keeping
+     the shorthand (specificity 0,1,0 beats `*`) restores 0s. */
+  .sidebar-transition,
+  .content-shift {
+    transition: none !important;
+  }
+}
+
+/* Same exemption for the app's `.reduce-motion` class: when the OS
+   preference and the class are both set the universal rule above applies,
+   so the class-based freeze needs `!important` too. */
+.reduce-motion .sidebar-transition,
+.reduce-motion .content-shift {
+  transition: none !important;
 }

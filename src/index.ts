@@ -34,6 +34,7 @@ export * from "./components/ui/select";
 export * from "./components/ui/sheet";
 export * from "./components/ui/skeleton";
 export * from "./components/ui/slider";
+export * from "./components/ui/spinner";
 export * from "./components/ui/stack";
 export * from "./components/ui/switch";
 export * from "./components/ui/table";

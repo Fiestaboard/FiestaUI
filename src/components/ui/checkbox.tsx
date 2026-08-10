@@ -14,7 +14,7 @@ function Checkbox({ className, ...props }: CheckboxProps) {
         // "this control is on" pigment, shared with Switch and the Slider
         // indicator. See issue #159.
         "relative h-4 w-4 shrink-0 rounded-sm border border-input accent-primary",
-        "shadow-sm transition-[color,background-color,border-color,box-shadow] duration-150 cursor-pointer",
+        "shadow-sm transition-[color,background-color,border-color,box-shadow] duration-control cursor-pointer",
         // WCAG 2.2 SC 2.5.8 — a 24x24 hit target without touching the 16x16
         // visual box. The pseudo-element is transparent and absolutely
         // positioned, so it costs no layout and paints nothing (issue #164).

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { ChevronLeft, ChevronRight, Loader2, Mail, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Mail, Plus, Save, Trash2 } from "lucide-react";
 
 import { Button } from "./button";
 
@@ -24,6 +24,13 @@ const meta = {
     disabled: {
       control: "boolean",
       description: "Disabled state",
+    },
+    loading: {
+      control: "boolean",
+      description:
+        "Busy state. Swaps the label for a Spinner without changing the button's width, and marks it " +
+        "`aria-busy` + `aria-disabled` (never `disabled`, which would drop focus). Activation is " +
+        "suppressed while set, so a second click cannot double-submit.",
     },
     children: {
       control: "text",
@@ -130,15 +137,77 @@ export const WithIcon: Story = {
 
 export const Loading: Story = {
   args: {
-    disabled: true,
-    children: (
-      <>
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Please wait
-      </>
-    ),
+    loading: true,
+    children: "Save changes",
   },
 };
+
+/**
+ * The label keeps its place at `opacity: 0` while the spinner sits on top, so
+ * the button is exactly as wide loading as it is idle and nothing beside it
+ * shifts. It also keeps its accessible name — the button announces as
+ * "Save changes, busy", not as "Loading".
+ */
+export const LoadingWidthIsStable = () => (
+  <div className="flex flex-col items-start gap-4">
+    <div className="flex items-center gap-3">
+      <Button>Save changes</Button>
+      <Button loading>Save changes</Button>
+      <span className="text-sm text-muted-foreground">text only</span>
+    </div>
+    <div className="flex items-center gap-3">
+      <Button variant="brand">
+        <Save className="h-4 w-4" />
+        Publish
+      </Button>
+      <Button variant="brand" loading>
+        <Save className="h-4 w-4" />
+        Publish
+      </Button>
+      <span className="text-sm text-muted-foreground">icon + label</span>
+    </div>
+    <div className="flex items-center gap-3">
+      <Button size="icon" variant="outline" aria-label="Add">
+        <Plus className="h-4 w-4" />
+      </Button>
+      <Button size="icon" variant="outline" loading aria-label="Add">
+        <Plus className="h-4 w-4" />
+      </Button>
+      <span className="text-sm text-muted-foreground">icon only</span>
+    </div>
+  </div>
+);
+
+/** Spinner size tracks the button height across the whole scale. */
+export const LoadingSizes = () => (
+  <div className="flex flex-wrap items-center gap-4">
+    <Button size="sm" loading>
+      Small
+    </Button>
+    <Button size="default" loading>
+      Default
+    </Button>
+    <Button size="lg" loading>
+      Large
+    </Button>
+  </div>
+);
+
+/**
+ * `loading` is not `disabled`. The button stays in the tab order and stays
+ * focusable — tab through this row while the middle button is busy and focus
+ * lands on it as usual — but clicking it (or pressing Enter/Space) does
+ * nothing, so the submit cannot fire twice.
+ */
+export const LoadingStaysFocusable = () => (
+  <div className="flex items-center gap-3">
+    <Button variant="outline">Before</Button>
+    <Button loading onClick={() => console.log("this never fires while loading")}>
+      Submitting
+    </Button>
+    <Button variant="outline">After</Button>
+  </div>
+);
 
 export const Disabled: Story = {
   args: {

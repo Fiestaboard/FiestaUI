@@ -12,7 +12,7 @@ function Input({ className, type, ...props }: InputProps) {
       className={cn(
         // box-shadow is in the transition list so the focus ring eases in
         // rather than snapping — same timing Button declares (issue #165).
-        "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-[color,background-color,border-color,box-shadow] duration-150",
+        "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-[color,background-color,border-color,box-shadow] duration-control",
         "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
         "placeholder:text-muted-foreground",
         "hover:border-ring/60",

@@ -38,12 +38,12 @@ const DESKTOP_AI_BASE =
 const DESKTOP_AI_ACTIVE = cn(DESKTOP_AI_BASE, NAV_ITEM_ACTIVE);
 const DESKTOP_AI_INACTIVE = cn(DESKTOP_AI_BASE, NAV_ITEM_INACTIVE);
 
-const NAV_LABEL_BASE = "whitespace-nowrap overflow-hidden transition-opacity duration-100";
+const NAV_LABEL_BASE = "whitespace-nowrap overflow-hidden transition-opacity duration-fast";
 const NAV_LABEL_COLLAPSED = cn(NAV_LABEL_BASE, "opacity-0 max-w-0");
 const NAV_LABEL_EXPANDED = cn(NAV_LABEL_BASE, "opacity-100 max-w-48 delay-150");
 
 const MOBILE_BACKDROP_BASE =
-  "lg:hidden fixed inset-0 z-[var(--z-mobile-backdrop)] bg-black/25 backdrop-blur-[2px] transition-opacity duration-200 pointer-events-none";
+  "lg:hidden fixed inset-0 z-[var(--z-mobile-backdrop)] bg-black/25 backdrop-blur-[2px] transition-opacity duration-base pointer-events-none";
 const MOBILE_BACKDROP_OPEN = cn(MOBILE_BACKDROP_BASE, "opacity-100 pointer-events-auto");
 const MOBILE_BACKDROP_CLOSED = cn(MOBILE_BACKDROP_BASE, "opacity-0");
 
@@ -398,7 +398,7 @@ export const Sidebar = memo(function Sidebar({
       ) : (
         <FiestaLogo
           className={cn(
-            "logo-on-gradient whitespace-nowrap overflow-hidden transition-opacity duration-100",
+            "logo-on-gradient whitespace-nowrap overflow-hidden transition-opacity duration-fast",
             collapsed ? "opacity-0 max-w-0" : "opacity-100 max-w-48 delay-150",
           )}
         />

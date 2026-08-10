@@ -63,7 +63,7 @@ export const BoardSelector = memo(function BoardSelector({
     <SelectTrigger
       aria-label={labels.boardSelector}
       className={cn(
-        "gap-2 border-sidebar-border/70 bg-sidebar-accent/40 font-medium text-sidebar-foreground shadow-none transition-[width,padding] duration-100 hover:bg-sidebar-accent/70",
+        "gap-2 border-sidebar-border/70 bg-sidebar-accent/40 font-medium text-sidebar-foreground shadow-none transition-[width,padding] duration-fast hover:bg-sidebar-accent/70",
         // Below 480px no board name fits beside the full wordmark, so the
         // trigger compacts to icon + caret and the header keeps one row.
         variant === "mobileHeader" && "h-9 w-auto min-w-0 max-w-[170px] px-2.5 max-[479px]:gap-1 max-[479px]:px-2",
@@ -83,7 +83,7 @@ export const BoardSelector = memo(function BoardSelector({
       <BoardIcon className="h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
       <span
         className={cn(
-          "min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left transition-opacity duration-100",
+          "min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left transition-opacity duration-fast",
           variant === "sidebar" && collapsed ? "max-w-0 opacity-0" : "max-w-48 opacity-100 delay-150",
           // hidden! — the base SelectTrigger's [&>span]:line-clamp-1 also
           // sets display with higher specificity, so plain hidden loses.
