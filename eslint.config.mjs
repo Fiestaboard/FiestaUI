@@ -65,6 +65,35 @@ const eslintConfig = [
     },
   },
   {
+    // Radius role scale (theme.css "Radius role scale" table): every component
+    // corner picks a documented role — control-inset/control/surface/card/pill
+    // — never a raw size. Bare `rounded` is Tailwind's 4px default and sits
+    // below the smallest role (control-inset / rounded-sm / 6px); `rounded-none`
+    // is likewise off-table. `rounded-[...]` arbitrary values are deliberately
+    // NOT matched: the table allowlists a few (scroll-area `rounded-[inherit]`,
+    // board tile `rounded-[3px]`) as true one-offs.
+    //
+    // Stories are excluded: they are demo scaffolding, not shipped surface, and
+    // their prose strings legitimately contain the English word "rounded".
+    files: ["src/components/**/*.{ts,tsx}"],
+    ignores: ["src/components/**/*.stories.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[value=/(?:^|\\s)rounded(?:-none)?(?:\\s|$)/]",
+          message:
+            "Off-scale corner radius: use a radius role class (rounded-sm | rounded-md | rounded-lg | rounded-xl | rounded-full) from the role table in theme.css instead of bare `rounded`/`rounded-none`.",
+        },
+        {
+          selector: "TemplateElement[value.raw=/(?:^|\\s)rounded(?:-none)?(?:\\s|$)/]",
+          message:
+            "Off-scale corner radius: use a radius role class (rounded-sm | rounded-md | rounded-lg | rounded-xl | rounded-full) from the role table in theme.css instead of bare `rounded`/`rounded-none`.",
+        },
+      ],
+    },
+  },
+  {
     // These primitives are headless wrappers around a single native element
     // whose content — and, for the label, its control association — is
     // forwarded from the call site through `children`/`{...props}`. The

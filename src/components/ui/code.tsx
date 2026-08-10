@@ -11,7 +11,7 @@ function Code({ className, ...props }: React.ComponentProps<"code">) {
   return (
     <code
       data-slot="code"
-      className={cn("rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground", className)}
+      className={cn("rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground", className)}
       {...props}
     />
   );
