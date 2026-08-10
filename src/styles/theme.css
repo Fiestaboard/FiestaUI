@@ -178,6 +178,17 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
+  /* ============================================================
+   * INVARIANT — "one token means 'this control is on'" (#156/#159).
+   * --primary is the single pigment that says a control is the primary
+   * action / is selected / is focused. --ring and --sidebar-ring are
+   * deliberately set to the SAME value in both themes so a focused
+   * control and an engaged control read as one idea. They are the only
+   * intentional value aliases in this file; do not "de-duplicate" them
+   * into separate hues, and do not let --primary drift to a neutral —
+   * that is what made the dark theme brandless (see .dark below).
+   * --primary carries the FiestaBoard warm orange in BOTH themes.
+   * ============================================================ */
   --primary: oklch(0.52 0.16 60);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.96 0 0);
@@ -191,13 +202,13 @@
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.905 0 0);
   --input: oklch(0.885 0 0);
-  --ring: oklch(0.52 0.16 60);
+  --ring: oklch(0.52 0.16 60); /* = --primary, see the invariant above */
   --sidebar: oklch(0.975 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-accent: oklch(0.92 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.915 0 0);
-  --sidebar-ring: oklch(0.52 0.16 60);
+  --sidebar-ring: oklch(0.52 0.16 60); /* = --primary, see the invariant above */
   --info: oklch(0.45 0.15 250);
   --info-foreground: oklch(0.985 0 0);
   --success: oklch(0.4 0.16 150);
@@ -386,8 +397,18 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.16 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  /* Brand-bearing primary (#156). This used to be oklch(0.922 0 0) — stock
+     shadcn's achromatic dark primary, never re-designed when the FiestaBoard
+     palette landed. Dark is the DEFAULT theme, so every default Button,
+     Badge, Switch track, Slider indicator and focus ring shipped with zero
+     brand hue. Same warm orange as :root, lifted in lightness for a dark
+     surface (light 0.52 -> dark 0.72) and held on the same hue family.
+     Upholds the "one token means 'this control is on'" invariant declared in
+     :root: --ring and --sidebar-ring below repeat this exact value. */
+  --primary: oklch(0.72 0.15 62);
+  /* Near-black on-accent foreground, matching every other dark accent
+     foreground in this block (destructive/info/success/warning all 0.15). */
+  --primary-foreground: oklch(0.15 0 0);
   --secondary: oklch(0.215 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.2 0 0);
@@ -398,13 +419,13 @@
   --destructive-foreground: oklch(0.15 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.55 0 0);
+  --ring: oklch(0.72 0.15 62); /* = --primary, see the invariant in :root */
   --sidebar: oklch(0.145 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.28 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.55 0 0);
+  --sidebar-ring: oklch(0.72 0.15 62); /* = --primary, see the invariant in :root */
   --info: oklch(0.75 0.18 250);
   --info-foreground: oklch(0.15 0 0);
   --success: oklch(0.68 0.18 145);
