@@ -151,6 +151,42 @@
   --shadow-card: var(--elevation-card);
   --shadow-card-hover: var(--elevation-card-hover);
   --shadow-modal: var(--elevation-modal);
+
+  /* ============================================================
+   * Motion scale → Tailwind utilities (issue #182).
+   *
+   * The `duration-*` utility resolves through the `--transition-duration-*`
+   * namespace and `ease-*` through `--ease-*` (Tailwind v4). Exporting the
+   * motion tokens here is what makes `duration-base` in a component and
+   * `var(--motion-duration-base)` in this file the SAME number — retuning a
+   * token in :root now moves the component layer with it, instead of the two
+   * silently drifting apart (which raw `duration-200` allowed).
+   *
+   * Declared inside `@theme inline`, so a utility emits
+   * `transition-duration: var(--motion-duration-base)` rather than a baked
+   * copy of `200ms` — the indirection is what carries a retune through.
+   *
+   * Bare numeric durations (`duration-200`) still compile; they are banned in
+   * src/components by scripts/ci/tests/no-bare-duration-utility.test.mjs.
+   *
+   * Not exported on purpose:
+   *   --motion-ease-out (`ease-out`) — Tailwind already ships `--ease-out`
+   *     with a DIFFERENT curve (cubic-bezier(0, 0, 0.2, 1)). Overriding it
+   *     would silently retime every existing `ease-out` utility, so the
+   *     keyword stays a CSS-only token.
+   *   --motion-ease-in — identical to Tailwind's stock `--ease-in`
+   *     (cubic-bezier(0.4, 0, 1, 1)), so `ease-in` is already on-scale.
+   * ============================================================ */
+  --transition-duration-fast: var(--motion-duration-fast);
+  --transition-duration-control: var(--motion-duration-control);
+  --transition-duration-base: var(--motion-duration-base);
+  --transition-duration-exit: var(--motion-duration-exit);
+  --transition-duration-slow: var(--motion-duration-slow);
+  --transition-duration-slower: var(--motion-duration-slower);
+  --transition-duration-slowest: var(--motion-duration-slowest);
+  --ease-spring: var(--motion-ease-spring);
+  --ease-out-cubic: var(--motion-ease-out-cubic);
+  --ease-standard: var(--motion-ease-standard);
 }
 
 :root {
@@ -313,6 +349,10 @@
    * Deliberately left inline (true one-offs): 117s sidebar gradient
    * flow, 220ms board-switch exits, 0.8s pride-burst, 1s card-fade-in,
    * 50ms page-toolbar stagger delay.
+   *
+   * The component layer reaches these through Tailwind utilities
+   * (`duration-base`, `ease-spring`, …), not raw `duration-200` — see the
+   * motion export block in `@theme inline` at the top of this file.
    * ============================================================ */
   --motion-duration-fast: 100ms;
   --motion-duration-control: 150ms;
