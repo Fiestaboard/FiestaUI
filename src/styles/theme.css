@@ -164,6 +164,12 @@
      owned by the stylesheet, not a build-time JS wrapper. */
   --font-geist-sans: "Geist Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-geist-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, "SF Mono", Monaco, Menlo, monospace;
+  /* Tell the UA which form-control palette to paint (#160). Without this,
+     every browser-drawn widget — accent-color'd checkboxes, file/date/number
+     chrome, scrollbars, autofill — renders in LIGHT chrome, which on the dark
+     default theme makes an unchecked Checkbox read as a filled/checked box.
+     Declared next to the palette it belongs to, once per theme. */
+  color-scheme: light;
   --radius: 0.625rem;
   --background: oklch(0.985 0 0);
   --foreground: oklch(0.145 0 0);
@@ -379,6 +385,7 @@
 }
 
 .dark {
+  color-scheme: dark; /* see the note in :root (#160) */
   --background: oklch(0.13 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.16 0 0);
