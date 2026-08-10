@@ -6,7 +6,18 @@ import { cn } from "../../lib/utils";
 // `leading-tight` (1.25), not `leading-none`: Heading is the general-purpose
 // h2-h4 primitive, so any title long enough to wrap — most of them at size="sm"
 // in a narrow column, any of them on mobile — needs descender clearance.
-const headingVariants = cva("font-semibold leading-tight tracking-tight", {
+//
+// It rides on each `size` step rather than on the base (#199). Tailwind's
+// `text-<size>` utilities set line-height as well as font-size, so tailwind-
+// merge treats a *following* `text-*` as superseding a *preceding* `leading-*`
+// — `cn("leading-tight text-base") === "text-base"`. Because cva emits base
+// classes before variant classes, a base-declared `leading-*` was stripped from
+// every composed heading, and headings rendered at Tailwind's default 1.5. That
+// is why #167's `leading-none` -> `leading-tight` swap changed nothing: both
+// were being dropped. Pairing the leading with the size it belongs to also
+// leaves room for the ramp to vary leading per step, which is usually what a
+// type scale eventually wants.
+const headingVariants = cva("font-semibold tracking-tight", {
   variants: {
     // Token names are copied verbatim from `textVariants` so the two ramps stay
     // in lockstep — a `tone` that means one colour on Text and another on
@@ -18,20 +29,19 @@ const headingVariants = cva("font-semibold leading-tight tracking-tight", {
     // feature. Add the rest on a real call site, not speculatively.
     //
     // Declared before `size` deliberately: cva emits variant classes in
-    // `Object.keys(variants)` order, so the default composition is still
-    // `font-semibold leading-tight tracking-tight text-foreground text-base`
-    // — byte-identical to the pre-tone output, which keeps every existing
-    // heading render and VRT baseline untouched.
+    // `Object.keys(variants)` order, so `text-foreground` lands ahead of the
+    // size step exactly where the base used to put it. Order matters here —
+    // see the `leading-*` note above for what happens when it does not.
     tone: {
       default: "text-foreground",
       muted: "text-muted-foreground",
       destructive: "text-destructive",
     },
     size: {
-      sm: "text-sm",
-      base: "text-base",
-      lg: "text-lg",
-      xl: "text-xl",
+      sm: "text-sm leading-tight",
+      base: "text-base leading-tight",
+      lg: "text-lg leading-tight",
+      xl: "text-xl leading-tight",
     },
   },
   defaultVariants: {

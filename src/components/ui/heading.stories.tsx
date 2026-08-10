@@ -94,13 +94,22 @@ export const Tones: Story = {
  * Regression guard for the `leading-none` collision: constrained to a narrow
  * column so every size wraps. Ascenders and descenders on adjacent lines must
  * stay clear of each other.
+ *
+ * Until #199 this story guarded nothing — `leading-tight` was being stripped
+ * by tailwind-merge and every heading rendered at Tailwind's default 1.5,
+ * which is looser than the intended 1.25 and therefore could not collide
+ * whatever the recipe said. It discriminates now: measured in Geist semibold,
+ * consecutive line boxes clear each other by 3–4px at 1.5, sit flush at 1.25
+ * (nominal em-boxes overlap by under a pixel, with no glyph ink touching),
+ * and overlap by 4–6px at `leading-none` — a difference a VRT diff cannot
+ * miss.
  */
 export const Wrapping: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          "Headings wrap in narrow columns and on mobile. `leading-tight` (1.25) keeps the ramp visually tight while leaving descender clearance between lines.",
+          "Headings wrap in narrow columns and on mobile. `leading-tight` (1.25) is the tightest step that still clears descenders at every size — `leading-none` visibly collides.",
       },
     },
   },
