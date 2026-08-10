@@ -49,3 +49,27 @@ export const Levels: Story = {
     </Stack>
   ),
 };
+
+/**
+ * Regression guard for the `leading-none` collision: constrained to a narrow
+ * column so every size wraps. Ascenders and descenders on adjacent lines must
+ * stay clear of each other.
+ */
+export const Wrapping: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Headings wrap in narrow columns and on mobile. `leading-tight` (1.25) keeps the ramp visually tight while leaving descender clearance between lines.",
+      },
+    },
+  },
+  render: () => (
+    <Stack gap="6" className="max-w-[16rem]">
+      <Heading size="xl">Configure your board layout and typography</Heading>
+      <Heading size="lg">Configure your board layout and typography</Heading>
+      <Heading size="base">Configure your board layout and typography</Heading>
+      <Heading size="sm">Configure your board layout and typography</Heading>
+    </Stack>
+  ),
+};
