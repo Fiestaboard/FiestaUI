@@ -72,10 +72,15 @@ jobs:
           # exchange entirely. Cost: the review is posted as
           # `github-actions[bot]` rather than `claude[bot]`.
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Bot-authored PRs need reviewing too — that's the point. Both
-          # identities show up: the audit cron pushes as `claude`, and the
-          # review badge itself is `github-actions`.
-          allowed_bots: "claude,github-actions"
+          # Bot-authored PRs need reviewing too — that's the point. Three
+          # identities show up: the audit cron pushes as `claude`, the review
+          # badge itself is `github-actions`, and `fiestaboard-ci-bot` is the
+          # app whose token `vrt-update.yml` (and `ci.yml`'s `vrt-seed`) pushes
+          # baselines with. Omitting that last one means every baseline refresh
+          # trades one red check for two: the `synchronize` the push fires is
+          # attributed to the app, and this guard rejects it in ~10s before any
+          # review work runs. See #175.
+          allowed_bots: "claude,github-actions,fiestaboard-ci-bot"
           show_full_output: "true"
           claude_args: >-
             --model claude-sonnet-4-6
