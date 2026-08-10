@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AVAILABLE_COLORS, BOARD_COLORS, COLOR_DISPLAY } from "../../lib/board-colors";
 import { tileScaleRows, verifyTileScale } from "../../lib/board-metrics";
@@ -512,11 +512,96 @@ THE TIME IS 9:45 AM
   );
 };
 
+/**
+ * Times one board's cascade: from the message change to the moment its last
+ * tile stops transitioning.
+ *
+ * Reading it off the DOM rather than instrumenting BoardDisplay keeps the
+ * measurement honest — `data-is-transitioning` is the same attribute the
+ * component sets to decide whether to mount its flap layers, so the readout
+ * cannot show a cascade the board did not actually run. It also distinguishes
+ * the two failure shapes by name: a board that never sets the attribute at all
+ * reports "snapped", which is precisely what issue #196 looked like from the
+ * outside and what this story previously left as a judgement call.
+ */
+function useSettleTime(nonce: number) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [result, setResult] = useState<{ ms: number; cascaded: boolean } | null>(null);
+
+  useEffect(() => {
+    // Nothing to time on first paint — there has been no message change yet.
+    if (nonce === 0) return;
+
+    const host = ref.current;
+    if (!host) return;
+
+    const startedAt = performance.now();
+    let cascaded = false;
+    let frame = 0;
+    setResult(null);
+
+    const tick = () => {
+      const elapsed = performance.now() - startedAt;
+      const transitioning = host.querySelector('[data-is-transitioning="true"]') !== null;
+      if (transitioning) {
+        cascaded = true;
+      } else if (cascaded) {
+        setResult({ ms: elapsed, cascaded: true });
+        return;
+      } else if (elapsed > 300) {
+        // 300ms without a single tile entering a transition: the board snapped.
+        setResult({ ms: elapsed, cascaded: false });
+        return;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [nonce]);
+
+  return { ref, result };
+}
+
 // Issue #178: the flap step is a prop, not a constant. `standard` (80ms) is the
 // default and is unchanged from every previous version of this component;
 // `hardware` is the device's own ~16ms (60 RPM x 62 flaps), which is here to
 // show *why* the on-screen default deviates from it — a Latin glyph is barely
 // resolvable for one frame mid-cascade.
+//
+// Each board carries a settle-time readout (issue #196). Four small boards
+// flipping at once are impossible to compare by eye, and while the cascade was
+// broken they were not just hard to compare but genuinely identical — the
+// numbers are what make "flapSpeed does something" checkable rather than a
+// matter of opinion, and what makes a regression to the snap obvious.
+const FlapSpeedBoard = ({ preset, message, nonce }: { preset: FlapSpeedPreset; message: string; nonce: number }) => {
+  const step = FLAP_SPEED_PRESETS[preset];
+  const timing = deriveFlapTiming(step);
+  const { ref, result } = useSettleTime(nonce);
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="text-sm text-muted-foreground">
+        <span className="font-semibold text-foreground">{preset}</span> — {step}ms/step (top leaf 0–{timing.topMs}ms,
+        bottom leaf {timing.bottomDelayMs}–{timing.stepMs}ms){preset === "standard" ? " — default" : ""}
+      </div>
+      <div className="font-mono text-xs" aria-live="polite">
+        {nonce === 0 ? (
+          <span className="text-muted-foreground">settle: —</span>
+        ) : result === null ? (
+          <span className="text-muted-foreground">settling…</span>
+        ) : result.cascaded ? (
+          <span className="text-foreground">settled in {Math.round(result.ms)}ms</span>
+        ) : (
+          <span className="text-destructive">snapped — no tile ever flipped (issue #196)</span>
+        )}
+      </div>
+      <div ref={ref}>
+        <BoardDisplay message={message} size="sm" deviceType="note" flapSpeed={preset} />
+      </div>
+    </div>
+  );
+};
+
 export const FlapSpeeds = () => {
   const [nonce, setNonce] = useState(0);
   const messages = ["HELLO WORLD", "GOOD MORNING", "SPLIT FLAP TEST"];
@@ -532,31 +617,23 @@ export const FlapSpeeds = () => {
       </button>
 
       <div className="flex flex-col gap-6">
-        {presets.map((preset) => {
-          const step = FLAP_SPEED_PRESETS[preset];
-          const timing = deriveFlapTiming(step);
-          return (
-            <div key={preset} className="flex flex-col items-center gap-2">
-              <div className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{preset}</span> — {step}ms/step (top leaf 0–
-                {timing.topMs}ms, bottom leaf {timing.bottomDelayMs}–{timing.stepMs}ms)
-                {preset === "standard" ? " — default" : ""}
-              </div>
-              <BoardDisplay
-                message={messages[nonce % messages.length]}
-                size="sm"
-                deviceType="note"
-                flapSpeed={preset}
-              />
-            </div>
-          );
-        })}
+        {presets.map((preset) => (
+          <FlapSpeedBoard key={preset} preset={preset} message={messages[nonce % messages.length]} nonce={nonce} />
+        ))}
       </div>
 
-      <p className="text-sm text-muted-foreground text-center max-w-lg">
-        The two leaves tile each step exactly and never overlap (issue #177): the bottom leaf starts at the instant the
-        top leaf lands, so only one leaf is ever in motion.
-      </p>
+      <div className="text-sm text-muted-foreground text-center max-w-lg flex flex-col gap-2">
+        <p>
+          The two leaves tile each step exactly and never overlap (issue #177): the bottom leaf starts at the instant
+          the top leaf lands, so only one leaf is ever in motion.
+        </p>
+        <p>
+          Settle time is measured from the click to the last tile leaving its transition, so it is roughly the step
+          duration times the longest distance any tile has to travel around the 71-character drum — which is why the
+          four numbers are ordered like the four step durations rather than equal to them. Under{" "}
+          <code>prefers-reduced-motion: reduce</code> every board snaps instead, deliberately (issue #180).
+        </p>
+      </div>
     </div>
   );
 };

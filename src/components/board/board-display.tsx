@@ -22,7 +22,7 @@
  * `flapSpeed`).
  */
 
-import { type CSSProperties, memo, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   BOARD_CHARS,
@@ -714,62 +714,145 @@ const CharTile = memo(
     const animationDuration = flapStepMs;
     const flapLayers = getFlapLayerStyles(animationDuration);
 
-    // State for current character index during animation
-    // Always start from target character - tiles are set by the parent component
-    // Tiles should only rotate when: loading, or transitioning to a new character
-    const [currentCharIndex, setCurrentCharIndex] = useState(() => targetCharIndex);
+    // ── Tile state, and the refs that mirror it ────────────────────────────
+    //
+    // Both effects below run inside the same passive-effect flush and both can
+    // read (and write) the tile's position, so neither may rely on a value that
+    // only becomes visible after the *next* commit. Every write therefore goes
+    // through `setCurrentChar` / `setTransitioning`, which update the ref and
+    // the state together. Before issue #196 the ref was instead synced from a
+    // third `useEffect` that ran a commit later, so an effect could read a
+    // position another effect had already invalidated — see the note on
+    // Effect 1's dependencies.
+    //
+    // Always start from the target character: tiles are set by the parent, and
+    // rotate only while loading or while stepping to a new target.
+    const [currentCharIndex, setCurrentCharIndexState] = useState(() => targetCharIndex);
+    const [isTransitioning, setIsTransitioningState] = useState(false);
 
-    // State to track if we're transitioning to a new target
-    const [isTransitioning, setIsTransitioning] = useState(false);
-
-    // Refs for interval and target tracking
-    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const currentCharIndexRef = useRef(currentCharIndex);
+    const isTransitioningRef = useRef(false);
     const prevTargetCharIndexRef = useRef(targetCharIndex);
     const prevIsAnimatingRef = useRef(isAnimating);
-    const currentCharIndexRef = useRef(currentCharIndex);
     const justStoppedLoadingRef = useRef(false);
 
-    // Update currentCharIndexRef when currentCharIndex changes
+    // The live target, readable synchronously. Effect 1 needs it (a message can
+    // change in the same commit that loading stops) but must NOT re-run on it —
+    // see its dependency list.
+    const targetCharIndexRef = useRef(targetCharIndex);
     useEffect(() => {
-      currentCharIndexRef.current = currentCharIndex;
-    }, [currentCharIndex]);
+      targetCharIndexRef.current = targetCharIndex;
+    }, [targetCharIndex]);
 
-    // Effect 1: Handle loading animation (isAnimating prop)
+    const setCurrentChar = useCallback((index: number) => {
+      currentCharIndexRef.current = index;
+      setCurrentCharIndexState(index);
+    }, []);
+
+    const setTransitioning = useCallback((next: boolean) => {
+      isTransitioningRef.current = next;
+      setIsTransitioningState(next);
+    }, []);
+
+    // ── The character stepper ──────────────────────────────────────────────
+    //
+    // One owner for the timer that walks a tile around the character drum. It
+    // is held in a ref and torn down on unmount (or when a branch below decides
+    // the tile has arrived) — deliberately *not* from an effect's cleanup.
+    // Effect 2 re-runs whenever the target changes, and a cleanup there would
+    // clear the very interval that same effect had just started as soon as a
+    // second message arrived mid-cascade, stranding the tile with
+    // `isTransitioning` stuck true and nothing left to advance it.
+    const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const stepPeriodRef = useRef(0);
+
+    const stopStepping = useCallback(() => {
+      if (stepIntervalRef.current !== null) {
+        clearInterval(stepIntervalRef.current);
+        stepIntervalRef.current = null;
+      }
+    }, []);
+
+    // Advance one character toward whatever `prevTargetCharIndexRef` currently
+    // holds, so a target that changes mid-cascade is picked up on the next step
+    // instead of restarting the walk. Reading and writing the position through
+    // the ref (rather than a `setCurrentCharIndex` updater) keeps the decision
+    // and the write in the same tick: an updater is evaluated later, against
+    // whatever else has been queued in the meantime, which is precisely how the
+    // cascade used to cancel itself.
+    const step = useCallback(() => {
+      const target = prevTargetCharIndexRef.current;
+      const current = currentCharIndexRef.current;
+      const arrive = () => {
+        stopStepping();
+        setTransitioning(false);
+        justStoppedLoadingRef.current = false;
+      };
+      if (current === target) {
+        arrive();
+        return;
+      }
+      const next = (current + 1) % BOARD_CHARS.length;
+      setCurrentChar(next);
+      if (next === target) arrive();
+    }, [setCurrentChar, setTransitioning, stopStepping]);
+
+    // Idempotent for an unchanged period, so retargeting mid-cascade keeps the
+    // existing timer (and its phase) instead of resetting the clock every time
+    // a new message lands. A changed `flapSpeed` does restart it, at the new
+    // cadence.
+    const startStepping = useCallback(
+      (periodMs: number) => {
+        if (stepIntervalRef.current !== null && stepPeriodRef.current === periodMs) return;
+        stopStepping();
+        stepPeriodRef.current = periodMs;
+        stepIntervalRef.current = setInterval(step, periodMs);
+      },
+      [step, stopStepping],
+    );
+
+    // Unmount only — the stepper outlives individual effect runs by design.
+    useEffect(() => stopStepping, [stopStepping]);
+
+    // Effect 1: the loading lifecycle (the `isAnimating` prop), and nothing else.
+    //
+    // It does NOT depend on `targetCharIndex`. It used to, "so we can transition
+    // to it when loading stops" — but that also re-ran the whole effect on every
+    // *message* change, and its idle branch (bottom) then snapped
+    // `currentCharIndex` straight to the new target. Effect 2 runs later in the
+    // same flush, so by the time it tried to step the tile the position it was
+    // supposed to step away from was already gone, and the cascade cancelled
+    // itself on its very first step: a message change snapped, no flap layers
+    // ever mounted, and `flapSpeed` had nothing to act on (issue #196).
+    //
+    // The value it actually needs — the live target at the moment loading stops,
+    // which may have changed in the same commit — comes from
+    // `targetCharIndexRef`, synced by an effect declared above this one and
+    // therefore already fresh when this one runs.
     useEffect(() => {
       const wasAnimating = prevIsAnimatingRef.current;
       prevIsAnimatingRef.current = isAnimating;
+      const target = targetCharIndexRef.current;
 
       // If animations are disabled (user setting or reduce-motion), short-circuit:
-      // clear any running interval and snap to target without rotating.
+      // stop the stepper and snap to target without rotating.
       if (!animationsEnabled) {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-        setIsTransitioning(false);
-        setCurrentCharIndex(targetCharIndex);
-        prevTargetCharIndexRef.current = targetCharIndex;
+        stopStepping();
+        setTransitioning(false);
+        setCurrentChar(target);
+        prevTargetCharIndexRef.current = target;
         justStoppedLoadingRef.current = false;
         return;
       }
 
       if (isAnimating) {
-        // Loading state: cycle through all characters continuously
-        // Don't reset to target - just continue from current position
-        setIsTransitioning(false);
+        // Loading state: cycle through all characters continuously.
+        setTransitioning(false);
+        stopStepping();
 
-        // Clear any existing interval
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-
-        // If we just started animating, start from current position
-        // Otherwise continue from where we are
-        if (!wasAnimating) {
-          // Just started - reset to target to begin cycle
-          setCurrentCharIndex(targetCharIndex);
-        }
+        // Just started loading — begin the cycle from the target. Otherwise
+        // continue from wherever the tile already is.
+        if (!wasAnimating) setCurrentChar(target);
 
         // Cycle through all characters in order, one per tick, driven by the
         // shared board ticker (one interval for the whole app) instead of a
@@ -778,247 +861,124 @@ const CharTile = memo(
         // shared, which keeps every loading tile in phase and batches their
         // updates into one render pass. Continues while isAnimating is true.
         const unsubscribe = subscribeLoadingTick(animationDuration, () => {
-          setCurrentCharIndex((prev) => (prev + 1) % BOARD_CHARS.length);
+          setCurrentChar((currentCharIndexRef.current + 1) % BOARD_CHARS.length);
         });
 
         return () => {
           unsubscribe();
         };
-      } else if (wasAnimating) {
-        // Just stopped loading - transition from current position to target
-        // Mark that we just stopped loading so Effect 2 doesn't interfere initially
-        justStoppedLoadingRef.current = true;
-
-        // Clear any existing interval first
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-
-        // Check if target changed from what it was before loading
-        const prevTarget = prevTargetCharIndexRef.current;
-        const currentTarget = targetCharIndex;
-        const targetChanged = prevTarget !== currentTarget;
-
-        // Update target ref
-        prevTargetCharIndexRef.current = currentTarget;
-
-        // Check if we're already at the current target
-        const currentIndex = currentCharIndexRef.current;
-        if (currentIndex === currentTarget) {
-          // Already at target - no transition needed
-          // If target didn't change, tile stays static (correct - only changed tiles transition)
-          // Update ref first to ensure consistency
-          currentCharIndexRef.current = currentTarget;
-          // Ensure state is consistent to avoid flashing
-          setIsTransitioning(false);
-          // Use functional update to ensure we don't trigger unnecessary re-renders
-          setCurrentCharIndex((prev) => (prev === currentTarget ? prev : currentTarget));
-          justStoppedLoadingRef.current = false;
-          return;
-        }
-
-        // Only transition if target actually changed
-        // If target didn't change, we should already be at target (from loading)
-        // So if we're not at target and target didn't change, something went wrong - just set it
-        if (!targetChanged) {
-          // Target didn't change but we're not at target - set it directly (no transition)
-          // Update ref first to ensure consistency
-          currentCharIndexRef.current = currentTarget;
-          // Then update state - use functional update to avoid unnecessary re-renders
-          setCurrentCharIndex((prev) => {
-            if (prev === currentTarget) {
-              return prev; // Already correct, no change needed
-            }
-            return currentTarget; // Update to target
-          });
-          // Ensure transition state is false before state updates complete
-          setIsTransitioning(false);
-          justStoppedLoadingRef.current = false;
-          return;
-        }
-
-        // Target changed - transition from current position to new target
-        // This is the only case where we transition: when the target character actually changed
-        setIsTransitioning(true);
-
-        // Helper function to advance character and check for target
-        // Use ref to avoid stale closures
-        const advanceToTarget = () => {
-          setCurrentCharIndex((current) => {
-            const target = prevTargetCharIndexRef.current;
-
-            // If already at target, stop transitioning
-            if (current === target) {
-              setIsTransitioning(false);
-              justStoppedLoadingRef.current = false; // Clear the flag
-              if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-              }
-              return current;
-            }
-
-            // Continue cycling forward
-            const next = (current + 1) % BOARD_CHARS.length;
-            // If we've reached the target, stop transitioning
-            if (next === target) {
-              setIsTransitioning(false);
-              justStoppedLoadingRef.current = false; // Clear the flag when we reach target
-              if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-              }
-              return next;
-            }
-            return next;
-          });
-        };
-
-        // Immediately advance once to start the transition
-        advanceToTarget();
-
-        // Then start interval for subsequent ticks
-        intervalRef.current = setInterval(advanceToTarget, animationDuration);
-
-        return () => {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-          justStoppedLoadingRef.current = false; // Clear flag on cleanup
-        };
-      } else {
-        // Not animating and wasn't animating - ensure we're at target
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-        setIsTransitioning(false);
-        // Use functional update to avoid unnecessary re-renders if already at target
-        setCurrentCharIndex((prev) => (prev === targetCharIndex ? prev : targetCharIndex));
       }
-    }, [isAnimating, targetCharIndex, animationDuration, animationsEnabled]); // Include targetCharIndex so we can transition to it when loading stops
 
-    // Effect 2: Handle target character changes - independent transition
+      if (wasAnimating) {
+        // Just stopped loading — walk from wherever the drum stopped to the
+        // target. Mark it so Effect 2 hands this transition over rather than
+        // starting a competing one.
+        justStoppedLoadingRef.current = true;
+        stopStepping();
+
+        const prevTarget = prevTargetCharIndexRef.current;
+        prevTargetCharIndexRef.current = target;
+
+        // Already there, or the target never changed while loading: only tiles
+        // whose character actually changed are supposed to flip.
+        if (currentCharIndexRef.current === target || prevTarget === target) {
+          setTransitioning(false);
+          setCurrentChar(target);
+          justStoppedLoadingRef.current = false;
+          return;
+        }
+
+        setTransitioning(true);
+        step(); // first flap immediately, then one per interval
+        if (isTransitioningRef.current) startStepping(animationDuration);
+        return;
+      }
+
+      // Idle, and idle before: nothing for the loading lifecycle to do. A
+      // *target* change is Effect 2's business — reacting to it here is what
+      // broke the cascade. The one thing worth asserting is that a tile which
+      // is neither loading nor stepping sits on its target (e.g. after
+      // `flapSpeed` or `animationsEnabled` changed underneath it).
+      if (!isTransitioningRef.current) {
+        stopStepping();
+        if (currentCharIndexRef.current !== target) setCurrentChar(target);
+      }
+    }, [
+      isAnimating,
+      animationDuration,
+      animationsEnabled,
+      setCurrentChar,
+      setTransitioning,
+      startStepping,
+      step,
+      stopStepping,
+    ]);
+
+    // Effect 2: message changes — the cascade.
+    //
+    // `isTransitioning` is deliberately absent from the dependencies. It is
+    // state this effect *sets*, so depending on it made the effect tear itself
+    // down and re-enter its own "already transitioning, don't interfere" guard
+    // one commit after starting a cascade. The guard reads
+    // `isTransitioningRef` instead, which is written at the same instant as the
+    // state, and the stepper is owned by refs rather than by this effect's
+    // cleanup so a second message mid-cascade retargets the walk instead of
+    // stranding it.
     useEffect(() => {
-      // If animations are disabled, snap directly to the target — no flap,
-      // no rotation through intermediate characters.
+      // Animations disabled (user setting or `prefers-reduced-motion: reduce`,
+      // which BoardDisplay collapses into this prop): snap directly to the
+      // target — no flap, no rotation through intermediate characters. This is
+      // the deliberate per-tile snap from issue #180.
       if (!animationsEnabled) {
         prevTargetCharIndexRef.current = targetCharIndex;
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-        setIsTransitioning(false);
-        setCurrentCharIndex(targetCharIndex);
+        stopStepping();
+        setTransitioning(false);
+        setCurrentChar(targetCharIndex);
         return;
       }
 
-      // If we're transitioning from loading, update the target ref so Effect 1 uses the new target
-      if (justStoppedLoadingRef.current) {
-        // Update the target ref so Effect 1's transition uses the new target
+      // Loading, or walking out of loading: Effect 1 owns the tile. Publish the
+      // new target so the walk in flight retargets, and stay out of the way.
+      if (isAnimating || justStoppedLoadingRef.current) {
         prevTargetCharIndexRef.current = targetCharIndex;
         return;
       }
 
-      // CRITICAL: Don't do anything if we're in loading state OR transitioning
-      // The loading animation (Effect 1) handles everything during/after loading
-      if (isAnimating || isTransitioning) {
-        // Just update the ref but don't interfere
+      // A cascade is already in flight — retarget it in place. `step` re-reads
+      // the target every tick, so the tile continues from where it is toward
+      // the new character rather than restarting.
+      if (isTransitioningRef.current) {
         prevTargetCharIndexRef.current = targetCharIndex;
+        startStepping(animationDuration);
         return;
       }
 
       const prevTarget = prevTargetCharIndexRef.current;
-      const currentTarget = targetCharIndex;
+      prevTargetCharIndexRef.current = targetCharIndex;
 
-      // If target changed, start transitioning to new target
-      if (prevTarget !== currentTarget) {
-        // Update ref
-        prevTargetCharIndexRef.current = currentTarget;
-
-        // Check if we're already at the new target
-        const currentIndex = currentCharIndexRef.current;
-        if (currentIndex === currentTarget) {
-          // Already at target, no transition needed
-          setIsTransitioning(false);
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-          // Make sure currentCharIndex state matches
-          setCurrentCharIndex(currentTarget);
-          return;
-        }
-
-        // Start transitioning to new target
-        setIsTransitioning(true);
-
-        // Clear any existing interval
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-
-        // Helper function to advance character and check for target
-        // Uses refs to avoid stale closures
-        const advanceToTarget = () => {
-          setCurrentCharIndex((current) => {
-            const target = prevTargetCharIndexRef.current;
-
-            // If already at target, stop transitioning
-            if (current === target) {
-              setIsTransitioning(false);
-              if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-              }
-              return current;
-            }
-
-            // Continue cycling forward
-            const next = (current + 1) % BOARD_CHARS.length;
-            // If we've reached the target, stop transitioning
-            if (next === target) {
-              setIsTransitioning(false);
-              if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-              }
-              return next;
-            }
-            return next;
-          });
-        };
-
-        // Immediately advance once to start the transition
-        advanceToTarget();
-
-        // Then start interval for subsequent ticks
-        intervalRef.current = setInterval(advanceToTarget, animationDuration);
-
-        return () => {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-        };
-      } else {
-        // Target hasn't changed - ensure we're at target and not transitioning
-        // Tiles should only transition when target changes or coming out of loading
-        if (currentCharIndexRef.current !== currentTarget) {
-          // Not at target but target hasn't changed - just set it directly
-          // This shouldn't happen normally, but handle it gracefully
-          setCurrentCharIndex(currentTarget);
-        }
-        setIsTransitioning(false);
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
+      // Target unchanged, or the tile is already showing it: only tiles whose
+      // character actually changed are supposed to flip.
+      if (prevTarget === targetCharIndex || currentCharIndexRef.current === targetCharIndex) {
+        stopStepping();
+        setTransitioning(false);
+        if (currentCharIndexRef.current !== targetCharIndex) setCurrentChar(targetCharIndex);
+        return;
       }
-    }, [targetCharIndex, isAnimating, isTransitioning, animationDuration, animationsEnabled]);
+
+      setTransitioning(true);
+      step(); // first flap immediately, then one per interval
+      if (isTransitioningRef.current) startStepping(animationDuration);
+    }, [
+      targetCharIndex,
+      isAnimating,
+      animationDuration,
+      animationsEnabled,
+      setCurrentChar,
+      setTransitioning,
+      startStepping,
+      step,
+      stopStepping,
+    ]);
 
     // Color tiles also animate - they cycle through all characters during loading
     // No special handling needed - they go through the same animation logic below
