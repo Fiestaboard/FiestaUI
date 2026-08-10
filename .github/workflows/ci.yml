@@ -4,6 +4,19 @@ on:
   push:
     branches: [main]
   pull_request:
+  # `main` runs behind a merge queue, and a queued entry is a *different commit*
+  # from the PR head — it is the PR replayed on top of every entry ahead of it.
+  # `CI Success` is the queue's required check, so this workflow has to run on
+  # `merge_group` or the queue would wait on a check that never reports and
+  # every merge would hang until it timed out.
+  #
+  # Testing that commit is the entire point. release.yml's header already names
+  # the hazard this closes: the PR check tests the PR head, not the merge
+  # result, so two independently green PRs can combine into a red `main`. This
+  # repo is unusually exposed to it because `vrt/baselines/` is committed —
+  # PR A changing a token silently invalidates PR B's baselines, and neither
+  # PR is red on its own.
+  merge_group:
   # seed_baselines exists because vrt-update.yml can't be dispatched until it
   # lands on the default branch — dispatching CI with this input runs the same
   # baseline seeding from this ref. Remove once vrt-update.yml is on main.
@@ -48,8 +61,13 @@ jobs:
       - name: Classify
         id: classify
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          # `merge_group` carries neither a `pull_request` nor an `event.before`.
+          # Without its own case the fallbacks below resolve to an empty base and
+          # every queued entry would run the full 25-minute suite — including the
+          # release bot's prose-only merges. The merge_group payload does supply
+          # both shas, so classification stays exact inside the queue.
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
         run: |
           set -euo pipefail
 
