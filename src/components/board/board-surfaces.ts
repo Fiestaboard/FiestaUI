@@ -20,11 +20,11 @@
  *    `rgb(9,9,9)`, a 4/255 luminance delta, i.e. nothing. In the default dark
  *    theme the split simply did not exist on letter tiles.
  *
- * NOTE: these values are matched to the component's own stated intent (a leaf
- * in a recess, lit from above-left, with a physical gap at the hinge). They
- * have **not** been checked against a photograph of the actual hardware — see
- * issue #179, which raises the same caveat. A physical reference pass is still
- * outstanding.
+ * These values were originally matched to the component's own stated intent (a
+ * leaf in a recess, lit from above-left, with a physical gap at the hinge)
+ * rather than to a physical reference, which #179 flagged as a caveat. They
+ * have since been checked against the real hardware and signed off — see #193.
+ * Treat them as validated, not provisional.
  */
 
 import type { CSSProperties } from "react";

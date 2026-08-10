@@ -5,6 +5,17 @@ import { AVAILABLE_COLORS, BOARD_COLORS, COLOR_DISPLAY } from "../../lib/board-c
 import { tileScaleRows, verifyTileScale } from "../../lib/board-metrics";
 import { BoardDisplay, deriveFlapTiming, FLAP_SPEED_PRESETS, type FlapSpeedPreset } from "./board-display";
 
+// Most stories here render wider than a 390px phone and are meant to.
+// BoardDisplay is the unscaled primitive: its width is
+// `cols x (tile + gutter) + bezel padding`, which for a 22-column board floors
+// at 379px (`sm`) / 393px (`md`) against the ~326px content box a 390px phone
+// leaves, and the tile scale deliberately has no breakpoint step below `base`
+// (issue #176). No width class on a story can change that, and wrapping these
+// in a scroll container would hide the primitive's constraint behind story
+// chrome rather than document it. The design system's answer for a slot
+// narrower than a board is `ScaledBoardDisplay`, which scales the whole board
+// down without touching tile proportions — see its `PhoneWidth` story, which
+// fits a full 6x22 board into a 311px box (issue #192).
 const meta = {
   title: "Board/BoardDisplay",
   component: BoardDisplay,
@@ -668,49 +679,54 @@ export const TileGeometry = () => {
         <p className="text-muted-foreground">All authored classes match the ratios derived from their tile height.</p>
       )}
 
-      <table className="border-collapse">
-        <thead>
-          <tr className="text-left">
-            {["size", "step", "w×h", "gutter", "glyph", "radius", ...columns.map((c) => c.label)].map((h) => (
-              <th key={h} className="border-b border-border px-3 py-1">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={`${r.size}-${r.step}`}>
-              <td className="px-3 py-1">{r.size}</td>
-              <td className="px-3 py-1">{r.step}</td>
-              <td className="px-3 py-1">{`${r.width}×${r.height}`}</td>
-              <td className="px-3 py-1">{r.gutter}</td>
-              <td className="px-3 py-1">{r.glyph}</td>
-              <td className="px-3 py-1">{r.radius}</td>
-              {columns.map((c) => (
-                <td key={c.label} className="px-3 py-1">
-                  {c.get(r).toFixed(3)}
-                </td>
+      {/* A 10-column measurement table is wider than a phone by construction —
+          unlike the board itself, a table is the textbook case for a scroll
+          window, so it gets one below `sm` (issue #192). */}
+      <div className="max-w-[calc(100vw-4rem)] overflow-x-auto sm:max-w-none sm:overflow-x-visible">
+        <table className="border-collapse">
+          <thead>
+            <tr className="text-left">
+              {["size", "step", "w×h", "gutter", "glyph", "radius", ...columns.map((c) => c.label)].map((h) => (
+                <th key={h} className="border-b border-border px-3 py-1">
+                  {h}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="text-muted-foreground">
-            <td className="border-t border-border px-3 py-1" colSpan={6}>
-              spread (max/min − 1)
-            </td>
-            {columns.map((c) => {
-              const s = spread(rows.map(c.get));
-              return (
-                <td key={c.label} className="border-t border-border px-3 py-1">
-                  {s.pct.toFixed(1)}%
-                </td>
-              );
-            })}
-          </tr>
-        </tfoot>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={`${r.size}-${r.step}`}>
+                <td className="px-3 py-1">{r.size}</td>
+                <td className="px-3 py-1">{r.step}</td>
+                <td className="px-3 py-1">{`${r.width}×${r.height}`}</td>
+                <td className="px-3 py-1">{r.gutter}</td>
+                <td className="px-3 py-1">{r.glyph}</td>
+                <td className="px-3 py-1">{r.radius}</td>
+                {columns.map((c) => (
+                  <td key={c.label} className="px-3 py-1">
+                    {c.get(r).toFixed(3)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="text-muted-foreground">
+              <td className="border-t border-border px-3 py-1" colSpan={6}>
+                spread (max/min − 1)
+              </td>
+              {columns.map((c) => {
+                const s = spread(rows.map(c.get));
+                return (
+                  <td key={c.label} className="border-t border-border px-3 py-1">
+                    {s.pct.toFixed(1)}%
+                  </td>
+                );
+              })}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
 
       <p className="max-w-2xl font-sans text-sm text-muted-foreground">
         Residual spread is integer-pixel quantisation — no dimension is more than 0.5px from its ideal value. Corner

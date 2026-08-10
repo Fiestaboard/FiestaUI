@@ -112,6 +112,22 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                   className={`flex ${gapClasses[size]} justify-center`}
                   style={isRowSeam ? { marginTop: seamGap } : undefined}
                 >
+                  {/*
+                    Tiles carry `shrink-0`. Unlike BoardDisplay's animated path
+                    — where the flex item is a bare wrapper around a
+                    fixed-width CharTile, and so has a max-content minimum —
+                    here the tile *is* the flex item and its width comes from a
+                    utility class. A flex item with a definite width still has
+                    `min-width: auto`, whose content-based minimum is the glyph,
+                    so a row squeezed into a narrow parent used to shrink its
+                    tiles toward the glyph width: a 22-column board in a 163px
+                    grid cell rendered 4.2px-wide tiles at full height, silently
+                    breaking every proportion issue #176 fixed. With `shrink-0`
+                    a squeezed board overflows instead of distorting, which is
+                    both honest and what ScaledBoardDisplay's measurement of the
+                    board's natural width assumes. Consumers with a slot too
+                    narrow for a board want ScaledBoardDisplay (issue #192).
+                  */}
                   {row.map((token, colIdx) => {
                     const isColSeam = showSeams && colIdx > 0 && colIdx % NOTE_COLS === 0;
                     const tileSeamStyle = isColSeam ? { marginLeft: seamGap } : undefined;
@@ -127,7 +143,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                             key={colIdx}
                             data-note-tile=""
                             {...seamProps}
-                            className={`${sizeClasses[size]} ${radiusClasses[size]}`}
+                            className={`${sizeClasses[size]} ${radiusClasses[size]} shrink-0`}
                             style={{
                               backgroundColor: bgColor,
                               boxShadow: tileBoxShadow,
@@ -142,7 +158,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                           key={colIdx}
                           data-note-tile=""
                           {...seamProps}
-                          className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden`}
+                          className={`relative ${sizeClasses[size]} ${radiusClasses[size]} shrink-0 overflow-hidden`}
                           style={{
                             backgroundColor: tileBg,
                             boxShadow: tileBoxShadow,
@@ -181,7 +197,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                           key={colIdx}
                           data-note-tile=""
                           {...seamProps}
-                          className={`${sizeClasses[size]} ${radiusClasses[size]} flex items-center justify-center`}
+                          className={`${sizeClasses[size]} ${radiusClasses[size]} flex shrink-0 items-center justify-center`}
                           style={{
                             backgroundColor: tileBg,
                             boxShadow: tileBoxShadow,
@@ -206,7 +222,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                         key={colIdx}
                         data-note-tile=""
                         {...seamProps}
-                        className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden`}
+                        className={`relative ${sizeClasses[size]} ${radiusClasses[size]} shrink-0 overflow-hidden`}
                         style={{
                           backgroundColor: tileBg,
                           boxShadow: tileBoxShadow,

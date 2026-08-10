@@ -56,10 +56,18 @@ export interface ScaledBoardDisplayProps extends BoardDisplayProps {
  * looks identical in roomy layouts.
  *
  * For note-array boards (which can be very wide, e.g. 3×60, or very tall,
- * e.g. 12×15) a small toggle switches to **actual** mode: tiles render at
- * their natural readable size inside a horizontally-scrollable container,
- * with no vertical clipping. The toggle is only rendered for note arrays,
- * so flagship/note previews are visually unchanged.
+ * e.g. 12×15) a small toggle switches to **actual** mode: the whole board —
+ * frame included — renders at its natural readable size inside a
+ * horizontally-scrollable container, and its height is left unconstrained so
+ * a tall board flows rather than scrolling vertically. The toggle is only
+ * rendered for note arrays, so flagship/note previews are visually unchanged.
+ *
+ * Fit mode is also the answer to "a board does not fit a phone" (issue #192):
+ * a 6×22 flagship board's smallest unscaled render is ~379px, wider than the
+ * ~326px content box a 390px phone leaves, and the tile scale deliberately has
+ * no step below `base` (issue #176). Wrapping the board here scales it to
+ * whatever slot it is given — down to ~262px, measured — without adding a
+ * geometry step and without touching the tile proportions.
  */
 function ScaledBoardDisplayImpl({
   previewSizeLabel = "Preview size",
@@ -206,13 +214,37 @@ function ScaledBoardDisplayImpl({
   ) : null;
 
   if (mode === "actual") {
-    // Actual size: render at natural scale, scroll horizontally for wide
-    // boards, and let tall boards flow without any vertical clipping.
+    // Actual size: render at natural scale and scroll horizontally when the
+    // board is wider than its slot.
+    //
+    // `min-w-max` on the inner wrapper is load-bearing (issue #197).
+    // BoardDisplay renders `width: fit-content`, which resolves to
+    // `min(max-content, max(min-content, available))` — against a slot narrower
+    // than the board that clamps the *bezel* to the slot while the fixed-width
+    // tiles keep going, so scrolling right ran out of board before it ran out
+    // of tiles and the frame simply ended mid-grid. Flooring the wrapper at
+    // `max-content` gives the board its natural width, so the frame and its
+    // right-hand bezel padding scroll along with the tiles.
+    //
+    // `min-w-max` rather than `w-max`: a slot *wider* than the board must still
+    // give the wrapper the full slot width, or BoardDisplay's own
+    // `w-full flex justify-center` would have nothing to centre against and the
+    // board would jump to the left edge in roomy layouts.
+    //
+    // On the vertical axis: this used to also set an inline
+    // `overflowY: "visible"`, which never applied — per CSS Overflow, pairing a
+    // scrolling value on one axis with `visible` on the other computes the
+    // `visible` axis to `auto`, so the box is a scroll container both ways
+    // whatever is written. Nothing is clipped vertically regardless, because
+    // nothing constrains this box's height: its scrollport is exactly as tall
+    // as the board, which is what "no vertical clipping" was reaching for.
     return (
       <div data-slot="scaled-board-display" className="w-full min-w-0">
         {toggle}
-        <div data-testid="actual-size-scroll" className="w-full overflow-x-auto" style={{ overflowY: "visible" }}>
-          <BoardDisplay {...props} />
+        <div data-testid="actual-size-scroll" className="w-full overflow-x-auto">
+          <div className="min-w-max">
+            <BoardDisplay {...props} />
+          </div>
         </div>
       </div>
     );
