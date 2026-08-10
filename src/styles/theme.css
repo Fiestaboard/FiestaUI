@@ -200,8 +200,33 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.43 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
+  /* ============================================================
+   * --border vs --input: TWO DIFFERENT INTENTS, NOT ONE VALUE (#161).
+   *
+   * --border is DECORATION: table rules, card edges, dividers, list
+   *   separators. It separates content that is already legible on its
+   *   own, so WCAG 2.2 SC 1.4.11 does not apply and it is deliberately
+   *   allowed to stay whisper-subtle (~1.3:1). Raising it to 3:1 would
+   *   turn every card and table into a wireframe.
+   *
+   * --input is the CONTROL BOUNDARY: Input, Textarea, Select trigger and
+   *   Checkbox are `bg-transparent`, so this 1px edge is the ONLY thing
+   *   that says "a control lives here". That is exactly the "visual
+   *   information required to identify a user interface component" of
+   *   SC 1.4.11, so it MUST clear 3:1 against BOTH --background and
+   *   --card (a field can sit on either surface).
+   *
+   * Derived from --foreground as an alpha fraction so the boundary
+   * tracks the text color in every theme and season instead of being a
+   * hand-tuned grey per palette. Percentages are the smallest that clear
+   * 3:1 on both surfaces with headroom (light 48% -> 3.45/3.48,
+   * dark 38% -> 3.37/3.44); they differ because contrast ramps faster
+   * for light-on-dark than dark-on-light.
+   *
+   * DO NOT collapse these two tokens into one value in either direction.
+   * ============================================================ */
   --border: oklch(0.905 0 0);
-  --input: oklch(0.885 0 0);
+  --input: color-mix(in oklch, var(--foreground) 48%, transparent);
   --ring: oklch(0.52 0.16 60); /* = --primary, see the invariant above */
   --sidebar: oklch(0.975 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -421,8 +446,10 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.8 0.191 22.216);
   --destructive-foreground: oklch(0.15 0 0);
+  /* --border stays decorative-subtle; --input is the 3:1 control boundary.
+     Full rationale in the :root block — do not merge the two. */
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 14%);
+  --input: color-mix(in oklch, var(--foreground) 38%, transparent);
   --ring: oklch(0.72 0.15 62); /* = --primary, see the invariant in :root */
   --sidebar: oklch(0.145 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
