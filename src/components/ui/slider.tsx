@@ -21,6 +21,15 @@ const trackClassName =
 const indicatorClassName =
   "absolute rounded-full bg-primary data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full";
 
+// Static — hoisted out of the thumb loop for the same reason switch.tsx hoists
+// its thumb literal. The `before:` block is a WCAG 2.2 SC 2.5.8 24x24 hit
+// target: transparent, absolutely positioned inside the already-absolute
+// thumb, so it costs no layout and paints nothing (issue #164). The
+// group-aria-invalid/slider rules mirror the Button/Badge invalid recipe,
+// forwarded from the root where the attribute actually lands (issue #163).
+const thumbClassName =
+  "block size-4 shrink-0 rounded-full border border-primary bg-background shadow-sm ring-ring/50 transition-[color,box-shadow] outline-none hover:ring-[3px] focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 before:absolute before:top-1/2 before:left-1/2 before:size-6 before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] group-aria-invalid/slider:border-destructive group-aria-invalid/slider:ring-destructive/20 dark:group-aria-invalid/slider:ring-destructive/40";
+
 function Slider({
   className,
   defaultValue,
@@ -44,7 +53,10 @@ function Slider({
       min={min}
       max={max}
       className={cn(
-        "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
+        // group/slider lets the thumb pick up the root's aria-invalid, since
+        // the attribute lands on the root but the affordance is the thumb
+        // (issue #163).
+        "group/slider relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
         className,
       )}
       {...props}
@@ -59,7 +71,7 @@ function Slider({
               // The accessible name must land on the thumb's <input>, not the
               // Root div — forward the wrapper-level aria-label there.
               getAriaLabel={ariaLabel ? getAriaLabel : undefined}
-              className="block size-4 shrink-0 rounded-full border border-primary bg-background shadow-sm ring-ring/50 transition-[color,box-shadow] outline-none hover:ring-[3px] focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50"
+              className={thumbClassName}
             />
           ))}
         </SliderPrimitive.Track>
