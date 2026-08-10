@@ -16,7 +16,8 @@ import { memo, useMemo } from "react";
 
 import { type BoardToken, parseLine } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
-import { gapClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
+import { gapClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
+import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
 
 export interface BoardTeaserProps {
   /** Literal board line, e.g. `"{66}AAPL +1.88%"`. */
@@ -84,7 +85,7 @@ export const BoardTeaser = memo(function BoardTeaser({
                 <div
                   key={colIdx}
                   data-teaser-tile=""
-                  className={`${sizeClasses[size]} rounded-[3px]`}
+                  className={`${sizeClasses[size]} ${radiusClasses[size]}`}
                   style={{
                     backgroundColor: bgColor,
                     boxShadow: tileBoxShadow,
@@ -97,7 +98,7 @@ export const BoardTeaser = memo(function BoardTeaser({
               <div
                 key={colIdx}
                 data-teaser-tile=""
-                className={`relative ${sizeClasses[size]} rounded-[3px] overflow-hidden`}
+                className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden`}
                 style={{
                   backgroundColor: tileBg,
                   boxShadow: tileBoxShadow,
@@ -105,7 +106,7 @@ export const BoardTeaser = memo(function BoardTeaser({
                 }}
               >
                 <div
-                  className="absolute rounded-[3px] overflow-hidden"
+                  className={`absolute ${radiusClasses[size]} overflow-hidden`}
                   style={{
                     top: "3px",
                     bottom: "4px",
@@ -116,7 +117,7 @@ export const BoardTeaser = memo(function BoardTeaser({
                       "0 2px 4px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.15), inset 0 -1px 1px rgba(0,0,0,0.25)",
                   }}
                 >
-                  <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/10" />
+                  <div className={SEAM_CLASS} style={seamStyle[boardType]} />
                 </div>
               </div>
             );
@@ -131,7 +132,7 @@ export const BoardTeaser = memo(function BoardTeaser({
               <div
                 key={colIdx}
                 data-teaser-tile=""
-                className={`${sizeClasses[size]} rounded-[3px] flex items-center justify-center`}
+                className={`${sizeClasses[size]} ${radiusClasses[size]} flex items-center justify-center`}
                 style={{
                   backgroundColor: tileBg,
                   boxShadow: tileBoxShadow,
@@ -154,14 +155,18 @@ export const BoardTeaser = memo(function BoardTeaser({
             <div
               key={colIdx}
               data-teaser-tile=""
-              className={`relative ${sizeClasses[size]} rounded-[3px] overflow-hidden`}
+              className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden`}
               style={{
                 backgroundColor: tileBg,
                 boxShadow: tileBoxShadow,
                 contain: "layout style paint",
               }}
             >
-              <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2 }}>
+              {/* Leaf body — issue #179; the glyph panel is the leaf. */}
+              <div
+                className="absolute inset-0 flex items-center justify-center"
+                style={{ zIndex: 2, boxShadow: charLeafBoxShadow[boardType] }}
+              >
                 {char !== " " && (
                   <span
                     className={`${textSizeClasses[size]} font-mono font-semibold select-none leading-none`}
@@ -171,10 +176,7 @@ export const BoardTeaser = memo(function BoardTeaser({
                   </span>
                 )}
               </div>
-              <div
-                className={`absolute top-1/2 left-0 right-0 h-[1px] ${isWhiteBoard ? "bg-black/10" : "bg-black/30"}`}
-                style={{ zIndex: 3 }}
-              />
+              <div className={SEAM_CLASS} style={seamStyle[boardType]} />
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
