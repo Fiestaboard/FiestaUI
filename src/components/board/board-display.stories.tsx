@@ -583,7 +583,7 @@ export const TileGeometry = () => {
   return (
     <div className="flex flex-col gap-4 font-mono text-xs">
       {issues.length > 0 ? (
-        <p className="rounded border border-destructive p-3 text-destructive">
+        <p className="rounded-lg border border-destructive p-3 text-destructive">
           {issues.length} authored class string(s) no longer match the derived scale:{" "}
           {issues.map((i) => `${i.size}/${i.step} ${i.field}: ${i.actual} ≠ ${i.expected}`).join("; ")}
         </p>
