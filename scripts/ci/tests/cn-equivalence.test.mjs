@@ -18,6 +18,10 @@
 // a no-op — and, separately, that the copies recorded here still match the
 // literals those files actually declare.
 //
+// Finally it guards the issue #199 failure class: a cva whose BASE declares a
+// utility that a variant's class supersedes loses it silently, in one direction
+// only. See BASE_SURVIVAL below.
+//
 // Regenerate the snapshot (only when button/switch classes intentionally
 // change): UPDATE_CN_SNAPSHOT=1 node --test scripts/ci/tests/cn-equivalence.test.mjs
 
@@ -42,6 +46,7 @@ buildSync({
   stdin: {
     contents: `
       export { buttonVariants } from "./src/components/ui/button.tsx";
+      export { headingVariants } from "./src/components/ui/heading.tsx";
       export { cn } from "./src/lib/utils.ts";
     `,
     resolveDir: repoRoot,
@@ -57,7 +62,7 @@ buildSync({
   outfile,
   logLevel: "silent",
 });
-const { buttonVariants, cn } = await import(pathToFileURL(outfile).href);
+const { buttonVariants, headingVariants, cn } = await import(pathToFileURL(outfile).href);
 
 const variants = [undefined, "default", "brand", "destructive", "outline", "secondary", "ghost", "link"];
 const sizes = [undefined, "default", "sm", "lg", "icon", "icon-sm", "icon-lg"];
@@ -111,6 +116,79 @@ const HOISTED_STATICS = {
       "block size-4 shrink-0 rounded-full border border-primary bg-background shadow-sm ring-ring/50 transition-[color,box-shadow] outline-none hover:ring-[3px] focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 before:absolute before:top-1/2 before:left-1/2 before:size-6 before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] group-aria-invalid/slider:border-destructive group-aria-invalid/slider:ring-destructive/20 dark:group-aria-invalid/slider:ring-destructive/40",
   },
 };
+
+// Issue #199: a cva base utility that a variant's class supersedes disappears
+// from the composed output, and nothing says so.
+//
+// `Heading` shipped `leading-tight` in its base and `text-<size>` in a size
+// variant. cva emits base before variants, Tailwind's `text-*` sets
+// line-height as well as font-size, and tailwind-merge resolves a conflict in
+// favour of the LAST class — so `cn("leading-tight text-base") === "text-base"`
+// and every heading rendered at the default 1.5. The #167 fix, which swapped
+// `leading-none` for `leading-tight`, was a no-op: both were being dropped.
+//
+// The blunt version of this check — assert cn(recipe) === recipe — does not
+// work, because overriding a base class from a variant is ordinary, correct
+// cva usage (Button's `sm` narrows `gap-2` to `gap-1.5`; its `brand` and
+// `destructive` variants recolour the base focus ring). So each component
+// declares which of its base classes are *meant* to be overridden, and the
+// rest must survive every variant combination.
+//
+// The base string is read from source rather than copied here, so it cannot
+// drift the way the HOISTED_STATICS copies did.
+const BASE_SURVIVAL = {
+  "heading.tsx headingVariants": {
+    source: "src/components/ui/heading.tsx",
+    binding: "headingVariants",
+    variants: headingVariants,
+    matrix: {
+      tone: [undefined, "default", "muted", "destructive"],
+      size: [undefined, "sm", "base", "lg", "xl"],
+    },
+    intentionalOverrides: [],
+    // `leading-tight` now rides on each size step rather than the base, so
+    // base survival alone would no longer see it. This is the direct #199
+    // regression guard and stays true wherever the class is declared.
+    alwaysPresent: ["leading-tight"],
+  },
+  "button.tsx buttonVariants": {
+    source: "src/components/ui/button.tsx",
+    binding: "buttonVariants",
+    variants: buttonVariants,
+    matrix: {
+      variant: [undefined, "default", "brand", "destructive", "outline", "secondary", "ghost", "link"],
+      size: [undefined, "default", "sm", "lg", "icon", "icon-sm", "icon-lg"],
+    },
+    intentionalOverrides: [
+      "gap-2", // size="sm" tightens it to gap-1.5
+      "focus-visible:ring-ring/50", // variant="brand"/"destructive" recolour the ring
+    ],
+    alwaysPresent: [],
+  },
+};
+
+/** Every combination of the declared variant matrix, as prop objects. */
+function matrixCases(matrix) {
+  let cases = [{}];
+  for (const [key, values] of Object.entries(matrix)) {
+    cases = cases.flatMap((c) => values.map((value) => ({ ...c, [key]: value })));
+  }
+  return cases;
+}
+
+/**
+ * Read the base class literal out of `const <binding> = cva("…"`.
+ *
+ * Only a double-quoted single-line literal in first position is supported —
+ * a template literal or a computed base would throw here rather than silently
+ * match nothing.
+ */
+function readCvaBase({ source, binding }) {
+  const text = readFileSync(path.join(repoRoot, source), "utf8");
+  const match = new RegExp(String.raw`const\s+${binding}\s*=\s*cva\(\s*("(?:[^"\\]|\\.)*")`).exec(text);
+  assert.ok(match, `could not find a double-quoted cva base literal for \`${binding}\` in ${source}`);
+  return JSON.parse(match[1]).split(/\s+/).filter(Boolean);
+}
 
 /**
  * Read the `const <binding> = "…"` literal straight out of a source file.
@@ -171,5 +249,50 @@ test("hoisted copies still match the literal in their source file", () => {
       entry.value,
       `${where} has drifted from ${entry.source} — re-copy the literal into HOISTED_STATICS`,
     );
+  }
+});
+
+test("cva base classes survive cn() composition (#199)", () => {
+  for (const [where, entry] of Object.entries(BASE_SURVIVAL)) {
+    const base = readCvaBase(entry);
+    const allowed = new Set(entry.intentionalOverrides);
+    for (const props of matrixCases(entry.matrix)) {
+      const emitted = new Set(cn(entry.variants(props)).split(" "));
+      for (const utility of base) {
+        if (allowed.has(utility)) continue;
+        assert.ok(
+          emitted.has(utility),
+          `${where}: base declares \`${utility}\` but ${JSON.stringify(props)} composes to a string without it — ` +
+            `a variant class supersedes it. Move it onto the variant it belongs to, or declare it in intentionalOverrides.`,
+        );
+      }
+    }
+  }
+});
+
+test("utilities a component must always render survive composition (#199)", () => {
+  for (const [where, entry] of Object.entries(BASE_SURVIVAL)) {
+    for (const utility of entry.alwaysPresent) {
+      for (const props of matrixCases(entry.matrix)) {
+        const emitted = new Set(cn(entry.variants(props)).split(" "));
+        assert.ok(emitted.has(utility), `${where}: \`${utility}\` is missing for ${JSON.stringify(props)}`);
+      }
+    }
+  }
+});
+
+// Without this, an over-broad allowlist would silently absorb a real
+// regression: listing a class that is never actually overridden turns the
+// survival check off for it forever.
+test("declared base overrides are real", () => {
+  for (const [where, entry] of Object.entries(BASE_SURVIVAL)) {
+    const cases = matrixCases(entry.matrix);
+    for (const utility of entry.intentionalOverrides) {
+      const overridden = cases.some((props) => !new Set(cn(entry.variants(props)).split(" ")).has(utility));
+      assert.ok(
+        overridden,
+        `${where}: \`${utility}\` is listed in intentionalOverrides but no variant combination drops it — remove it.`,
+      );
+    }
   }
 });

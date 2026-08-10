@@ -104,7 +104,7 @@ export const FormGrid = () => (
 export const SwatchGrid = () => (
   <Grid cols="8" gap="1" className="w-fit">
     {Array.from({ length: 16 }, (_, i) => (
-      <div key={i} className="size-8 rounded border bg-muted" />
+      <div key={i} className="size-8 rounded-md border bg-muted" />
     ))}
   </Grid>
 );
