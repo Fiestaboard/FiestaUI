@@ -3,14 +3,23 @@
 /**
  * BoardDisplay — the split-flap Vestaboard preview renderer.
  *
- * Extracted from FiestaBoard's board-display.tsx. The animation values
- * (80ms per character step, flap keyframes, layer timings) are a parity
- * contract with the app and the real hardware's "Fast" mode — do not
- * tune them here.
+ * Extracted from FiestaBoard's board-display.tsx.
+ *
+ * Tile geometry comes from ../../lib/board-metrics: one tile height per
+ * size/breakpoint, every other dimension derived from fixed ratios (issue
+ * #176). Leaf and hinge materials come from ./board-surfaces (issue #179).
+ *
+ * The flap timings are documented in full below the imports. They are tuned
+ * for on-screen legibility rather than copied from the hardware — the earlier
+ * claim in this header that they were "a parity contract with the real
+ * hardware's Fast mode" was not true of the numbers underneath it (issue #178).
+ * The step duration is a prop, `flapSpeed`, defaulting to the 80ms this
+ * component has always used.
  *
  * Fully presentational: characters/colors in via `message`, animated board
  * out. The app's i18n strings and board-animation settings arrive through
- * props (`loadingLabel` / `emptyLabel` / `messageLabel`, `animationsEnabled`).
+ * props (`loadingLabel` / `emptyLabel` / `messageLabel`, `animationsEnabled`,
+ * `flapSpeed`).
  */
 
 import { type CSSProperties, memo, useEffect, useMemo, useRef, useState } from "react";
@@ -27,7 +36,9 @@ import {
 } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
-import { gapClasses, paddingClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
+import { gapClasses, paddingClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
+import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
+import { reducedMotionQuery, useReducedMotion } from "./reduced-motion";
 
 // Shared split-flap keyframes. Rendered once from BoardDisplay as a
 // <style href precedence> element — React 19 dedupes it by href and hoists it
@@ -107,14 +118,103 @@ const colorTileBoxShadow = `
       inset -1px 0 1px rgba(0,0,0,0.2)
     `;
 
-// Split-flap timing (ms). animationDuration matches Vestaboard "Fast" mode
-// (~60 RPM, 62 flaps) — a parity contract; see the file header. Every derived
-// flap duration is a compile-time constant, so the layer style objects below
-// (which embed them in `animation` strings) are render-invariant and hoistable.
-const FLAP_DURATION = 80;
-const FLAP_TOP_DUR = Math.round(FLAP_DURATION * 0.55);
-const FLAP_BOT_DELAY = Math.round(FLAP_DURATION * 0.35);
-const FLAP_BOT_DUR = Math.round(FLAP_DURATION * 0.55);
+// ---------------------------------------------------------------------------
+// Split-flap timing.
+//
+// The hardware arithmetic, written out so the next person can check it instead
+// of trusting it:
+//
+//     Vestaboard "Fast" mode ≈ 60 RPM  →  1 drum revolution per second
+//     62 flaps per revolution          →  62 flaps per second
+//     1000ms / 62                      ≈  16.1ms per flap
+//
+// The default step here is 80ms — about 5× slower than that figure. That is a
+// deliberate deviation for on-screen legibility, **not** a parity contract, and
+// this file was wrong to call it one (issue #178). At ~16ms a Latin glyph is on
+// screen for roughly one frame at 60Hz and is not resolvable mid-cascade: a
+// settling board reads as grey noise rather than as letters turning over. 80ms
+// is the figure FiestaBoard has always shipped and is what this component still
+// defaults to, so nothing changes unless a consumer asks for it.
+//
+// Consumers that want another cadence — including the hardware's own — ask via
+// the `flapSpeed` prop. Everything that follows from the step duration (both
+// leaf animations, the cast shadow, and the loading ticker's interval) is
+// computed from that one resolved number, so no two of them can drift apart.
+// ---------------------------------------------------------------------------
+
+/**
+ * Named flap cadences, in milliseconds per character step.
+ *
+ * Presets rather than a bare number because "how fast does the board flip" is a
+ * product decision with a handful of good answers, and the FiestaBoard app may
+ * expose it as a user setting — a name survives a settings screen, `92` does
+ * not. They are named for what they do on screen, with one exception:
+ * `hardware` is the only value actually derived from the device, so it is the
+ * only one that claims to be. Anything else goes through the `{ durationMs }`
+ * escape hatch.
+ */
+export const FLAP_SPEED_PRESETS = {
+  /**
+   * 16ms — the hardware cadence (60 RPM × 62 flaps ≈ 16.1ms/flap). Roughly one
+   * frame per glyph at 60Hz: the cascade strobes and is unreadable until it
+   * settles. Offered because it is the honest hardware figure, not because it
+   * is a good default.
+   */
+  hardware: 16,
+  /** 48ms — quicker than default; glyphs are still resolvable mid-cascade. */
+  quick: 48,
+  /** 80ms — the default, and what FiestaBoard has always shipped. */
+  standard: 80,
+  /** 130ms — a slow, deliberate flip for large or ambient displays. */
+  relaxed: 130,
+} as const;
+
+export type FlapSpeedPreset = keyof typeof FLAP_SPEED_PRESETS;
+
+/** A named cadence, or an explicit per-step duration in milliseconds. */
+export type FlapSpeed = FlapSpeedPreset | { readonly durationMs: number };
+
+// Below ~8ms nothing survives a frame boundary; above 2s a board would take
+// minutes to settle. Out-of-range values are clamped rather than rejected so a
+// bad setting degrades instead of throwing in a render.
+const MIN_FLAP_MS = 8;
+const MAX_FLAP_MS = 2000;
+
+/** Resolve a {@link FlapSpeed} to a whole number of milliseconds per step. */
+export function resolveFlapSpeed(speed: FlapSpeed): number {
+  const raw = typeof speed === "string" ? FLAP_SPEED_PRESETS[speed] : speed.durationMs;
+  if (!Number.isFinite(raw)) return FLAP_SPEED_PRESETS.standard;
+  return Math.min(MAX_FLAP_MS, Math.max(MIN_FLAP_MS, Math.round(raw)));
+}
+
+export interface FlapTiming {
+  /** Total duration of one character step. */
+  stepMs: number;
+  /** Top leaf falls over `[0, topMs)`. */
+  topMs: number;
+  /** Bottom leaf rises over `[bottomDelayMs, stepMs)`. */
+  bottomMs: number;
+  bottomDelayMs: number;
+}
+
+/**
+ * Split a step into its two leaf phases.
+ *
+ * The leaf that falls *is* the leaf that lands, so exactly one leaf may be in
+ * motion at any instant: the top runs `[0, topMs)`, the bottom runs
+ * `[topMs, stepMs)`, and the two tile the step exactly. Before issue #177 the
+ * bottom leaf started at 0.35 × step while the top ran for 0.55 × step, so both
+ * leaves moved for 20% of every step and the tile visibly split open at the
+ * midpoint — something a physical module cannot do. Handing off at the instant
+ * the top leaf lands is the whole fix.
+ *
+ * `bottomMs` is `stepMs - topMs` rather than a second rounding, so odd step
+ * durations still tile exactly instead of leaving a 1ms gap or overlap.
+ */
+export function deriveFlapTiming(stepMs: number): FlapTiming {
+  const topMs = Math.round(stepMs / 2);
+  return { stepMs, topMs, bottomMs: stepMs - topMs, bottomDelayMs: topMs };
+}
 
 // Flap-animation layer styles. The four masks/flaps are fully static; the two
 // hinge/shadow gradients vary only by board type.
@@ -136,19 +236,6 @@ const flapStaticBottomStyle: CSSProperties = {
   overflow: "hidden",
   zIndex: 1,
 };
-const flapTopFlapStyle: CSSProperties = {
-  position: "absolute",
-  top: 0,
-  left: 0,
-  right: 0,
-  height: "50%",
-  overflow: "hidden",
-  zIndex: 3,
-  transformOrigin: "bottom center",
-  backfaceVisibility: "hidden",
-  willChange: "transform",
-  animation: `flapDown ${FLAP_TOP_DUR}ms ease-in forwards`,
-};
 const flapHingeShadowStyle: CSSProperties = {
   position: "absolute",
   bottom: 0,
@@ -157,20 +244,6 @@ const flapHingeShadowStyle: CSSProperties = {
   height: "30%",
   background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.12))",
   pointerEvents: "none",
-};
-const flapBottomFlapStyle: CSSProperties = {
-  position: "absolute",
-  top: "50%",
-  left: 0,
-  right: 0,
-  height: "50%",
-  overflow: "hidden",
-  zIndex: 2,
-  transformOrigin: "top center",
-  backfaceVisibility: "hidden",
-  willChange: "transform",
-  transform: "rotateX(90deg)",
-  animation: `flapUp ${FLAP_BOT_DUR}ms cubic-bezier(0.33, 0, 0.15, 1) ${FLAP_BOT_DELAY}ms forwards`,
 };
 const flapHingeHighlightStyle: Record<"black" | "white", CSSProperties> = {
   white: {
@@ -192,32 +265,95 @@ const flapHingeHighlightStyle: Record<"black" | "white", CSSProperties> = {
     pointerEvents: "none",
   },
 };
-const flapCastShadowStyle: Record<"black" | "white", CSSProperties> = {
-  white: {
-    position: "absolute",
-    top: "50%",
-    left: 0,
-    right: 0,
-    height: "50%",
-    background: "linear-gradient(to bottom, rgba(0,0,0,0.06), transparent)",
-    zIndex: 4,
-    pointerEvents: "none",
-    opacity: 0,
-    animation: `flapShadow ${FLAP_DURATION}ms ease-in-out forwards`,
-  },
-  black: {
-    position: "absolute",
-    top: "50%",
-    left: 0,
-    right: 0,
-    height: "50%",
-    background: "linear-gradient(to bottom, rgba(0,0,0,0.3), transparent)",
-    zIndex: 4,
-    pointerEvents: "none",
-    opacity: 0,
-    animation: `flapShadow ${FLAP_DURATION}ms ease-in-out forwards`,
-  },
+const flapCastShadowGradient: Record<"black" | "white", string> = {
+  white: "linear-gradient(to bottom, rgba(0,0,0,0.06), transparent)",
+  black: "linear-gradient(to bottom, rgba(0,0,0,0.3), transparent)",
 };
+
+interface FlapLayerStyles {
+  topFlap: CSSProperties;
+  bottomFlap: CSSProperties;
+  castShadow: Record<"black" | "white", CSSProperties>;
+}
+
+// The three duration-dependent layer styles, memoized per step duration.
+//
+// The rest of this file's style objects are hoisted to module scope so the
+// ~132 tiles of a flagship board don't re-allocate them (PR #31); these three
+// embed the step duration in an `animation` string, so they are cached by that
+// duration instead. A board that never touches `flapSpeed` resolves to 80ms and
+// allocates exactly one entry for the whole document, i.e. the same single
+// allocation the hoisted constants used to give. The cache is keyed by a
+// clamped, rounded number, so it cannot grow without bound from a slider.
+const flapLayerCache = new Map<number, FlapLayerStyles>();
+
+function getFlapLayerStyles(stepMs: number): FlapLayerStyles {
+  const cached = flapLayerCache.get(stepMs);
+  if (cached) return cached;
+
+  const timing = deriveFlapTiming(stepMs);
+  const styles: FlapLayerStyles = {
+    topFlap: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: "50%",
+      overflow: "hidden",
+      zIndex: 3,
+      transformOrigin: "bottom center",
+      backfaceVisibility: "hidden",
+      willChange: "transform",
+      // ease-in on the fall: the leaf is falling under gravity.
+      animation: `flapDown ${timing.topMs}ms ease-in forwards`,
+    },
+    bottomFlap: {
+      position: "absolute",
+      top: "50%",
+      left: 0,
+      right: 0,
+      height: "50%",
+      overflow: "hidden",
+      zIndex: 2,
+      transformOrigin: "top center",
+      backfaceVisibility: "hidden",
+      willChange: "transform",
+      transform: "rotateX(90deg)",
+      // Decelerating on the land, and delayed by exactly the top leaf's
+      // duration so the hand-off happens at the instant the top leaf lands.
+      animation: `flapUp ${timing.bottomMs}ms cubic-bezier(0.33, 0, 0.15, 1) ${timing.bottomDelayMs}ms forwards`,
+    },
+    castShadow: {
+      white: {
+        position: "absolute",
+        top: "50%",
+        left: 0,
+        right: 0,
+        height: "50%",
+        background: flapCastShadowGradient.white,
+        zIndex: 4,
+        pointerEvents: "none",
+        opacity: 0,
+        animation: `flapShadow ${timing.stepMs}ms ease-in-out forwards`,
+      },
+      black: {
+        position: "absolute",
+        top: "50%",
+        left: 0,
+        right: 0,
+        height: "50%",
+        background: flapCastShadowGradient.black,
+        zIndex: 4,
+        pointerEvents: "none",
+        opacity: 0,
+        animation: `flapShadow ${timing.stepMs}ms ease-in-out forwards`,
+      },
+    },
+  };
+
+  flapLayerCache.set(stepMs, styles);
+  return styles;
+}
 
 // BoardDisplay outer-bezel depth shadow — depends only on board type.
 const bezelBoxShadow: Record<"black" | "white", string> = {
@@ -254,30 +390,24 @@ const StaticTile = memo(function StaticTile({
   const tileBg = isWhiteBoard ? "var(--color-board-surface-light)" : "var(--color-board-surface-dark)";
   const textColor = isWhiteBoard ? "var(--color-board-text-on-light)" : "var(--color-board-text-on-dark)";
 
-  const sizeClass =
-    size === "sm"
-      ? "w-[14px] h-[18px]"
-      : size === "md"
-        ? "w-[14px] h-[20px] sm:w-[20px] sm:h-[28px] md:w-[24px] md:h-[34px] lg:w-[28px] lg:h-[40px]"
-        : "w-[18px] h-[26px] sm:w-[24px] sm:h-[34px] md:w-[28px] md:h-[40px] lg:w-[32px] lg:h-[46px]";
+  // Tile metrics come from the shared board-metrics maps — this path used to
+  // keep its own inline copies of them, which is exactly the drift issue #176
+  // was about.
+  const sizeClass = sizeClasses[size];
+  const textSizeClass = textSizeClasses[size];
+  const radiusClass = radiusClasses[size];
 
-  const textSizeClass =
-    size === "sm"
-      ? "text-[7px]"
-      : size === "md"
-        ? "text-[7px] sm:text-[10px] md:text-[13px] lg:text-[16px]"
-        : "text-[10px] sm:text-[13px] md:text-[16px] lg:text-[20px]";
-
-  const splitLine = (
-    <div className={`absolute top-1/2 left-0 right-0 h-[1px] ${isWhiteBoard ? "bg-black/10" : "bg-black/30"}`} />
-  );
+  const splitLine = <div className={SEAM_CLASS} style={seamStyle[boardType]} />;
 
   if (token.type === "color") {
     const bgColor = resolveColorCode(token.code, isWhiteBoard);
     const inset = size === "sm" ? "3px 1px 4px" : size === "md" ? "4px 2px 5px" : "5px 2px 6px";
     return (
-      <div className={`${sizeClass} relative rounded-[3px] overflow-hidden`} style={{ backgroundColor: tileBg }}>
-        <div className="absolute rounded-[2px]" style={{ inset, backgroundColor: bgColor }} />
+      <div className={`${sizeClass} relative ${radiusClass} overflow-hidden`} style={{ backgroundColor: tileBg }}>
+        <div
+          className={`absolute ${radiusClass}`}
+          style={{ inset, backgroundColor: bgColor, boxShadow: colorTileBoxShadow }}
+        />
         {splitLine}
       </div>
     );
@@ -288,8 +418,10 @@ const StaticTile = memo(function StaticTile({
 
   return (
     <div
-      className={`${sizeClass} relative rounded-[3px] overflow-hidden flex items-center justify-center`}
-      style={{ backgroundColor: tileBg }}
+      className={`${sizeClass} relative ${radiusClass} overflow-hidden flex items-center justify-center`}
+      // The character tile is its own leaf here (there is no inner panel to
+      // shadow), so the leaf bevel goes on the tile itself — issue #179.
+      style={{ backgroundColor: tileBg, boxShadow: charLeafBoxShadow[boardType] }}
     >
       {!isBlank && (
         <span
@@ -370,6 +502,7 @@ const GridRow = memo(
     boardType = "black",
     isAnimating = false,
     animationsEnabled = true,
+    flapStepMs,
     showSeams = false,
     isRowSeam = false,
     seamGap = "6px",
@@ -382,6 +515,7 @@ const GridRow = memo(
     boardType?: "black" | "white";
     isAnimating?: boolean;
     animationsEnabled?: boolean;
+    flapStepMs: number;
     showSeams?: boolean;
     isRowSeam?: boolean;
     seamGap?: string;
@@ -415,6 +549,7 @@ const GridRow = memo(
                 boardType={boardType}
                 isAnimating={isAnimating}
                 animationsEnabled={animationsEnabled}
+                flapStepMs={flapStepMs}
                 rowIdx={rowIdx}
                 colIdx={colIdx}
               />
@@ -432,6 +567,7 @@ const GridRow = memo(
     if (prevProps.boardType !== nextProps.boardType) return false;
     if (prevProps.isAnimating !== nextProps.isAnimating) return false;
     if (prevProps.animationsEnabled !== nextProps.animationsEnabled) return false;
+    if (prevProps.flapStepMs !== nextProps.flapStepMs) return false;
     if (prevProps.showSeams !== nextProps.showSeams) return false;
     if (prevProps.isRowSeam !== nextProps.isRowSeam) return false;
     if (prevProps.seamGap !== nextProps.seamGap) return false;
@@ -446,71 +582,89 @@ const GridRow = memo(
   },
 );
 
-// Shared loading ticker — a single 80ms interval for the whole app instead of
+// Shared loading tickers — one interval per distinct step duration, rather than
 // one setInterval per CharTile. A flagship board renders ~132 tiles; while
 // loading, each used to own its own timer (~132 concurrent intervals, each
 // firing its own setState on its own callback, which timer jitter kept out of
 // phase so React could not batch them). Now every loading tile subscribes to
-// this one ticker: on each tick the store calls all subscribers synchronously,
-// so their setState updates land in a single batched render pass and stay in
-// lockstep. The interval only runs while at least one tile is subscribed.
+// the ticker for its own cadence: on each tick the store calls all subscribers
+// synchronously, so their setState updates land in a single batched render pass
+// and stay in lockstep. An interval only runs while at least one tile is
+// subscribed to it, and the entry is dropped when the last one leaves.
 //
-// 80ms matches the per-character step duration below (`animationDuration`) —
-// the Vestaboard "Fast" mode parity contract — so cadence is unchanged.
-const LOADING_TICK_MS = 80;
-const loadingTickSubscribers = new Set<() => void>();
-let loadingTickIntervalId: ReturnType<typeof setInterval> | null = null;
+// The period is the tile's resolved flap step, passed in by the caller — it is
+// not a constant here. Previously this file declared `LOADING_TICK_MS = 80`
+// next to a comment asking the reader to keep it equal to the flap duration;
+// issue #178 asked for that to be structural instead. There is now exactly one
+// number, so "keeping them in sync" is not a thing anyone can forget to do.
+interface LoadingTicker {
+  subscribers: Set<() => void>;
+  intervalId: ReturnType<typeof setInterval> | null;
+}
+const loadingTickers = new Map<number, LoadingTicker>();
 
-// prefers-reduced-motion gate (issue #58). The loading cycle is JS state
-// driven by this ticker, so a CSS `@media (prefers-reduced-motion)` block
-// cannot reach it — the ticker itself must consult the preference. While
-// `reduce` matches, the shared interval never runs: loading tiles stay frozen
-// on their current character (a static loading state; each cycle starts at the
-// tile's target glyph, so a load that begins under reduced motion shows the
-// message characters). The `change` listener freezes/resumes live, mirroring
-// aurora.tsx and decrypted-text.tsx: continuous animation stops, settled
-// states — including the brief flip-to-target on message change — are kept.
-// Guarded for SSR: this module renders on the server, where matchMedia does
-// not exist; subscriptions only happen in effects, so `null` is never
-// consulted there.
-const reducedMotionQuery = typeof window === "undefined" ? null : window.matchMedia("(prefers-reduced-motion: reduce)");
+// prefers-reduced-motion gate (issue #58). The loading cycle is JS state driven
+// by these tickers, so a CSS `@media (prefers-reduced-motion)` block cannot
+// reach it — the ticker itself must consult the preference. While `reduce`
+// matches, no interval runs: loading tiles stay frozen on their current
+// character.
+//
+// Since issue #180 this is a backstop rather than the primary gate: BoardDisplay
+// now resolves the preference itself and collapses `animationsEnabled`, so a
+// board under `reduce` never subscribes in the first place (and never mounts the
+// flap layers). The gate stays because it is cheap, it keeps the invariant local
+// to the thing that owns the timer, and it is the only protection for a tile
+// whose caller passes `animationsEnabled` explicitly.
+//
+// The query itself lives in ./reduced-motion — one MediaQueryList per document,
+// shared with the board-level gate. It is `null` on the server; subscriptions
+// only happen in effects, so that is never consulted there.
 
-function startLoadingTickInterval(): void {
-  if (loadingTickIntervalId !== null) return;
-  loadingTickIntervalId = setInterval(() => {
+function startTicker(periodMs: number, ticker: LoadingTicker): void {
+  if (ticker.intervalId !== null) return;
+  ticker.intervalId = setInterval(() => {
     // Iterate a snapshot: a subscriber's setState is async and cannot mutate
     // the set mid-loop, but snapshotting keeps this robust regardless.
-    for (const cb of [...loadingTickSubscribers]) cb();
-  }, LOADING_TICK_MS);
+    for (const cb of [...ticker.subscribers]) cb();
+  }, periodMs);
 }
 
-function stopLoadingTickInterval(): void {
-  if (loadingTickIntervalId === null) return;
-  clearInterval(loadingTickIntervalId);
-  loadingTickIntervalId = null;
+function stopTicker(ticker: LoadingTicker): void {
+  if (ticker.intervalId === null) return;
+  clearInterval(ticker.intervalId);
+  ticker.intervalId = null;
 }
 
 // Module-level singleton listener — lives for the page's lifetime, one per
 // document no matter how many boards mount.
-reducedMotionQuery?.addEventListener("change", () => {
-  if (reducedMotionQuery.matches) {
-    stopLoadingTickInterval();
-  } else if (loadingTickSubscribers.size > 0) {
-    startLoadingTickInterval();
+reducedMotionQuery?.addEventListener("change", (event) => {
+  for (const [periodMs, ticker] of loadingTickers) {
+    if (event.matches) {
+      stopTicker(ticker);
+    } else if (ticker.subscribers.size > 0) {
+      startTicker(periodMs, ticker);
+    }
   }
 });
 
-function subscribeLoadingTick(callback: () => void): () => void {
-  loadingTickSubscribers.add(callback);
-  // Reduced motion freezes the shared ticker: subscribers register (so a
-  // later `change` back to no-preference resumes them) but no interval runs.
+function subscribeLoadingTick(periodMs: number, callback: () => void): () => void {
+  let ticker = loadingTickers.get(periodMs);
+  if (!ticker) {
+    ticker = { subscribers: new Set(), intervalId: null };
+    loadingTickers.set(periodMs, ticker);
+  }
+  const entry = ticker;
+  entry.subscribers.add(callback);
+  // Reduced motion freezes the ticker: subscribers register (so a later
+  // `change` back to no-preference resumes them) but no interval runs.
   if (!reducedMotionQuery?.matches) {
-    startLoadingTickInterval();
+    startTicker(periodMs, entry);
   }
   return () => {
-    loadingTickSubscribers.delete(callback);
-    if (loadingTickSubscribers.size === 0) {
-      stopLoadingTickInterval();
+    entry.subscribers.delete(callback);
+    if (entry.subscribers.size === 0) {
+      stopTicker(entry);
+      loadingTickers.delete(periodMs);
     }
   };
 }
@@ -524,6 +678,7 @@ const CharTile = memo(
     boardType = "black",
     isAnimating: rawIsAnimating = false,
     animationsEnabled = true,
+    flapStepMs,
     rowIdx = 0,
     colIdx = 0,
   }: {
@@ -532,6 +687,8 @@ const CharTile = memo(
     boardType?: "black" | "white";
     isAnimating?: boolean;
     animationsEnabled?: boolean;
+    /** Resolved milliseconds per character step — see `flapSpeed`. */
+    flapStepMs: number;
     rowIdx?: number;
     colIdx?: number;
   }) {
@@ -551,8 +708,11 @@ const CharTile = memo(
     const targetChar = getCharFromToken(token);
     const targetCharIndex = getCharIndex(targetChar);
 
-    // All tiles flip in sync - same duration, no random delay
-    const animationDuration = FLAP_DURATION; // ms per character step — matches Vestaboard "Fast" mode (~60 RPM, 62 flaps)
+    // All tiles flip in sync — same duration, no random delay. This one number
+    // drives the character interval, the two leaf animations and the loading
+    // ticker's period; see the timing block at the top of this file.
+    const animationDuration = flapStepMs;
+    const flapLayers = getFlapLayerStyles(animationDuration);
 
     // State for current character index during animation
     // Always start from target character - tiles are set by the parent component
@@ -617,7 +777,7 @@ const CharTile = memo(
         // own position, so the per-tile cycle is unchanged — only the timer is
         // shared, which keeps every loading tile in phase and batches their
         // updates into one render pass. Continues while isAnimating is true.
-        const unsubscribe = subscribeLoadingTick(() => {
+        const unsubscribe = subscribeLoadingTick(animationDuration, () => {
           setCurrentCharIndex((prev) => (prev + 1) % BOARD_CHARS.length);
         });
 
@@ -870,7 +1030,7 @@ const CharTile = memo(
     return (
       <>
         <div
-          className={`relative ${sizeClasses[size]} rounded-[3px] overflow-hidden`}
+          className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden`}
           data-testid={`char-tile-${rowIdx}-${colIdx}`}
           data-current-char={currentChar}
           data-target-char={targetChar}
@@ -899,7 +1059,7 @@ const CharTile = memo(
                     style={{ zIndex: 2 }}
                   >
                     <div
-                      className="relative rounded-[3px] overflow-hidden"
+                      className={`relative ${radiusClasses[size]} overflow-hidden`}
                       style={{
                         marginTop: "var(--color-margin-top)",
                         marginBottom: "var(--color-margin-bottom)",
@@ -910,9 +1070,7 @@ const CharTile = memo(
                         backgroundColor: bgColor,
                         boxShadow: colorTileBoxShadow,
                       }}
-                    >
-                      <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/10" />
-                    </div>
+                    />
                   </div>
                 );
               }
@@ -936,6 +1094,10 @@ const CharTile = memo(
                     backgroundColor: charBg,
                     marginLeft: isColor ? "-4px" : 0,
                     marginRight: isColor ? "-4px" : 0,
+                    // The character leaf, not just a glyph on the cell
+                    // background (issue #179). Colour glyphs keep the colour
+                    // leaf body below instead.
+                    boxShadow: isColor ? undefined : charLeafBoxShadow[boardType],
                   }}
                 >
                   {!isColor && targetChar !== " " && (
@@ -958,7 +1120,7 @@ const CharTile = memo(
                   )}
                   {isColor && (
                     <div
-                      className="absolute inset-0 rounded-[3px]"
+                      className={`absolute inset-0 ${radiusClasses[size]}`}
                       style={{
                         backgroundColor: charBg,
                         boxShadow: colorTileBoxShadow,
@@ -1017,27 +1179,24 @@ const CharTile = memo(
                   <div style={flapStaticBottomStyle}>{renderHalf(prevChar, false)}</div>
 
                   {/* Layer 3: top flap — old char top half, folds DOWN (hinged at midpoint) */}
-                  <div key={`ft-${currentCharIndex}`} style={flapTopFlapStyle}>
+                  <div key={`ft-${currentCharIndex}`} style={flapLayers.topFlap}>
                     {renderHalf(prevChar, true)}
                     {/* Hinge shadow at bottom edge of flap */}
                     <div style={flapHingeShadowStyle} />
                   </div>
 
                   {/* Layer 4: bottom flap — new char bottom half, UNFOLDS into place */}
-                  <div key={`fb-${currentCharIndex}`} style={flapBottomFlapStyle}>
+                  <div key={`fb-${currentCharIndex}`} style={flapLayers.bottomFlap}>
                     {renderHalf(newChar, false)}
                     {/* Hinge highlight at top edge of flap */}
                     <div style={flapHingeHighlightStyle[boardType]} />
                   </div>
 
                   {/* Shadow cast by falling flap onto bottom half */}
-                  <div key={`fs-${currentCharIndex}`} style={flapCastShadowStyle[boardType]} />
+                  <div key={`fs-${currentCharIndex}`} style={flapLayers.castShadow[boardType]} />
 
-                  {/* Split line at midpoint */}
-                  <div
-                    className={`absolute top-1/2 left-0 right-0 h-[1px] ${isWhiteBoard ? "bg-black/10" : "bg-black/30"}`}
-                    style={{ zIndex: 5 }}
-                  />
+                  {/* Hinge seam at the midpoint */}
+                  <div className={SEAM_CLASS} style={seamStyle[boardType]} />
                 </>
               );
             })()}
@@ -1046,10 +1205,7 @@ const CharTile = memo(
           {/* Character is shown via pre-rendered layer above, just add styling */}
           {!isAnimating && !isTransitioning && currentCharIndex === targetCharIndex && (
             <>
-              <div
-                className={`absolute top-1/2 left-0 right-0 h-[1px] ${isWhiteBoard ? "bg-black/10" : "bg-black/30"}`}
-                style={{ zIndex: 3 }}
-              />
+              <div className={SEAM_CLASS} style={seamStyle[boardType]} />
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
@@ -1071,7 +1227,8 @@ const CharTile = memo(
       prevProps.size === nextProps.size &&
       prevProps.boardType === nextProps.boardType &&
       prevProps.isAnimating === nextProps.isAnimating &&
-      prevProps.animationsEnabled === nextProps.animationsEnabled
+      prevProps.animationsEnabled === nextProps.animationsEnabled &&
+      prevProps.flapStepMs === nextProps.flapStepMs
     );
   },
 );
@@ -1099,9 +1256,15 @@ export interface BoardDisplayProps {
    *  draw surface's hit-testing to reject them one by one. */
   emitCellMetadata?: boolean;
   /** Run the split-flap animation. In the app this is wired to the user's
-   *  board-animation setting and reduce-motion preference; when false, tiles
-   *  snap straight to their target characters. */
+   *  board-animation setting; when false, tiles snap straight to their target
+   *  characters. `prefers-reduced-motion: reduce` forces the same behaviour
+   *  regardless of this prop — see the reduced-motion note in BoardDisplay. */
   animationsEnabled?: boolean;
+  /** How fast a tile advances one character: a named cadence
+   *  (`"standard"` — the default 80ms — `"quick"`, `"relaxed"`, or the
+   *  hardware's own `"hardware"`), or `{ durationMs }` for anything else.
+   *  Drives the leaf animations and the loading cadence together. */
+  flapSpeed?: FlapSpeed;
   /** Accessible label while `isLoading` is true. */
   loadingLabel?: string;
   /** Accessible label when the board has no message. */
@@ -1126,10 +1289,46 @@ export const BoardDisplay = memo(
     notesTall = 1,
     emitCellMetadata = false,
     animationsEnabled = true,
+    flapSpeed = "standard",
     loadingLabel = "Loading board display",
     emptyLabel = "Empty board display",
     messageLabel = defaultMessageLabel,
   }: BoardDisplayProps) {
+    // Reduced motion, decided here rather than left to CSS (issue #180).
+    //
+    // A message change is not one animation, it is a cascade: every changed
+    // tile steps through the character drum one glyph per flap step, so a tile
+    // going from index 5 to index 40 runs 35 consecutive flips. The global
+    // `prefers-reduced-motion` catch-all in theme.css (which forces
+    // `animation-duration: 1ms`) cannot help with that — it only truncates each
+    // individual CSS flap, leaving the JS-driven glyph cascade intact. Under
+    // `reduce` a user would get the same 35-step, seconds-long strobe with the
+    // motion smoothing removed, which is worse than the animation it replaced.
+    //
+    // So the board makes the call itself: under `reduce`, a message change
+    // snaps per tile. No cascade, no intermediate glyphs, no flap layers
+    // mounted at all — which also means the theme.css catch-all has nothing
+    // left to act on here, and the two rules cannot fight. Snap rather than
+    // cross-fade because any fade we authored would itself be flattened to 1ms
+    // by that same catch-all; snapping is the behaviour that stays stable under
+    // it. This supersedes the older reasoning at the loading ticker, which kept
+    // "the brief flip-to-target on message change" — it is not brief.
+    //
+    // Mechanically this collapses `animationsEnabled`, which both of CharTile's
+    // effects already short-circuit on: it therefore covers *both* stepping
+    // intervals (the post-loading transition and the message-change transition)
+    // as well as the loading ticker, and it responds live when the preference
+    // changes because `animationsEnabled` is in both effects' dependencies.
+    // There is deliberately no opt-out prop: a consumer can turn animation off
+    // but cannot turn it back on against the user's stated preference.
+    const prefersReducedMotion = useReducedMotion();
+    const motionEnabled = animationsEnabled && !prefersReducedMotion;
+
+    // One resolved number for both CSS leaf animations *and* the JS cadence —
+    // the per-character `setInterval` period and the loading ticker both read
+    // it, so `flapSpeed` changes the whole step, not just the rotation.
+    const flapStepMs = resolveFlapSpeed(flapSpeed);
+
     // Get dimensions for the device type
     const dims = resolveDimensions(deviceType, notesWide, notesTall);
     const showSeams = isNoteArray(deviceType);
@@ -1226,7 +1425,8 @@ export const BoardDisplay = memo(
                     gapClass={gapClasses[size]}
                     boardType={boardType}
                     isAnimating={isLoading}
-                    animationsEnabled={animationsEnabled}
+                    animationsEnabled={motionEnabled}
+                    flapStepMs={flapStepMs}
                     showSeams={showSeams}
                     isRowSeam={isRowSeam}
                     seamGap={seamGap}
@@ -1253,6 +1453,9 @@ export const BoardDisplay = memo(
       prevProps.isStatic === nextProps.isStatic &&
       prevProps.emitCellMetadata === nextProps.emitCellMetadata &&
       prevProps.animationsEnabled === nextProps.animationsEnabled &&
+      // Compare the resolved cadence, not the prop: `{ durationMs: 80 }` is a
+      // fresh object on every parent render but the same 80ms board.
+      resolveFlapSpeed(prevProps.flapSpeed ?? "standard") === resolveFlapSpeed(nextProps.flapSpeed ?? "standard") &&
       prevProps.loadingLabel === nextProps.loadingLabel &&
       prevProps.emptyLabel === nextProps.emptyLabel &&
       prevProps.messageLabel === nextProps.messageLabel
