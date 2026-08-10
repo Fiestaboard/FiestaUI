@@ -111,6 +111,7 @@ export const AsLink = () => (
 export const AllVariants = () => (
   <div className="flex flex-wrap items-center gap-4">
     <Badge variant="default">Default</Badge>
+    <Badge variant="brand">Brand</Badge>
     <Badge variant="secondary">Secondary</Badge>
     <Badge variant="destructive">Destructive</Badge>
     <Badge variant="outline">Outline</Badge>

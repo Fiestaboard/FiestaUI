@@ -143,6 +143,10 @@ export const Warning = () => (
   </Alert>
 );
 
+// Every variant declared in `alertVariants` must appear here — asserted by
+// scripts/ci/tests/story-variant-coverage.test.mjs, so this cannot drift out
+// of date again (issue #170). Each status alert carries an icon as well as a
+// tint, which is the redundant non-colour cue issue #174 is about.
 export const AllVariants = () => (
   <div className="flex flex-col gap-4 w-[450px]">
     <Alert>
@@ -150,12 +154,37 @@ export const AllVariants = () => (
       <AlertTitle>Default Alert</AlertTitle>
       <AlertDescription>This is the default variant.</AlertDescription>
     </Alert>
+    <Alert variant="info">
+      <Info className="h-4 w-4" />
+      <AlertTitle>Info Alert</AlertTitle>
+      <AlertDescription>This is the info variant.</AlertDescription>
+    </Alert>
+    <Alert variant="success">
+      <CheckCircle2 className="h-4 w-4" />
+      <AlertTitle>Success Alert</AlertTitle>
+      <AlertDescription>This is the success variant.</AlertDescription>
+    </Alert>
+    <Alert variant="warning">
+      <TriangleAlert className="h-4 w-4" />
+      <AlertTitle>Warning Alert</AlertTitle>
+      <AlertDescription>This is the warning variant.</AlertDescription>
+    </Alert>
     <Alert variant="destructive">
       <AlertCircle className="h-4 w-4" />
       <AlertTitle>Destructive Alert</AlertTitle>
       <AlertDescription>This is the destructive variant.</AlertDescription>
     </Alert>
   </div>
+);
+
+// A title long enough to wrap, which is the case `leading-none` used to
+// collide on (issue #167).
+export const WrappedTitle = () => (
+  <Alert variant="warning" className="w-[280px]">
+    <TriangleAlert className="h-4 w-4" />
+    <AlertTitle>Scheduled firmware update for the Kitchen board tonight</AlertTitle>
+    <AlertDescription>Playback pauses for about four minutes while the board restarts.</AlertDescription>
+  </Alert>
 );
 
 export const ConnectionLost = () => (
