@@ -24,7 +24,11 @@ concurrency:
 jobs:
   update-baselines:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # `vrt:update` re-shoots EVERY story, and every story is now shot at two
+    # viewports (desktop + mobile) x two themes — so this job costs roughly
+    # double what it did when baselines were single-viewport. Budget =
+    # install/build (~7 min) + the 25 min regenerate step + commit/push.
+    timeout-minutes: 40
     steps:
       - name: Mint app token
         id: app-token
@@ -63,7 +67,10 @@ jobs:
           sleep 5
 
       - name: Regenerate baselines
-        timeout-minutes: 12
+        # Two viewports doubles the shot count; 12 -> 25 keeps the same headroom
+        # over observed runtime that the single-viewport budget had. Matches the
+        # `Run visual regression` step in ci.yml, which does the same work.
+        timeout-minutes: 25
         run: npm run vrt:update
 
       - name: Commit and push baselines

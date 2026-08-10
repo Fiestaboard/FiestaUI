@@ -108,7 +108,10 @@ jobs:
     name: Seed VRT baselines
     if: github.event_name == 'workflow_dispatch' && inputs.seed_baselines
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Same work as vrt-update.yml — a full two-viewport re-shoot — so it carries
+    # the same budget. Left at 25 it would time out on the first seed after the
+    # mobile viewport landed, and only when someone actually dispatched it.
+    timeout-minutes: 40
     permissions:
       contents: write
     steps:
@@ -153,7 +156,9 @@ jobs:
           sleep 5
 
       - name: Regenerate baselines
-        timeout-minutes: 12
+        # Two viewports doubles the shot count — same budget as the identical
+        # step in vrt-update.yml.
+        timeout-minutes: 25
         run: npm run vrt:update
 
       - name: Commit and push baselines
