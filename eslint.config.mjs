@@ -88,12 +88,6 @@ const eslintConfig = [
     // concatenations and ternaries — a JSX-attribute-scoped selector would
     // silently stop guarding nearly all of them.
     files: ["src/components/**/*.{ts,tsx}"],
-    // TODO(#194): the last remaining exemption. board-display.stories.tsx:586
-    // renders its self-check failure banner with a bare `rounded`; it wants
-    // `rounded-lg` (surface — same role as `alert`, which is what that banner
-    // is). The file is owned by an in-flight branch, so the one-token fix and
-    // the removal of this line belong to whoever lands there next.
-    ignores: ["src/components/board/board-display.stories.tsx"],
     rules: {
       "no-restricted-syntax": [
         "error",
