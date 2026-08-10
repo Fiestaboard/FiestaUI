@@ -39,7 +39,7 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
         // alone would leave the off-track at 1.09:1 against the page.
         // aria-invalid:data-[unchecked]: re-asserts the destructive border so
         // it cannot lose the specificity tie with data-[unchecked]:border-input.
-        "peer data-[checked]:bg-primary data-[unchecked]:bg-muted data-[unchecked]:border-input focus-visible:border-ring focus-visible:ring-ring/50 enabled:hover:ring-ring/30 enabled:hover:ring-[3px] aria-invalid:border-destructive aria-invalid:data-[unchecked]:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-[color,background-color,border-color,box-shadow] duration-150 outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        "peer data-[checked]:bg-primary data-[unchecked]:bg-muted data-[unchecked]:border-input focus-visible:border-ring focus-visible:ring-ring/50 enabled:hover:ring-ring/30 enabled:hover:ring-[3px] aria-invalid:border-destructive aria-invalid:data-[unchecked]:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-[color,background-color,border-color,box-shadow] duration-control outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}

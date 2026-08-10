@@ -36,12 +36,11 @@ const BARE_DURATION = /(?<![\w-])duration-\d+\b/g;
  * parallel branch when the migration landed. This list may shrink, never
  * grow — a new entry means someone re-introduced the coupling this guard
  * exists to prevent.
+ *
+ * Now empty: the migration is complete across src/components, so any bare
+ * duration is a regression rather than a known remainder.
  */
-const KNOWN_UNMIGRATED = new Map([
-  ["src/components/ui/tabs.tsx", "duration-200 → duration-base (issue #182 follow-up)"],
-  ["src/components/ui/switch.tsx", "duration-150 → duration-control (issue #182 follow-up)"],
-  ["src/components/ui/dialog.tsx", "duration-200 → duration-base (issue #182 follow-up)"],
-]);
+const KNOWN_UNMIGRATED = new Map();
 
 async function* walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
