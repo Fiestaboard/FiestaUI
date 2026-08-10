@@ -3,7 +3,10 @@ import * as React from "react";
 
 import { cn } from "../../lib/utils";
 
-const headingVariants = cva("font-semibold leading-none tracking-tight text-foreground", {
+// `leading-tight` (1.25), not `leading-none`: Heading is the general-purpose
+// h2-h4 primitive, so any title long enough to wrap — most of them at size="sm"
+// in a narrow column, any of them on mobile — needs descender clearance.
+const headingVariants = cva("font-semibold leading-tight tracking-tight text-foreground", {
   variants: {
     size: {
       sm: "text-sm",

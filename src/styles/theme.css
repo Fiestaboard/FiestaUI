@@ -334,11 +334,11 @@
    * parity is the contract — see file header).
    *
    * Role          | token                  | = class      | value | used by
-   * control-inset | --radius-control-inset | rounded-sm   |  6px  | items nested inside a rounded control/popover: dropdown & select items, tabs trigger, dialog close
+   * control-inset | --radius-control-inset | rounded-sm   |  6px  | items nested inside a rounded control/popover: dropdown & select items, tabs trigger, inline code
    * control       | --radius-control       | rounded-md   |  8px  | buttons, input, textarea, select trigger, tabs list, skeleton, skip-link, and popover surfaces (dropdown/select/tooltip popups)
    * surface       | --radius-surface       | rounded-lg   | 10px  | modal surfaces (dialog, alert-dialog), alert, sidebar nav pills
    * card          | --radius-card          | rounded-xl   | 12px  | card, page-header icon tile
-   * pill          | --radius-pill          | rounded-full |  ∞    | badge, switch, slider, sheet close, scroll-area thumb, sidebar edge toggle, empty-state icon
+   * pill          | --radius-pill          | rounded-full |  ∞    | badge, switch, slider, overlay close (dialog + sheet), scroll-area thumb, sidebar edge toggle, empty-state icon
    * chrome        | --radius-chrome        | (css/inline) | 14px  | desktop sidebar shell + its aurora inset
    * chrome-mobile | --radius-chrome-mobile | (css/inline) | 16px  | mobile header/menu shell, its aurora inset, menu clip-path reveal
    *
@@ -349,9 +349,11 @@
    * The chrome radii are deliberately fixed px (not on the rem-based
    * --radius chain): they match the aurora canvas insets exactly.
    *
-   * Deliberately off-scale (left as-is): BoardIcon bare `rounded`
-   * (4px micro tile), pride-burst particle 2px, scroll-area viewport
-   * rounded-[inherit].
+   * Deliberately off-scale (left as-is): pride-burst particle 2px,
+   * scroll-area viewport rounded-[inherit]. Both are arbitrary-value
+   * classes, which is exactly what the eslint.config.mjs guard on bare
+   * `rounded` / `rounded-none` in src/components allows through — so
+   * this list and that rule now describe the same set.
    * ============================================================ */
   --radius-control-inset: calc(var(--radius) - 4px);
   --radius-control: calc(var(--radius) - 2px);

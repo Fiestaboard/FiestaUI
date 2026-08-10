@@ -2,10 +2,10 @@
 
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog";
 import { cva, type VariantProps } from "class-variance-authority";
-import { X } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
+import { OverlayClose } from "./overlay-close";
 
 const Sheet = SheetPrimitive.Root;
 
@@ -142,13 +142,8 @@ function SheetContent({
         {...props}
       >
         {children}
-        <SheetPrimitive.Close
-          data-slot="sheet-close"
-          className="absolute right-4 top-4 h-10 w-10 flex items-center justify-center rounded-full bg-muted/80 hover:bg-muted transition-colors outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50"
-        >
-          <X className="h-5 w-5" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
+        {/* 40px chip — the reference size of the shared OverlayClose design. */}
+        <OverlayClose data-slot="sheet-close" size="md" />
       </SheetPrimitive.Popup>
     </SheetPortal>
   );

@@ -1,10 +1,10 @@
 "use client";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { X } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
+import { OverlayClose } from "./overlay-close";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -64,13 +64,9 @@ function DialogContent({ className, children, ...props }: React.ComponentProps<t
         {...props}
       >
         {children}
-        <DialogPrimitive.Close
-          data-slot="dialog-close"
-          className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50"
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
+        {/* 32px chip: the same OverlayClose design as Sheet, one step down for
+            the denser dialog header. Still clears the 24x24 target minimum. */}
+        <OverlayClose data-slot="dialog-close" size="sm" />
       </DialogPrimitive.Popup>
     </DialogPortal>
   );
