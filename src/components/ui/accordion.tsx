@@ -64,7 +64,7 @@ function AccordionTrigger({ className, children, ...props }: React.ComponentProp
         {...props}
       >
         {children}
-        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-base" />
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
   );

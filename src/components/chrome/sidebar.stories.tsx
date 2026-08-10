@@ -82,7 +82,7 @@ function AccountRow({ collapsed }: { collapsed: boolean }) {
       <User className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
       <span
         className={cn(
-          "whitespace-nowrap overflow-hidden transition-opacity duration-100",
+          "whitespace-nowrap overflow-hidden transition-opacity duration-fast",
           collapsed ? "opacity-0 max-w-0" : "opacity-100 max-w-48 delay-150",
         )}
       >

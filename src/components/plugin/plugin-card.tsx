@@ -70,7 +70,7 @@ export function PluginCard({
       style={style}
       className={cn(
         "group relative flex h-full flex-col overflow-hidden rounded-xl border bg-card text-card-foreground",
-        "shadow-card transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-lg",
+        "shadow-card transition-[transform,box-shadow] duration-base hover:-translate-y-1 hover:shadow-lg",
         "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
         className,
       )}
