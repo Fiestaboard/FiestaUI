@@ -15,7 +15,8 @@ import { memo, useMemo } from "react";
 import { messageToGrid } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
-import { gapClasses, paddingClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
+import { gapClasses, paddingClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
+import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
 
 export interface StaticBoardDisplayProps {
   message: string | null;
@@ -126,7 +127,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                             key={colIdx}
                             data-note-tile=""
                             {...seamProps}
-                            className={`${sizeClasses[size]} rounded-[3px]`}
+                            className={`${sizeClasses[size]} ${radiusClasses[size]}`}
                             style={{
                               backgroundColor: bgColor,
                               boxShadow: tileBoxShadow,
@@ -141,7 +142,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                           key={colIdx}
                           data-note-tile=""
                           {...seamProps}
-                          className={`relative ${sizeClasses[size]} rounded-[3px] overflow-hidden`}
+                          className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden`}
                           style={{
                             backgroundColor: tileBg,
                             boxShadow: tileBoxShadow,
@@ -150,7 +151,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                           }}
                         >
                           <div
-                            className="absolute rounded-[3px] overflow-hidden"
+                            className={`absolute ${radiusClasses[size]} overflow-hidden`}
                             style={{
                               top: "3px",
                               bottom: "4px",
@@ -161,7 +162,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                                 "0 2px 4px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.15), inset 0 -1px 1px rgba(0,0,0,0.25)",
                             }}
                           >
-                            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/10" />
+                            <div className={SEAM_CLASS} style={seamStyle[boardType]} />
                           </div>
                         </div>
                       );
@@ -180,7 +181,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                           key={colIdx}
                           data-note-tile=""
                           {...seamProps}
-                          className={`${sizeClasses[size]} rounded-[3px] flex items-center justify-center`}
+                          className={`${sizeClasses[size]} ${radiusClasses[size]} flex items-center justify-center`}
                           style={{
                             backgroundColor: tileBg,
                             boxShadow: tileBoxShadow,
@@ -205,7 +206,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                         key={colIdx}
                         data-note-tile=""
                         {...seamProps}
-                        className={`relative ${sizeClasses[size]} rounded-[3px] overflow-hidden`}
+                        className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden`}
                         style={{
                           backgroundColor: tileBg,
                           boxShadow: tileBoxShadow,
@@ -213,7 +214,11 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                           ...tileSeamStyle,
                         }}
                       >
-                        <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2 }}>
+                        {/* Leaf body — issue #179; the glyph panel is the leaf. */}
+                        <div
+                          className="absolute inset-0 flex items-center justify-center"
+                          style={{ zIndex: 2, boxShadow: charLeafBoxShadow[boardType] }}
+                        >
                           {char !== " " && (
                             <span
                               className={`${textSizeClasses[size]} font-mono font-semibold select-none leading-none`}
@@ -223,10 +228,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                             </span>
                           )}
                         </div>
-                        <div
-                          className={`absolute top-1/2 left-0 right-0 h-[1px] ${isWhiteBoard ? "bg-black/10" : "bg-black/30"}`}
-                          style={{ zIndex: 3 }}
-                        />
+                        <div className={SEAM_CLASS} style={seamStyle[boardType]} />
                         <div
                           className="absolute inset-0 pointer-events-none"
                           style={{
