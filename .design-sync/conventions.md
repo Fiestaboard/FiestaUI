@@ -35,9 +35,34 @@ Style with Tailwind utility classes built on the DS's token vocabulary, **not** 
 | `border` / `input` / `ring` | borders, field borders, focus rings |
 | `sidebar-*` / `nav-active` | app chrome (Sidebar) |
 
-Radius: `rounded-sm|md|lg|xl|2xl` (base `--radius` 0.625rem). Fonts: **`font-sans`** = Geist, **`font-mono`** = Geist Mono (already the defaults; use `font-mono` for code/board text).
+**Radius is a role scale, not a size scale.** Pick the row that matches what you are building rather than eyeballing a size — that is what keeps a new surface consistent with the shipped ones:
+
+| Role | Class | Value | Use |
+|---|---|---|---|
+| control-inset | `rounded-sm` | 6px | items nested inside a control or popover — menu/select items, tabs trigger, inline code |
+| control | `rounded-md` | 8px | buttons, inputs, textarea, select trigger, tabs list, popover surfaces |
+| surface | `rounded-lg` | 10px | modal surfaces (dialog, alert-dialog), alert, sidebar nav pills |
+| card | `rounded-xl` | 12px | cards, page-header icon tile |
+| pill | `rounded-full` | ∞ | badge, switch, slider, overlay close, scroll-area thumb, empty-state icon |
+
+Bare `rounded` (Tailwind's off-scale 4px) is lint-banned in `src/components`.
+
+**Motion is a token scale too.** Use the named tiers — `duration-fast` (100ms), `duration-control` (150ms), `duration-base` (200ms), `duration-exit` (250ms), `duration-slow|slower|slowest` — plus `ease-spring`, `ease-out-cubic`, `ease-standard`. These resolve through `--motion-*`, so retuning a token moves the component layer with it. Bare numeric durations (`duration-200`) still compile but are lint-banned in `src/components` because they silently desynchronise from the scale.
+
+Fonts: **`font-sans`** = Geist, **`font-mono`** = Geist Mono (already the defaults; use `font-mono` for code/board text).
 
 **Important — the shipped stylesheet is static (no Tailwind JIT at runtime).** Only utility classes already used by this DS are compiled into it. So: compose from the **library components** first, use the **layout primitives** (`Box`, `Flex`, `Grid`, `Stack`) for structure, and prefer the semantic token classes above for your own glue. A novel arbitrary utility (e.g. an unusual `bg-…` or exotic value) may have no compiled rule and render unstyled.
+
+### States the components already own — don't hand-roll these
+
+| You want | Do this | Not this |
+|---|---|---|
+| An invalid field | set `aria-invalid` and nothing else | a `border-destructive` className override |
+| A busy button | `<Button loading>Save</Button>` | swapping the label for a spinner + `disabled` |
+| A standalone spinner | `<Spinner />` | `<Loader2 className="h-4 w-4 animate-spin" />` |
+| A loading placeholder | `<Skeleton />` | a pulsing div |
+
+`aria-invalid` styling lives on the controls themselves (input, textarea, select, checkbox, switch, slider), so the accessible state and the visual state cannot drift apart. `<Button loading>` renders `aria-busy` + `aria-disabled` rather than `disabled`, so the control keeps focus and stays announced, blocks its own click, and reserves the label's width so nothing shifts. Every one of these honours `prefers-reduced-motion` already — don't add your own gate.
 
 ### Where the truth lives
 

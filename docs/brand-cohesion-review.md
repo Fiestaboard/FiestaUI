@@ -2,6 +2,32 @@
 
 _Review date: 2026-08-01. Scope: full `src/` tree (ui + chrome components, react-bits, styles, seasonal themes, lib/seasons), `.storybook/`, packaging (`package.json` exports/build), and README._
 
+## Superseded in part by the 2026-08-10 design audit (v2.0.0 – v2.2.0)
+
+This document is a record of the 2026-08-01 review and is deliberately left as
+written. A later Staff-level design audit filed 26 issues against `3dc635b` and
+closed all of them across FiestaUI #184–#191. Three findings bear directly on
+workstreams claimed complete below, so read those rows with this in mind:
+
+- **B4 (motion tokens)** — the tokens landed, but the component layer kept using
+  raw `duration-200` / `duration-150` utilities, so the coupling was nominal: 12
+  tokens defined, 3 `var(--motion-*)` references in components. Retuning a token
+  would have moved `theme.css` and left the components behind, invisibly. Closed
+  by #182 / PR #188, which exports the scale into `@theme inline` and adds a CI
+  guard banning bare numeric durations.
+- **B3 (radius role scale)** — adopted everywhere except `Code`, which stayed on
+  Tailwind's off-scale bare `rounded` (4px). Closed by #168 / PR #186, which also
+  adds a lint rule so the table and the code cannot drift again.
+- **Brand penetration** — this review's palette work left `--primary` and
+  `--ring` at zero chroma in dark, which is the default theme, so the shipped
+  component layer carried essentially no brand colour. Closed by #156 / PR #184
+  (a breaking change, v2.0.0, which also deleted the never-designed `--chart-*`
+  ramp).
+
+The audit also found `--brand` and `--warning` byte-identical in dark, `--input`
+at ~1.3:1 against its surface, and seven animation families still running under
+`prefers-reduced-motion`. None of those were in this review's scope.
+
 ## Status (updated 2026-08-01, same PR — v1.0.0: all workstreams closed)
 
 Implemented in this PR:
