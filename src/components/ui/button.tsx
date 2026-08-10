@@ -15,8 +15,17 @@ const buttonVariants = cva(
           "bg-brand-emphasis text-brand-foreground shadow-sm hover:bg-brand-emphasis/85 focus-visible:ring-brand/30",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+        // The dark fill is a SURFACE token, not --input. --input now means
+        // "control boundary" and carries a real 3:1 value (#161); reusing it
+        // as a translucent fill both muddies that meaning and — at the new
+        // lightness — roughly doubles the fill's weight. `dark:border-input`
+        // is the legitimate use and stays. With a boundary that is actually
+        // visible the fill no longer has to do the outlining, so it drops to
+        // the plain surface token and the hover step does the lifting:
+        // bg-card (oklch L .16) → bg-muted (L .20), a slightly LARGER step
+        // than the translucent pair it replaces (L .179 → .209).
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-card dark:border-input dark:hover:bg-muted",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
