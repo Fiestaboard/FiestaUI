@@ -2,6 +2,13 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 import { StaticBoardDisplay } from "./static-board-display";
 
+// Single-board stories here render wider than a 390px phone and are meant to:
+// StaticBoardDisplay is the unscaled primitive, and a 22-column board's width
+// is `cols x (tile + gutter) + bezel` — 379px at `sm`, 393px at `md` — against
+// the ~326px a phone leaves. Wrapping these in a scroll container would hide
+// the primitive's real constraint behind story chrome; the design system's
+// answer for a slot narrower than the board is `ScaledBoardDisplay`, whose
+// `PhoneWidth` story shows a full board in a 311px box (issue #192).
 const meta = {
   title: "Board/StaticBoardDisplay",
   component: StaticBoardDisplay,
@@ -95,16 +102,27 @@ export const Empty: Story = {
   },
 };
 
-/** Thumbnail grid — the use case this variant exists for: many boards at once. */
+/**
+ * Thumbnail grid — the use case this variant exists for: many boards at once.
+ *
+ * Two 22-column thumbnails need ~774px, so on a phone the grid scrolls rather
+ * than squeezing the boards: a `sm` board's 379px floor is not negotiable
+ * (issue #192), and until `shrink-0` was added to the tiles a squeezed cell
+ * silently rendered 4.2px-wide tiles instead. Above `sm` there is room for both
+ * columns, so the scroll container is switched off and the tile shadows paint
+ * outside their box as before.
+ */
 export const ThumbnailGrid = () => (
-  <div className="grid grid-cols-2 gap-4">
-    {[
-      "PAGE ONE\n{red}ALERTS{/red}",
-      "PAGE TWO\n{blue}WEATHER{/blue}",
-      "PAGE THREE\n{green}TRANSIT{/green}",
-      "PAGE FOUR\n{yellow}QUOTES{/yellow}",
-    ].map((msg) => (
-      <StaticBoardDisplay key={msg} message={msg} size="sm" />
-    ))}
+  <div className="max-w-[calc(100vw-4rem)] overflow-x-auto sm:max-w-none sm:overflow-x-visible">
+    <div className="grid w-max grid-cols-2 gap-4">
+      {[
+        "PAGE ONE\n{red}ALERTS{/red}",
+        "PAGE TWO\n{blue}WEATHER{/blue}",
+        "PAGE THREE\n{green}TRANSIT{/green}",
+        "PAGE FOUR\n{yellow}QUOTES{/yellow}",
+      ].map((msg) => (
+        <StaticBoardDisplay key={msg} message={msg} size="sm" />
+      ))}
+    </div>
   </div>
 );
