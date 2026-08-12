@@ -80,9 +80,11 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   const label = useMemo(() => {
     if (!message) return emptyLabel;
     if (previewLabel !== undefined) return previewLabel;
-    const text = messageToText(message);
+    // `deviceType` matters: on Note a `°` draws as a heart, and the name has to
+    // say what the tiles draw.
+    const text = messageToText(message, deviceType);
     return text ? messageLabel(text) : NO_TEXT_LABEL;
-  }, [message, previewLabel, messageLabel, emptyLabel]);
+  }, [message, deviceType, previewLabel, messageLabel, emptyLabel]);
 
   // Seam gap: additional left/top margin applied at Note physical boundaries
   const seamGap = size === "sm" ? "6px" : size === "md" ? "8px" : "10px";

@@ -213,6 +213,19 @@ test("messageLabel rebuilds the wording and receives the board's plain text", as
   assert.equal(name, `Thumbnail — ${MESSAGE_TEXT}`);
 });
 
+test("the name says what the tiles draw on a Note, where ° is a heart", async () => {
+  // messageToGrid substitutes code 62 for a heart on Note hardware. A name
+  // derived without that substitution announces "degree" for a tile showing ♥,
+  // which is a text alternative describing something else (WCAG 1.1.1).
+  for (const component of ["BoardDisplay", "StaticBoardDisplay"]) {
+    const name = await accessibleName(component, { message: "LOVE °", deviceType: "note" });
+    assert.match(name, /LOVE ♥/, `${component} announced ${JSON.stringify(name)} for a board drawing "LOVE ♥"`);
+  }
+  // …and only on Note: everywhere else the tile really is a degree sign.
+  const flagship = await accessibleName("StaticBoardDisplay", { message: "52 °F" });
+  assert.match(flagship, /52 °F/, `a flagship board draws °, so its name must keep it; got ${flagship}`);
+});
+
 test("a board that draws no text falls back to a generic name", async () => {
   // Colour-only boards render tiles but no glyphs; "Board preview: " with
   // nothing after it would be worse than the generic name it replaced.

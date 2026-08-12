@@ -211,6 +211,18 @@ export function parseLine(line: string, maxTokens: number = Infinity): BoardToke
 }
 
 /**
+ * On Note, the degree symbol (code 62) displays as a heart.
+ *
+ * Shared by {@link messageToGrid} and {@link messageToText} rather than written
+ * out twice: the tiles and the accessible name have to agree about what the
+ * board draws, or a Note board shows ♥ while announcing "degree" (WCAG 1.1.1).
+ */
+function applyDeviceSubstitution(token: BoardToken, isNote: boolean): BoardToken {
+  if (isNote && token.type === "char" && token.value === "°") return { type: "char", value: "♥" };
+  return token;
+}
+
+/**
  * Convert a message string to a rows×cols grid of tokens.
  * Lines are split on `\n`, truncated/padded to the grid, and on the Note
  * device the degree symbol (code 62) displays as a heart.
@@ -235,13 +247,7 @@ export function messageToGrid(
     // Fill to cols width
     for (let col = 0; col < cols; col++) {
       if (col < tokens.length) {
-        const token = tokens[col];
-        // On Note, degree symbol (code 62) displays as heart
-        if (isNote && token.type === "char" && token.value === "°") {
-          rowTokens.push({ type: "char", value: "♥" });
-        } else {
-          rowTokens.push(token);
-        }
+        rowTokens.push(applyDeviceSubstitution(tokens[col], isNote));
       } else {
         rowTokens.push(BLANK_TOKEN);
       }
@@ -268,15 +274,23 @@ export function messageToGrid(
  * (they occupy a cell but say nothing), lines join with a space, and runs of
  * whitespace collapse so a half-empty board does not announce a long silence.
  *
+ * `deviceType` is taken for the same reason {@link messageToGrid} takes it: on
+ * Note, `°` draws as a heart, and a name that said "degree" would describe
+ * something the board is not showing.
+ *
  * Returns `""` for a message that draws no text at all — a color-only board —
  * so callers can fall back to a generic name instead of a dangling prefix.
  */
-export function messageToText(message: string): string {
+export function messageToText(message: string, deviceType: string = "flagship"): string {
+  const isNote = deviceType === "note";
   return message
     .split("\n")
     .map((line) =>
       parseLine(line)
-        .map((token) => (token.type === "char" ? token.value : " "))
+        .map((token) => {
+          const drawn = applyDeviceSubstitution(token, isNote);
+          return drawn.type === "char" ? drawn.value : " ";
+        })
         .join(""),
     )
     .join(" ")

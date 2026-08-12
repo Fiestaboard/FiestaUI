@@ -1327,12 +1327,12 @@ export const BoardDisplay = memo(
       // `messageToText` rather than a local regex (issue #205): it reads the
       // message with the same parser the tiles do, so the name says what is
       // actually on the board, and all three renderers now derive it one way.
-      const text = messageToText(message);
+      const text = messageToText(message, deviceType);
       // A board of nothing but color tiles draws no text; it is not empty, so
       // it gets the generic name rather than `emptyLabel` or a dangling
       // "Board display: " with nothing after it.
       return text ? messageLabel(text) : NO_TEXT_LABEL;
-    }, [message, isLoading, loadingLabel, emptyLabel, messageLabel]);
+    }, [message, deviceType, isLoading, loadingLabel, emptyLabel, messageLabel]);
 
     return (
       <div className={`w-full flex justify-center`}>
