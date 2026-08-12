@@ -85,11 +85,17 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
 
   return (
     <div className="w-full flex justify-center">
+      {/* No max-width on the bezel — same reasoning as BoardDisplay's, and the
+          same issue (#200). Since #203 these tiles carry `shrink-0`, so the
+          grid's min-content width is the whole board; a cap on the frame would
+          clamp it below that and let the rows escape it on both sides. A
+          consumer whose slot is narrower than a board wants
+          `ScaledBoardDisplay`. */}
       <div
         role="img"
         aria-label={message ? previewLabel : emptyLabel}
         data-slot="static-board-display"
-        className={`${borderClasses} ${className} max-w-full`}
+        className={`${borderClasses} ${className}`}
         style={{ backgroundColor: bezelBg, borderColor, boxShadow, width: "fit-content" }}
       >
         <div

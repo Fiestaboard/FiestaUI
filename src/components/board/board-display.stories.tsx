@@ -128,6 +128,72 @@ export const Default: Story = {
     size: "md",
     isLoading: false,
   },
+  // Regression guard for issue #200, asserted in a real layout because it is a
+  // layout bug: the bezel used to carry `max-w-full`, which clamped the frame
+  // to a too-narrow parent while its fixed-width tiles kept going, so the rows
+  // — `justify-center` — spilled past both edges of their own frame.
+  //
+  // No story renders in a parent narrow enough to trigger it (that is why VRT
+  // never caught it), so the guard makes one: it narrows the story's own
+  // container to half the board's natural width, measures, and puts the width
+  // straight back. Every read between those two writes is a synchronous forced
+  // layout with no `await` in between, so the clamped state is never painted
+  // and a VRT screenshot cannot land inside it.
+  //
+  // Runs in CI via the storybook test-runner (the a11y-tests job), the only CI
+  // job with a browser.
+  play: async ({ canvasElement }) => {
+    const settle = async <T,>(read: () => T | null | undefined): Promise<T> => {
+      for (let i = 0; i < 60; i++) {
+        const value = read();
+        if (value) return value;
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+      }
+      throw new Error("timed out waiting for the board to render");
+    };
+
+    const bezel = await settle(() => canvasElement.querySelector<HTMLElement>('[data-slot="board-display"]'));
+    const tiles = Array.from(bezel.querySelectorAll<HTMLElement>("[data-note-tile]"));
+    if (tiles.length === 0) throw new Error("expected the board to render tiles to measure against its bezel");
+
+    // The preview decorator's <main>. `#storybook-root` is a shrink-to-fit flex
+    // item (#191), so it is sized *by* the board — clamping a block-level
+    // ancestor is what actually gives the board less room than it wants.
+    const slot = bezel.closest("main") ?? canvasElement;
+    const naturalWidth = bezel.getBoundingClientRect().width;
+
+    const previousWidth = slot.style.width;
+    const previousMinWidth = slot.style.minWidth;
+    slot.style.width = `${Math.round(naturalWidth / 2)}px`;
+    slot.style.minWidth = "0";
+
+    const slotWidth = slot.getBoundingClientRect().width;
+    const frame = bezel.getBoundingClientRect();
+    const rects = tiles.map((tile) => tile.getBoundingClientRect());
+    const tilesLeft = Math.min(...rects.map((r) => r.left));
+    const tilesRight = Math.max(...rects.map((r) => r.right));
+
+    slot.style.width = previousWidth;
+    slot.style.minWidth = previousMinWidth;
+
+    if (slotWidth >= naturalWidth) {
+      throw new Error(
+        `this guard needs a slot narrower than the board; got slot ${slotWidth.toFixed(1)}px for a ` +
+          `${naturalWidth.toFixed(1)}px board`,
+      );
+    }
+
+    // 0.5px of slack for subpixel layout only — the failure this catches is
+    // hundreds of pixels wide.
+    const escapedBy = Math.max(frame.left - tilesLeft, tilesRight - frame.right);
+    if (escapedBy > 0.5) {
+      throw new Error(
+        `in a ${slotWidth.toFixed(1)}px slot the board's tiles sit ${escapedBy.toFixed(1)}px outside its own ` +
+          `${frame.width.toFixed(1)}px bezel — the frame is clamping to the parent while the tiles are not, so ` +
+          "the board mis-frames instead of overflowing (issue #200)",
+      );
+    }
+  },
 };
 
 export const Loading: Story = {
