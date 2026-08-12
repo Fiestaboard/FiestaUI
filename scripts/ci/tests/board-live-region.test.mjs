@@ -277,6 +277,31 @@ test("a board going empty is announced — that is a content change, not a phase
   assert.equal(cleared.announced, "The board is now empty");
 });
 
+test("turning announceUpdates on mid-life mounts the region empty, and the next change announces", async () => {
+  // A region inserted already holding content is not reliably announced — AT
+  // announces *mutations inside* a region that was already there. A consumer
+  // that decides its board is live only after the first fetch would otherwise
+  // get an announcement that may or may not be spoken, depending on the
+  // screen reader. So arriving is never an announcement; the next real change
+  // is, and that one is a mutation the region is present for.
+  const [, changedWhileOff, justEnabled, changedAfter] = await run([
+    { message: FIRST, announceUpdates: false },
+    { message: SECOND, announceUpdates: false },
+    { message: SECOND, announceUpdates: true },
+    { message: "TRAIN 4 IN 6 MIN", announceUpdates: true },
+  ]);
+
+  assert.equal(changedWhileOff.regionCount, 0);
+  assert.equal(justEnabled.regionCount, 1, "enabling the prop must mount the region");
+  assert.equal(
+    justEnabled.announced,
+    "",
+    `enabling the prop announced ${JSON.stringify(justEnabled.announced)} in the same commit that added the ` +
+      "region — AT cannot be relied on to speak that (issue #206)",
+  );
+  assert.match(changedAfter.announced, /TRAIN 4 IN 6 MIN/, "the first change after enabling must be announced");
+});
+
 test("toggling only announceUpdates takes effect", async () => {
   // BoardDisplay is memoized with a hand-written comparator: a prop missing
   // from it is silently inert, which is exactly how this feature would ship

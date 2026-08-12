@@ -1360,10 +1360,16 @@ export const BoardDisplay = memo(
     // tiles commit in the same paint.
     //
     // The comparison is skipped entirely when the feature is off, which is the
-    // default: no extra render on the path every existing consumer is on. The
-    // cost of that is that switching `announceUpdates` on mid-life announces
-    // the board once, which is the right behaviour anyway — a consumer turning
-    // it on is asking to hear the board.
+    // default: no extra render on the path every existing consumer is on.
+    //
+    // `armed` is what makes arriving never an announcement. AT announces a
+    // mutation *inside* a region that was already in the DOM; a region that
+    // appears already holding content is not reliably spoken at all. Without
+    // this, a consumer that flips `announceUpdates` on after its first fetch
+    // would add the region and its text in the same commit and get an
+    // announcement that some screen readers speak and others drop. So the
+    // render where the region arrives only arms it — the region lands empty,
+    // and the next real change is a mutation it is present for.
     //
     // `isLoading` is excluded, and that is the point of the guard rather than a
     // shortcut: `boardText` resolves to `loadingLabel` while a board refetches,
@@ -1374,9 +1380,13 @@ export const BoardDisplay = memo(
     // ends the refresh is still correctly seen as a change. A board going
     // *empty* is deliberately not skipped: that is a content change, and
     // silence would leave the user believing the old message still stands.
-    const [announced, setAnnounced] = useState({ text: "", of: boardText });
-    if (announceUpdates && !isLoading && announced.of !== boardText) {
-      setAnnounced({ text: boardText, of: boardText });
+    const [announced, setAnnounced] = useState(() => ({ text: "", of: boardText, armed: announceUpdates }));
+    if (announceUpdates && !announced.armed) {
+      // The region is arriving in this commit. Arm it, empty, and resync `of`
+      // so a change that happened while the feature was off is not replayed.
+      setAnnounced({ text: "", of: boardText, armed: true });
+    } else if (announceUpdates && !isLoading && announced.of !== boardText) {
+      setAnnounced({ text: boardText, of: boardText, armed: true });
     }
 
     return (
