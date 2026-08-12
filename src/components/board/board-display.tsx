@@ -32,6 +32,7 @@ import {
   getCharIndex,
   isColorTile,
   messageToGrid,
+  messageToText,
   tokensEqual,
 } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
@@ -1236,6 +1237,9 @@ export interface BoardDisplayProps {
 // Module-scope default so the aria-label memo below keeps a stable dependency.
 const defaultMessageLabel = (msg: string) => `Board display: ${msg}`;
 
+/** Name for a board that renders no text at all — an all-color board. */
+const NO_TEXT_LABEL = "Board display";
+
 export const BoardDisplay = memo(
   function BoardDisplay({
     message,
@@ -1320,13 +1324,15 @@ export const BoardDisplay = memo(
     const boardText = useMemo(() => {
       if (isLoading) return loadingLabel;
       if (!message) return emptyLabel;
-      return messageLabel(
-        message
-          .replace(/\{[^}]*\}/g, "")
-          .replace(/\n/g, " ")
-          .trim(),
-      );
-    }, [message, isLoading, loadingLabel, emptyLabel, messageLabel]);
+      // `messageToText` rather than a local regex (issue #205): it reads the
+      // message with the same parser the tiles do, so the name says what is
+      // actually on the board, and all three renderers now derive it one way.
+      const text = messageToText(message, deviceType);
+      // A board of nothing but color tiles draws no text; it is not empty, so
+      // it gets the generic name rather than `emptyLabel` or a dangling
+      // "Board display: " with nothing after it.
+      return text ? messageLabel(text) : NO_TEXT_LABEL;
+    }, [message, deviceType, isLoading, loadingLabel, emptyLabel, messageLabel]);
 
     return (
       <div className={`w-full flex justify-center`}>
