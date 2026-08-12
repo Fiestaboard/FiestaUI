@@ -12,7 +12,7 @@
 
 import { memo, useMemo } from "react";
 
-import { messageToGrid } from "../../lib/board-characters";
+import { messageToGrid, messageToText } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
 import { gapClasses, paddingClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
@@ -28,11 +28,26 @@ export interface StaticBoardDisplayProps {
   notesWide?: number;
   /** Notes tall (for note_array device; ignored otherwise). */
   notesTall?: number;
-  /** Accessible label when a message is shown. */
+  /** Fixed accessible label for a shown message. Overrides `messageLabel`, so
+   *  pass it only when a hand-written description beats the board's own text
+   *  (BoardShowcase's curated previews do). Note that it makes every board it
+   *  is passed to announce identically — the default derives the name from the
+   *  message instead. */
   previewLabel?: string;
+  /** Builds the accessible label for a shown message (color markup already
+   *  stripped). Same contract as BoardDisplay's prop of this name; defaults to
+   *  `Board preview: ${message}`. */
+  messageLabel?: (message: string) => string;
   /** Accessible label when the board has no message. */
   emptyLabel?: string;
 }
+
+// Module-scope so the memoized component sees a stable prop identity, and the
+// name memo below a stable dependency.
+const defaultMessageLabel = (msg: string) => `Board preview: ${msg}`;
+
+/** Name for a board that renders no text at all — an all-color board. */
+const NO_TEXT_LABEL = "Board preview";
 
 export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   message,
@@ -42,7 +57,8 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   className = "",
   notesWide = 1,
   notesTall = 1,
-  previewLabel = "Board preview",
+  previewLabel,
+  messageLabel = defaultMessageLabel,
   emptyLabel = "Empty board display",
 }: StaticBoardDisplayProps) {
   const dims = resolveDimensions(deviceType, notesWide, notesTall);
@@ -55,6 +71,18 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
     () => messageToGrid(message ?? "", dims.rows, dims.cols, deviceType),
     [message, dims.rows, dims.cols, deviceType],
   );
+
+  // The board's whole accessible name: the tiles below are aria-hidden, so
+  // whatever this says is all a screen reader ever gets (issue #205). It
+  // carries the message by default — a thumbnail grid of four boards that all
+  // announce "Board preview" is four boards a screen-reader user cannot tell
+  // apart, while a sighted user reads four different messages.
+  const label = useMemo(() => {
+    if (!message) return emptyLabel;
+    if (previewLabel !== undefined) return previewLabel;
+    const text = messageToText(message);
+    return text ? messageLabel(text) : NO_TEXT_LABEL;
+  }, [message, previewLabel, messageLabel, emptyLabel]);
 
   // Seam gap: additional left/top margin applied at Note physical boundaries
   const seamGap = size === "sm" ? "6px" : size === "md" ? "8px" : "10px";
@@ -87,7 +115,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
     <div className="w-full flex justify-center">
       <div
         role="img"
-        aria-label={message ? previewLabel : emptyLabel}
+        aria-label={label}
         data-slot="static-board-display"
         className={`${borderClasses} ${className} max-w-full`}
         style={{ backgroundColor: bezelBg, borderColor, boxShadow, width: "fit-content" }}

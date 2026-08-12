@@ -46,7 +46,13 @@ const meta = {
     },
     previewLabel: {
       control: "text",
-      description: "Accessible label when a message is shown",
+      description:
+        "Fixed accessible label for a shown message, overriding the derived one. Leave unset unless a hand-written description beats the board's own text — every board given the same string announces identically (issue #205).",
+    },
+    messageLabel: {
+      control: false,
+      description:
+        "Builds the accessible label for a shown message, color markup already stripped. Defaults to `Board preview: ${message}`, the same contract as BoardDisplay's prop of this name.",
     },
     emptyLabel: {
       control: "text",
@@ -105,6 +111,12 @@ export const Empty: Story = {
 /**
  * Thumbnail grid — the use case this variant exists for: many boards at once.
  *
+ * It is also the case that made issue #205 concrete: with a constant default
+ * label these four boards all announced "Board preview, image" and a
+ * screen-reader user had no way to tell them apart. Each now announces its own
+ * message — "Board preview: PAGE ONE ALERTS", and so on. Inspect the four
+ * `role="img"` names in the a11y panel to see it.
+ *
  * Two 22-column thumbnails need ~774px, so on a phone the grid scrolls rather
  * than squeezing the boards: a `sm` board's 379px floor is not negotiable
  * (issue #192), and until `shrink-0` was added to the tiles a squeezed cell
@@ -126,3 +138,26 @@ export const ThumbnailGrid = () => (
     </div>
   </div>
 );
+
+// Browser-side half of the #205 guard: four boards, four different names. The
+// behavioural detail (what each name says, which prop wins) is asserted in
+// jsdom by scripts/ci/tests/board-accessible-name.test.mjs; this holds the
+// property a user actually depends on in a real render — that the boards in a
+// grid are distinguishable by name at all.
+ThumbnailGrid.play = async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+  const names = Array.from(canvasElement.querySelectorAll('[data-slot="static-board-display"]')).map(
+    (board) => board.getAttribute("aria-label") ?? "",
+  );
+
+  if (names.length !== 4) throw new Error(`expected four thumbnails, found ${names.length}`);
+  if (new Set(names).size !== names.length) {
+    throw new Error(
+      `the thumbnails announce duplicate names (${names.join(" / ")}) — a screen-reader user cannot tell them ` +
+        "apart (issue #205)",
+    );
+  }
+  const missing = names.filter((name) => !/PAGE (ONE|TWO|THREE|FOUR)/.test(name));
+  if (missing.length > 0) {
+    throw new Error(`these names do not carry their board's message: ${missing.join(" / ")} (issue #205)`);
+  }
+};

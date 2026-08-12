@@ -14,7 +14,7 @@
 
 import { memo, useMemo } from "react";
 
-import { type BoardToken, parseLine } from "../../lib/board-characters";
+import { type BoardToken, messageToText, parseLine } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { gapClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
 import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
@@ -50,14 +50,9 @@ export const BoardTeaser = memo(function BoardTeaser({
 
   // Plain-text teaser for the accessible label: color markers stripped,
   // whitespace collapsed. Falls back to a generic label for color-only strips.
-  const label = useMemo(() => {
-    const text = parseLine(teaser)
-      .map((token) => (token.type === "char" ? token.value : " "))
-      .join("")
-      .replace(/\s+/g, " ")
-      .trim();
-    return text || "Board teaser";
-  }, [teaser]);
+  // `messageToText` is the derivation all three renderers share (issue #205) —
+  // this used to be its own copy of the same few lines.
+  const label = useMemo(() => messageToText(teaser) || "Board teaser", [teaser]);
 
   // Tile metrics (sizeClasses/textSizeClasses/gapClasses) come from
   // ../../lib/board-metrics so a teaser strip matches a full board row rendered
