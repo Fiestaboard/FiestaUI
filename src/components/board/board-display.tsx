@@ -1337,12 +1337,23 @@ export const BoardDisplay = memo(
             {FLAP_KEYFRAMES}
           </style>
         )}
+        {/* No max-width on the bezel (issue #200). Its tiles are fixed-width
+            and cannot shrink, so the grid's min-content width *is* the whole
+            board — but a max-width caps the used width below that anyway, and
+            the frame would paint short while the rows, which are
+            `justify-center`, ran out past both of its edges. A board in a
+            column narrower than itself would look broken rather than merely
+            too big. Without the cap it overflows honestly, which is what
+            `ScaledBoardDisplay` measures (#197) and the behaviour
+            `StaticBoardDisplay`'s tiles already have via `shrink-0` (#203).
+            The answer for a slot narrower than a board is
+            `ScaledBoardDisplay`, which scales the whole board to fit. */}
         <div
           role="img"
           aria-label={boardText}
           data-slot="board-display"
           data-board-preview=""
-          className={`${borderClasses} ${className} max-w-full`}
+          className={`${borderClasses} ${className}`}
           style={{
             backgroundColor: bezelBg,
             borderColor,
