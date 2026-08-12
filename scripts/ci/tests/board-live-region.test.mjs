@@ -246,6 +246,37 @@ test("the loading -> message transition is announced", async () => {
   assert.match(arrived.announced, /BUS 33 IN 2 MIN/, "the message arriving after a load is the announcement");
 });
 
+test("a refresh does not announce the loading label, only the message that follows", async () => {
+  // The path a live board actually takes: it has a message, refetches, and gets
+  // a new one. `loadingLabel` is an internal, transient state — announcing
+  // "Loading board display" mid-cycle tells a user reading bus times nothing
+  // about buses, and it doubles the announcements per refresh.
+  const [, loading, refreshed] = await run([
+    { message: FIRST, announceUpdates: true },
+    { message: FIRST, isLoading: true, announceUpdates: true },
+    { message: SECOND, isLoading: false, announceUpdates: true },
+  ]);
+
+  assert.equal(
+    loading.announced,
+    "",
+    `a refresh announced ${JSON.stringify(loading.announced)}; the loading label must never reach the region`,
+  );
+  assert.match(refreshed.announced, /BUS 33 IN 2 MIN/, "the message that ends the refresh is what gets announced");
+});
+
+test("a board going empty is announced — that is a content change, not a phase", async () => {
+  // Deliberately unlike the loading label: a board that clears has *changed*,
+  // and silence would leave a screen-reader user believing the old message
+  // still stands. `emptyLabel` is a consumer-supplied, localizable string.
+  const [, cleared] = await run([
+    { message: FIRST, announceUpdates: true },
+    { message: null, announceUpdates: true, emptyLabel: "The board is now empty" },
+  ]);
+
+  assert.equal(cleared.announced, "The board is now empty");
+});
+
 test("toggling only announceUpdates takes effect", async () => {
   // BoardDisplay is memoized with a hand-written comparator: a prop missing
   // from it is silently inert, which is exactly how this feature would ship

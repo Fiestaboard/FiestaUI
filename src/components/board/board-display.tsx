@@ -1364,8 +1364,18 @@ export const BoardDisplay = memo(
     // cost of that is that switching `announceUpdates` on mid-life announces
     // the board once, which is the right behaviour anyway — a consumer turning
     // it on is asking to hear the board.
+    //
+    // `isLoading` is excluded, and that is the point of the guard rather than a
+    // shortcut: `boardText` resolves to `loadingLabel` while a board refetches,
+    // so a live board that refreshes in place would otherwise announce
+    // "Loading board display" and then the message — twice the speech, half of
+    // it about an internal phase rather than about buses. Skipping it also
+    // leaves `announced.of` holding the pre-refresh text, so the message that
+    // ends the refresh is still correctly seen as a change. A board going
+    // *empty* is deliberately not skipped: that is a content change, and
+    // silence would leave the user believing the old message still stands.
     const [announced, setAnnounced] = useState({ text: "", of: boardText });
-    if (announceUpdates && announced.of !== boardText) {
+    if (announceUpdates && !isLoading && announced.of !== boardText) {
       setAnnounced({ text: boardText, of: boardText });
     }
 

@@ -413,10 +413,13 @@ export const CyclingMessages = () => {
   return (
     <div className="flex flex-col items-center gap-6">
       <BoardDisplay message={cycle[idx]} size="md" animationsEnabled={!reducedMotion} announceUpdates />
+      {/* Caption text left exactly as it was: it is rendered, so a sentence
+          about `announceUpdates` here would rewrite four VRT baselines to
+          document a feature that paints nothing. The docstring above says it
+          instead, and lands in autodocs rather than in the shot. */}
       <p className="max-w-md text-center text-sm text-muted-foreground">
         A new message arrives every 4 seconds; each changed tile flips forward through the character set until it
-        reaches its target. <code>announceUpdates</code> is on here, so each new message is also announced once,
-        politely, through a visually hidden live region.
+        reaches its target.
       </p>
     </div>
   );
