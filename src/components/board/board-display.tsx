@@ -1232,6 +1232,18 @@ export interface BoardDisplayProps {
   emptyLabel?: string;
   /** Builds the accessible label for a shown message (color markup already stripped). */
   messageLabel?: (message: string) => string;
+  /** Announce message changes to assistive tech through a polite live region
+   *  (issue #206).
+   *
+   *  Off by default, and it has to be: this board's `aria-label` changing is
+   *  silent to a screen reader — only a change *inside* a live region is
+   *  announced — but a live region is only correct for a genuinely live
+   *  display, which only the consuming app knows. In an editor or a thumbnail
+   *  the message changes on every keystroke and the announcements would be
+   *  intolerable. Turn it on for a mirrored board (transit times, weather,
+   *  alerts) where a change is news. `polite`, never `assertive`: a board
+   *  update is informational. Same opt-in shape as `EmptyState`'s `announce`. */
+  announceUpdates?: boolean;
 }
 
 // Module-scope default so the aria-label memo below keeps a stable dependency.
@@ -1257,6 +1269,7 @@ export const BoardDisplay = memo(
     loadingLabel = "Loading board display",
     emptyLabel = "Empty board display",
     messageLabel = defaultMessageLabel,
+    announceUpdates = false,
   }: BoardDisplayProps) {
     // Reduced motion, decided here rather than left to CSS (issue #180).
     //
@@ -1334,6 +1347,48 @@ export const BoardDisplay = memo(
       return text ? messageLabel(text) : NO_TEXT_LABEL;
     }, [message, deviceType, isLoading, loadingLabel, emptyLabel, messageLabel]);
 
+    // What the live region says, when one is asked for (issue #206).
+    //
+    // It carries only what *changed*, never a mirror of the current text. A
+    // mirror would be read a second time immediately after the `role="img"`
+    // name on first encounter, and — mounted with content — risks being
+    // announced on arrival, which is precisely the page-load chatter that made
+    // EmptyState's announcement opt-in too (#120). So the region renders empty
+    // and fills in on the first change: `announced.of` is the board text this
+    // component last reconciled, and the state is adjusted during render (the
+    // documented React pattern) rather than in an effect, so the region and the
+    // tiles commit in the same paint.
+    //
+    // The comparison is skipped entirely when the feature is off, which is the
+    // default: no extra render on the path every existing consumer is on.
+    //
+    // `armed` is what makes arriving never an announcement. AT announces a
+    // mutation *inside* a region that was already in the DOM; a region that
+    // appears already holding content is not reliably spoken at all. Without
+    // this, a consumer that flips `announceUpdates` on after its first fetch
+    // would add the region and its text in the same commit and get an
+    // announcement that some screen readers speak and others drop. So the
+    // render where the region arrives only arms it — the region lands empty,
+    // and the next real change is a mutation it is present for.
+    //
+    // `isLoading` is excluded, and that is the point of the guard rather than a
+    // shortcut: `boardText` resolves to `loadingLabel` while a board refetches,
+    // so a live board that refreshes in place would otherwise announce
+    // "Loading board display" and then the message — twice the speech, half of
+    // it about an internal phase rather than about buses. Skipping it also
+    // leaves `announced.of` holding the pre-refresh text, so the message that
+    // ends the refresh is still correctly seen as a change. A board going
+    // *empty* is deliberately not skipped: that is a content change, and
+    // silence would leave the user believing the old message still stands.
+    const [announced, setAnnounced] = useState(() => ({ text: "", of: boardText, armed: announceUpdates }));
+    if (announceUpdates && !announced.armed) {
+      // The region is arriving in this commit. Arm it, empty, and resync `of`
+      // so a change that happened while the feature was off is not replayed.
+      setAnnounced({ text: "", of: boardText, armed: true });
+    } else if (announceUpdates && !isLoading && announced.of !== boardText) {
+      setAnnounced({ text: boardText, of: boardText, armed: true });
+    }
+
     return (
       <div className={`w-full flex justify-center`}>
         {/* Split-flap keyframes — only the animated path uses them. React 19
@@ -1342,6 +1397,14 @@ export const BoardDisplay = memo(
           <style href="board-flap-keyframes" precedence="default">
             {FLAP_KEYFRAMES}
           </style>
+        )}
+        {/* The live region sits outside the `role="img"`, not inside it: an
+            image's subtree is not exposed, so a region in there would never be
+            read. `sr-only` — it adds no rendered pixels. */}
+        {announceUpdates && (
+          <div className="sr-only" aria-live="polite" aria-atomic="true" data-slot="board-display-announcer">
+            {announced.text}
+          </div>
         )}
         {/* No max-width on the bezel (issue #200). Its tiles are fixed-width
             and cannot shrink, so the grid's min-content width *is* the whole
@@ -1435,7 +1498,11 @@ export const BoardDisplay = memo(
       resolveFlapSpeed(prevProps.flapSpeed ?? "standard") === resolveFlapSpeed(nextProps.flapSpeed ?? "standard") &&
       prevProps.loadingLabel === nextProps.loadingLabel &&
       prevProps.emptyLabel === nextProps.emptyLabel &&
-      prevProps.messageLabel === nextProps.messageLabel
+      prevProps.messageLabel === nextProps.messageLabel &&
+      // Every prop must be listed here: one left out is silently inert, since
+      // this comparator — not React's shallow default — decides whether the
+      // board re-renders at all.
+      prevProps.announceUpdates === nextProps.announceUpdates
     );
   },
 );

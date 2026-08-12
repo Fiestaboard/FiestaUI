@@ -86,6 +86,11 @@ const meta = {
       control: false,
       description: "Builds the accessible label for a shown message",
     },
+    announceUpdates: {
+      control: "boolean",
+      description:
+        "Announce message changes through a polite, visually hidden live region. Off by default — a changed aria-label is silent to screen readers, but announcing is only correct for a genuinely live board, not for an editor preview that changes on every keystroke (issue #206).",
+    },
     className: {
       control: "text",
       description: "Additional CSS classes on the board bezel",
@@ -339,6 +344,7 @@ export const Playground: Story = {
     emitCellMetadata: false,
     loadingLabel: "Loading board display",
     emptyLabel: "Empty board display",
+    announceUpdates: false,
   },
 };
 
@@ -376,6 +382,14 @@ export const Colors = () => (
  * hands-free. Honors prefers-reduced-motion: when set, the interval still
  * swaps messages but tiles snap instead of flipping (animationsEnabled=false),
  * matching how the app wires its reduce-motion setting into the board.
+ *
+ * This is also the story that shows `announceUpdates` doing its job (issue
+ * #206): a board that changes on its own is exactly the case where a
+ * screen-reader user otherwise hears nothing, because a changed `aria-label`
+ * on a `role="img"` is not announced. With it on, each new message is read once
+ * politely. It stays **off** everywhere else in this file — an editor preview
+ * or a thumbnail that re-announced on every keystroke would be unusable, which
+ * is why the capability is opt-in and the consuming app decides.
  */
 export const CyclingMessages = () => {
   const cycle = [simpleMessage, weatherMessage, coloredMessage];
@@ -398,7 +412,11 @@ export const CyclingMessages = () => {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <BoardDisplay message={cycle[idx]} size="md" animationsEnabled={!reducedMotion} />
+      <BoardDisplay message={cycle[idx]} size="md" animationsEnabled={!reducedMotion} announceUpdates />
+      {/* Caption text left exactly as it was: it is rendered, so a sentence
+          about `announceUpdates` here would rewrite four VRT baselines to
+          document a feature that paints nothing. The docstring above says it
+          instead, and lands in autodocs rather than in the shot. */}
       <p className="max-w-md text-center text-sm text-muted-foreground">
         A new message arrives every 4 seconds; each changed tile flips forward through the character set until it
         reaches its target.
