@@ -140,7 +140,22 @@ function installDom() {
   };
 }
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Wait for React to commit. React 19 flushes concurrent renders through a
+ * MessageChannel macrotask, so a fixed sleep races the commit on a loaded CI
+ * runner and reads the region before it holds anything. Instead poll until
+ * `ready` sees the expected DOM (or ~2s passes, after which the assertion
+ * reports whatever is really there). With no `ready`, one interval elapses —
+ * enough for the "nothing changed" steps, where there is no state to wait for.
+ */
+async function settle(ready) {
+  const deadline = Date.now() + 2000;
+  do {
+    await sleep(15);
+  } while (ready && !ready() && Date.now() < deadline);
+}
 
 /** Everything a screen reader could pick up, as the DOM currently stands. */
 function readAria(container) {
@@ -156,11 +171,19 @@ function readAria(container) {
   };
 }
 
+/** `until` conditions for `run` steps: the DOM state that marks the commit. */
+const named = (text) => (r) => (r.name ?? "").includes(text);
+const announced = (text) => (r) => (r.announced ?? "").includes(text);
+const regionMounted = (r) => r.regionCount === 1;
+
 /**
  * Mount a board, run `steps` against it in order, and return one reading of the
- * DOM after each step. `animationsEnabled: false` keeps the tiles from
- * cascading: this is about what is announced, and the cascade is timed
- * elsewhere (board-flap-cascade.test.mjs).
+ * DOM after each step. A step may carry an `until` predicate over the reading:
+ * the step is not considered settled until it holds (see `settle`), so each
+ * step is a distinct committed render, as a live board would produce.
+ * `animationsEnabled: false` keeps the tiles from cascading: this is about
+ * what is announced, and the cascade is timed elsewhere
+ * (board-flap-cascade.test.mjs).
  */
 async function run(steps, base = {}) {
   const dom = installDom();
@@ -170,9 +193,9 @@ async function run(steps, base = {}) {
     const root = harness.mount(container);
 
     const readings = [];
-    for (const props of steps) {
+    for (const { until, ...props } of steps) {
       root.render({ size: "sm", deviceType: "note", animationsEnabled: false, ...base, ...props });
-      await settle();
+      await settle(until && (() => until(readAria(container))));
       readings.push(readAria(container));
     }
 
@@ -187,7 +210,10 @@ async function run(steps, base = {}) {
 }
 
 test("a board announces nothing by default, before or after a message change", async () => {
-  const [initial, changed] = await run([{ message: FIRST }, { message: SECOND }]);
+  const [initial, changed] = await run([
+    { message: FIRST, until: named(FIRST) },
+    { message: SECOND, until: named(SECOND) },
+  ]);
 
   assert.equal(
     initial.regionCount,
@@ -200,7 +226,7 @@ test("a board announces nothing by default, before or after a message change", a
 });
 
 test("opted in, the region is polite, atomic, visually hidden — and silent on mount", async () => {
-  const [initial] = await run([{ message: FIRST, announceUpdates: true }]);
+  const [initial] = await run([{ message: FIRST, announceUpdates: true, until: regionMounted }]);
 
   assert.equal(initial.regionCount, 1, "announceUpdates must render exactly one live region");
   assert.equal(initial.live, "polite", "a board update is informational, not urgent — polite, never assertive");
@@ -216,8 +242,8 @@ test("opted in, the region is polite, atomic, visually hidden — and silent on 
 
 test("a message change is announced", async () => {
   const [, changed] = await run([
-    { message: FIRST, announceUpdates: true },
-    { message: SECOND, announceUpdates: true },
+    { message: FIRST, announceUpdates: true, until: regionMounted },
+    { message: SECOND, announceUpdates: true, until: announced(SECOND) },
   ]);
 
   assert.match(
@@ -230,7 +256,7 @@ test("a message change is announced", async () => {
 
 test("a re-render with the same message announces nothing new", async () => {
   const [, same] = await run([
-    { message: FIRST, announceUpdates: true },
+    { message: FIRST, announceUpdates: true, until: regionMounted },
     { message: FIRST, announceUpdates: true },
   ]);
 
@@ -239,8 +265,8 @@ test("a re-render with the same message announces nothing new", async () => {
 
 test("the loading -> message transition is announced", async () => {
   const [, arrived] = await run([
-    { message: null, isLoading: true, announceUpdates: true },
-    { message: SECOND, isLoading: false, announceUpdates: true },
+    { message: null, isLoading: true, announceUpdates: true, until: regionMounted },
+    { message: SECOND, isLoading: false, announceUpdates: true, until: announced(SECOND) },
   ]);
 
   assert.match(arrived.announced, /BUS 33 IN 2 MIN/, "the message arriving after a load is the announcement");
@@ -252,9 +278,9 @@ test("a refresh does not announce the loading label, only the message that follo
   // "Loading board display" mid-cycle tells a user reading bus times nothing
   // about buses, and it doubles the announcements per refresh.
   const [, loading, refreshed] = await run([
-    { message: FIRST, announceUpdates: true },
+    { message: FIRST, announceUpdates: true, until: regionMounted },
     { message: FIRST, isLoading: true, announceUpdates: true },
-    { message: SECOND, isLoading: false, announceUpdates: true },
+    { message: SECOND, isLoading: false, announceUpdates: true, until: announced(SECOND) },
   ]);
 
   assert.equal(
@@ -270,8 +296,13 @@ test("a board going empty is announced — that is a content change, not a phase
   // and silence would leave a screen-reader user believing the old message
   // still stands. `emptyLabel` is a consumer-supplied, localizable string.
   const [, cleared] = await run([
-    { message: FIRST, announceUpdates: true },
-    { message: null, announceUpdates: true, emptyLabel: "The board is now empty" },
+    { message: FIRST, announceUpdates: true, until: regionMounted },
+    {
+      message: null,
+      announceUpdates: true,
+      emptyLabel: "The board is now empty",
+      until: announced("The board is now empty"),
+    },
   ]);
 
   assert.equal(cleared.announced, "The board is now empty");
@@ -285,10 +316,10 @@ test("turning announceUpdates on mid-life mounts the region empty, and the next 
   // screen reader. So arriving is never an announcement; the next real change
   // is, and that one is a mutation the region is present for.
   const [, changedWhileOff, justEnabled, changedAfter] = await run([
-    { message: FIRST, announceUpdates: false },
-    { message: SECOND, announceUpdates: false },
-    { message: SECOND, announceUpdates: true },
-    { message: "TRAIN 4 IN 6 MIN", announceUpdates: true },
+    { message: FIRST, announceUpdates: false, until: named(FIRST) },
+    { message: SECOND, announceUpdates: false, until: named(SECOND) },
+    { message: SECOND, announceUpdates: true, until: regionMounted },
+    { message: "TRAIN 4 IN 6 MIN", announceUpdates: true, until: announced("TRAIN 4 IN 6 MIN") },
   ]);
 
   assert.equal(changedWhileOff.regionCount, 0);
@@ -307,8 +338,8 @@ test("toggling only announceUpdates takes effect", async () => {
   // from it is silently inert, which is exactly how this feature would ship
   // broken.
   const [off, on] = await run([
-    { message: FIRST, announceUpdates: false },
-    { message: FIRST, announceUpdates: true },
+    { message: FIRST, announceUpdates: false, until: named(FIRST) },
+    { message: FIRST, announceUpdates: true, until: regionMounted },
   ]);
 
   assert.equal(off.regionCount, 0);
