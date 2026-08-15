@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { FIESTA_ICON_DATA_URI, FIESTA_ICON_PALETTE, FiestaIcon } from "./fiesta-icon";
 
 const meta = {
-  title: "Chrome/FiestaIcon",
+  title: "App/Chrome/FiestaIcon",
   component: FiestaIcon,
   parameters: {
     layout: "centered",

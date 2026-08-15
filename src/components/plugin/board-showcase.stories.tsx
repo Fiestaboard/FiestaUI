@@ -20,7 +20,7 @@ const NOTE = {
 };
 
 const meta = {
-  title: "Plugin/BoardShowcase",
+  title: "App/Plugin/BoardShowcase",
   component: BoardShowcase,
   parameters: {
     layout: "centered",

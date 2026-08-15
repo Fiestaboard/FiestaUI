@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
 
 const meta = {
-  title: "Chrome/ThemeToggle",
+  title: "App/Chrome/ThemeToggle",
   component: ThemeToggle,
   parameters: {
     layout: "centered",

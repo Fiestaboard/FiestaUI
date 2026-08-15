@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 
-import { TooltipProvider } from "../ui/tooltip";
+import { TooltipProvider } from "../overlays/tooltip";
 import { BoardSelector } from "./board-selector";
 
 const BOARDS = [
@@ -13,7 +13,7 @@ const BOARDS = [
 const LABELS = { boardSelector: "Select board", selectBoard: "Select a board", unnamedBoard: "Unnamed board" };
 
 const meta = {
-  title: "Chrome/BoardSelector",
+  title: "App/Chrome/BoardSelector",
   component: BoardSelector,
   parameters: {
     layout: "centered",

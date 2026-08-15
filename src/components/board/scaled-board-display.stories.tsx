@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { ScaledBoardDisplay } from "./scaled-board-display";
 
 const meta = {
-  title: "Board/ScaledBoardDisplay",
+  title: "App/Board/ScaledBoardDisplay",
   component: ScaledBoardDisplay,
   parameters: {
     layout: "centered",

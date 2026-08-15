@@ -4,13 +4,13 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-// Static conformance checks for src/components/ui/empty-state.tsx (issue #120):
+// Static conformance checks for src/components/feedback/empty-state.tsx (issue #120):
 // a permanently mounted aria-live region makes AT diff the whole subtree on
 // every mutation and announces static empty states on page load. Announcement
 // must be opt-in via an `announce` prop; the default is a plain labelled region.
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const raw = readFileSync(join(repoRoot, "src", "components", "ui", "empty-state.tsx"), "utf8");
+const raw = readFileSync(join(repoRoot, "src", "components", "feedback", "empty-state.tsx"), "utf8");
 // Conformance applies to code, not prose: drop block and line comments so
 // docstrings may still mention the attributes by name.
 const source = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");

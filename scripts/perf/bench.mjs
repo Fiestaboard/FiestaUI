@@ -69,15 +69,14 @@ const FRAME_WARMUP = 2;
  * between cycles, and the control story defines the subtracted baseline — so a
  * heavy choice for either inflates the floor and masks real leaks in every
  * other story. Falling back to "first id alphabetically" is not good enough:
- * that picks `board-boarddisplay--color-palette` in this repo, which measured
- * a 245 KB/cycle baseline against Button's 146.
+ * that picks `app-board-boarddisplay--color-palette` in this repo, which
+ * measured a 245 KB/cycle baseline against Button's 146.
  */
 const CHEAP_STORY_CANDIDATES = [
-  "ui-badge--default",
-  "ui-button--default",
-  "ui-text--default",
-  "ui-label--default",
-  "ui-separator--default",
+  "feedback-badge--default",
+  "forms-button--default",
+  "primitives-typography-text--default",
+  "forms-label--default",
 ];
 
 /**

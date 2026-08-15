@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { BoardIcon } from "./board-icon";
 
 const meta = {
-  title: "Chrome/BoardIcon",
+  title: "App/Chrome/BoardIcon",
   component: BoardIcon,
   parameters: {
     layout: "centered",

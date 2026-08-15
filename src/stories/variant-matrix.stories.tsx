@@ -1,13 +1,13 @@
 import type { Meta } from "@storybook/react";
 import { AlertCircle, Info, Mail, Plus } from "lucide-react";
 
-import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
+import { Badge } from "../components/feedback/badge";
+import { Button } from "../components/forms/button";
+import { Input } from "../components/forms/input";
 
 const meta = {
-  title: "Design System/Variant Matrix",
+  title: "Foundations/Variant Matrix",
   parameters: {
     layout: "fullscreen",
   },

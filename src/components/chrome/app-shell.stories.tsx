@@ -4,9 +4,9 @@ import { useState } from "react";
 
 import { type Season } from "../../lib/seasons";
 import { ALL_SEASONS } from "../../lib/seasons-drafts";
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../containment/card";
+import { Badge } from "../feedback/badge";
+import { Button } from "../forms/button";
 import { BoardSelector } from "./board-selector";
 import { MainContent } from "./main-content";
 import { PageHeader, PageIconGradientDefs } from "./page-header";
@@ -125,7 +125,7 @@ function AppShellDemo({
 }
 
 const meta = {
-  title: "Chrome/AppShell",
+  title: "App/Chrome/AppShell",
   parameters: {
     layout: "fullscreen",
   },

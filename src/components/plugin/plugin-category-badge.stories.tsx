@@ -13,7 +13,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const meta = {
-  title: "Plugin/PluginCategoryBadge",
+  title: "App/Plugin/PluginCategoryBadge",
   component: PluginCategoryBadge,
   parameters: {
     layout: "centered",

@@ -17,7 +17,7 @@ import { BoardDisplay, deriveFlapTiming, FLAP_SPEED_PRESETS, type FlapSpeedPrese
 // down without touching tile proportions — see its `PhoneWidth` story, which
 // fits a full 6x22 board into a 311px box (issue #192).
 const meta = {
-  title: "Board/BoardDisplay",
+  title: "App/Board/BoardDisplay",
   component: BoardDisplay,
   parameters: {
     layout: "centered",

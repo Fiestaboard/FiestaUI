@@ -3,8 +3,8 @@
 import { memo, useMemo } from "react";
 
 import { cn } from "../../lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../forms/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../overlays/tooltip";
 import { BoardIcon } from "./board-icon";
 
 export interface BoardOption {

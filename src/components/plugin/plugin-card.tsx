@@ -14,8 +14,8 @@
 import type { CSSProperties, ReactNode } from "react";
 
 import { cn } from "../../lib/utils";
-import { Heading } from "../ui/heading";
-import { Text } from "../ui/text";
+import { Heading } from "../typography/heading";
+import { Text } from "../typography/text";
 import { PluginCategoryBadge } from "./plugin-category-badge";
 import { ScaledBoardTeaser } from "./scaled-board-teaser";
 

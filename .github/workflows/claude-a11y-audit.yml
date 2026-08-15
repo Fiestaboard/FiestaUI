@@ -294,7 +294,7 @@ jobs:
             stylesheets. No `.tsx` file consults it. Two JS-driven animations
             ignore it entirely, and a CSS media query cannot reach either:
 
-              - `src/components/ui/aurora.tsx` runs a free-running
+              - `src/components/effects/aurora.tsx` runs a free-running
                 `requestAnimationFrame` WebGL loop.
               - `board-display`'s loading state cycles glyphs on an 80ms
                 `setInterval`.
@@ -450,7 +450,7 @@ jobs:
 
             The highest-value surfaces in this repo, roughly in order:
 
-            - `src/components/ui/` — dialog, alert-dialog, sheet, dropdown-menu,
+            - `src/components/` — dialog, alert-dialog, sheet, dropdown-menu,
               select, tabs, accordion, tooltip, slider, checkbox, switch. These
               are the interactive primitives; focus management and keyboard
               behaviour live or die here.
@@ -462,7 +462,7 @@ jobs:
               skip-to-content, theme-toggle, language-selector. Landmark
               structure, skip-link correctness, and whether app chrome exposes
               a coherent heading hierarchy.
-            - `src/components/ui/aurora.tsx` and `src/components/seasons/*` —
+            - `src/components/effects/aurora.tsx` and `src/components/seasons/*` —
               WebGL and animation. Reduced-motion handling is the headline.
             - `src/styles/theme.css` — focus-visible treatment, contrast of
               token pairs, and whether the reduced-motion block covers what it

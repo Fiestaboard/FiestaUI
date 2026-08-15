@@ -18,7 +18,7 @@ function PlaceholderContent() {
 }
 
 const meta = {
-  title: "Chrome/MainContent",
+  title: "App/Chrome/MainContent",
   component: MainContent,
   // MainContent renders its own <main> landmark — fullscreen keeps the
   // preview decorator from wrapping it in a duplicate one.

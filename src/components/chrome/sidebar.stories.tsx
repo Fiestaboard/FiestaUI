@@ -236,7 +236,7 @@ function PlaygroundSidebar(args: PlaygroundArgs) {
 }
 
 const meta: Meta = {
-  title: "Chrome/Sidebar",
+  title: "App/Chrome/Sidebar",
   parameters: {
     layout: "fullscreen",
   },

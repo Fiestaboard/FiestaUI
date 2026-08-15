@@ -71,14 +71,15 @@ writeFileSync(
     `export const cva = (baseClasses, config) => Object.assign(base(baseClasses, config), { config });\n`,
 );
 
+const MODULE_DIR = { alert: "feedback", badge: "feedback", button: "forms" };
 const modules = [...new Set(REGISTRY.map((entry) => entry.module))];
 await build({
   stdin: {
     contents: modules
       .map(
         (name) =>
-          `export * as ${name}Component from "./src/components/ui/${name}.tsx";\n` +
-          `export * as ${name}Stories from "./src/components/ui/${name}.stories.tsx";`,
+          `export * as ${name}Component from "./src/components/${MODULE_DIR[name]}/${name}.tsx";\n` +
+          `export * as ${name}Stories from "./src/components/${MODULE_DIR[name]}/${name}.stories.tsx";`,
       )
       .join("\n"),
     resolveDir: repoRoot,

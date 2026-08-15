@@ -5,7 +5,7 @@
  */
 
 import { cn } from "../../lib/utils";
-import { Badge } from "../ui/badge";
+import { Badge } from "../feedback/badge";
 
 /** The categories FiestaBoard plugins may declare (manifest `category`). */
 export const PLUGIN_CATEGORIES = ["art", "data", "entertainment", "home", "transit", "utility", "weather"] as const;

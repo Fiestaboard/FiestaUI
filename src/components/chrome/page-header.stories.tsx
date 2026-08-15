@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Calendar, Puzzle } from "lucide-react";
 
-import { Button } from "../ui/button";
+import { Button } from "../forms/button";
 import { PageHeader, PageIconGradientDefs } from "./page-header";
 
 const meta = {
-  title: "Chrome/PageHeader",
+  title: "App/Chrome/PageHeader",
   component: PageHeader,
   parameters: {
     layout: "padded",

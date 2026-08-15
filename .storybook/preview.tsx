@@ -73,6 +73,24 @@ const preview: Preview = {
     season: "none",
   },
   parameters: {
+    options: {
+      storySort: {
+        order: [
+          "Foundations",
+          "Primitives",
+          ["Layout", "Typography"],
+          "Forms",
+          "Feedback",
+          "Overlays",
+          "Containment",
+          // Reserved for the TipTap rich content editor port.
+          "Editor",
+          "Effects",
+          "App",
+          ["Board", "Chrome", "Plugin", "Seasons"],
+        ],
+      },
+    },
     viewport: { options: VIEWPORTS },
     controls: {
       matchers: {

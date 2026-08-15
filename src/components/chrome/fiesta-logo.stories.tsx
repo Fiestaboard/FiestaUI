@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { FiestaLogo } from "./fiesta-logo";
 
 const meta = {
-  title: "Chrome/FiestaLogo",
+  title: "App/Chrome/FiestaLogo",
   component: FiestaLogo,
   parameters: {
     layout: "centered",

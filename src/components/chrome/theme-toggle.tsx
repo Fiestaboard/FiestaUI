@@ -3,7 +3,7 @@
 import { Moon, Sun } from "lucide-react";
 import { memo } from "react";
 
-import { Button } from "../ui/button";
+import { Button } from "../forms/button";
 
 interface ThemeToggleProps {
   /** Current resolved theme. */

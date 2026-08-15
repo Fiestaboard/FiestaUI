@@ -146,8 +146,8 @@ jobs:
             **The guard has holes, and you should know where.** Read
             `vrt/skip.json` — it lists stories excluded from visual
             regression, and the exclusions cluster on animated rAF/WebGL/
-            timer components (as written, `ui-aurora--*` and two
-            `board-boarddisplay--loading*` stories). If this PR touches a
+            timer components (as written, `effects-aurora--*` and two
+            `app-board-boarddisplay--loading*` stories). If this PR touches a
             component whose stories are skipped, a green `visual-regression`
             check proves nothing about it. Say so explicitly in your review
             and tell the maintainer what to verify by hand.

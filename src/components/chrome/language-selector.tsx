@@ -3,7 +3,7 @@
 import { Globe } from "lucide-react";
 import { memo } from "react";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../forms/select";
 
 export interface LanguageOption {
   value: string;
