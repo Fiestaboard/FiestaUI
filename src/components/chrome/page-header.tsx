@@ -20,6 +20,18 @@ interface PageHeaderProps {
  * The icon stroke references the `page-icon-gradient` SVG gradient.
  * Mount <PageIconGradientDefs /> once near the app root (FiestaBoard does
  * this in root.tsx) or the icon falls back to an unstroked glyph.
+ *
+ * A HEADER, NOT A CARD (#231). This used to render
+ * `rounded-xl border bg-card px-6 py-4` — the identical recipe to every
+ * content card below it. Ten routes therefore opened with two peer cards and
+ * no focal point, and because `.page-title` was smaller than `CardTitle`, a
+ * section heading nested inside a sibling card optically outranked the page's
+ * own H1. The title is now type on the page background, which is the only
+ * change that lets anything on a settings screen outrank anything else.
+ *
+ * `children` is an ACTION SLOT and now renders beside the title rather than
+ * below the description, so a route can put its primary action on the header
+ * row without hand-writing a float.
  */
 export const PageHeader = memo(function PageHeader({
   icon: Icon,
@@ -31,12 +43,12 @@ export const PageHeader = memo(function PageHeader({
 }: PageHeaderProps) {
   return (
     <div
-      className={cn("mb-5 rounded-xl border bg-card text-card-foreground px-6 py-4 animate-card-fade-in", className)}
+      className={cn("mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 animate-card-fade-in", className)}
       style={{ animationDelay }}
     >
       <div className="min-w-0">
         <h1 className="page-title flex items-center gap-3">
-          <Icon className="h-5 w-5 flex-shrink-0" style={ICON_GRADIENT_STYLE} aria-hidden="true" />
+          <Icon className="h-6 w-6 flex-shrink-0" style={ICON_GRADIENT_STYLE} aria-hidden="true" />
           {title}
         </h1>
         <p className="page-description">{description}</p>

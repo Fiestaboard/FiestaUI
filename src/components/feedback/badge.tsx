@@ -10,7 +10,10 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
-        brand: "border-transparent bg-brand-emphasis text-brand-foreground [a&]:hover:bg-brand-emphasis/90",
+        // Same tile treatment as Button's brand variant — see the note there.
+        // Board-ink label, never white (2.03:1), and a --primary rim for the
+        // boundary the 1.83:1 field cannot provide on a light page.
+        brand: "border-primary bg-brand-tile text-brand-tile-foreground [a&]:hover:bg-brand-tile/90",
         secondary: "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
         destructive:
           "border-transparent bg-destructive text-destructive-foreground [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",

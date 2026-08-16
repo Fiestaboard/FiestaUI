@@ -29,10 +29,22 @@ const alertVariants = cva(
         // did not read as a container at all (issue #161). `bg-muted` also
         // separates from `--card`, which `bg-card` would not.
         default: "bg-muted text-foreground",
-        destructive: "border-destructive bg-destructive/8 text-destructive [&>svg]:text-destructive",
-        info: "border-info bg-info/8 text-info [&>svg]:text-info",
-        success: "border-success bg-success/8 text-success [&>svg]:text-success",
-        warning: "border-warning bg-warning/8 text-warning [&>svg]:text-warning",
+        // STATUS COLOUR NEVER TOUCHES A SENTENCE (#231). These variants used
+        // to set `text-<status>` on the container, so the description
+        // paragraph inherited it — the one place the system's own
+        // "body copy is --foreground" convention broke, and the reason a
+        // long warning body rendered as amber prose. Status now lives on
+        // three redundant channels that are not the text: the icon, the
+        // 4px left rule, and the 8% fill.
+        //
+        // This is also what makes the hue lock survivable. --warning is board
+        // yellow, which cannot be simultaneously dark enough to read as body
+        // text on white and light enough to still look like caution. As a
+        // rule and an icon it has no such problem.
+        destructive: "border-destructive border-l-4 bg-destructive/8 text-foreground [&>svg]:text-destructive",
+        info: "border-info border-l-4 bg-info/8 text-foreground [&>svg]:text-info",
+        success: "border-success border-l-4 bg-success/8 text-foreground [&>svg]:text-success",
+        warning: "border-warning border-l-4 bg-warning/8 text-foreground [&>svg]:text-warning",
       },
     },
     defaultVariants: {

@@ -11,8 +11,18 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        // The primary button IS a tile (#231): the literal #f5a623 the
+        // hardware flips, identical in both themes, with a board-ink label at
+        // 8.83:1. It must never take a white label — white on the tile is
+        // 2.03:1 — which is why it has its own foreground token rather than
+        // borrowing --brand-foreground.
+        //
+        // The tile is only 1.83:1 against a light page, so the 1px --primary
+        // rim is not decoration: it is what makes the button's boundary
+        // identifiable under SC 1.4.11 (5.08:1 against --background). It
+        // stands in for the bezel around a real flap. Do not remove it.
         brand:
-          "bg-brand-emphasis text-brand-foreground shadow-sm hover:bg-brand-emphasis/85 focus-visible:ring-brand/30",
+          "bg-brand-tile text-brand-tile-foreground shadow-sm ring-1 ring-inset ring-primary hover:bg-brand-tile/90 focus-visible:ring-brand/30",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         // The dark fill is a SURFACE token, not --input. --input now means

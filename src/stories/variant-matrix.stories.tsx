@@ -17,7 +17,11 @@ const meta = {
 export default meta;
 
 export const ButtonMatrix = () => {
-  const variants = ["default", "secondary", "destructive", "outline", "ghost", "link"] as const;
+  // `brand` is in this list on purpose: it is the one variant whose field is a
+  // literal hardware tile, and it was previously absent from a matrix that
+  // claims to show every combination — so the most brand-bearing control in
+  // the system was the one nobody could review side by side.
+  const variants = ["default", "brand", "secondary", "destructive", "outline", "ghost", "link"] as const;
   const sizes = ["sm", "default", "lg"] as const;
 
   return (
@@ -124,7 +128,7 @@ export const ButtonMatrix = () => {
 };
 
 export const BadgeMatrix = () => {
-  const variants = ["default", "secondary", "destructive", "outline"] as const;
+  const variants = ["default", "brand", "secondary", "destructive", "outline"] as const;
   const contexts = [
     { label: "Text only", content: (v: (typeof variants)[number]) => <Badge variant={v}>{v}</Badge> },
     {
