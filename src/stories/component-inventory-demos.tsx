@@ -373,12 +373,18 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
 
   /* ---- Typography ---- */
+  //
+  // Every demo is nested under the entry's own <h3>, so this one renders the
+  // whole size scale at `level={4}` rather than walking level 2→4. Showing the
+  // level axis literally would emit an <h2> inside an <h3> and invert the
+  // page's outline — on the design system's own reference page, of all places.
+  // The independence of the two axes is the point, and it is stated instead.
   Heading: () => (
     <Stack gap="2">
-      <Heading level={2} size="xl">
+      <Heading level={4} size="xl">
         Heading xl
       </Heading>
-      <Heading level={3} size="lg">
+      <Heading level={4} size="lg">
         Heading lg
       </Heading>
       <Heading level={4} size="base">
@@ -387,6 +393,10 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <Heading level={4} size="sm" tone="muted">
         Heading sm, muted
       </Heading>
+      <Text size="xs" tone="muted">
+        All four are <Code>level=&#123;4&#125;</Code> — <Code>size</Code> is the visual scale and <Code>level</Code> the
+        semantic one (h2–h4), set independently.
+      </Text>
     </Stack>
   ),
   Text: () => (
@@ -930,6 +940,13 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   BoardSelector: BoardSelectorDemo,
   LanguageSelector: LanguageSelectorDemo,
   ThemeToggle: ThemeToggleDemo,
+  // PageHeader renders the page's <h1>, so inlining it here puts a second <h1>
+  // on the inventory and skips h3→h1 under this entry's own heading. That is
+  // inherent to showing the component at all — it is what PageHeader IS — and
+  // it is exactly how its own story renders too. Left as-is deliberately;
+  // `page-has-heading-one` and `heading-order` are disabled in
+  // .storybook/test-runner.ts because stories render heading-bearing
+  // components outside a document. Don't "fix" it by faking a lower level.
   PageHeader: () => (
     <Frame className="max-w-2xl">
       <PageIconGradientDefs />
