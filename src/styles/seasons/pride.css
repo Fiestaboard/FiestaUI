@@ -45,6 +45,9 @@
    Light mode keeps the original gradient — the aurora canvas overlays it. */
 .dark.pride-month .sidebar-gradient,
 .dark.pride-month .sidebar-gradient-horizontal {
+  /* Flat rail: this season paints its own background above and lets the
+     WebGL aurora carry the brand, so the lockup band steps aside. */
+  --sidebar-band: 0;
   background: #0e0b18;
   animation: none;
   color: oklch(1 0 0);

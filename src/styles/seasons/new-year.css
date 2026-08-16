@@ -32,6 +32,9 @@
    (gold/silver/violet palette) supplies the fireworks. */
 .dark.new-year-season .sidebar-gradient,
 .dark.new-year-season .sidebar-gradient-horizontal {
+  /* Flat rail: this season paints its own background above and lets the
+     WebGL aurora carry the brand, so the lockup band steps aside. */
+  --sidebar-band: 0;
   background: #090b1e;
   animation: none;
   color: oklch(1 0 0);

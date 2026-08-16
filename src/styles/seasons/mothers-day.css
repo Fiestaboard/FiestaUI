@@ -40,6 +40,9 @@
 /* Dark mode sidebar: muted rosewood-plum base; aurora provides the color */
 .dark.mothers-day-season .sidebar-gradient,
 .dark.mothers-day-season .sidebar-gradient-horizontal {
+  /* Flat rail: this season paints its own background above and lets the
+     WebGL aurora carry the brand, so the lockup band steps aside. */
+  --sidebar-band: 0;
   background: #1c1016;
   animation: none;
   color: oklch(1 0 0);

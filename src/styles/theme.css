@@ -1033,27 +1033,76 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
 }
 
-/* Logo in light mode: deep warm brown Fiesta + black Board for contrast across gradient */
-.sidebar-gradient:not(.dark) .logo-on-gradient,
-.sidebar-gradient-horizontal:not(.dark) .logo-on-gradient {
-  --brand: oklch(0.28 0.08 50);
-  --sidebar-foreground: oklch(0 0 0);
-}
-
-/* Logo in dark mode: white Board text, brighter brand for contrast on dark gradient */
-.dark .sidebar-gradient .logo-on-gradient,
-.dark .sidebar-gradient-horizontal .logo-on-gradient {
-  --brand: oklch(0.78 0.14 75);
+/* One logo treatment, both themes. These used to fork — near-black "Board" on
+   a light coral rail in light mode, white on a dark rail in dark mode. The
+   rail is now a fixture that does not change with the theme, so the fork is
+   not just unnecessary, it was actively wrong: it painted black text onto a
+   dark rail the moment the light stops were darkened. */
+.sidebar-gradient .logo-on-gradient,
+.sidebar-gradient-horizontal .logo-on-gradient {
+  --brand: oklch(0.78 0.166 73);
   --sidebar-foreground: oklch(1 0 0);
 }
 
-/* Light mode: soft gradient (coral → peach → lavender).
-   Stops derive from the canonical --fiesta-* brand gradient tokens —
-   never fork the hexes here; seasons retint via --sidebar-fiesta-*. */
+/* ============================================================
+ * THE RAIL IS QUIET; THE LOCKUP CARRIES THE BRAND (#231).
+ *
+ * This used to be a full-height animated gradient in two hand-forked
+ * palettes — a light coral/peach ramp in light mode, deep oxblood-to-olive
+ * in dark. Three things were wrong with it, and they compounded:
+ *
+ *   1. On an empty install the rail was the brightest, most saturated
+ *      object on the screen. The chrome out-shouted the product: the board
+ *      is the thing to look at, and it was losing to the navigation.
+ *   2. A red → orange → violet ramp spends its middle third in the browns
+ *      and olives between those hues. Over 800px of rail that reads as mud,
+ *      and no amount of retuning the stops fixes an interpolation problem.
+ *   3. Nothing sitting on it could be designed, because its background was
+ *      a function of wall-clock time.
+ *
+ * The gradient is now confined to the LOCKUP BAND at the top — behind the
+ * logo and the board switcher, where identity belongs and where 88px of
+ * colour reads as a brand mark rather than as a wall. Below that it fades
+ * into the flat rail. The nav body sits on one predictable surface, which
+ * is what lets the active pill and the labels be tuned once instead of
+ * sampled per frame.
+ *
+ * The rail is the same warm graphite in both themes (see --sidebar), so the
+ * whole light/dark fork below it is gone — along with the class of bug where
+ * darkening the light stops left black labels on a dark rail.
+ * ============================================================ */
 .sidebar-gradient {
+  /* The stops stay declared HERE, on the container, because that is the
+     element every seasons/*.css file targets to retint them. Declaring them
+     on the layer instead would silently win over every season. */
   --sidebar-fiesta-red: var(--fiesta-red);
   --sidebar-fiesta-orange: var(--fiesta-orange);
   --sidebar-fiesta-purple: var(--fiesta-purple);
+  /* Band on/off. A dark season that wants a flat rail — it sets its own
+     background on this container and lets the WebGL aurora carry the brand
+     — sets this to 0 rather than fighting the mask. */
+  --sidebar-band: 1;
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+  border-radius: var(--radius-chrome);
+  --sidebar-accent: oklch(1 0 0 / 10%);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --foreground: oklch(0.985 0.002 73);
+  --muted-foreground: oklch(1 0 0 / 72%);
+  --accent: oklch(1 0 0 / 10%);
+  --accent-foreground: oklch(1 0 0);
+  --border: oklch(1 0 0 / 12%);
+}
+
+/* The aurora moved off the container and onto the layer, so the container can
+   stay flat while the layer keeps the inheritance chain the animation needs
+   (layer → ::before). The mask is what confines it to the lockup: fully
+   opaque behind the logo, gone before the first nav row — the band must not
+   still be fading underneath a nav item, or the active pill ends up sitting
+   on a surface that is neither the band nor the rail. */
+.sidebar-gradient .sidebar-gradient-layer {
+  opacity: var(--sidebar-band);
   background: repeating-linear-gradient(
     170deg,
     var(--sidebar-fiesta-red) 0%,
@@ -1064,37 +1113,8 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   background-size: 100% 300%;
   background-position: 50% 0%;
   background-repeat: repeat-y;
-  color: oklch(0 0 0);
-  border-radius: var(--radius-chrome);
-  --sidebar-foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(1 0 0 / 35%);
-  --sidebar-accent-foreground: oklch(0 0 0);
-  --sidebar-border: oklch(0 0 0 / 12%);
-  --foreground: oklch(0 0 0);
-  --muted-foreground: oklch(0.15 0 0);
-  --accent: oklch(1 0 0 / 28%);
-  --accent-foreground: oklch(0 0 0);
-  --border: oklch(0 0 0 / 12%);
-}
-/* Dark mode: rich Fiesta gradient — deep-toned stops defined ONCE for both
-   the vertical sidebar and the mobile horizontal header. */
-.dark .sidebar-gradient,
-.dark .sidebar-gradient-horizontal {
-  --sidebar-fiesta-red: #7a2a24;
-  --sidebar-fiesta-orange: #6d5014;
-  --sidebar-fiesta-purple: #4e3070; /* board violet, darker for dark theme */
-}
-.dark .sidebar-gradient {
-  color: oklch(1 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0 / 24%);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 18%);
-  --foreground: oklch(1 0 0);
-  --muted-foreground: oklch(1 0 0 / 85%);
-  --accent: oklch(1 0 0 / 20%);
-  --accent-foreground: oklch(1 0 0);
-  --border: oklch(1 0 0 / 18%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 68px, transparent 152px);
+  mask-image: linear-gradient(to bottom, #000 0, #000 68px, transparent 152px);
 }
 
 .sidebar-gradient-horizontal {
@@ -1112,15 +1132,21 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   );
   background-size: 400% 100%;
   background-position: 0% 50%;
-  color: oklch(0 0 0);
+  /* The mobile bar keeps the full aurora — at ~56px tall the whole bar IS the
+     lockup, so the interpolation never has room to go muddy and the brand gets
+     to be loud in the one place it costs nothing. Text is light in BOTH themes
+     because the stops are dark in both; this used to be near-black, which is
+     what put unreadable labels on the bar when the stops were darkened. */
+  color: oklch(1 0 0);
   border-radius: var(--radius-chrome-mobile);
-  --foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(1 0 0 / 35%);
-  --sidebar-accent-foreground: oklch(0 0 0);
-  --muted-foreground: oklch(0.15 0 0);
-  --accent: oklch(1 0 0 / 28%);
-  --accent-foreground: oklch(0 0 0);
-  --border: oklch(0 0 0 / 12%);
+  --foreground: oklch(1 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0 0 0 / 22%);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --muted-foreground: oklch(1 0 0 / 78%);
+  --accent: oklch(0 0 0 / 20%);
+  --accent-foreground: oklch(1 0 0);
+  --border: oklch(1 0 0 / 16%);
 }
 @keyframes sidebar-gradient-flow-h {
   /* Runs on .sidebar-gradient-layer::before: one period (33.33% of the 400%

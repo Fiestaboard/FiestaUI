@@ -39,6 +39,9 @@
 /* Dark mode sidebar: deep harbor-slate base; aurora provides the color */
 .dark.fathers-day-season .sidebar-gradient,
 .dark.fathers-day-season .sidebar-gradient-horizontal {
+  /* Flat rail: this season paints its own background above and lets the
+     WebGL aurora carry the brand, so the lockup band steps aside. */
+  --sidebar-band: 0;
   background: #0d141c;
   animation: none;
   color: oklch(1 0 0);
