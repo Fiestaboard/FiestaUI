@@ -9,7 +9,7 @@ import { Badge } from "../feedback/badge";
 import { Button } from "../forms/button";
 import { BoardSelector } from "./board-selector";
 import { MainContent } from "./main-content";
-import { PageHeader, PageIconGradientDefs } from "./page-header";
+import { PAGE_HUES, PageHeader } from "./page-header";
 import { PageLayout } from "./page-layout";
 import { PageToolbar } from "./page-toolbar";
 import { Sidebar, type SidebarNavItem, type SidebarProps } from "./sidebar";
@@ -74,7 +74,6 @@ function AppShellDemo({
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <PageIconGradientDefs />
       <SkipToContent label="Skip to main content" />
       <Sidebar
         labels={LABELS}
@@ -100,7 +99,11 @@ function AppShellDemo({
       />
       <MainContent collapsed={collapsed} maxWidth={1680}>
         <PageLayout>
-          <PageHeader icon={Home} title="Home" description="Your board at a glance." />
+          {/* hue is ASSIGNED from nav order, not hashed: Home is the first
+              primary route, so it takes the first of the six board hues and
+              every other route takes the next. See PageHeader/EveryPage for
+              what a hash does with six routes instead. */}
+          <PageHeader icon={Home} title="Home" description="Your board at a glance." hue={PAGE_HUES[0]} />
           {/* The count is `secondary`, not the default brand fill. A metadata
               badge and the page's primary action are not peers, and rendering
               both in the one brand pigment put two saturated orange objects at
