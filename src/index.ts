@@ -80,3 +80,45 @@ export * from "./components/plugin/board-showcase";
 export * from "./components/plugin/plugin-card";
 export * from "./components/plugin/plugin-category-badge";
 export * from "./components/plugin/scaled-board-teaser";
+// Template editor — the TipTap-backed authoring surface for board templates.
+//
+// Consumers must also import its stylesheet, which is not bundled into the JS:
+//   import "@fiestaboard/ui/editor.css";
+//
+// NOT exported here, deliberately: `components/editor/formula/formula-editor-panel`.
+// It pulls in CodeMirror (~140 kB), which must not enter the module graph of an
+// app that only renders a board template. It stays reachable by deep subpath:
+//   import { FormulaEditorPanel } from "@fiestaboard/ui/components/editor/formula/formula-editor-panel";
+// FormulaNodeView reaches it through a `lazy()` dynamic import, so it lands in a
+// separate async chunk rather than the barrel's graph — keep it that way.
+export * from "./components/editor/constants";
+export * from "./components/editor/template-editor";
+export * from "./components/editor/template-editor-toolbar";
+export * from "./components/editor/toolbar-dropdown";
+// Pickers — rendered by the toolbar, exported so an app can host them standalone.
+export * from "./components/editor/color-picker-content";
+export * from "./components/editor/draw-char-picker-content";
+export * from "./components/editor/filter-picker-content";
+export * from "./components/editor/formatting-picker-content";
+export * from "./components/editor/variable-picker-content";
+// TipTap schema + node views, for apps composing their own editor instance.
+export * from "./components/editor/extensions/color-tile-node";
+export * from "./components/editor/extensions/fill-space-node";
+export * from "./components/editor/extensions/formula-node";
+export * from "./components/editor/extensions/line-navigation";
+export * from "./components/editor/extensions/single-paragraph-doc";
+export * from "./components/editor/extensions/trailing-newline";
+export * from "./components/editor/extensions/variable-node";
+export * from "./components/editor/extensions/wrapped-text-node";
+export * from "./components/editor/node-views/color-tile-node-view";
+export * from "./components/editor/node-views/fill-space-node-view";
+export * from "./components/editor/node-views/formula-node-view";
+export * from "./components/editor/node-views/node-view-context";
+export * from "./components/editor/node-views/variable-node-view";
+export * from "./components/editor/node-views/wrapped-text-view";
+// Template (de)serialization and draw-mode geometry — pure, no TipTap instance.
+export * from "./components/editor/utils/draw-mode";
+export * from "./components/editor/utils/insertion";
+export * from "./components/editor/utils/length-calculator";
+export * from "./components/editor/utils/serialization";
+export * from "./components/editor/utils/stroke-transaction";

@@ -1,0 +1,380 @@
+/**
+ * Template string ↔ TipTap document serialization
+ * Handles parsing and serializing template syntax while maintaining compatibility
+ */
+
+import type { JSONContent } from "@tiptap/react";
+
+import {
+  BOARD_COLOR_CODES,
+  CURSOR_ANCHOR,
+  DEFAULT_BOARD_LINES,
+  FILL_SPACE_REPEAT_VAR,
+  FILL_SPACE_VAR,
+} from "../constants";
+
+/**
+ * Zero-width space (U+200B) inserted at the start and end of each line so
+ * the caret always has a text node to sit in (fixes cursor not showing at
+ * line boundaries and cursor "selecting" atom nodes on arrow navigation).
+ * Stripped on serialize so it never appears in saved template strings.
+ *
+ * Now shared from ../constants (CURSOR_ANCHOR) — see the note there.
+ */
+const CURSOR_ANCHOR_CHAR = CURSOR_ANCHOR;
+
+/**
+ * Simplified parser - treats template as single block with line breaks.
+ * @param maxLines  Number of lines for this device (6 for Flagship, 3 for Note).
+ *                  Used only for padding (ensures at least maxLines lines).
+ */
+export function parseTemplateSimple(template: string, maxLines = DEFAULT_BOARD_LINES): JSONContent {
+  const lines = template.split("\n");
+
+  // Build a single paragraph with content and hardBreaks between lines
+  const content: JSONContent[] = [];
+
+  lines.forEach((line, index) => {
+    // Leading ZWS so cursor renders at the start of the line
+    content.push({ type: "text", text: CURSOR_ANCHOR_CHAR });
+
+    // Parse line content (plain text, no alignment prefixes to extract)
+    if (line) {
+      const lineNodes = parseLineContent(line);
+      content.push(...lineNodes);
+    }
+
+    // Trailing ZWS so cursor renders at the end of the line
+    content.push({ type: "text", text: CURSOR_ANCHOR_CHAR });
+
+    // Add hard break between lines (except after last line)
+    if (index < lines.length - 1) {
+      content.push({ type: "hardBreak" });
+    }
+  });
+
+  // Pad with empty breaks to ensure maxLines total; each padded line gets ZWS so cursor shows
+  const currentLines = lines.length;
+  for (let i = currentLines; i < maxLines; i++) {
+    if (content.length > 0 && content[content.length - 1].type !== "hardBreak") {
+      content.push({ type: "hardBreak" });
+    }
+    // Leading + trailing ZWS (on empty lines they collapse to one, but keep
+    // the pair for consistency with content lines)
+    content.push({ type: "text", text: CURSOR_ANCHOR_CHAR });
+    content.push({ type: "text", text: CURSOR_ANCHOR_CHAR });
+    if (i < maxLines - 1) {
+      content.push({ type: "hardBreak" });
+    }
+  }
+
+  return {
+    type: "doc",
+    content: [
+      {
+        type: "paragraph",
+        content: content.length > 0 ? content : undefined,
+      },
+    ],
+  };
+}
+
+/**
+ * Simplified serializer - converts back to plain text with \n.
+ * @param maxLines  Number of lines for this device (6 for Flagship, 3 for Note).
+ */
+export function serializeTemplateSimple(doc: JSONContent, maxLines = DEFAULT_BOARD_LINES): string {
+  const emptyResult = Array.from({ length: maxLines }, () => "").join("\n");
+
+  if (!doc.content || doc.content.length === 0) {
+    return emptyResult;
+  }
+
+  const lines: string[] = [];
+  let currentLine = "";
+
+  // Get the first paragraph (should be the only one)
+  const paragraph = doc.content[0];
+  if (!paragraph || !paragraph.content) {
+    return emptyResult;
+  }
+
+  // Iterate through paragraph content
+  for (const node of paragraph.content) {
+    if (node.type === "hardBreak") {
+      lines.push(currentLine);
+      currentLine = "";
+    } else {
+      currentLine += serializeNodeContent(node);
+    }
+  }
+
+  // Always push the final line (even if empty) to preserve line count
+  lines.push(currentLine);
+
+  // Pad to at least maxLines (but don't truncate if over)
+  while (lines.length < maxLines) {
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Serialize a single node to string
+ */
+function serializeNodeContent(node: JSONContent): string {
+  switch (node.type) {
+    case "text": {
+      // Strip end-of-line cursor placeholder and convert to uppercase
+      // (uppercase is the board's only case — see BOARD_CHARS)
+      return (node.text || "").replaceAll(CURSOR_ANCHOR_CHAR, "").toUpperCase();
+    }
+
+    case "variable": {
+      const filters: TemplateFilter[] = node.attrs?.filters || [];
+      const filterStr = filters.map((f) => `|${f.name}${serializeFilterArg(f)}`).join("");
+      return `{{${node.attrs?.pluginId}.${node.attrs?.field}${filterStr}}}`;
+    }
+
+    case "colorTile":
+      return `{{${node.attrs?.color}}}`;
+
+    case "fillSpace": {
+      const repeatChar = node.attrs?.repeatChar;
+      if (repeatChar && repeatChar !== " ") {
+        return `{{${FILL_SPACE_REPEAT_VAR}:${repeatChar}}}`;
+      }
+      return `{{${FILL_SPACE_VAR}}}`;
+    }
+
+    case "wrappedText":
+      return `{{${node.attrs?.text}|wrap}}`;
+
+    case "formula":
+      return `{{= ${node.attrs?.expression} }}`;
+
+    default:
+      return "";
+  }
+}
+
+/**
+ * A parsed variable filter, e.g. `|pad:3` → `{ name: "pad", arg: "3" }`.
+ *
+ * `arg` (singular string) is the contract: it is what {@link parseVariable}
+ * produces, what the filter picker produces, and what VariableNode declares as
+ * its `filters` attribute. `args` is tolerated on read only — see below.
+ */
+export interface TemplateFilter {
+  name: string;
+  arg?: string;
+  /** @deprecated Legacy plural form; accepted on read, never written. */
+  args?: string[];
+}
+
+/**
+ * Render a filter's argument suffix (`":3"`, or `""` when it takes none).
+ *
+ * PORTED FIX: the app's serializer read `f.args` (a plural string ARRAY) while
+ * every producer wrote `f.arg` (a singular string) — so the branch never fired
+ * and every filter argument was silently dropped on save. `{{t.temp|pad:3}}`
+ * round-tripped to `{{t.temp|pad}}`, changing what the board rendered. We read
+ * the canonical `arg` first and still accept the legacy `args` array so any
+ * document already persisted in the plural shape keeps serializing.
+ */
+function serializeFilterArg(filter: TemplateFilter): string {
+  if (filter.arg !== undefined && filter.arg !== "") return `:${filter.arg}`;
+  if (filter.args && filter.args.length > 0) return `:${filter.args.join(",")}`;
+  return "";
+}
+
+/** Node types that are inline atoms (cursor can't sit inside them). */
+const ATOM_NODE_TYPES = new Set(["variable", "colorTile", "fillSpace", "formula"]);
+
+/**
+ * Parse line content into TipTap nodes
+ * Exported for use in insertion utilities
+ */
+export function parseLineContent(text: string): JSONContent[] {
+  const nodes: JSONContent[] = [];
+  let remaining = text;
+
+  while (remaining.length > 0) {
+    // Try to match double-bracket tokens {{...}}
+    const doubleMatch = remaining.match(/^\{\{([^}]+)\}\}/);
+    if (doubleMatch) {
+      const content = doubleMatch[1];
+      const fullMatch = doubleMatch[0];
+
+      // Check if it's a color
+      const colorName = content.toLowerCase();
+      if (Object.hasOwn(BOARD_COLOR_CODES, colorName)) {
+        nodes.push({
+          type: "colorTile",
+          attrs: {
+            color: colorName,
+            code: BOARD_COLOR_CODES[colorName as keyof typeof BOARD_COLOR_CODES],
+          },
+        });
+      }
+      // Check if it's fill_space
+      else if (content.toLowerCase() === FILL_SPACE_VAR) {
+        nodes.push({
+          type: "fillSpace",
+          attrs: {
+            id: newFillSpaceId(),
+          },
+        });
+      }
+      // Check if it's fill_space_repeat with optional character
+      else if (content.toLowerCase().startsWith(FILL_SPACE_REPEAT_VAR)) {
+        let repeatChar = " "; // default
+        if (content.includes(":")) {
+          const parts = content.split(":");
+          if (parts.length > 1 && parts[1]) {
+            repeatChar = parts[1];
+          }
+        }
+        nodes.push({
+          type: "fillSpace",
+          attrs: {
+            id: newFillSpaceId(),
+            repeatChar,
+          },
+        });
+      }
+      // Formula expression: {{= ... }} — parse as a formula node
+      else if (content.trimStart().startsWith("=")) {
+        const expression = content.trimStart().slice(1).trim();
+        nodes.push({
+          type: "formula",
+          attrs: { expression },
+        });
+      }
+      // Otherwise it's a variable
+      else {
+        const { varPath, filters } = parseVariable(content);
+        // Keep full path after plugin id (e.g. "parks.0.rides.0.ride_abbr" not just "parks")
+        const firstDot = varPath.indexOf(".");
+        const pluginId = firstDot === -1 ? varPath : varPath.slice(0, firstDot);
+        const field = firstDot === -1 ? "" : varPath.slice(firstDot + 1);
+
+        nodes.push({
+          type: "variable",
+          attrs: {
+            pluginId: pluginId || "",
+            field: field || "",
+            filters,
+          },
+        });
+      }
+
+      remaining = remaining.slice(fullMatch.length);
+      continue;
+    }
+
+    // Try to match single-bracket tokens {token}
+    const singleMatch = remaining.match(/^\{([a-z]+)\}/i);
+    if (singleMatch) {
+      const tokenName = singleMatch[1].toLowerCase();
+
+      // Check if it's a color (single bracket color syntax)
+      if (Object.hasOwn(BOARD_COLOR_CODES, tokenName)) {
+        nodes.push({
+          type: "colorTile",
+          attrs: {
+            color: tokenName,
+            code: BOARD_COLOR_CODES[tokenName as keyof typeof BOARD_COLOR_CODES],
+          },
+        });
+        remaining = remaining.slice(singleMatch[0].length);
+        continue;
+      }
+
+      // Unmatched {token} (e.g. {sun}) - treat as plain text
+      nodes.push({
+        type: "text",
+        text: singleMatch[0],
+      });
+      remaining = remaining.slice(singleMatch[0].length);
+      continue;
+    }
+
+    // Plain text - collect until next special token
+    const nextToken = remaining.search(/\{\{|\{[a-z]+\}/i);
+    if (nextToken === -1) {
+      // Rest is plain text
+      if (remaining) {
+        nodes.push({
+          type: "text",
+          text: remaining,
+        });
+      }
+      break;
+    } else if (nextToken > 0) {
+      // Text before next token
+      nodes.push({
+        type: "text",
+        text: remaining.slice(0, nextToken),
+      });
+      remaining = remaining.slice(nextToken);
+    } else {
+      // Token is at start but didn't match - treat first char as text
+      nodes.push({
+        type: "text",
+        text: remaining[0],
+      });
+      remaining = remaining.slice(1);
+    }
+  }
+
+  // Post-process: insert a ZWS text node immediately before AND after every
+  // atom inline node so the caret always has a text-offset anchor adjacent
+  // to the atom. Without this, ProseMirror's domFromPos lands the caret on
+  // a P-element offset between siblings, which Safari mis-renders: the
+  // visual caret falls in the wrong place, arrow keys appear stuck, and
+  // typed input is routed past the atom instead of inserted next to it.
+  // Adjacent text nodes with the same marks merge inside PM, so doubled
+  // ZWS (e.g. preceding text + atom-leading ZWS) collapse into one node.
+  const result: JSONContent[] = [];
+  for (const node of nodes) {
+    if (ATOM_NODE_TYPES.has(node.type!)) {
+      result.push({ type: "text", text: CURSOR_ANCHOR_CHAR });
+      result.push(node);
+      result.push({ type: "text", text: CURSOR_ANCHOR_CHAR });
+    } else {
+      result.push(node);
+    }
+  }
+  return result;
+}
+
+/**
+ * Opaque id for a fillSpace node, so React keys and node identity stay stable.
+ * (Was an inline `Math.random().toString(36).substr(2, 9)`; `substr` is
+ * deprecated, so this uses `slice` — same shape, same collision behavior.)
+ */
+function newFillSpaceId(): string {
+  return Math.random().toString(36).slice(2, 11);
+}
+
+/**
+ * Parse variable expression with filters
+ */
+function parseVariable(expr: string): { varPath: string; filters: TemplateFilter[] } {
+  const parts = expr.split("|");
+  const varPath = parts[0].trim();
+  const filters = parts.slice(1).map((f) => {
+    const colonIndex = f.indexOf(":");
+    if (colonIndex === -1) {
+      return { name: f.trim() };
+    }
+    return {
+      name: f.slice(0, colonIndex).trim(),
+      arg: f.slice(colonIndex + 1).trim(),
+    };
+  });
+
+  return { varPath, filters };
+}
