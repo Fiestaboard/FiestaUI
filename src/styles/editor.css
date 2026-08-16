@@ -1,0 +1,164 @@
+/**
+ * Template editor stylesheet — ProseMirror surface rules for
+ * `components/editor/template-editor.tsx`.
+ *
+ * Opt-in subpath, exactly like `fonts.css`: nothing in the package imports it,
+ * so an app that never renders the editor never pays for it. Consumers of
+ * `TemplateEditor` MUST import it once, alongside `theme.css`:
+ *
+ *   import "@fiestaboard/ui/theme.css";
+ *   import "@fiestaboard/ui/editor.css";
+ *
+ * Ported verbatim from the FiestaBoard app, where these rules lived in an
+ * inline `<style>` element rendered inside the editor component — i.e. the
+ * whole sheet was re-parsed on every mount, duplicated per instance, and could
+ * not be treeshaken, cached, or overridden by app CSS with predictable
+ * ordering. They are global on purpose: ProseMirror owns the DOM inside
+ * `.ProseMirror` and Tailwind utilities cannot reach nodes it creates
+ * (`<br>`, node-view wrappers, the `::before` placeholder). Tailwind
+ * arbitrary-variant classes that CAN reach their target stay inline on the
+ * component.
+ *
+ * `var(--primary)`, `var(--muted-foreground)` come from theme.css.
+ */
+
+/* Ensure ProseMirror container looks like a single textarea */
+.ProseMirror {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+  outline: none;
+}
+
+/* Placeholder for first empty line only - textarea-like */
+.ProseMirror[data-placeholder] > p:first-child:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  pointer-events: none;
+  position: absolute;
+}
+
+.ProseMirror:focus[data-placeholder] > p:first-child:empty::before {
+  opacity: 0.5;
+}
+
+/* Standard paragraph - no wrapping, fixed line height */
+.ProseMirror > p {
+  margin: 0;
+  padding: 0;
+  text-transform: uppercase;
+  font-family: "Courier New", "Courier", monospace;
+  font-size: 0.875rem;
+  letter-spacing: 0;
+  line-height: 1.5rem;
+  white-space: nowrap;
+  overflow: visible; /* Let content flow naturally, limit via input handling */
+  display: block;
+}
+
+/* Hard breaks create line breaks naturally */
+.ProseMirror br {
+  display: block;
+  content: "";
+  margin: 0;
+  padding: 0;
+  line-height: 0;
+}
+
+/* Prevent any extra spacing around hard breaks */
+.ProseMirror br::before,
+.ProseMirror br::after {
+  content: none;
+}
+
+/* Empty paragraph minimum height */
+.ProseMirror > p:empty {
+  min-height: 1.5rem;
+}
+
+/* Cursor styling */
+.ProseMirror {
+  caret-color: var(--primary);
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* Inline nodes - keep them truly inline, no wrapping */
+.ProseMirror [data-type="variable"],
+.ProseMirror [data-type="color-tile"],
+.ProseMirror [data-type="fill-space"],
+.ProseMirror [data-type="wrapped-text"] {
+  display: inline-block !important;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Node view wrappers - prevent wrapping */
+.ProseMirror [data-node-view-wrapper] {
+  display: inline-block !important;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Ensure text nodes also don't wrap */
+.ProseMirror p > span {
+  white-space: nowrap;
+}
+
+/* All inline nodes must not exceed line height */
+.ProseMirror [data-type="variable"],
+.ProseMirror [data-type="color-tile"],
+.ProseMirror [data-type="fill-space"],
+.ProseMirror [data-type="wrapped-text"] {
+  max-height: 1.4rem !important;
+  height: auto !important;
+  line-height: 1.4rem;
+  vertical-align: middle;
+}
+
+/* Text should be monospace and equal width - each character is exactly 1ch */
+.ProseMirror {
+  font-family: "Courier New", "Courier", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Don't transform node views (they handle their own display) */
+.ProseMirror [data-type="variable"],
+.ProseMirror [data-type="color-tile"],
+.ProseMirror [data-type="fill-space"],
+.ProseMirror [data-type="wrapped-text"] {
+  text-transform: none;
+}
+
+/* Enable dragging for nodes with data-drag-handle */
+.ProseMirror [data-drag-handle] {
+  cursor: grab;
+}
+
+.ProseMirror [data-drag-handle]:active {
+  cursor: grabbing;
+}
+
+/* Ensure no weird spacing around inline nodes */
+.ProseMirror [data-type="variable"]::before,
+.ProseMirror [data-type="variable"]::after,
+.ProseMirror [data-type="color-tile"]::before,
+.ProseMirror [data-type="color-tile"]::after {
+  content: none;
+}
+
+/* Range-selection highlight for inline atom nodes (color tiles,
+   variables, fill-space).  onSelectionUpdate adds this
+   class to any atom node DOM element inside the selection range,
+   giving shift+arrow and click-drag a visible highlight without
+   needing user-select: all (which made Safari treat clicks on a
+   tag as selecting the entire line). */
+.ProseMirror .selected-inline {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  border-radius: 3px;
+}

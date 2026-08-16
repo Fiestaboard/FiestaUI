@@ -34,6 +34,14 @@ export const BOARD_COLORS = {
   black: "#1a1a1a",
 } as const;
 
+/**
+ * Legacy alias. The FiestaBoard app named this exact map `FIESTABOARD_COLORS`
+ * (`@/lib/board-colors`), and its template-editor components import it by that
+ * name. Same object, same name → hex contract — kept so the app can drop its
+ * local copy without a rename sweep. Prefer `BOARD_COLORS` in new code.
+ */
+export const FIESTABOARD_COLORS = BOARD_COLORS;
+
 // Type for board color names
 export type BoardColorName = keyof typeof BOARD_COLORS;
 

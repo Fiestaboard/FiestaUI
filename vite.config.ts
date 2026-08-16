@@ -16,6 +16,12 @@ const EXTERNAL = [
   /^clsx(\/|$)/,
   /^tailwind-merge(\/|$)/,
   /^ogl(\/|$)/,
+  // Editor runtime. `@tiptap/pm` is imported by subpath (`@tiptap/pm/state`,
+  // `/model`, `/history`), hence the trailing-slash alternative on every one
+  // of these — a bare `/^@tiptap\/pm$/` would inline the ProseMirror halves.
+  /^@tiptap\//,
+  /^@codemirror\//,
+  /^@lezer\//,
 ];
 
 export default defineConfig({

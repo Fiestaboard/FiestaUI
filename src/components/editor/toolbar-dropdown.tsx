@@ -1,0 +1,194 @@
+/**
+ * Simple dropdown component for toolbar
+ */
+"use client";
+
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
+import { cn } from "../../lib/utils";
+import { Box } from "../layout/box";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
+import { Text } from "../typography/text";
+
+// `z-[var(--z-popover)]` is the app's literal `z-50` expressed as the token
+// that already means 50 for dropdown popovers, so this panel moves with the
+// layer table in theme.css instead of pinning a number next to it.
+const PANEL_CLASS =
+  "absolute top-full left-0 mt-1 z-[var(--z-popover)] bg-popover border border-border rounded-md shadow-lg max-w-[calc(100vw-16px)] overflow-x-auto";
+
+export interface ToolbarDropdownLabels {
+  /** Accessible name used when the caller passes an empty `label`. */
+  menu: string;
+}
+
+export const DEFAULT_TOOLBAR_DROPDOWN_LABELS: ToolbarDropdownLabels = {
+  menu: "Menu",
+};
+
+export interface ToolbarDropdownProps {
+  /** Trigger's accessible name and tooltip copy. Already caller-supplied — localize it app-side. */
+  label: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode | ((close: () => void) => React.ReactNode);
+  className?: string;
+  onClose?: () => void;
+  /** When false, clicking outside will NOT close the dropdown. Default: true */
+  closeOnOutsideClick?: boolean;
+  /** Disables the trigger button and prevents opening. */
+  disabled?: boolean;
+  labels?: Partial<ToolbarDropdownLabels>;
+  "data-testid"?: string;
+}
+
+export function ToolbarDropdown({
+  label,
+  icon,
+  children,
+  className,
+  onClose,
+  closeOnOutsideClick = true,
+  disabled = false,
+  labels,
+  "data-testid": dataTestId,
+}: ToolbarDropdownProps) {
+  const l = { ...DEFAULT_TOOLBAR_DROPDOWN_LABELS, ...labels };
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const [panelShift, setPanelShift] = useState(0);
+
+  // The panel is plain `absolute top-full left-0` with no collision handling,
+  // so a wide picker anchored to a right-side toolbar button runs off narrow
+  // (mobile) viewports. Measure after open/content changes and shift it back
+  // into view.
+  // The reset on close used to live in this effect. It is redundant: the panel
+  // is only rendered while open, and `clamp()` below runs synchronously in the
+  // same layout effect that opening triggers — before paint — so a shift left
+  // over from the previous open is always overwritten before it can be seen.
+  // Dropping it removes a setState from the effect body
+  // (react-hooks/set-state-in-effect, issue #1568).
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const clamp = () => {
+      const panel = panelRef.current;
+      if (!panel) return;
+      // Measure the untransformed position so repeated clamps don't compound.
+      const prevTransform = panel.style.transform;
+      panel.style.transform = "none";
+      const rect = panel.getBoundingClientRect();
+      panel.style.transform = prevTransform;
+      const viewportWidth = document.documentElement.clientWidth;
+      const margin = 8;
+      let shift = 0;
+      if (rect.right > viewportWidth - margin) {
+        shift = viewportWidth - margin - rect.right;
+      }
+      if (rect.left + shift < margin) {
+        shift = margin - rect.left;
+      }
+      setPanelShift(shift);
+    };
+    clamp();
+    // Pickers change width as the user switches tabs or filters, and rotation
+    // changes the viewport — re-clamp on both.
+    const observer = new ResizeObserver(clamp);
+    if (panelRef.current) observer.observe(panelRef.current);
+    window.addEventListener("resize", clamp);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", clamp);
+    };
+  }, [isOpen]);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    onClose?.();
+  };
+
+  // Close dropdown when clicking outside (only if closeOnOutsideClick is true)
+  useEffect(() => {
+    if (!isOpen || !closeOnOutsideClick) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        onClose?.();
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen, closeOnOutsideClick, onClose]);
+
+  // Always close on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        setIsOpen(false);
+        onClose?.();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
+  }, [isOpen, onClose]);
+
+  return (
+    <TooltipProvider>
+      <Box ref={dropdownRef} className="relative">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              disabled={disabled}
+              data-testid={dataTestId}
+              onClick={() => {
+                if (disabled) return;
+                setIsOpen(!isOpen);
+              }}
+              className={cn(
+                "flex items-center justify-center p-1.5 rounded-md",
+                "hover:bg-muted/50 transition-colors",
+                "border border-transparent",
+                isOpen && "bg-muted/70 border-border",
+                disabled && "opacity-60 cursor-not-allowed",
+                className,
+              )}
+              aria-expanded={isOpen}
+              aria-haspopup="true"
+              aria-label={label || l.menu}
+            >
+              {icon && (
+                <Text as="span" className="w-4 h-4">
+                  {icon}
+                </Text>
+              )}
+              {label && (
+                <Text as="span" className="sr-only">
+                  {label}
+                </Text>
+              )}
+            </button>
+          </TooltipTrigger>
+          {label && (
+            <TooltipContent>
+              <Text>{label}</Text>
+            </TooltipContent>
+          )}
+        </Tooltip>
+
+        {isOpen && (
+          <Box
+            ref={panelRef}
+            data-testid="toolbar-dropdown-panel"
+            className={PANEL_CLASS}
+            style={{ transform: panelShift ? `translateX(${panelShift}px)` : undefined }}
+          >
+            {typeof children === "function" ? children(handleClose) : children}
+          </Box>
+        )}
+      </Box>
+    </TooltipProvider>
+  );
+}
