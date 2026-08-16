@@ -33,18 +33,22 @@ const alertVariants = cva(
         // to set `text-<status>` on the container, so the description
         // paragraph inherited it — the one place the system's own
         // "body copy is --foreground" convention broke, and the reason a
-        // long warning body rendered as amber prose. Status now lives on
-        // three redundant channels that are not the text: the icon, the
-        // 4px left rule, and the 8% fill.
+        // long warning body rendered as amber prose.
+        //
+        // Status now lives on three redundant channels, none of them the body
+        // text: the icon, the full-strength border, and the 8% fill. That
+        // satisfies #174 (never hue alone) without a heavy left rail — an
+        // accent bar down the side of a rounded card is a stock look, and the
+        // border and fill were already carrying the signal without it.
         //
         // This is also what makes the hue lock survivable. --warning is board
         // yellow, which cannot be simultaneously dark enough to read as body
         // text on white and light enough to still look like caution. As a
-        // rule and an icon it has no such problem.
-        destructive: "border-destructive border-l-4 bg-destructive/8 text-foreground [&>svg]:text-destructive",
-        info: "border-info border-l-4 bg-info/8 text-foreground [&>svg]:text-info",
-        success: "border-success border-l-4 bg-success/8 text-foreground [&>svg]:text-success",
-        warning: "border-warning border-l-4 bg-warning/8 text-foreground [&>svg]:text-warning",
+        // border and an icon it has no such problem.
+        destructive: "border-destructive bg-destructive/8 text-foreground [&>svg]:text-destructive",
+        info: "border-info bg-info/8 text-foreground [&>svg]:text-info",
+        success: "border-success bg-success/8 text-foreground [&>svg]:text-success",
+        warning: "border-warning bg-warning/8 text-foreground [&>svg]:text-warning",
       },
     },
     defaultVariants: {

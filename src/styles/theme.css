@@ -325,7 +325,7 @@
      could not afford. 1.56:1 of luminance remains between them.
      NOTE: yellow cannot be both dark enough to read as text on white and
      light enough to read as yellow. --warning is therefore a FILL, ICON
-     and RULE color, never a text color: its label is board ink at 4.93:1.
+     and BORDER color, never a text color: its label is board ink at 4.93:1.
      Alert enforces this — status color never touches a sentence. */
   --warning: oklch(0.62 0.131 104);
   --warning-foreground: oklch(0.205 0.008 73);

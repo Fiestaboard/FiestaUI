@@ -1,5 +1,5 @@
 import type { Meta } from "@storybook/react";
-import { AlertCircle, Info, Mail, Plus } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info, Mail, Plus, TriangleAlert } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
@@ -192,6 +192,10 @@ export const BadgeMatrix = () => {
 };
 
 export const AlertMatrix = () => {
+  // These rows used to be labelled Success and Warning while passing
+  // `variant: "default"`, so two of the five Alert variants had never been
+  // rendered in Storybook at all — which is how a status variant that
+  // coloured its own body text survived this long.
   const types = [
     {
       title: "Default Info",
@@ -200,15 +204,21 @@ export const AlertMatrix = () => {
       message: "This is an informational alert with default styling.",
     },
     {
-      title: "Success",
-      variant: "default" as const,
+      title: "Info",
+      variant: "info" as const,
       icon: <Info className="h-4 w-4" />,
+      message: "A new version is available and ready to install.",
+    },
+    {
+      title: "Success",
+      variant: "success" as const,
+      icon: <CheckCircle2 className="h-4 w-4" />,
       message: "Operation completed successfully.",
     },
     {
       title: "Warning",
-      variant: "default" as const,
-      icon: <Info className="h-4 w-4" />,
+      variant: "warning" as const,
+      icon: <TriangleAlert className="h-4 w-4" />,
       message: "Please review this warning message.",
     },
     {
@@ -235,6 +245,54 @@ export const AlertMatrix = () => {
               <AlertDescription>{type.message}</AlertDescription>
             </Alert>
           ))}
+        </div>
+
+        {/* An alert that asks for something needs a control, and a control
+            inside a tinted status container is the composition most likely to
+            go wrong: a brand-orange primary sitting on a yellow warning wash
+            puts two saturated warm fills 20px apart, and neither wins.
+            The rule this story exists to prove: INSIDE A STATUS ALERT, THE
+            ACTION IS `outline` OR `ghost`. The alert already establishes the
+            urgency; the button only has to be pressable. `destructive` is the
+            one exception, and only in the destructive alert, where the action
+            genuinely is the dangerous one. */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">With actions</h2>
+          <p className="text-sm text-muted-foreground">
+            Actions inside a status alert use <code className="font-mono text-xs">outline</code> or{" "}
+            <code className="font-mono text-xs">ghost</code>. A filled brand or primary button competes with the
+            alert&apos;s own tint instead of sitting inside it.
+          </p>
+          {types
+            .filter((t) => t.variant !== "default")
+            .map((type, i) => (
+              <Alert key={i} variant={type.variant}>
+                {type.icon}
+                <AlertTitle>{type.title}</AlertTitle>
+                <AlertDescription>{type.message}</AlertDescription>
+                <div className="mt-3 flex gap-2">
+                  <Button variant={type.variant === "destructive" ? "destructive" : "outline"} size="sm">
+                    {type.variant === "destructive" ? "Delete anyway" : "Review"}
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    Dismiss
+                  </Button>
+                </div>
+              </Alert>
+            ))}
+
+          <h3 className="pt-2 text-sm font-semibold text-muted-foreground">For comparison — what not to do</h3>
+          <Alert variant="warning">
+            <TriangleAlert className="h-4 w-4" />
+            <AlertTitle>Warning</AlertTitle>
+            <AlertDescription>A filled brand button on a warm status wash. Two fills, no hierarchy.</AlertDescription>
+            <div className="mt-3 flex gap-2">
+              <Button variant="brand" size="sm">
+                Brand
+              </Button>
+              <Button size="sm">Primary</Button>
+            </div>
+          </Alert>
         </div>
 
         <div className="space-y-4">
