@@ -1,36 +1,39 @@
 {
-  "schemaVersion": 1,
-  "ref": "7875c0f071e87ab41bf7ccc2fd601880788b73d1",
+  "schemaVersion": 2,
+  "ref": "04d360458ed1c7e32dca43831bdf9ff56bfe377e",
   "barrel": {
     "externals": [
       "@base-ui/react",
+      "@codemirror/commands",
+      "@codemirror/language",
+      "@codemirror/state",
+      "@codemirror/view",
+      "@lezer/highlight",
+      "@tiptap/core",
+      "@tiptap/pm",
+      "@tiptap/react",
+      "@tiptap/starter-kit",
       "class-variance-authority",
       "clsx",
       "lucide-react",
       "ogl",
       "react",
+      "react-dom",
       "tailwind-merge"
     ],
-    "firstPartyBytes": 28600,
-    "totalBytes": 145597
+    "firstPartyBytes": 65763,
+    "totalBytes": 438655
   },
   "exports": {
     "ALL_COLOR_CODES": {
       "externals": [],
-      "firstPartyBytes": 250,
-      "totalBytes": 250
-    },
-    "ALL_SEASONS": {
-      "externals": [
-        "react"
-      ],
-      "firstPartyBytes": 565,
-      "totalBytes": 565
+      "firstPartyBytes": 282,
+      "totalBytes": 282
     },
     "AVAILABLE_COLORS": {
       "externals": [],
-      "firstPartyBytes": 281,
-      "totalBytes": 281
+      "firstPartyBytes": 313,
+      "totalBytes": 313
     },
     "Accordion": {
       "externals": [
@@ -38,8 +41,8 @@
         "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 314,
-      "totalBytes": 9116
+      "firstPartyBytes": 447,
+      "totalBytes": 9902
     },
     "AccordionContent": {
       "externals": [
@@ -49,8 +52,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 346,
-      "totalBytes": 17631
+      "firstPartyBytes": 471,
+      "totalBytes": 18863
     },
     "AccordionItem": {
       "externals": [
@@ -60,8 +63,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 257,
-      "totalBytes": 17564
+      "firstPartyBytes": 385,
+      "totalBytes": 18789
     },
     "AccordionTrigger": {
       "externals": [
@@ -71,8 +74,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 406,
-      "totalBytes": 18630
+      "firstPartyBytes": 529,
+      "totalBytes": 19957
     },
     "Alert": {
       "externals": [
@@ -81,8 +84,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 444,
-      "totalBytes": 9262
+      "firstPartyBytes": 561,
+      "totalBytes": 9812
     },
     "AlertDescription": {
       "externals": [
@@ -91,8 +94,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 455,
-      "totalBytes": 9265
+      "firstPartyBytes": 572,
+      "totalBytes": 9809
     },
     "AlertDialog": {
       "externals": [
@@ -100,7 +103,7 @@
         "react"
       ],
       "firstPartyBytes": 153,
-      "totalBytes": 22773
+      "totalBytes": 25627
     },
     "AlertDialogAction": {
       "externals": [
@@ -110,8 +113,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 884,
-      "totalBytes": 32177
+      "firstPartyBytes": 1058,
+      "totalBytes": 35548
     },
     "AlertDialogCancel": {
       "externals": [
@@ -121,8 +124,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 901,
-      "totalBytes": 32205
+      "firstPartyBytes": 1074,
+      "totalBytes": 35574
     },
     "AlertDialogContent": {
       "externals": [
@@ -131,8 +134,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 419,
-      "totalBytes": 31500
+      "firstPartyBytes": 520,
+      "totalBytes": 34821
     },
     "AlertDialogDescription": {
       "externals": [
@@ -141,8 +144,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 278,
-      "totalBytes": 31364
+      "firstPartyBytes": 384,
+      "totalBytes": 34696
     },
     "AlertDialogFooter": {
       "externals": [
@@ -151,8 +154,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 296,
-      "totalBytes": 31384
+      "firstPartyBytes": 401,
+      "totalBytes": 34714
     },
     "AlertDialogHeader": {
       "externals": [
@@ -161,8 +164,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 288,
-      "totalBytes": 31375
+      "firstPartyBytes": 393,
+      "totalBytes": 34706
     },
     "AlertDialogOverlay": {
       "externals": [
@@ -171,8 +174,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 287,
-      "totalBytes": 31372
+      "firstPartyBytes": 393,
+      "totalBytes": 34704
     },
     "AlertDialogPortal": {
       "externals": [
@@ -180,7 +183,7 @@
         "react"
       ],
       "firstPartyBytes": 153,
-      "totalBytes": 22773
+      "totalBytes": 25627
     },
     "AlertDialogTitle": {
       "externals": [
@@ -189,8 +192,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 289,
-      "totalBytes": 31379
+      "firstPartyBytes": 394,
+      "totalBytes": 34710
     },
     "AlertDialogTrigger": {
       "externals": [
@@ -198,7 +201,7 @@
         "react"
       ],
       "firstPartyBytes": 243,
-      "totalBytes": 22832
+      "totalBytes": 25693
     },
     "AlertTitle": {
       "externals": [
@@ -207,26 +210,36 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 467,
-      "totalBytes": 9273
+      "firstPartyBytes": 582,
+      "totalBytes": 9819
     },
     "Aurora": {
       "externals": [
         "ogl",
         "react"
       ],
-      "firstPartyBytes": 2163,
-      "totalBytes": 15225
+      "firstPartyBytes": 2463,
+      "totalBytes": 42404
     },
     "BOARD_CHARS": {
       "externals": [],
-      "firstPartyBytes": 222,
-      "totalBytes": 222
+      "firstPartyBytes": 351,
+      "totalBytes": 351
+    },
+    "BOARD_CODE_TO_COLOR": {
+      "externals": [],
+      "firstPartyBytes": 182,
+      "totalBytes": 182
     },
     "BOARD_COLORS": {
       "externals": [],
-      "firstPartyBytes": 250,
-      "totalBytes": 250
+      "firstPartyBytes": 282,
+      "totalBytes": 282
+    },
+    "BOARD_COLOR_CODES": {
+      "externals": [],
+      "firstPartyBytes": 175,
+      "totalBytes": 175
     },
     "Badge": {
       "externals": [
@@ -236,22 +249,22 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 777,
-      "totalBytes": 11282
+      "firstPartyBytes": 883,
+      "totalBytes": 11965
     },
     "BoardDisplay": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 5035,
-      "totalBytes": 5035
+      "firstPartyBytes": 6517,
+      "totalBytes": 6517
     },
     "BoardIcon": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 326,
-      "totalBytes": 326
+      "firstPartyBytes": 341,
+      "totalBytes": 341
     },
     "BoardSelector": {
       "externals": [
@@ -261,38 +274,59 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 2197,
-      "totalBytes": 68431
+      "firstPartyBytes": 2727,
+      "totalBytes": 73530
     },
-    "Box": {
+    "BoardShowcase": {
       "externals": [
+        "@base-ui/react",
         "clsx",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 198,
-      "totalBytes": 8742
+      "firstPartyBytes": 4549,
+      "totalBytes": 27056
+    },
+    "BoardTeaser": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 2375,
+      "totalBytes": 2375
+    },
+    "Box": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 227,
+      "totalBytes": 227
     },
     "Button": {
       "externals": [
         "@base-ui/react",
         "class-variance-authority",
         "clsx",
+        "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 897,
-      "totalBytes": 11402
+      "firstPartyBytes": 1595,
+      "totalBytes": 13693
     },
     "COLOR_CODE_MAP": {
       "externals": [],
-      "firstPartyBytes": 250,
-      "totalBytes": 250
+      "firstPartyBytes": 282,
+      "totalBytes": 282
     },
     "COLOR_DISPLAY": {
       "externals": [],
-      "firstPartyBytes": 345,
-      "totalBytes": 345
+      "firstPartyBytes": 376,
+      "totalBytes": 376
+    },
+    "CURSOR_ANCHOR": {
+      "externals": [],
+      "firstPartyBytes": 125,
+      "totalBytes": 125
     },
     "Card": {
       "externals": [
@@ -300,8 +334,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 276,
-      "totalBytes": 8807
+      "firstPartyBytes": 375,
+      "totalBytes": 9339
     },
     "CardAction": {
       "externals": [
@@ -309,8 +343,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 234,
-      "totalBytes": 8769
+      "firstPartyBytes": 334,
+      "totalBytes": 9302
     },
     "CardContent": {
       "externals": [
@@ -318,8 +352,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 206,
-      "totalBytes": 8745
+      "firstPartyBytes": 306,
+      "totalBytes": 9279
     },
     "CardDescription": {
       "externals": [
@@ -327,8 +361,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 219,
-      "totalBytes": 8763
+      "firstPartyBytes": 320,
+      "totalBytes": 9296
     },
     "CardFooter": {
       "externals": [
@@ -336,8 +370,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 230,
-      "totalBytes": 8767
+      "firstPartyBytes": 329,
+      "totalBytes": 9302
     },
     "CardHeader": {
       "externals": [
@@ -345,8 +379,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 291,
-      "totalBytes": 8822
+      "firstPartyBytes": 391,
+      "totalBytes": 9355
     },
     "CardTitle": {
       "externals": [
@@ -354,8 +388,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 222,
-      "totalBytes": 8757
+      "firstPartyBytes": 322,
+      "totalBytes": 9294
     },
     "Checkbox": {
       "externals": [
@@ -363,8 +397,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 342,
-      "totalBytes": 8856
+      "firstPartyBytes": 590,
+      "totalBytes": 9526
     },
     "Code": {
       "externals": [
@@ -372,8 +406,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 235,
-      "totalBytes": 8778
+      "firstPartyBytes": 351,
+      "totalBytes": 9325
     },
     "Collapsible": {
       "externals": [
@@ -381,15 +415,15 @@
         "react"
       ],
       "firstPartyBytes": 168,
-      "totalBytes": 7263
+      "totalBytes": 7865
     },
     "CollapsibleContent": {
       "externals": [
         "@base-ui/react",
         "react"
       ],
-      "firstPartyBytes": 173,
-      "totalBytes": 7264
+      "firstPartyBytes": 174,
+      "totalBytes": 7867
     },
     "CollapsibleTrigger": {
       "externals": [
@@ -397,19 +431,208 @@
         "react"
       ],
       "firstPartyBytes": 215,
-      "totalBytes": 7296
+      "totalBytes": 7902
+    },
+    "ColorPickerContent": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 2488,
+      "totalBytes": 49950
+    },
+    "ColorTileNode": {
+      "externals": [
+        "@base-ui/react",
+        "@tiptap/core",
+        "@tiptap/react",
+        "class-variance-authority",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 2155,
+      "totalBytes": 135433
+    },
+    "ColorTileNodeView": {
+      "externals": [
+        "@base-ui/react",
+        "@tiptap/react",
+        "class-variance-authority",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1892,
+      "totalBytes": 49626
+    },
+    "DEFAULT_BOARD_LINES": {
+      "externals": [],
+      "firstPartyBytes": 113,
+      "totalBytes": 113
+    },
+    "DEFAULT_BOARD_WIDTH": {
+      "externals": [],
+      "firstPartyBytes": 113,
+      "totalBytes": 113
+    },
+    "DEFAULT_COLOR_PICKER_LABELS": {
+      "externals": [
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 309,
+      "totalBytes": 296
+    },
+    "DEFAULT_COLOR_TILE_NODE_VIEW_LABELS": {
+      "externals": [
+        "@tiptap/react",
+        "react"
+      ],
+      "firstPartyBytes": 206,
+      "totalBytes": 177
+    },
+    "DEFAULT_DRAW_CHAR_PICKER_LABELS": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 149,
+      "totalBytes": 149
+    },
+    "DEFAULT_FILL_SPACE_NODE_VIEW_LABELS": {
+      "externals": [
+        "@tiptap/react",
+        "react"
+      ],
+      "firstPartyBytes": 199,
+      "totalBytes": 172
+    },
+    "DEFAULT_FILTER_PICKER_LABELS": {
+      "externals": [
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 335,
+      "totalBytes": 311
+    },
+    "DEFAULT_FORMATTING_PICKER_LABELS": {
+      "externals": [
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 349,
+      "totalBytes": 318
+    },
+    "DEFAULT_FORMULA_NODE_VIEW_LABELS": {
+      "externals": [
+        "@base-ui/react",
+        "@codemirror/commands",
+        "@codemirror/language",
+        "@codemirror/state",
+        "@codemirror/view",
+        "@lezer/highlight",
+        "@tiptap/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "react-dom",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 7154,
+      "totalBytes": 148825
+    },
+    "DEFAULT_SHAPE_LABELS": {
+      "externals": [],
+      "firstPartyBytes": 107,
+      "totalBytes": 107
+    },
+    "DEFAULT_SHOWCASE_LABELS": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 214,
+      "totalBytes": 214
+    },
+    "DEFAULT_TEMPLATE_EDITOR_LABELS": {
+      "externals": [
+        "@base-ui/react",
+        "@codemirror/commands",
+        "@codemirror/language",
+        "@codemirror/state",
+        "@codemirror/view",
+        "@lezer/highlight",
+        "@tiptap/core",
+        "@tiptap/pm",
+        "@tiptap/react",
+        "@tiptap/starter-kit",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "react-dom",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 27887,
+      "totalBytes": 309641
+    },
+    "DEFAULT_TEMPLATE_EDITOR_TOOLBAR_LABELS": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 6930,
+      "totalBytes": 64610
+    },
+    "DEFAULT_TOOLBAR_DROPDOWN_LABELS": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 147,
+      "totalBytes": 147
+    },
+    "DEFAULT_VARIABLE_NODE_VIEW_LABELS": {
+      "externals": [
+        "@tiptap/react",
+        "react"
+      ],
+      "firstPartyBytes": 184,
+      "totalBytes": 157
+    },
+    "DEFAULT_VARIABLE_PICKER_LABELS": {
+      "externals": [
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 453,
+      "totalBytes": 441
+    },
+    "DEFAULT_WRAPPED_TEXT_VIEW_LABELS": {
+      "externals": [
+        "@tiptap/react",
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 175,
+      "totalBytes": 132
     },
     "DEVICE_DIMENSIONS": {
       "externals": [],
       "firstPartyBytes": 96,
       "totalBytes": 96
     },
-    "DRAFT_SEASONS": {
-      "externals": [
-        "react"
-      ],
-      "firstPartyBytes": 564,
-      "totalBytes": 564
+    "DRAW_CHARS": {
+      "externals": [],
+      "firstPartyBytes": 377,
+      "totalBytes": 377
     },
     "DecryptedText": {
       "externals": [
@@ -417,110 +640,112 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 1164,
-      "totalBytes": 9700
+      "firstPartyBytes": 1296,
+      "totalBytes": 10260
     },
     "Dialog": {
       "externals": [
         "@base-ui/react",
-        "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 161,
-      "totalBytes": 22731
+      "firstPartyBytes": 147,
+      "totalBytes": 25602
     },
     "DialogClose": {
       "externals": [
         "@base-ui/react",
-        "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 247,
-      "totalBytes": 22789
+      "firstPartyBytes": 232,
+      "totalBytes": 25665
     },
     "DialogContent": {
       "externals": [
         "@base-ui/react",
+        "class-variance-authority",
         "clsx",
         "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 691,
-      "totalBytes": 32619
+      "firstPartyBytes": 954,
+      "totalBytes": 36385
     },
     "DialogDescription": {
       "externals": [
         "@base-ui/react",
         "clsx",
-        "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 286,
-      "totalBytes": 31297
+      "firstPartyBytes": 378,
+      "totalBytes": 34640
     },
     "DialogFooter": {
       "externals": [
         "@base-ui/react",
         "clsx",
-        "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 302,
-      "totalBytes": 31322
+      "firstPartyBytes": 393,
+      "totalBytes": 34654
     },
     "DialogHeader": {
       "externals": [
         "@base-ui/react",
         "clsx",
-        "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 298,
-      "totalBytes": 31315
+      "firstPartyBytes": 388,
+      "totalBytes": 34648
     },
     "DialogOverlay": {
       "externals": [
         "@base-ui/react",
         "clsx",
-        "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 342,
-      "totalBytes": 31347
+      "firstPartyBytes": 432,
+      "totalBytes": 34691
     },
     "DialogPortal": {
       "externals": [
         "@base-ui/react",
-        "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 161,
-      "totalBytes": 22731
+      "firstPartyBytes": 147,
+      "totalBytes": 25602
     },
     "DialogTitle": {
       "externals": [
         "@base-ui/react",
         "clsx",
-        "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 296,
-      "totalBytes": 31312
+      "firstPartyBytes": 386,
+      "totalBytes": 34654
     },
     "DialogTrigger": {
       "externals": [
         "@base-ui/react",
-        "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 249,
-      "totalBytes": 22793
+      "firstPartyBytes": 235,
+      "totalBytes": 25667
+    },
+    "DrawCharPickerContent": {
+      "externals": [
+        "class-variance-authority",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1590,
+      "totalBytes": 10838
     },
     "DropdownMenu": {
       "externals": [
@@ -528,8 +753,8 @@
         "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 216,
-      "totalBytes": 50582
+      "firstPartyBytes": 217,
+      "totalBytes": 54217
     },
     "DropdownMenuCheckboxItem": {
       "externals": [
@@ -539,8 +764,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 566,
-      "totalBytes": 60161
+      "firstPartyBytes": 661,
+      "totalBytes": 64441
     },
     "DropdownMenuContent": {
       "externals": [
@@ -550,8 +775,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 570,
-      "totalBytes": 59301
+      "firstPartyBytes": 675,
+      "totalBytes": 63486
     },
     "DropdownMenuGroup": {
       "externals": [
@@ -560,7 +785,7 @@
         "react"
       ],
       "firstPartyBytes": 239,
-      "totalBytes": 50601
+      "totalBytes": 54236
     },
     "DropdownMenuItem": {
       "externals": [
@@ -570,8 +795,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 572,
-      "totalBytes": 59327
+      "firstPartyBytes": 672,
+      "totalBytes": 63500
     },
     "DropdownMenuLabel": {
       "externals": [
@@ -581,8 +806,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 346,
-      "totalBytes": 8803
+      "firstPartyBytes": 445,
+      "totalBytes": 9346
     },
     "DropdownMenuPortal": {
       "externals": [
@@ -590,8 +815,8 @@
         "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 217,
-      "totalBytes": 50585
+      "firstPartyBytes": 218,
+      "totalBytes": 54218
     },
     "DropdownMenuRadioGroup": {
       "externals": [
@@ -600,7 +825,7 @@
         "react"
       ],
       "firstPartyBytes": 246,
-      "totalBytes": 50605
+      "totalBytes": 54240
     },
     "DropdownMenuRadioItem": {
       "externals": [
@@ -610,8 +835,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 565,
-      "totalBytes": 60150
+      "firstPartyBytes": 663,
+      "totalBytes": 64436
     },
     "DropdownMenuSeparator": {
       "externals": [
@@ -621,8 +846,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 312,
-      "totalBytes": 10644
+      "firstPartyBytes": 416,
+      "totalBytes": 11280
     },
     "DropdownMenuShortcut": {
       "externals": [
@@ -632,8 +857,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 332,
-      "totalBytes": 8790
+      "firstPartyBytes": 435,
+      "totalBytes": 9331
     },
     "DropdownMenuSub": {
       "externals": [
@@ -641,8 +866,8 @@
         "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 241,
-      "totalBytes": 50605
+      "firstPartyBytes": 242,
+      "totalBytes": 54239
     },
     "DropdownMenuSubContent": {
       "externals": [
@@ -652,8 +877,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 522,
-      "totalBytes": 59267
+      "firstPartyBytes": 625,
+      "totalBytes": 63447
     },
     "DropdownMenuSubTrigger": {
       "externals": [
@@ -663,8 +888,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 536,
-      "totalBytes": 60138
+      "firstPartyBytes": 633,
+      "totalBytes": 64427
     },
     "DropdownMenuTrigger": {
       "externals": [
@@ -672,13 +897,13 @@
         "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 280,
-      "totalBytes": 50634
+      "firstPartyBytes": 281,
+      "totalBytes": 54277
     },
     "EXTRA_CHARS": {
       "externals": [],
-      "firstPartyBytes": 70,
-      "totalBytes": 70
+      "firstPartyBytes": 353,
+      "totalBytes": 353
     },
     "EmptyState": {
       "externals": [
@@ -686,43 +911,65 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 546,
-      "totalBytes": 9090
+      "firstPartyBytes": 659,
+      "totalBytes": 9630
+    },
+    "FIESTABOARD_COLORS": {
+      "externals": [],
+      "firstPartyBytes": 281,
+      "totalBytes": 281
     },
     "FIESTA_ICON_DATA_URI": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 1838,
-      "totalBytes": 1838
+      "firstPartyBytes": 2027,
+      "totalBytes": 2027
     },
     "FIESTA_ICON_PALETTE": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 1838,
-      "totalBytes": 1838
+      "firstPartyBytes": 2028,
+      "totalBytes": 2028
     },
     "FIESTA_ICON_SVG": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 1838,
-      "totalBytes": 1838
+      "firstPartyBytes": 2029,
+      "totalBytes": 2029
+    },
+    "FILL_SPACE_REPEAT_VAR": {
+      "externals": [],
+      "firstPartyBytes": 130,
+      "totalBytes": 130
+    },
+    "FILL_SPACE_VAR": {
+      "externals": [],
+      "firstPartyBytes": 127,
+      "totalBytes": 127
+    },
+    "FLAP_SPEED_PRESETS": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 6512,
+      "totalBytes": 6512
     },
     "FadeContent": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 576,
-      "totalBytes": 576
+      "firstPartyBytes": 714,
+      "totalBytes": 714
     },
     "FiestaIcon": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 1985,
-      "totalBytes": 1985
+      "firstPartyBytes": 2029,
+      "totalBytes": 2029
     },
     "FiestaLogo": {
       "externals": [
@@ -730,8 +977,45 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 322,
-      "totalBytes": 8849
+      "firstPartyBytes": 439,
+      "totalBytes": 9396
+    },
+    "FillSpaceNode": {
+      "externals": [
+        "@base-ui/react",
+        "@tiptap/core",
+        "@tiptap/react",
+        "class-variance-authority",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 2079,
+      "totalBytes": 135444
+    },
+    "FillSpaceNodeView": {
+      "externals": [
+        "@base-ui/react",
+        "@tiptap/react",
+        "class-variance-authority",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1838,
+      "totalBytes": 49677
+    },
+    "FilterPickerContent": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 2742,
+      "totalBytes": 14770
     },
     "Flex": {
       "externals": [
@@ -740,8 +1024,59 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 464,
-      "totalBytes": 9278
+      "firstPartyBytes": 577,
+      "totalBytes": 9831
+    },
+    "FormattingPickerContent": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 4575,
+      "totalBytes": 52481
+    },
+    "FormulaNode": {
+      "externals": [
+        "@base-ui/react",
+        "@codemirror/commands",
+        "@codemirror/language",
+        "@codemirror/state",
+        "@codemirror/view",
+        "@lezer/highlight",
+        "@tiptap/core",
+        "@tiptap/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "react-dom",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 8503,
+      "totalBytes": 236611
+    },
+    "FormulaNodeView": {
+      "externals": [
+        "@base-ui/react",
+        "@codemirror/commands",
+        "@codemirror/language",
+        "@codemirror/state",
+        "@codemirror/view",
+        "@lezer/highlight",
+        "@tiptap/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "react-dom",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 8287,
+      "totalBytes": 151451
     },
     "Grid": {
       "externals": [
@@ -750,15 +1085,15 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 460,
-      "totalBytes": 9291
+      "firstPartyBytes": 566,
+      "totalBytes": 9834
     },
     "HIDE_FESTIVE_COOKIE": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 579,
-      "totalBytes": 579
+      "firstPartyBytes": 111,
+      "totalBytes": 111
     },
     "Heading": {
       "externals": [
@@ -767,8 +1102,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 338,
-      "totalBytes": 9145
+      "firstPartyBytes": 478,
+      "totalBytes": 9723
     },
     "Input": {
       "externals": [
@@ -776,8 +1111,18 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 385,
-      "totalBytes": 8897
+      "firstPartyBytes": 568,
+      "totalBytes": 9518
+    },
+    "JsonTree": {
+      "externals": [
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1652,
+      "totalBytes": 11840
     },
     "Label": {
       "externals": [
@@ -785,8 +1130,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 245,
-      "totalBytes": 8778
+      "firstPartyBytes": 350,
+      "totalBytes": 9314
     },
     "LanguageSelector": {
       "externals": [
@@ -796,8 +1141,15 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 1527,
-      "totalBytes": 55378
+      "firstPartyBytes": 1999,
+      "totalBytes": 60142
+    },
+    "LineNavigation": {
+      "externals": [
+        "@tiptap/core"
+      ],
+      "firstPartyBytes": 201,
+      "totalBytes": 82427
     },
     "List": {
       "externals": [
@@ -806,18 +1158,16 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 334,
-      "totalBytes": 9153
+      "firstPartyBytes": 437,
+      "totalBytes": 9693
     },
     "ListItem": {
       "externals": [
         "class-variance-authority",
-        "clsx",
-        "react",
-        "tailwind-merge"
+        "react"
       ],
-      "firstPartyBytes": 316,
-      "totalBytes": 9141
+      "firstPartyBytes": 271,
+      "totalBytes": 812
     },
     "MAX_NOTES_PER_AXIS": {
       "externals": [],
@@ -830,8 +1180,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 453,
-      "totalBytes": 8972
+      "firstPartyBytes": 868,
+      "totalBytes": 9825
     },
     "NOTE_COLS": {
       "externals": [],
@@ -843,12 +1193,26 @@
       "firstPartyBytes": 58,
       "totalBytes": 58
     },
+    "NodeViewInjectionProvider": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 226,
+      "totalBytes": 226
+    },
+    "PLUGIN_CATEGORIES": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 134,
+      "totalBytes": 134
+    },
     "PRIDE_SEASON": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 564,
-      "totalBytes": 564
+      "firstPartyBytes": 181,
+      "totalBytes": 181
     },
     "PageHeader": {
       "externals": [
@@ -856,15 +1220,17 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 400,
-      "totalBytes": 8938
+      "firstPartyBytes": 710,
+      "totalBytes": 9676
     },
     "PageIconGradientDefs": {
       "externals": [
-        "react"
+        "clsx",
+        "react",
+        "tailwind-merge"
       ],
-      "firstPartyBytes": 316,
-      "totalBytes": 316
+      "firstPartyBytes": 710,
+      "totalBytes": 9676
     },
     "PageLayout": {
       "externals": [
@@ -872,8 +1238,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 365,
-      "totalBytes": 8892
+      "firstPartyBytes": 481,
+      "totalBytes": 9444
     },
     "PageToolbar": {
       "externals": [
@@ -881,15 +1247,91 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 306,
-      "totalBytes": 8839
+      "firstPartyBytes": 434,
+      "totalBytes": 9399
+    },
+    "PluginCard": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 4496,
+      "totalBytes": 15456
+    },
+    "PluginCategoryBadge": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1155,
+      "totalBytes": 12220
+    },
+    "Popover": {
+      "externals": [
+        "@base-ui/react",
+        "react"
+      ],
+      "firstPartyBytes": 391,
+      "totalBytes": 44224
+    },
+    "PopoverClose": {
+      "externals": [
+        "@base-ui/react",
+        "react"
+      ],
+      "firstPartyBytes": 230,
+      "totalBytes": 44110
+    },
+    "PopoverContent": {
+      "externals": [
+        "@base-ui/react",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 775,
+      "totalBytes": 53371
+    },
+    "PopoverDescription": {
+      "externals": [
+        "@base-ui/react",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 372,
+      "totalBytes": 53067
+    },
+    "PopoverTitle": {
+      "externals": [
+        "@base-ui/react",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 381,
+      "totalBytes": 53080
+    },
+    "PopoverTrigger": {
+      "externals": [
+        "@base-ui/react",
+        "react"
+      ],
+      "firstPartyBytes": 233,
+      "totalBytes": 44108
     },
     "SEASONS": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 564,
-      "totalBytes": 564
+      "firstPartyBytes": 186,
+      "totalBytes": 186
     },
     "ScaledBoardDisplay": {
       "externals": [
@@ -897,8 +1339,17 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 6102,
-      "totalBytes": 14565
+      "firstPartyBytes": 7672,
+      "totalBytes": 16515
+    },
+    "ScaledBoardTeaser": {
+      "externals": [
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 2847,
+      "totalBytes": 11776
     },
     "ScrollArea": {
       "externals": [
@@ -907,8 +1358,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 555,
-      "totalBytes": 16906
+      "firstPartyBytes": 676,
+      "totalBytes": 18035
     },
     "ScrollBar": {
       "externals": [
@@ -917,8 +1368,44 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 428,
-      "totalBytes": 16799
+      "firstPartyBytes": 544,
+      "totalBytes": 17918
+    },
+    "SecretInput": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 2155,
+      "totalBytes": 14467
+    },
+    "SegmentedControl": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1144,
+      "totalBytes": 17597
+    },
+    "SegmentedControlItem": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1305,
+      "totalBytes": 18572
     },
     "Select": {
       "externals": [
@@ -928,8 +1415,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 746,
-      "totalBytes": 54487
+      "firstPartyBytes": 1107,
+      "totalBytes": 59103
     },
     "SelectContent": {
       "externals": [
@@ -939,8 +1426,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 719,
-      "totalBytes": 54509
+      "firstPartyBytes": 814,
+      "totalBytes": 58897
     },
     "SelectGroup": {
       "externals": [
@@ -949,7 +1436,7 @@
         "react"
       ],
       "firstPartyBytes": 231,
-      "totalBytes": 44737
+      "totalBytes": 48564
     },
     "SelectItem": {
       "externals": [
@@ -959,8 +1446,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 513,
-      "totalBytes": 54308
+      "firstPartyBytes": 612,
+      "totalBytes": 58711
     },
     "SelectLabel": {
       "externals": [
@@ -970,8 +1457,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 325,
-      "totalBytes": 53281
+      "firstPartyBytes": 425,
+      "totalBytes": 57538
     },
     "SelectScrollDownButton": {
       "externals": [
@@ -981,8 +1468,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 385,
-      "totalBytes": 54191
+      "firstPartyBytes": 485,
+      "totalBytes": 58587
     },
     "SelectScrollUpButton": {
       "externals": [
@@ -992,8 +1479,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 381,
-      "totalBytes": 54192
+      "firstPartyBytes": 482,
+      "totalBytes": 58589
     },
     "SelectSeparator": {
       "externals": [
@@ -1003,8 +1490,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 335,
-      "totalBytes": 8821
+      "firstPartyBytes": 437,
+      "totalBytes": 9360
     },
     "SelectTrigger": {
       "externals": [
@@ -1014,8 +1501,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 521,
-      "totalBytes": 54319
+      "firstPartyBytes": 698,
+      "totalBytes": 58796
     },
     "SelectValue": {
       "externals": [
@@ -1023,28 +1510,26 @@
         "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 301,
-      "totalBytes": 44776
+      "firstPartyBytes": 339,
+      "totalBytes": 48643
     },
     "Sheet": {
       "externals": [
         "@base-ui/react",
         "class-variance-authority",
-        "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 342,
-      "totalBytes": 23304
+      "firstPartyBytes": 456,
+      "totalBytes": 26297
     },
     "SheetClose": {
       "externals": [
         "@base-ui/react",
         "class-variance-authority",
-        "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 430,
-      "totalBytes": 23364
+      "firstPartyBytes": 539,
+      "totalBytes": 26354
     },
     "SheetContent": {
       "externals": [
@@ -1055,88 +1540,81 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 960,
-      "totalBytes": 33080
+      "firstPartyBytes": 1155,
+      "totalBytes": 36558
     },
     "SheetDescription": {
       "externals": [
         "@base-ui/react",
         "class-variance-authority",
         "clsx",
-        "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 464,
-      "totalBytes": 31746
+      "firstPartyBytes": 679,
+      "totalBytes": 35195
     },
     "SheetFooter": {
       "externals": [
         "@base-ui/react",
         "class-variance-authority",
         "clsx",
-        "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 482,
-      "totalBytes": 31771
+      "firstPartyBytes": 700,
+      "totalBytes": 35210
     },
     "SheetHeader": {
       "externals": [
         "@base-ui/react",
         "class-variance-authority",
         "clsx",
-        "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 474,
-      "totalBytes": 31759
+      "firstPartyBytes": 690,
+      "totalBytes": 35199
     },
     "SheetOverlay": {
       "externals": [
         "@base-ui/react",
         "class-variance-authority",
         "clsx",
-        "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 495,
-      "totalBytes": 31779
+      "firstPartyBytes": 700,
+      "totalBytes": 35212
     },
     "SheetPortal": {
       "externals": [
         "@base-ui/react",
         "class-variance-authority",
-        "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 342,
-      "totalBytes": 23305
+      "firstPartyBytes": 456,
+      "totalBytes": 26297
     },
     "SheetTitle": {
       "externals": [
         "@base-ui/react",
         "class-variance-authority",
         "clsx",
-        "lucide-react",
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 466,
-      "totalBytes": 31753
+      "firstPartyBytes": 680,
+      "totalBytes": 35201
     },
     "SheetTrigger": {
       "externals": [
         "@base-ui/react",
         "class-variance-authority",
-        "lucide-react",
         "react"
       ],
-      "firstPartyBytes": 432,
-      "totalBytes": 23366
+      "firstPartyBytes": 541,
+      "totalBytes": 26356
     },
     "Sidebar": {
       "externals": [
@@ -1147,22 +1625,29 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 8065,
-      "totalBytes": 51839
+      "firstPartyBytes": 9624,
+      "totalBytes": 57492
     },
     "SidebarAurora": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 2571,
-      "totalBytes": 2571
+      "firstPartyBytes": 2755,
+      "totalBytes": 2755
     },
     "SidebarAuroraHorizontal": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 2464,
-      "totalBytes": 2464
+      "firstPartyBytes": 2655,
+      "totalBytes": 2655
+    },
+    "SingleParagraphDoc": {
+      "externals": [
+        "@tiptap/core"
+      ],
+      "firstPartyBytes": 127,
+      "totalBytes": 82413
     },
     "Skeleton": {
       "externals": [
@@ -1170,15 +1655,15 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 217,
-      "totalBytes": 8754
+      "firstPartyBytes": 341,
+      "totalBytes": 9314
     },
     "SkipToContent": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 285,
-      "totalBytes": 285
+      "firstPartyBytes": 302,
+      "totalBytes": 302
     },
     "Slider": {
       "externals": [
@@ -1187,8 +1672,19 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 750,
-      "totalBytes": 23955
+      "firstPartyBytes": 957,
+      "totalBytes": 25234
+    },
+    "Spinner": {
+      "externals": [
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 599,
+      "totalBytes": 10954
     },
     "Stack": {
       "externals": [
@@ -1197,15 +1693,25 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 374,
-      "totalBytes": 9202
+      "firstPartyBytes": 486,
+      "totalBytes": 9756
     },
     "StaticBoardDisplay": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 2290,
-      "totalBytes": 2290
+      "firstPartyBytes": 3216,
+      "totalBytes": 3216
+    },
+    "StatusDot": {
+      "externals": [
+        "class-variance-authority",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 788,
+      "totalBytes": 10009
     },
     "Switch": {
       "externals": [
@@ -1214,8 +1720,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 560,
-      "totalBytes": 15073
+      "firstPartyBytes": 715,
+      "totalBytes": 16025
     },
     "Table": {
       "externals": [
@@ -1223,8 +1729,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 255,
-      "totalBytes": 8787
+      "firstPartyBytes": 359,
+      "totalBytes": 9316
     },
     "TableBody": {
       "externals": [
@@ -1232,8 +1738,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 221,
-      "totalBytes": 8755
+      "firstPartyBytes": 319,
+      "totalBytes": 9292
     },
     "TableCell": {
       "externals": [
@@ -1241,8 +1747,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 211,
-      "totalBytes": 8743
+      "firstPartyBytes": 311,
+      "totalBytes": 9280
     },
     "TableHead": {
       "externals": [
@@ -1250,8 +1756,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 241,
-      "totalBytes": 8775
+      "firstPartyBytes": 343,
+      "totalBytes": 9312
     },
     "TableHeader": {
       "externals": [
@@ -1259,8 +1765,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 215,
-      "totalBytes": 8746
+      "firstPartyBytes": 313,
+      "totalBytes": 9283
     },
     "TableRow": {
       "externals": [
@@ -1268,16 +1774,16 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 237,
-      "totalBytes": 8766
+      "firstPartyBytes": 337,
+      "totalBytes": 9300
     },
     "Tabs": {
       "externals": [
         "@base-ui/react",
         "react"
       ],
-      "firstPartyBytes": 156,
-      "totalBytes": 13070
+      "firstPartyBytes": 240,
+      "totalBytes": 13977
     },
     "TabsContent": {
       "externals": [
@@ -1286,8 +1792,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 266,
-      "totalBytes": 21722
+      "firstPartyBytes": 382,
+      "totalBytes": 23092
     },
     "TabsList": {
       "externals": [
@@ -1296,8 +1802,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 275,
-      "totalBytes": 21736
+      "firstPartyBytes": 395,
+      "totalBytes": 23108
     },
     "TabsTrigger": {
       "externals": [
@@ -1306,8 +1812,42 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 411,
-      "totalBytes": 21857
+      "firstPartyBytes": 547,
+      "totalBytes": 23254
+    },
+    "TemplateEditor": {
+      "externals": [
+        "@base-ui/react",
+        "@codemirror/commands",
+        "@codemirror/language",
+        "@codemirror/state",
+        "@codemirror/view",
+        "@lezer/highlight",
+        "@tiptap/core",
+        "@tiptap/pm",
+        "@tiptap/react",
+        "@tiptap/starter-kit",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "react-dom",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 27884,
+      "totalBytes": 309642
+    },
+    "TemplateEditorToolbar": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 14228,
+      "totalBytes": 74234
     },
     "Text": {
       "externals": [
@@ -1316,8 +1856,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 396,
-      "totalBytes": 9216
+      "firstPartyBytes": 507,
+      "totalBytes": 9768
     },
     "TextLink": {
       "externals": [
@@ -1325,8 +1865,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 262,
-      "totalBytes": 8791
+      "firstPartyBytes": 365,
+      "totalBytes": 9327
     },
     "Textarea": {
       "externals": [
@@ -1334,8 +1874,8 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 365,
-      "totalBytes": 8878
+      "firstPartyBytes": 533,
+      "totalBytes": 9486
     },
     "ThemeToggle": {
       "externals": [
@@ -1346,16 +1886,63 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 1112,
-      "totalBytes": 12782
+      "firstPartyBytes": 1761,
+      "totalBytes": 14144
+    },
+    "TimePicker": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 4822,
+      "totalBytes": 58743
+    },
+    "ToggleCard": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1681,
+      "totalBytes": 19994
+    },
+    "ToggleCardGroup": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1169,
+      "totalBytes": 17613
+    },
+    "ToolbarDropdown": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1797,
+      "totalBytes": 48121
     },
     "Tooltip": {
       "externals": [
         "@base-ui/react",
         "react"
       ],
-      "firstPartyBytes": 132,
-      "totalBytes": 34149
+      "firstPartyBytes": 219,
+      "totalBytes": 37497
     },
     "TooltipContent": {
       "externals": [
@@ -1364,24 +1951,100 @@
         "react",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 380,
-      "totalBytes": 42833
+      "firstPartyBytes": 499,
+      "totalBytes": 46654
     },
     "TooltipProvider": {
       "externals": [
         "@base-ui/react",
         "react"
       ],
-      "firstPartyBytes": 188,
-      "totalBytes": 34181
+      "firstPartyBytes": 274,
+      "totalBytes": 37532
     },
     "TooltipTrigger": {
       "externals": [
         "@base-ui/react",
         "react"
       ],
-      "firstPartyBytes": 222,
-      "totalBytes": 34214
+      "firstPartyBytes": 304,
+      "totalBytes": 37557
+    },
+    "TrailingNewline": {
+      "externals": [
+        "@tiptap/core",
+        "@tiptap/pm"
+      ],
+      "firstPartyBytes": 341,
+      "totalBytes": 82468
+    },
+    "VariableNode": {
+      "externals": [
+        "@base-ui/react",
+        "@tiptap/core",
+        "@tiptap/react",
+        "class-variance-authority",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 2279,
+      "totalBytes": 135662
+    },
+    "VariableNodeView": {
+      "externals": [
+        "@base-ui/react",
+        "@tiptap/react",
+        "class-variance-authority",
+        "clsx",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1951,
+      "totalBytes": 49799
+    },
+    "VariablePickerContent": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 5946,
+      "totalBytes": 63856
+    },
+    "WrappedTextNode": {
+      "externals": [
+        "@tiptap/core",
+        "@tiptap/react",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 1062,
+      "totalBytes": 98893
+    },
+    "WrappedTextView": {
+      "externals": [
+        "@tiptap/react",
+        "clsx",
+        "lucide-react",
+        "react",
+        "tailwind-merge"
+      ],
+      "firstPartyBytes": 860,
+      "totalBytes": 13430
+    },
+    "alertVariants": {
+      "externals": [
+        "class-variance-authority",
+        "react"
+      ],
+      "firstPartyBytes": 349,
+      "totalBytes": 900
     },
     "badgeVariants": {
       "externals": [
@@ -1389,8 +2052,20 @@
         "class-variance-authority",
         "react"
       ],
-      "firstPartyBytes": 596,
-      "totalBytes": 1046
+      "firstPartyBytes": 678,
+      "totalBytes": 1144
+    },
+    "brushToCell": {
+      "externals": [],
+      "firstPartyBytes": 593,
+      "totalBytes": 593
+    },
+    "buildStrokeTransaction": {
+      "externals": [
+        "@tiptap/pm"
+      ],
+      "firstPartyBytes": 1909,
+      "totalBytes": 9477
     },
     "buttonVariants": {
       "externals": [
@@ -1398,53 +2073,91 @@
         "class-variance-authority",
         "react"
       ],
-      "firstPartyBytes": 696,
-      "totalBytes": 1146
+      "firstPartyBytes": 861,
+      "totalBytes": 1332
+    },
+    "calculateLineLength": {
+      "externals": [],
+      "firstPartyBytes": 236,
+      "totalBytes": 236
+    },
+    "cellsToLine": {
+      "externals": [],
+      "firstPartyBytes": 428,
+      "totalBytes": 428
     },
     "cn": {
       "externals": [
         "clsx",
         "tailwind-merge"
       ],
-      "firstPartyBytes": 125,
-      "totalBytes": 8665
+      "firstPartyBytes": 228,
+      "totalBytes": 9201
+    },
+    "createLucideIconResolver": {
+      "externals": [
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 311,
+      "totalBytes": 296
+    },
+    "deriveFlapTiming": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 6515,
+      "totalBytes": 6515
     },
     "fireSeasonBurst": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 871,
-      "totalBytes": 871
+      "firstPartyBytes": 578,
+      "totalBytes": 578
     },
     "flexVariants": {
       "externals": [
         "class-variance-authority",
         "react"
       ],
-      "firstPartyBytes": 343,
-      "totalBytes": 819
+      "firstPartyBytes": 424,
+      "totalBytes": 916
     },
     "getActiveSeason": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 688,
-      "totalBytes": 688
+      "firstPartyBytes": 342,
+      "totalBytes": 342
     },
     "getBoardColor": {
       "externals": [],
-      "firstPartyBytes": 302,
-      "totalBytes": 302
+      "firstPartyBytes": 329,
+      "totalBytes": 329
     },
     "getCharFromToken": {
       "externals": [],
-      "firstPartyBytes": 98,
-      "totalBytes": 98
+      "firstPartyBytes": 387,
+      "totalBytes": 387
     },
     "getCharIndex": {
       "externals": [],
-      "firstPartyBytes": 268,
-      "totalBytes": 268
+      "firstPartyBytes": 386,
+      "totalBytes": 386
+    },
+    "getOverflowAmount": {
+      "externals": [],
+      "firstPartyBytes": 256,
+      "totalBytes": 256
+    },
+    "getPluginsWithNestedArrays": {
+      "externals": [
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 318,
+      "totalBytes": 302
     },
     "gridVariants": {
       "externals": [
@@ -1452,112 +2165,292 @@
         "react"
       ],
       "firstPartyBytes": 335,
-      "totalBytes": 821
+      "totalBytes": 901
     },
     "headingVariants": {
       "externals": [
         "class-variance-authority",
         "react"
       ],
-      "firstPartyBytes": 212,
-      "totalBytes": 680
+      "firstPartyBytes": 247,
+      "totalBytes": 797
+    },
+    "insertTemplateContent": {
+      "externals": [],
+      "firstPartyBytes": 1054,
+      "totalBytes": 1054
     },
     "isColorTile": {
       "externals": [],
-      "firstPartyBytes": 103,
-      "totalBytes": 103
+      "firstPartyBytes": 374,
+      "totalBytes": 374
     },
     "isNoteArray": {
       "externals": [],
-      "firstPartyBytes": 87,
-      "totalBytes": 87
+      "firstPartyBytes": 88,
+      "totalBytes": 88
+    },
+    "isPositionalLine": {
+      "externals": [],
+      "firstPartyBytes": 845,
+      "totalBytes": 845
     },
     "isValidBoardColor": {
       "externals": [],
-      "firstPartyBytes": 297,
-      "totalBytes": 297
+      "firstPartyBytes": 332,
+      "totalBytes": 332
+    },
+    "lineRanges": {
+      "externals": [
+        "@tiptap/pm"
+      ],
+      "firstPartyBytes": 228,
+      "totalBytes": 197
+    },
+    "lineToCells": {
+      "externals": [],
+      "firstPartyBytes": 844,
+      "totalBytes": 844
     },
     "listVariants": {
       "externals": [
         "class-variance-authority",
         "react"
       ],
-      "firstPartyBytes": 224,
-      "totalBytes": 693
+      "firstPartyBytes": 225,
+      "totalBytes": 773
     },
     "messageToGrid": {
       "externals": [],
-      "firstPartyBytes": 611,
-      "totalBytes": 611
+      "firstPartyBytes": 895,
+      "totalBytes": 895
+    },
+    "messageToText": {
+      "externals": [],
+      "firstPartyBytes": 880,
+      "totalBytes": 880
     },
     "noteArrayDimensions": {
       "externals": [],
       "firstPartyBytes": 93,
       "totalBytes": 93
     },
+    "paintLine": {
+      "externals": [],
+      "firstPartyBytes": 961,
+      "totalBytes": 961
+    },
     "parseLine": {
       "externals": [],
-      "firstPartyBytes": 463,
-      "totalBytes": 463
+      "firstPartyBytes": 756,
+      "totalBytes": 756
+    },
+    "parseLineContent": {
+      "externals": [],
+      "firstPartyBytes": 875,
+      "totalBytes": 875
+    },
+    "parseTemplateSimple": {
+      "externals": [],
+      "firstPartyBytes": 1026,
+      "totalBytes": 1026
+    },
+    "previewLabel": {
+      "externals": [],
+      "firstPartyBytes": 211,
+      "totalBytes": 211
+    },
+    "previewLabels": {
+      "externals": [],
+      "firstPartyBytes": 280,
+      "totalBytes": 280
+    },
+    "previewMessage": {
+      "externals": [],
+      "firstPartyBytes": 88,
+      "totalBytes": 88
     },
     "readCookieString": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 609,
-      "totalBytes": 609
+      "firstPartyBytes": 134,
+      "totalBytes": 134
+    },
+    "renderPositionalLine": {
+      "externals": [],
+      "firstPartyBytes": 895,
+      "totalBytes": 895
     },
     "resolveColorCode": {
       "externals": [],
-      "firstPartyBytes": 312,
-      "totalBytes": 312
+      "firstPartyBytes": 342,
+      "totalBytes": 342
     },
     "resolveDimensions": {
       "externals": [],
-      "firstPartyBytes": 168,
-      "totalBytes": 168
+      "firstPartyBytes": 298,
+      "totalBytes": 298
+    },
+    "resolveFlapSpeed": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 6515,
+      "totalBytes": 6515
+    },
+    "segmentedControlItemVariants": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 831,
+      "totalBytes": 1342
+    },
+    "segmentedControlVariants": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 831,
+      "totalBytes": 1342
+    },
+    "serializeTemplateSimple": {
+      "externals": [],
+      "firstPartyBytes": 587,
+      "totalBytes": 587
     },
     "shouldShowPride": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 707,
-      "totalBytes": 707
+      "firstPartyBytes": 361,
+      "totalBytes": 361
+    },
+    "spinnerVariants": {
+      "externals": [
+        "class-variance-authority",
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 311,
+      "totalBytes": 773
     },
     "stackVariants": {
       "externals": [
         "class-variance-authority",
         "react"
       ],
-      "firstPartyBytes": 263,
-      "totalBytes": 738
+      "firstPartyBytes": 348,
+      "totalBytes": 836
+    },
+    "statusDotVariants": {
+      "externals": [
+        "class-variance-authority",
+        "react"
+      ],
+      "firstPartyBytes": 406,
+      "totalBytes": 958
     },
     "textVariants": {
       "externals": [
         "class-variance-authority",
         "react"
       ],
-      "firstPartyBytes": 279,
-      "totalBytes": 754
+      "firstPartyBytes": 362,
+      "totalBytes": 853
+    },
+    "toggleCardGroupVariants": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 831,
+      "totalBytes": 1342
+    },
+    "toggleCardVariants": {
+      "externals": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "lucide-react",
+        "react"
+      ],
+      "firstPartyBytes": 831,
+      "totalBytes": 1342
     },
     "tokensEqual": {
       "externals": [],
-      "firstPartyBytes": 132,
-      "totalBytes": 132
+      "firstPartyBytes": 413,
+      "totalBytes": 413
     },
     "useActiveSeason": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 755,
-      "totalBytes": 755
+      "firstPartyBytes": 410,
+      "totalBytes": 410
+    },
+    "useNodeViewInjection": {
+      "externals": [
+        "react"
+      ],
+      "firstPartyBytes": 157,
+      "totalBytes": 157
+    },
+    "usePopoverClose": {
+      "externals": [
+        "@base-ui/react",
+        "react"
+      ],
+      "firstPartyBytes": 166,
+      "totalBytes": 141
     },
     "usePrideActive": {
       "externals": [
         "react"
       ],
-      "firstPartyBytes": 773,
-      "totalBytes": 773
+      "firstPartyBytes": 425,
+      "totalBytes": 425
+    },
+    "willOverflow": {
+      "externals": [],
+      "firstPartyBytes": 249,
+      "totalBytes": 249
+    }
+  },
+  "css": {
+    "theme.css": {
+      "bytes": 16859
+    },
+    "seasons/christmas.css": {
+      "bytes": 1141
+    },
+    "seasons/easter.css": {
+      "bytes": 1129
+    },
+    "seasons/fathers-day.css": {
+      "bytes": 1095
+    },
+    "seasons/halloween.css": {
+      "bytes": 1347
+    },
+    "seasons/mothers-day.css": {
+      "bytes": 1109
+    },
+    "seasons/new-year.css": {
+      "bytes": 1192
+    },
+    "seasons/pride.css": {
+      "bytes": 1153
+    },
+    "seasons/thanksgiving.css": {
+      "bytes": 1152
     }
   }
 }

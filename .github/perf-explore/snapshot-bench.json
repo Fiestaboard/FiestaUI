@@ -1,35 +1,35 @@
 {
   "schemaVersion": 1,
   "baseUrl": "http://localhost:6007",
-  "idleStory": "ui-badge--default",
-  "controlStory": "ui-button--default",
-  "baselineSlopeKb": 141.19298735119048,
+  "idleStory": "feedback-badge--default",
+  "controlStory": "forms-button--default",
+  "baselineSlopeKb": 49.425316220238095,
   "retentionCalibrated": false,
   "selection": {
     "mode": "one-per-component",
-    "storiesAvailable": 318,
-    "storiesSelected": 56,
-    "storiesMeasured": 56
+    "storiesAvailable": 474,
+    "storiesSelected": 77,
+    "storiesMeasured": 77
   },
-  "storyCount": 56,
+  "storyCount": 77,
   "failures": [],
   "ranked": [
     {
-      "id": "ui-aurora--custom-colors",
+      "id": "effects-aurora--custom-colors",
       "mountMs": {
         "n": 7,
-        "value": 23.5,
-        "rawMedian": 23.5,
-        "iqr": 2.7000000000116415,
-        "ratio": 0.11489361702177198,
+        "value": 24.29999999993015,
+        "rawMedian": 24.29999999993015,
+        "iqr": 1.599999999976717,
+        "ratio": 0.06584362139840806,
         "unstable": false,
         "reason": null
       },
       "frame": {
         "p50": 50,
-        "p95": 50.09999999999991,
+        "p95": 50.100000000000136,
         "rawP50": 50,
-        "rawP95": 50.09999999999991,
+        "rawP95": 50.100000000000136,
         "unstable": false,
         "reason": null,
         "samples": 64
@@ -37,1691 +37,41 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": 7.683221726190482,
-        "tailSlopeKb": 6.646465773809524,
-        "rawSlopeKb": 148.87620907738096,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9747242534352292,
+        "slopeKb": 14.560965401785715,
+        "tailSlopeKb": -5.085863095238096,
+        "rawSlopeKb": 63.98628162202381,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9028481560450128,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          9126,
-          9275,
-          9568,
-          9666,
-          9770,
-          9853,
-          10116,
-          10175
+          6721,
+          6801,
+          6987,
+          7030,
+          7066,
+          7076,
+          7168,
+          7183
         ]
       },
       "metrics": {
-        "mountMs": 23.5,
-        "frameP95": 50.09999999999991,
+        "mountMs": 24.29999999993015,
+        "frameP95": 50.100000000000136,
         "longTasks": 0
       },
-      "score": 0.6244326777609025,
+      "score": 0.6263744427932301,
       "missing": []
     },
     {
-      "id": "chrome-appshell--collapsed",
+      "id": "foundations-inventory--all-components",
       "mountMs": {
         "n": 7,
-        "value": 52.89999999999418,
-        "rawMedian": 52.89999999999418,
-        "iqr": 7.75,
-        "ratio": 0.14650283553876847,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.725000000000136,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.725000000000136,
-        "unstable": false,
-        "reason": null,
-        "samples": 176
-      },
-      "longTasks": 1,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": -56.74079241071429,
-        "tailSlopeKb": -89.41915922619049,
-        "rawSlopeKb": 84.45219494047619,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.8928599371577874,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          10106,
-          10181,
-          10446,
-          10520,
-          10552,
-          10595,
-          10675,
-          10698
-        ]
-      },
-      "metrics": {
-        "mountMs": 52.89999999999418,
-        "frameP95": 16.725000000000136,
-        "longTasks": 1
-      },
-      "score": 0.5970220678157794,
-      "missing": []
-    },
-    {
-      "id": "seasons-overview--default",
-      "mountMs": {
-        "n": 7,
-        "value": 43.70000000001164,
-        "rawMedian": 43.70000000001164,
-        "iqr": 5.949999999953434,
-        "ratio": 0.1361556064062208,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.700000000000045,
-        "p95": 33.3150000000001,
-        "rawP50": 16.700000000000045,
-        "rawP95": 33.3150000000001,
-        "unstable": false,
-        "reason": null,
-        "samples": 158
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 90.9169921875,
-        "tailSlopeKb": 88.63670014880952,
-        "rawSlopeKb": 232.10997953869048,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9888207076432416,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "leak",
-        "heapKbByCycle": [
-          10376,
-          10621,
-          11000,
-          11183,
-          11359,
-          11537,
-          11868,
-          12015
-        ]
-      },
-      "metrics": {
-        "mountMs": 43.70000000001164,
-        "frameP95": 33.3150000000001,
-        "longTasks": 0
-      },
-      "score": 0.5638768604998187,
-      "missing": []
-    },
-    {
-      "id": "design-system-inventory--all-components",
-      "mountMs": {
-        "n": 7,
-        "value": 66.10000000003492,
-        "rawMedian": 66.10000000003492,
-        "iqr": 7.900000000052387,
-        "ratio": 0.11951588502342228,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 179
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 363.7981305803571,
-        "tailSlopeKb": 361.6347470238095,
-        "rawSlopeKb": 504.9911179315476,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.998609180517629,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "leak",
-        "heapKbByCycle": [
-          12433,
-          12980,
-          13579,
-          14034,
-          14479,
-          15016,
-          15552,
-          15976
-        ]
-      },
-      "metrics": {
-        "mountMs": 66.10000000003492,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.5166666666666697,
-      "missing": []
-    },
-    {
-      "id": "chrome-sidebar--ai-active",
-      "mountMs": {
-        "n": 7,
-        "value": 53.100000000034925,
-        "rawMedian": 53.100000000034925,
-        "iqr": 8.099999999976717,
-        "ratio": 0.15254237288081712,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 179
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 129.7422340029762,
-        "tailSlopeKb": 105.86130952380952,
-        "rawSlopeKb": 270.9352213541667,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9834588577154129,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "leak",
-        "heapKbByCycle": [
-          10836,
-          11085,
-          11572,
-          11836,
-          12020,
-          12217,
-          12564,
-          12728
-        ]
-      },
-      "metrics": {
-        "mountMs": 53.100000000034925,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.44783156833085125,
-      "missing": []
-    },
-    {
-      "id": "ui-select--all-states",
-      "mountMs": {
-        "n": 7,
-        "value": 42.09999999997672,
-        "rawMedian": 42.09999999997672,
-        "iqr": 14.250000000058208,
-        "ratio": 0.33847980997781685,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.799999999999727,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.799999999999727,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 61.83184523809524,
-        "tailSlopeKb": 48.92810639880952,
-        "rawSlopeKb": 203.02483258928572,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9877859806576814,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          10490,
-          10719,
-          11042,
-          11230,
-          11380,
-          11532,
-          11796,
-          11925
-        ]
-      },
-      "metrics": {
-        "mountMs": 42.09999999997672,
-        "frameP95": 16.799999999999727,
-        "longTasks": 0
-      },
-      "score": 0.3905844891153226,
-      "missing": []
-    },
-    {
-      "id": "ui-tabs--all-variations",
-      "mountMs": {
-        "n": 7,
-        "value": 42.09999999997672,
-        "rawMedian": 42.09999999997672,
-        "iqr": 5.4500000000116415,
-        "ratio": 0.1294536817105619,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 158.9853050595238,
-        "tailSlopeKb": 161.49295014880954,
-        "rawSlopeKb": 300.1782924107143,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9948385452381369,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "leak",
-        "heapKbByCycle": [
-          10449,
-          10751,
-          11187,
-          11455,
-          11682,
-          11953,
-          12324,
-          12567
-        ]
-      },
-      "metrics": {
-        "mountMs": 42.09999999997672,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.38958648512331207,
-      "missing": []
-    },
-    {
-      "id": "chrome-boardselector--collapsed",
-      "mountMs": {
-        "n": 7,
-        "value": 41.09999999997672,
-        "rawMedian": 41.09999999997672,
-        "iqr": 1.0500000000029104,
-        "ratio": 0.02554744525555974,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 179
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 42.23186383928572,
-        "tailSlopeKb": 87.04451264880953,
-        "rawSlopeKb": 183.4248511904762,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9705205373970275,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9823,
-          9979,
-          10259,
-          10401,
-          10502,
-          10590,
-          11029,
-          11117
-        ]
-      },
-      "metrics": {
-        "mountMs": 41.09999999997672,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3842914775590184,
-      "missing": []
-    },
-    {
-      "id": "board-scaledboarddisplay--default",
-      "mountMs": {
-        "n": 7,
-        "value": 40.30000000001746,
-        "rawMedian": 40.30000000001746,
-        "iqr": 4.75,
-        "ratio": 0.11786600496272809,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 87.04124813988093,
-        "tailSlopeKb": 94.20349702380952,
-        "rawSlopeKb": 228.23423549107142,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.987285867866844,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "leak",
-        "heapKbByCycle": [
-          9936,
-          10193,
-          10546,
-          10745,
-          10897,
-          11054,
-          11416,
-          11561
-        ]
-      },
-      "metrics": {
-        "mountMs": 40.30000000001746,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.38005547150779917,
-      "missing": []
-    },
-    {
-      "id": "chrome-languageselector--default",
-      "mountMs": {
-        "n": 7,
-        "value": 39.30000000001746,
-        "rawMedian": 39.30000000001746,
-        "iqr": 4.150000000008731,
-        "ratio": 0.10559796437676558,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 33.1279296875,
-        "tailSlopeKb": 54.54177827380951,
-        "rawSlopeKb": 174.32091703869048,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9821760759858232,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9690,
-          9843,
-          10133,
-          10255,
-          10371,
-          10489,
-          10826,
-          10911
-        ]
-      },
-      "metrics": {
-        "mountMs": 39.30000000001746,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3747604639435055,
-      "missing": []
-    },
-    {
-      "id": "ui-dropdownmenu--board-card-menu",
-      "mountMs": {
-        "n": 7,
-        "value": 38.5,
-        "rawMedian": 38.5,
-        "iqr": 13.149999999965075,
-        "ratio": 0.34155844155753445,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 46.09063430059524,
-        "tailSlopeKb": 67.25818452380952,
-        "rawSlopeKb": 187.28362165178572,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9744392714892732,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9863,
-          10018,
-          10359,
-          10495,
-          10618,
-          10696,
-          11091,
-          11182
-        ]
-      },
-      "metrics": {
-        "mountMs": 38.5,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.37052445789197797,
-      "missing": []
-    },
-    {
-      "id": "ui-dialog--default",
-      "mountMs": {
-        "n": 7,
-        "value": 36.89999999990687,
-        "rawMedian": 36.89999999990687,
-        "iqr": 6.049999999930151,
-        "ratio": 0.16395663956491655,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 9.650111607142861,
-        "tailSlopeKb": 25.14802827380953,
-        "rawSlopeKb": 150.84309895833334,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9745783492802618,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9448,
-          9575,
-          9867,
-          9970,
-          10053,
-          10146,
-          10440,
-          10509
-        ]
-      },
-      "metrics": {
-        "mountMs": 36.89999999990687,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3620524457886149,
-      "missing": []
-    },
-    {
-      "id": "ui-alertdialog--default",
-      "mountMs": {
-        "n": 7,
-        "value": 36.20000000001164,
-        "rawMedian": 36.20000000001164,
-        "iqr": 6.050000000017462,
-        "ratio": 0.16712707182363307,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.799999999999727,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.799999999999727,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 9.342726934523796,
-        "tailSlopeKb": 24.184747023809507,
-        "rawSlopeKb": 150.53571428571428,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9742911559983681,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9357,
-          9480,
-          9775,
-          9879,
-          9960,
-          10054,
-          10346,
-          10414
-        ]
-      },
-      "metrics": {
-        "mountMs": 36.20000000001164,
-        "frameP95": 16.799999999999727,
-        "longTasks": 0
-      },
-      "score": 0.35934394448617457,
-      "missing": []
-    },
-    {
-      "id": "ui-accordion--all-types",
-      "mountMs": {
-        "n": 7,
-        "value": 36.199999999953434,
-        "rawMedian": 36.199999999953434,
-        "iqr": 5.600000000034925,
-        "ratio": 0.15469613259784884,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 70.77673921130952,
-        "tailSlopeKb": 58.96951264880951,
-        "rawSlopeKb": 211.9697265625,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9888453316904134,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "suspect",
-        "heapKbByCycle": [
-          9867,
-          10075,
-          10430,
-          10619,
-          10779,
-          10944,
-          11209,
-          11358
-        ]
-      },
-      "metrics": {
-        "mountMs": 36.199999999953434,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3583459404938559,
-      "missing": []
-    },
-    {
-      "id": "ui-sheet--all-sides",
-      "mountMs": {
-        "n": 7,
-        "value": 35.70000000006985,
-        "rawMedian": 35.70000000006985,
-        "iqr": 2.1500000000814907,
-        "ratio": 0.06022408963801916,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 24.758556547619037,
-        "tailSlopeKb": 13.31599702380953,
-        "rawSlopeKb": 165.95154389880952,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9850355106927119,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9846,
-          10031,
-          10313,
-          10459,
-          10583,
-          10696,
-          10913,
-          11026
-        ]
-      },
-      "metrics": {
-        "mountMs": 35.70000000006985,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3556984367123254,
-      "missing": []
-    },
-    {
-      "id": "board-boarddisplay--animations-disabled",
-      "mountMs": {
-        "n": 7,
-        "value": 34.60000000000582,
-        "rawMedian": 34.60000000000582,
-        "iqr": 3.7999999999883585,
-        "ratio": 0.10982658959502078,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.705000000000243,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.705000000000243,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 64.41903831845238,
-        "tailSlopeKb": 67.61912202380952,
-        "rawSlopeKb": 205.61202566964286,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9843168324099456,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "leak",
-        "heapKbByCycle": [
-          9727,
-          9963,
-          10294,
-          10473,
-          10607,
-          10739,
-          11073,
-          11192
-        ]
-      },
-      "metrics": {
-        "mountMs": 34.60000000000582,
-        "frameP95": 16.705000000000243,
-        "longTasks": 0
-      },
-      "score": 0.3499238285908638,
-      "missing": []
-    },
-    {
-      "id": "ui-tooltip--alignments",
-      "mountMs": {
-        "n": 7,
-        "value": 33.70000000006985,
-        "rawMedian": 33.70000000006985,
-        "iqr": 5.050000000104774,
-        "ratio": 0.14985163205027616,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 2.3490513392857224,
-        "tailSlopeKb": -2.9273623511904816,
-        "rawSlopeKb": 143.5420386904762,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9753824544502816,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9677,
-          9812,
-          10107,
-          10218,
-          10305,
-          10398,
-          10604,
-          10697
-        ]
-      },
-      "metrics": {
-        "mountMs": 33.70000000006985,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.345108421583738,
-      "missing": []
-    },
-    {
-      "id": "ui-slider--default",
-      "mountMs": {
-        "n": 7,
-        "value": 33.29999999993015,
-        "rawMedian": 33.29999999993015,
-        "iqr": 3.5,
-        "ratio": 0.10510510510532557,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 16.809012276785722,
-        "tailSlopeKb": 23.380840773809524,
-        "rawSlopeKb": 158.0019996279762,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9802991566833836,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9368,
-          9505,
-          9802,
-          9914,
-          10018,
-          10122,
-          10397,
-          10474
-        ]
-      },
-      "metrics": {
-        "mountMs": 33.29999999993015,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3429904185572808,
-      "missing": []
-    },
-    {
-      "id": "ui-switch--all-states",
-      "mountMs": {
-        "n": 7,
-        "value": 32.40000000002328,
-        "rawMedian": 32.40000000002328,
-        "iqr": 2.3500000000931323,
-        "ratio": 0.07253086420035319,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.799999999999727,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.799999999999727,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 45.52432105654762,
-        "tailSlopeKb": 37.21755952380951,
-        "rawSlopeKb": 186.7173084077381,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9869017369708465,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9516,
-          9713,
-          10035,
-          10177,
-          10313,
-          10479,
-          10720,
-          10827
-        ]
-      },
-      "metrics": {
-        "mountMs": 32.40000000002328,
-        "frameP95": 16.799999999999727,
-        "longTasks": 0
-      },
-      "score": 0.3392229157419201,
-      "missing": []
-    },
-    {
-      "id": "ui-card--all-layouts",
-      "mountMs": {
-        "n": 7,
-        "value": 32.100000000034925,
-        "rawMedian": 32.100000000034925,
-        "iqr": 5.249999999970896,
-        "ratio": 0.16355140186807426,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.799999999999955,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.799999999999955,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 31.350074404761898,
-        "tailSlopeKb": 10.671856398809524,
-        "rawSlopeKb": 172.54306175595238,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.983829511029718,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9661,
-          9873,
-          10144,
-          10285,
-          10396,
-          10650,
-          10758,
-          10867
-        ]
-      },
-      "metrics": {
-        "mountMs": 32.100000000034925,
-        "frameP95": 16.799999999999955,
-        "longTasks": 0
-      },
-      "score": 0.3376344134726959,
-      "missing": []
-    },
-    {
-      "id": "ui-collapsible--controlled",
-      "mountMs": {
-        "n": 7,
-        "value": 31.399999999965075,
-        "rawMedian": 31.399999999965075,
-        "iqr": 2.2999999999592546,
-        "ratio": 0.07324840764209595,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 12.98223586309524,
-        "tailSlopeKb": 25.801543898809513,
-        "rawSlopeKb": 154.17522321428572,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9798093849950201,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9221,
-          9341,
-          9626,
-          9745,
-          9846,
-          9926,
-          10211,
-          10307
-        ]
-      },
-      "metrics": {
-        "mountMs": 31.399999999965075,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.33292990418530766,
-      "missing": []
-    },
-    {
-      "id": "ui-scrollarea--both-axes",
-      "mountMs": {
-        "n": 7,
-        "value": 30.900000000023283,
-        "rawMedian": 30.900000000023283,
-        "iqr": 4.0499999999883585,
-        "ratio": 0.13106796116457303,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 34.733351934523796,
-        "tailSlopeKb": 23.59529389880953,
-        "rawSlopeKb": 175.92633928571428,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9767834269847827,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9517,
-          9678,
-          10025,
-          10180,
-          10287,
-          10403,
-          10658,
-          10751
-        ]
-      },
-      "metrics": {
-        "mountMs": 30.900000000023283,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.330282400403469,
-      "missing": []
-    },
-    {
-      "id": "ui-button--all-sizes",
-      "mountMs": {
-        "n": 7,
-        "value": 30.29999999998836,
-        "rawMedian": 30.29999999998836,
-        "iqr": 3.75,
-        "ratio": 0.1237623762376713,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 20.560872395833314,
-        "tailSlopeKb": 1.467950148809507,
-        "rawSlopeKb": 161.7538597470238,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9782375838995999,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9248,
-          9394,
-          9697,
-          9865,
-          9968,
-          10076,
-          10290,
-          10372
-        ]
-      },
-      "metrics": {
-        "mountMs": 30.29999999998836,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3271053958647078,
-      "missing": []
-    },
-    {
-      "id": "ui-react-bits-fadecontent--default",
-      "mountMs": {
-        "n": 7,
-        "value": 29.5,
-        "rawMedian": 29.5,
-        "iqr": 1.6000000000349246,
-        "ratio": 0.054237288136777105,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 179
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": -87.08589099702382,
-        "tailSlopeKb": -111.15236235119048,
-        "rawSlopeKb": 54.107096354166664,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9048897641065847,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          6609,
-          6667,
-          6823,
-          6861,
-          6908,
-          6918,
-          6980,
-          6988
-        ]
-      },
-      "metrics": {
-        "mountMs": 29.5,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.32286938981333446,
-      "missing": []
-    },
-    {
-      "id": "ui-textarea--all-states",
-      "mountMs": {
-        "n": 7,
-        "value": 29.199999999953434,
-        "rawMedian": 29.199999999953434,
-        "iqr": 2.599999999976717,
-        "ratio": 0.08904109588975559,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 15.203962053571416,
-        "tailSlopeKb": 11.003106398809507,
-        "rawSlopeKb": 156.3969494047619,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9810069413045299,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9164,
-          9312,
-          9606,
-          9735,
-          9837,
-          9941,
-          10176,
-          10266
-        ]
-      },
-      "metrics": {
-        "mountMs": 29.199999999953434,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3212808875437998,
-      "missing": []
-    },
-    {
-      "id": "design-system-variant-matrix--alert-matrix",
-      "mountMs": {
-        "n": 7,
-        "value": 29,
-        "rawMedian": 29,
-        "iqr": 0.9500000000116415,
-        "ratio": 0.032758620690056604,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.79999999999996,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.79999999999996,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 100.26781063988093,
-        "tailSlopeKb": 84.09021577380952,
-        "rawSlopeKb": 241.46079799107142,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9873510107951594,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "leak",
-        "heapKbByCycle": [
-          9524,
-          9787,
-          10177,
-          10402,
-          10585,
-          10752,
-          11074,
-          11229
-        ]
-      },
-      "metrics": {
-        "mountMs": 29,
-        "frameP95": 16.79999999999996,
-        "longTasks": 0
-      },
-      "score": 0.3212198900232005,
-      "missing": []
-    },
-    {
-      "id": "ui-grid--card-grid",
-      "mountMs": {
-        "n": 7,
-        "value": 28.599999999976717,
-        "rawMedian": 28.599999999976717,
-        "iqr": 3.199999999953434,
-        "ratio": 0.11188811188657478,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.705000000000243,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.705000000000243,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 18.902855282738102,
-        "tailSlopeKb": 11.665997023809524,
-        "rawSlopeKb": 160.09584263392858,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9808916914764926,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9203,
-          9356,
-          9655,
-          9794,
-          9897,
-          10006,
-          10238,
-          10329
-        ]
-      },
-      "metrics": {
-        "mountMs": 28.599999999976717,
-        "frameP95": 16.705000000000243,
-        "longTasks": 0
-      },
-      "score": 0.31815378320494736,
-      "missing": []
-    },
-    {
-      "id": "ui-stack--alignment-options",
-      "mountMs": {
-        "n": 7,
-        "value": 28.599999999976717,
-        "rawMedian": 28.599999999976717,
-        "iqr": 3.150000000023283,
-        "ratio": 0.11013986014076389,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.705000000000243,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.705000000000243,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 16.24493117559524,
-        "tailSlopeKb": 11.668340773809518,
-        "rawSlopeKb": 157.43791852678572,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9808502913899819,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9125,
-          9282,
-          9562,
-          9714,
-          9806,
-          9906,
-          10147,
-          10235
-        ]
-      },
-      "metrics": {
-        "mountMs": 28.599999999976717,
-        "frameP95": 16.705000000000243,
-        "longTasks": 0
-      },
-      "score": 0.31815378320494736,
-      "missing": []
-    },
-    {
-      "id": "ui-list--default",
-      "mountMs": {
-        "n": 7,
-        "value": 28.100000000093132,
-        "rawMedian": 28.100000000093132,
-        "iqr": 4.400000000023283,
-        "ratio": 0.15658362989354804,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.799999999999955,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.799999999999955,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": -1.609375,
-        "tailSlopeKb": 3.7749813988095298,
-        "rawSlopeKb": 139.58361235119048,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.975593969086416,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          8964,
-          9080,
-          9368,
-          9463,
-          9545,
-          9634,
-          9868,
-          9950
-        ]
-      },
-      "metrics": {
-        "mountMs": 28.100000000093132,
-        "frameP95": 16.799999999999955,
-        "longTasks": 0
-      },
-      "score": 0.3164543832158292,
-      "missing": []
-    },
-    {
-      "id": "ui-emptystate--default",
-      "mountMs": {
-        "n": 7,
-        "value": 28.20000000006985,
-        "rawMedian": 28.20000000006985,
-        "iqr": 1.3999999999650754,
-        "ratio": 0.049645390069560556,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 13.895368303571416,
-        "tailSlopeKb": 25.81990327380953,
-        "rawSlopeKb": 155.0883556547619,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9794381333670049,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9028,
-          9163,
-          9457,
-          9562,
-          9650,
-          9769,
-          10040,
-          10116
-        ]
-      },
-      "metrics": {
-        "mountMs": 28.20000000006985,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3159858799801225,
-      "missing": []
-    },
-    {
-      "id": "ui-alert--all-variants",
-      "mountMs": {
-        "n": 7,
-        "value": 28.20000000001164,
-        "rawMedian": 28.20000000001164,
-        "iqr": 1.099999999976717,
-        "ratio": 0.03900709219773982,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 15.104910714285722,
-        "tailSlopeKb": 0.7398251488095298,
-        "rawSlopeKb": 156.2978980654762,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9735085897066545,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9012,
-          9170,
-          9486,
-          9620,
-          9711,
-          9823,
-          10034,
-          10114
-        ]
-      },
-      "metrics": {
-        "mountMs": 28.20000000001164,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3159858799798143,
-      "missing": []
-    },
-    {
-      "id": "ui-text--default",
-      "mountMs": {
-        "n": 7,
-        "value": 28.099999999976717,
-        "rawMedian": 28.099999999976717,
-        "iqr": 3.4500000000116415,
-        "ratio": 0.1227758007122598,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": -9.57500930059524,
-        "tailSlopeKb": -8.199237351190476,
-        "rawSlopeKb": 131.61797805059524,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9745662390523415,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          8877,
-          8993,
-          9257,
-          9355,
-          9433,
-          9513,
-          9744,
-          9800
-        ]
-      },
-      "metrics": {
-        "mountMs": 28.099999999976717,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3154563792232,
-      "missing": []
-    },
-    {
-      "id": "ui-label--default",
-      "mountMs": {
-        "n": 7,
-        "value": 28,
-        "rawMedian": 28,
-        "iqr": 2.1000000000349246,
-        "ratio": 0.0750000000012473,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.705000000000243,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.705000000000243,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": -10.506789434523824,
-        "tailSlopeKb": -6.989081101190493,
-        "rawSlopeKb": 130.68619791666666,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9735675710626659,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9028,
-          9139,
-          9403,
-          9501,
-          9574,
-          9653,
-          9888,
-          9943
-        ]
-      },
-      "metrics": {
-        "mountMs": 28,
-        "frameP95": 16.705000000000243,
-        "longTasks": 0
-      },
-      "score": 0.31497677866649443,
-      "missing": []
-    },
-    {
-      "id": "ui-badge--all-variants",
-      "mountMs": {
-        "n": 7,
-        "value": 28,
-        "rawMedian": 28,
-        "iqr": 1.5499999999883585,
-        "ratio": 0.05535714285672709,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 179
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 3.655970982142861,
-        "tailSlopeKb": -2.1285342261904816,
-        "rawSlopeKb": 144.84895833333334,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9848004612672776,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9086,
-          9208,
-          9473,
-          9590,
-          9698,
-          9803,
-          10016,
-          10090
-        ]
-      },
-      "metrics": {
-        "mountMs": 28,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.31492687846689393,
-      "missing": []
-    },
-    {
-      "id": "chrome-pageheader--default",
-      "mountMs": {
-        "n": 7,
-        "value": 27.79999999998836,
-        "rawMedian": 27.79999999998836,
-        "iqr": 0.6000000000058208,
-        "ratio": 0.021582733813168057,
+        "value": 67.29999999993015,
+        "rawMedian": 67.29999999993015,
+        "iqr": 9.400000000023283,
+        "ratio": 0.1396731054982621,
         "unstable": false,
         "reason": null
       },
@@ -1737,141 +87,41 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": -89.59463355654762,
-        "tailSlopeKb": -112.45431547619049,
-        "rawSlopeKb": 51.598353794642854,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.8804542756412249,
+        "slopeKb": 34.830310639880956,
+        "tailSlopeKb": 33.80476190476191,
+        "rawSlopeKb": 84.25562686011905,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9626627648317966,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          6242,
-          6299,
-          6464,
-          6502,
-          6530,
-          6547,
-          6598,
-          6609
+          8501,
+          8590,
+          8766,
+          8835,
+          8874,
+          8914,
+          9072,
+          9099
         ]
       },
       "metrics": {
-        "mountMs": 27.79999999998836,
+        "mountMs": 67.29999999993015,
         "frameP95": 16.799999999999727,
         "longTasks": 0
       },
-      "score": 0.31486588094598406,
+      "score": 0.5176646706586794,
       "missing": []
     },
     {
-      "id": "chrome-pagetoolbar--default",
+      "id": "editor-formulaeditorpanel--default",
       "mountMs": {
         "n": 7,
-        "value": 27.79999999998836,
-        "rawMedian": 27.79999999998836,
-        "iqr": 1.8500000000058208,
-        "ratio": 0.0665467625901653,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.710000000000218,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.710000000000218,
-        "unstable": false,
-        "reason": null,
-        "samples": 179
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": -95.93229166666667,
-        "tailSlopeKb": -127.83790922619048,
-        "rawSlopeKb": 45.26069568452381,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.8192338850193146,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          6270,
-          6321,
-          6485,
-          6521,
-          6550,
-          6566,
-          6581,
-          6589
-        ]
-      },
-      "metrics": {
-        "mountMs": 27.79999999998836,
-        "frameP95": 16.710000000000218,
-        "longTasks": 0
-      },
-      "score": 0.31396767735317455,
-      "missing": []
-    },
-    {
-      "id": "chrome-themetoggle--default",
-      "mountMs": {
-        "n": 7,
-        "value": 27.599999999976717,
-        "rawMedian": 27.599999999976717,
-        "iqr": 1.7999999999592546,
-        "ratio": 0.06521739130292656,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.799999999999955,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.799999999999955,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": -7.295293898809518,
-        "tailSlopeKb": -16.299237351190484,
-        "rawSlopeKb": 133.89769345238096,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9687501699175972,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          8667,
-          8788,
-          9076,
-          9182,
-          9261,
-          9338,
-          9549,
-          9607
-        ]
-      },
-      "metrics": {
-        "mountMs": 27.599999999976717,
-        "frameP95": 16.799999999999955,
-        "longTasks": 0
-      },
-      "score": 0.31380687943306595,
-      "missing": []
-    },
-    {
-      "id": "ui-input--all-types",
-      "mountMs": {
-        "n": 7,
-        "value": 27.699999999953434,
-        "rawMedian": 27.699999999953434,
-        "iqr": 4.100000000034925,
-        "ratio": 0.14801444043472264,
+        "value": 58.79999999993015,
+        "rawMedian": 58.79999999993015,
+        "iqr": 7.750000000058208,
+        "ratio": 0.13180272108958188,
         "unstable": false,
         "reason": null
       },
@@ -1887,49 +137,49 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": 67.6913597470238,
-        "tailSlopeKb": 62.124981398809524,
-        "rawSlopeKb": 208.88434709821428,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9909827834977029,
+        "slopeKb": 84.27920386904762,
+        "tailSlopeKb": 70.2250744047619,
+        "rawSlopeKb": 133.70452008928572,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9564247572251614,
         "reason": "uncalibrated",
         "cycles": 8,
-        "uncalibratedVerdict": "suspect",
+        "uncalibratedVerdict": "leak",
         "heapKbByCycle": [
-          9331,
-          9531,
-          9860,
-          10056,
-          10213,
-          10369,
-          10651,
-          10797
+          8733,
+          8889,
+          9153,
+          9293,
+          9362,
+          9399,
+          9654,
+          9675
         ]
       },
       "metrics": {
-        "mountMs": 27.699999999953434,
+        "mountMs": 58.79999999993015,
         "frameP95": 16.700000000000273,
         "longTasks": 0
       },
-      "score": 0.31333837619735927,
+      "score": 0.4724616146606795,
       "missing": []
     },
     {
-      "id": "chrome-fiestalogo--default",
+      "id": "editor-templateeditor--default",
       "mountMs": {
         "n": 7,
-        "value": 27.199999999982538,
-        "rawMedian": 27.199999999982538,
-        "iqr": 3.1499999999941792,
-        "ratio": 0.11580882352927212,
+        "value": 56.20000000006985,
+        "rawMedian": 56.20000000006985,
+        "iqr": 7.349999999918509,
+        "ratio": 0.13078291814785364,
         "unstable": false,
         "reason": null
       },
       "frame": {
         "p50": 16.699999999999818,
-        "p95": 16.799999999999727,
+        "p95": 16.799999999999738,
         "rawP50": 16.699999999999818,
-        "rawP95": 16.799999999999727,
+        "rawP95": 16.799999999999738,
         "unstable": false,
         "reason": null,
         "samples": 180
@@ -1937,299 +187,49 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": -4.626023065476204,
-        "tailSlopeKb": -0.9523623511904873,
-        "rawSlopeKb": 136.56696428571428,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9793154454314493,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          8659,
-          8781,
-          9046,
-          9144,
-          9228,
-          9321,
-          9546,
-          9621
-        ]
-      },
-      "metrics": {
-        "mountMs": 27.199999999982538,
-        "frameP95": 16.799999999999727,
-        "longTasks": 0
-      },
-      "score": 0.31168887640737697,
-      "missing": []
-    },
-    {
-      "id": "ui-flex--centered",
-      "mountMs": {
-        "n": 7,
-        "value": 27.099999999976717,
-        "rawMedian": 27.099999999976717,
-        "iqr": 0.9500000000116415,
-        "ratio": 0.03505535055396523,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.799999999999955,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.799999999999955,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": -8.934895833333343,
-        "tailSlopeKb": -10.159393601190487,
-        "rawSlopeKb": 132.25809151785714,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9745916678213331,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          8879,
-          9001,
-          9270,
-          9368,
-          9446,
-          9530,
-          9748,
-          9810
-        ]
-      },
-      "metrics": {
-        "mountMs": 27.099999999976717,
-        "frameP95": 16.799999999999955,
-        "longTasks": 0
-      },
-      "score": 0.3111593756509191,
-      "missing": []
-    },
-    {
-      "id": "ui-checkbox--checkbox-list",
-      "mountMs": {
-        "n": 7,
-        "value": 27.099999999976717,
-        "rawMedian": 27.099999999976717,
-        "iqr": 1.3000000000174623,
-        "ratio": 0.04797047970548263,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 11.30059523809524,
-        "tailSlopeKb": -0.09611235119047024,
-        "rawSlopeKb": 152.49358258928572,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.978885774325901,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9093,
-          9247,
-          9525,
-          9677,
-          9773,
-          9860,
-          10080,
-          10170
-        ]
-      },
-      "metrics": {
-        "mountMs": 27.099999999976717,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3101613716589063,
-      "missing": []
-    },
-    {
-      "id": "ui-react-bits-decryptedtext--animate-on-view",
-      "mountMs": {
-        "n": 7,
-        "value": 26.900000000023283,
-        "rawMedian": 26.900000000023283,
-        "iqr": 2.450000000069849,
-        "ratio": 0.09107806691701593,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 34.54022507440476,
-        "tailSlopeKb": 30.723418898809513,
-        "rawSlopeKb": 175.73321242559524,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9823676195006326,
+        "slopeKb": 55.7489769345238,
+        "tailSlopeKb": 70.18249627976189,
+        "rawSlopeKb": 105.1742931547619,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9608010274966025,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
           9503,
-          9681,
-          9999,
-          10146,
-          10258,
-          10383,
-          10643,
-          10744
+          9614,
+          9821,
+          9879,
+          9948,
+          9968,
+          10211,
+          10265
         ]
       },
       "metrics": {
-        "mountMs": 26.900000000023283,
-        "frameP95": 16.700000000000273,
+        "mountMs": 56.20000000006985,
+        "frameP95": 16.799999999999738,
         "longTasks": 0
       },
-      "score": 0.3091023701462941,
+      "score": 0.45993807333393755,
       "missing": []
     },
     {
-      "id": "ui-heading--default",
+      "id": "app-chrome-appshell--collapsed",
       "mountMs": {
         "n": 7,
-        "value": 26.70000000006985,
-        "rawMedian": 26.70000000006985,
-        "iqr": 2.599999999976717,
-        "ratio": 0.09737827715243128,
+        "value": 55.5,
+        "rawMedian": 55.5,
+        "iqr": 7.099999999991269,
+        "ratio": 0.1279279279277706,
         "unstable": false,
         "reason": null
       },
       "frame": {
         "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
+        "p95": 16.799999999999727,
         "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": -8.414202008928584,
-        "tailSlopeKb": -13.699237351190476,
-        "rawSlopeKb": 132.7787853422619,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9735404748047799,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          8899,
-          9016,
-          9292,
-          9390,
-          9472,
-          9559,
-          9771,
-          9827
-        ]
-      },
-      "metrics": {
-        "mountMs": 26.70000000006985,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3080433686336819,
-      "missing": []
-    },
-    {
-      "id": "chrome-maincontent--ai-panel-open",
-      "mountMs": {
-        "n": 7,
-        "value": 26.70000000001164,
-        "rawMedian": 26.70000000001164,
-        "iqr": 1.1000000000058208,
-        "ratio": 0.04119850187285922,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 6.310128348214278,
-        "tailSlopeKb": 2.655450148809507,
-        "rawSlopeKb": 147.50311569940476,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9800290938746128,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          8952,
-          9072,
-          9349,
-          9480,
-          9575,
-          9668,
-          9909,
-          9974
-        ]
-      },
-      "metrics": {
-        "mountMs": 26.70000000001164,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.3080433686333737,
-      "missing": []
-    },
-    {
-      "id": "ui-skeleton--all-shapes",
-      "mountMs": {
-        "n": 7,
-        "value": 26.400000000023283,
-        "rawMedian": 26.400000000023283,
-        "iqr": 0.8499999999185093,
-        "ratio": 0.03219696969385453,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.79999999999975,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.79999999999975,
+        "rawP95": 16.799999999999727,
         "unstable": false,
         "reason": null,
         "samples": 179
@@ -2237,41 +237,41 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": 0.1735956101190368,
-        "tailSlopeKb": -5.349627976190476,
-        "rawSlopeKb": 141.36658296130952,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9765246841383975,
+        "slopeKb": 36.107003348214285,
+        "tailSlopeKb": 2.898902529761905,
+        "rawSlopeKb": 85.53231956845238,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8931743039365018,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          9002,
-          9146,
-          9414,
-          9538,
-          9624,
-          9705,
-          9929,
-          10002
+          7983,
+          8075,
+          8339,
+          8404,
+          8448,
+          8478,
+          8567,
+          8593
         ]
       },
       "metrics": {
-        "mountMs": 26.400000000023283,
-        "frameP95": 16.79999999999975,
+        "mountMs": 55.5,
+        "frameP95": 16.799999999999727,
         "longTasks": 0
       },
-      "score": 0.307452870356158,
+      "score": 0.4562976572860221,
       "missing": []
     },
     {
-      "id": "board-staticboarddisplay--default",
+      "id": "app-plugin-boardshowcase--default",
       "mountMs": {
         "n": 7,
-        "value": 26.5,
-        "rawMedian": 26.5,
-        "iqr": 2.9499999999970896,
-        "ratio": 0.1113207547168713,
+        "value": 53.29999999998836,
+        "rawMedian": 53.29999999998836,
+        "iqr": 4.000000000029104,
+        "ratio": 0.07504690431575943,
         "unstable": false,
         "reason": null
       },
@@ -2287,91 +287,91 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": 91.8017113095238,
-        "tailSlopeKb": 99.5949032738095,
-        "rawSlopeKb": 232.99469866071428,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9910035484764254,
+        "slopeKb": 16.912713913690474,
+        "tailSlopeKb": -8.054613095238096,
+        "rawSlopeKb": 66.33803013392857,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8704486954654237,
         "reason": "uncalibrated",
         "cycles": 8,
-        "uncalibratedVerdict": "leak",
+        "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          9624,
-          9864,
-          10209,
-          10412,
-          10588,
-          10751,
-          11114,
-          11270
+          7064,
+          7131,
+          7355,
+          7405,
+          7428,
+          7441,
+          7526,
+          7538
         ]
       },
       "metrics": {
-        "mountMs": 26.5,
+        "mountMs": 53.29999999998836,
         "frameP95": 16.700000000000273,
         "longTasks": 0
       },
-      "score": 0.3069843671204533,
+      "score": 0.4438583457159302,
       "missing": []
     },
     {
-      "id": "chrome-pagelayout--default",
+      "id": "app-chrome-sidebar--ai-active",
       "mountMs": {
         "n": 7,
-        "value": 26.29999999998836,
-        "rawMedian": 26.29999999998836,
-        "iqr": 1.0500000000174623,
-        "ratio": 0.03992395437330521,
+        "value": 52.70000000001164,
+        "rawMedian": 52.70000000001164,
+        "iqr": 4.25,
+        "ratio": 0.08064516129030476,
         "unstable": false,
         "reason": null
       },
       "frame": {
         "p50": 16.699999999999818,
-        "p95": 16.705000000000243,
+        "p95": 16.700000000000273,
         "rawP50": 16.699999999999818,
-        "rawP95": 16.705000000000243,
+        "rawP95": 16.700000000000273,
         "unstable": false,
         "reason": null,
-        "samples": 180
+        "samples": 179
       },
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": 3.6495070684523796,
-        "tailSlopeKb": -0.6777529761904759,
-        "rawSlopeKb": 144.84249441964286,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9832855845151679,
+        "slopeKb": 48.986560639880956,
+        "tailSlopeKb": 3.9922619047619037,
+        "rawSlopeKb": 98.41187686011905,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8576513184927774,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          8936,
-          9065,
-          9332,
-          9449,
-          9555,
-          9648,
-          9868,
-          9950
+          7838,
+          7928,
+          8281,
+          8344,
+          8387,
+          8419,
+          8516,
+          8533
         ]
       },
       "metrics": {
-        "mountMs": 26.29999999998836,
-        "frameP95": 16.705000000000243,
+        "mountMs": 52.70000000001164,
+        "frameP95": 16.700000000000273,
         "longTasks": 0
       },
-      "score": 0.30597526580713347,
+      "score": 0.44073798910386386,
       "missing": []
     },
     {
-      "id": "ui-textlink--default",
+      "id": "editor-templateeditortoolbar--default",
       "mountMs": {
         "n": 7,
-        "value": 26.099999999976717,
-        "rawMedian": 26.099999999976717,
-        "iqr": 1.8500000000349246,
-        "ratio": 0.07088122605504119,
+        "value": 47.40000000002328,
+        "rawMedian": 47.40000000002328,
+        "iqr": 2.9999999999417923,
+        "ratio": 0.06329113923924723,
         "unstable": false,
         "reason": null
       },
@@ -2387,41 +387,41 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": -7.719122023809518,
-        "tailSlopeKb": -11.309784226190487,
-        "rawSlopeKb": 133.47386532738096,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9765188243855094,
+        "slopeKb": 21.950241815476197,
+        "tailSlopeKb": -16.784691220238095,
+        "rawSlopeKb": 71.37555803571429,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8429988571901668,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          8910,
-          9029,
-          9296,
-          9396,
-          9481,
-          9570,
-          9785,
-          9842
+          7541,
+          7622,
+          7860,
+          7941,
+          7961,
+          7979,
+          8028,
+          8054
         ]
       },
       "metrics": {
-        "mountMs": 26.099999999976717,
+        "mountMs": 47.40000000002328,
         "frameP95": 16.799999999999955,
         "longTasks": 0
       },
-      "score": 0.30586436808662537,
+      "score": 0.4141728430216144,
       "missing": []
     },
     {
-      "id": "ui-code--default",
+      "id": "app-board-scaledboarddisplay--default",
       "mountMs": {
         "n": 7,
-        "value": 25.79999999998836,
-        "rawMedian": 25.79999999998836,
-        "iqr": 1.1999999999825377,
-        "ratio": 0.0465116279063209,
+        "value": 47.10000000000582,
+        "rawMedian": 47.10000000000582,
+        "iqr": 1.0500000000029104,
+        "ratio": 0.022292993630632287,
         "unstable": false,
         "reason": null
       },
@@ -2437,49 +437,49 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": -9.059291294642861,
-        "tailSlopeKb": -4.35197172619047,
-        "rawSlopeKb": 132.13369605654762,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9748436197631178,
+        "slopeKb": 13.800130208333336,
+        "tailSlopeKb": -2.429222470238095,
+        "rawSlopeKb": 63.22544642857143,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8946747057503229,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          8860,
-          8976,
-          9239,
-          9336,
-          9408,
-          9496,
-          9730,
-          9786
+          6713,
+          6810,
+          6982,
+          7040,
+          7053,
+          7068,
+          7170,
+          7176
         ]
       },
       "metrics": {
-        "mountMs": 25.79999999998836,
+        "mountMs": 47.10000000000582,
         "frameP95": 16.705000000000254,
         "longTasks": 0
       },
-      "score": 0.3033277620249867,
+      "score": 0.4116645609230176,
       "missing": []
     },
     {
-      "id": "ui-box--as-section",
+      "id": "forms-select--all-states",
       "mountMs": {
         "n": 7,
-        "value": 25.099999999976717,
-        "rawMedian": 25.099999999976717,
-        "iqr": 0.8000000000174623,
-        "ratio": 0.031872509960884636,
+        "value": 43.300000000046566,
+        "rawMedian": 43.300000000046566,
+        "iqr": 10.100000000034925,
+        "ratio": 0.23325635103981668,
         "unstable": false,
         "reason": null
       },
       "frame": {
         "p50": 16.699999999999818,
-        "p95": 16.799999999999955,
+        "p95": 16.799999999999738,
         "rawP50": 16.699999999999818,
-        "rawP95": 16.799999999999955,
+        "rawP95": 16.799999999999738,
         "unstable": false,
         "reason": null,
         "samples": 180
@@ -2487,141 +487,41 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": -9.093610491071445,
-        "tailSlopeKb": -11.395721726190487,
-        "rawSlopeKb": 132.09937686011904,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9762104077660769,
+        "slopeKb": 13.630254836309526,
+        "tailSlopeKb": -12.156566220238098,
+        "rawSlopeKb": 63.05557105654762,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9076201029575325,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          8995,
-          9113,
-          9376,
-          9487,
-          9557,
-          9651,
-          9857,
-          9921
+          7680,
+          7778,
+          7943,
+          7988,
+          8032,
+          8058,
+          8121,
+          8136
         ]
       },
       "metrics": {
-        "mountMs": 25.099999999976717,
-        "frameP95": 16.799999999999955,
+        "mountMs": 43.300000000046566,
+        "frameP95": 16.799999999999738,
         "longTasks": 0
       },
-      "score": 0.30056936052233163,
+      "score": 0.39285040617178546,
       "missing": []
     },
     {
-      "id": "ui-table--default",
+      "id": "forms-timepicker--all-states",
       "mountMs": {
         "n": 7,
-        "value": 25.20000000006985,
-        "rawMedian": 25.20000000006985,
-        "iqr": 0.9500000000116415,
-        "ratio": 0.037698412698770174,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.700000000000273,
-        "unstable": false,
-        "reason": null,
-        "samples": 180
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": 14.098167782738102,
-        "tailSlopeKb": 11.014825148809507,
-        "rawSlopeKb": 155.29115513392858,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9802730656672838,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          9158,
-          9310,
-          9586,
-          9739,
-          9831,
-          9918,
-          10163,
-          10257
-        ]
-      },
-      "metrics": {
-        "mountMs": 25.20000000006985,
-        "frameP95": 16.700000000000273,
-        "longTasks": 0
-      },
-      "score": 0.30010085728724134,
-      "missing": []
-    },
-    {
-      "id": "seasons-sidebaraurora--custom-colors",
-      "mountMs": {
-        "n": 7,
-        "value": 25,
-        "rawMedian": 25,
-        "iqr": 2.8999999999941792,
-        "ratio": 0.11599999999976716,
-        "unstable": false,
-        "reason": null
-      },
-      "frame": {
-        "p50": 16.699999999999818,
-        "p95": 16.710000000000218,
-        "rawP50": 16.699999999999818,
-        "rawP95": 16.710000000000218,
-        "unstable": false,
-        "reason": null,
-        "samples": 179
-      },
-      "longTasks": 0,
-      "retention": {
-        "verdict": "unknown",
-        "slopeKb": -10.907784598214278,
-        "tailSlopeKb": -2.640643601190476,
-        "rawSlopeKb": 130.2852027529762,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9740951534062595,
-        "reason": "uncalibrated",
-        "cycles": 8,
-        "uncalibratedVerdict": "clean",
-        "heapKbByCycle": [
-          8776,
-          8890,
-          9146,
-          9243,
-          9306,
-          9398,
-          9638,
-          9688
-        ]
-      },
-      "metrics": {
-        "mountMs": 25,
-        "frameP95": 16.710000000000218,
-        "longTasks": 0
-      },
-      "score": 0.29914165617321375,
-      "missing": []
-    },
-    {
-      "id": "chrome-fiestaicon--as-image-src",
-      "mountMs": {
-        "n": 7,
-        "value": 24.699999999982538,
-        "rawMedian": 24.699999999982538,
-        "iqr": 0.6999999999825377,
-        "ratio": 0.02834008097097298,
+        "value": 43,
+        "rawMedian": 43,
+        "iqr": 7.000000000058208,
+        "ratio": 0.16279069767577228,
         "unstable": false,
         "reason": null
       },
@@ -2637,41 +537,191 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": -9.223772321428584,
-        "tailSlopeKb": -13.555877976190487,
-        "rawSlopeKb": 131.9692150297619,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.975951832721606,
+        "slopeKb": 10.835332961309526,
+        "tailSlopeKb": -16.138206845238095,
+        "rawSlopeKb": 60.26064918154762,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8956721520283231,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          8631,
-          8741,
-          9000,
-          9120,
-          9201,
-          9270,
-          9487,
-          9554
+          7550,
+          7629,
+          7798,
+          7852,
+          7888,
+          7909,
+          7965,
+          7980
         ]
       },
       "metrics": {
-        "mountMs": 24.699999999982538,
+        "mountMs": 43,
         "frameP95": 16.799999999999727,
         "longTasks": 0
       },
-      "score": 0.2984513574966427,
+      "score": 0.3912902278654494,
       "missing": []
     },
     {
-      "id": "seasons-sidebaraurorahorizontal--custom-colors",
+      "id": "app-chrome-boardselector--collapsed",
       "mountMs": {
         "n": 7,
-        "value": 24.20000000001164,
-        "rawMedian": 24.20000000001164,
-        "iqr": 2.8000000000174623,
-        "ratio": 0.1157024793395089,
+        "value": 42.5,
+        "rawMedian": 42.5,
+        "iqr": 7.199999999982538,
+        "ratio": 0.16941176470547148,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999955,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999955,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 40.875697544642854,
+        "tailSlopeKb": 58.46999627976191,
+        "rawSlopeKb": 90.30101376488095,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9517865176381091,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7539,
+          7614,
+          7794,
+          7867,
+          7898,
+          7919,
+          8152,
+          8180
+        ]
+      },
+      "metrics": {
+        "mountMs": 42.5,
+        "frameP95": 16.799999999999955,
+        "longTasks": 0
+      },
+      "score": 0.3886899306886288,
+      "missing": []
+    },
+    {
+      "id": "app-chrome-languageselector--default",
+      "mountMs": {
+        "n": 7,
+        "value": 42,
+        "rawMedian": 42,
+        "iqr": 6.499999999970896,
+        "ratio": 0.15476190476121182,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 23.727399553571423,
+        "tailSlopeKb": 17.832496279761905,
+        "rawSlopeKb": 73.15271577380952,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9421756410491543,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7316,
+          7384,
+          7573,
+          7622,
+          7651,
+          7686,
+          7817,
+          7832
+        ]
+      },
+      "metrics": {
+        "mountMs": 42,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.3850916295197931,
+      "missing": []
+    },
+    {
+      "id": "editor-variablepickercontent--array-not-configured",
+      "mountMs": {
+        "n": 7,
+        "value": 41.40000000002328,
+        "rawMedian": 41.40000000002328,
+        "iqr": 3.849999999976717,
+        "ratio": 0.09299516908151091,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999727,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 31.744605654761905,
+        "tailSlopeKb": 16.67585565476191,
+        "rawSlopeKb": 81.169921875,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9138383316157388,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7559,
+          7629,
+          7865,
+          7930,
+          7960,
+          7974,
+          8120,
+          8131
+        ]
+      },
+      "metrics": {
+        "mountMs": 41.40000000002328,
+        "frameP95": 16.799999999999727,
+        "longTasks": 0
+      },
+      "score": 0.38296927689973725,
+      "missing": []
+    },
+    {
+      "id": "app-seasons-overview--default",
+      "mountMs": {
+        "n": 7,
+        "value": 41.5,
+        "rawMedian": 41.5,
+        "iqr": 8.099999999976717,
+        "ratio": 0.19518072289100521,
         "unstable": false,
         "reason": null
       },
@@ -2687,41 +737,41 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": -10.11025855654762,
-        "tailSlopeKb": -3.572284226190476,
-        "rawSlopeKb": 131.08272879464286,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9728145726684808,
+        "slopeKb": 30.514787946428577,
+        "tailSlopeKb": 39.55085565476191,
+        "rawSlopeKb": 79.94010416666667,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9462651794946901,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          8775,
-          8888,
-          9146,
-          9260,
-          9318,
-          9398,
-          9638,
-          9697
+          7303,
+          7379,
+          7564,
+          7610,
+          7643,
+          7664,
+          7853,
+          7876
         ]
       },
       "metrics": {
-        "mountMs": 24.20000000001164,
+        "mountMs": 41.5,
         "frameP95": 16.700000000000273,
         "longTasks": 0
       },
-      "score": 0.29480584972263946,
+      "score": 0.38249133234297017,
       "missing": []
     },
     {
-      "id": "chrome-skiptocontent--default",
+      "id": "overlays-dropdownmenu--board-card-menu",
       "mountMs": {
         "n": 7,
-        "value": 22.900000000023283,
-        "rawMedian": 22.900000000023283,
-        "iqr": 1.650000000052387,
-        "ratio": 0.07205240174893927,
+        "value": 41.40000000002328,
+        "rawMedian": 41.40000000002328,
+        "iqr": 7.849999999918509,
+        "ratio": 0.18961352656797328,
         "unstable": false,
         "reason": null
       },
@@ -2737,41 +787,41 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": 3.4805152529761756,
-        "tailSlopeKb": 4.958965773809524,
-        "rawSlopeKb": 144.67350260416666,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9811105008181514,
+        "slopeKb": 34.152762276785715,
+        "tailSlopeKb": 25.20124627976191,
+        "rawSlopeKb": 83.57807849702381,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9336572925373059,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          8906,
-          9036,
-          9309,
-          9427,
-          9515,
-          9612,
-          9839,
-          9927
+          7463,
+          7537,
+          7758,
+          7825,
+          7857,
+          7879,
+          8034,
+          8054
         ]
       },
       "metrics": {
-        "mountMs": 22.900000000023283,
+        "mountMs": 41.40000000002328,
         "frameP95": 16.700000000000273,
         "longTasks": 0
       },
-      "score": 0.2879223398891192,
+      "score": 0.3819712729077267,
       "missing": []
     },
     {
-      "id": "chrome-boardicon--default",
+      "id": "containment-tabs--all-variations",
       "mountMs": {
         "n": 7,
-        "value": 22.89999999999418,
-        "rawMedian": 22.89999999999418,
-        "iqr": 3.0500000000029104,
-        "ratio": 0.13318777292592512,
+        "value": 40.300000000046566,
+        "rawMedian": 40.300000000046566,
+        "iqr": 3.2999999999883585,
+        "ratio": 0.08188585607902098,
         "unstable": false,
         "reason": null
       },
@@ -2787,32 +837,3034 @@
       "longTasks": 0,
       "retention": {
         "verdict": "unknown",
-        "slopeKb": -13.255394345238102,
-        "tailSlopeKb": -9.092987351190487,
-        "rawSlopeKb": 127.93759300595238,
-        "baselineSlopeKb": 141.19298735119048,
-        "r2": 0.9732490127871385,
+        "slopeKb": 16.174758184523803,
+        "tailSlopeKb": -8.990941220238092,
+        "rawSlopeKb": 65.6000744047619,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9155129536262314,
         "reason": "uncalibrated",
         "cycles": 8,
         "uncalibratedVerdict": "clean",
         "heapKbByCycle": [
-          8542,
-          8660,
-          8913,
-          9025,
-          9077,
-          9166,
-          9384,
-          9444
+          7074,
+          7148,
+          7331,
+          7381,
+          7424,
+          7457,
+          7516,
+          7539
         ]
       },
       "metrics": {
-        "mountMs": 22.89999999999418,
+        "mountMs": 40.300000000046566,
         "frameP95": 16.700000000000273,
         "longTasks": 0
       },
-      "score": 0.2879223398889651,
+      "score": 0.3762506191188374,
       "missing": []
+    },
+    {
+      "id": "forms-togglecard--centered-tiles",
+      "mountMs": {
+        "n": 7,
+        "value": 39.90000000002328,
+        "rawMedian": 39.90000000002328,
+        "iqr": 2.75,
+        "ratio": 0.0689223057643708,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999727,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 28.112118675595234,
+        "tailSlopeKb": -2.333519345238095,
+        "rawSlopeKb": 77.53743489583333,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9041512671886324,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7062,
+          7132,
+          7371,
+          7416,
+          7478,
+          7496,
+          7591,
+          7603
+        ]
+      },
+      "metrics": {
+        "mountMs": 39.90000000002328,
+        "frameP95": 16.799999999999727,
+        "longTasks": 0
+      },
+      "score": 0.37516838536926844,
+      "missing": []
+    },
+    {
+      "id": "editor-formattingpickercontent--default",
+      "mountMs": {
+        "n": 7,
+        "value": 39.39999999990687,
+        "rawMedian": 39.39999999990687,
+        "iqr": 5.200000000069849,
+        "ratio": 0.13197969543355687,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 8.626441592261905,
+        "tailSlopeKb": -14.514769345238093,
+        "rawSlopeKb": 58.0517578125,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9024889847680112,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7210,
+          7276,
+          7441,
+          7495,
+          7526,
+          7545,
+          7605,
+          7622
+        ]
+      },
+      "metrics": {
+        "mountMs": 39.39999999990687,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.3715700841998296,
+      "missing": []
+    },
+    {
+      "id": "overlays-sheet--all-sides",
+      "mountMs": {
+        "n": 7,
+        "value": 39.20000000006985,
+        "rawMedian": 39.20000000006985,
+        "iqr": 7.650000000023283,
+        "ratio": 0.19515306122473602,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 5.479073660714285,
+        "tailSlopeKb": -17.339769345238096,
+        "rawSlopeKb": 54.90438988095238,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9131609605642053,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7264,
+          7318,
+          7475,
+          7518,
+          7559,
+          7582,
+          7624,
+          7652
+        ]
+      },
+      "metrics": {
+        "mountMs": 39.20000000006985,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.3705299653299481,
+      "missing": []
+    },
+    {
+      "id": "editor-toolbardropdown--closes-from-inside",
+      "mountMs": {
+        "n": 7,
+        "value": 38.90000000002328,
+        "rawMedian": 38.90000000002328,
+        "iqr": 7.150000000081491,
+        "ratio": 0.1838046272513422,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999955,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999955,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 19.686244419642854,
+        "tailSlopeKb": 22.2430431547619,
+        "rawSlopeKb": 69.11156063988095,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9400056814797146,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7049,
+          7105,
+          7280,
+          7329,
+          7350,
+          7371,
+          7523,
+          7538
+        ]
+      },
+      "metrics": {
+        "mountMs": 38.90000000002328,
+        "frameP95": 16.799999999999955,
+        "longTasks": 0
+      },
+      "score": 0.36996779101562494,
+      "missing": []
+    },
+    {
+      "id": "app-board-boarddisplay--animations-disabled",
+      "mountMs": {
+        "n": 7,
+        "value": 38.39999999999418,
+        "rawMedian": 38.39999999999418,
+        "iqr": 3.1499999999941792,
+        "ratio": 0.08203124999986085,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 8.160760788690474,
+        "tailSlopeKb": -6.814378720238096,
+        "rawSlopeKb": 57.58607700892857,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8824172663978649,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6681,
+          6785,
+          6944,
+          6988,
+          7001,
+          7013,
+          7105,
+          7112
+        ]
+      },
+      "metrics": {
+        "mountMs": 38.39999999999418,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.36636948984663786,
+      "missing": []
+    },
+    {
+      "id": "overlays-dialog--default",
+      "mountMs": {
+        "n": 7,
+        "value": 38.09999999997672,
+        "rawMedian": 38.09999999997672,
+        "iqr": 3.800000000046566,
+        "ratio": 0.0997375328096821,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.79999999999996,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.79999999999996,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 10.52915736607143,
+        "tailSlopeKb": -0.9323474702380921,
+        "rawSlopeKb": 59.954473586309526,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9233731895906848,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7072,
+          7121,
+          7294,
+          7335,
+          7363,
+          7383,
+          7482,
+          7491
+        ]
+      },
+      "metrics": {
+        "mountMs": 38.09999999997672,
+        "frameP95": 16.79999999999996,
+        "longTasks": 0
+      },
+      "score": 0.36580731553246615,
+      "missing": []
+    },
+    {
+      "id": "editor-colorpickercontent--default",
+      "mountMs": {
+        "n": 7,
+        "value": 38.199999999953434,
+        "rawMedian": 38.199999999953434,
+        "iqr": 9.299999999988358,
+        "ratio": 0.24345549738219097,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.705000000000243,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.705000000000243,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 13.0908203125,
+        "tailSlopeKb": -14.731566220238093,
+        "rawSlopeKb": 62.516136532738095,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9074720927566203,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7117,
+          7175,
+          7346,
+          7414,
+          7455,
+          7470,
+          7539,
+          7548
+        ]
+      },
+      "metrics": {
+        "mountMs": 38.199999999953434,
+        "frameP95": 16.705000000000243,
+        "longTasks": 0
+      },
+      "score": 0.36537927117529734,
+      "missing": []
+    },
+    {
+      "id": "overlays-popover--collision-aware",
+      "mountMs": {
+        "n": 7,
+        "value": 38.09999999997672,
+        "rawMedian": 38.09999999997672,
+        "iqr": 2.0499999999883585,
+        "ratio": 0.05380577427794255,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 14.446568080357146,
+        "tailSlopeKb": 11.531324404761904,
+        "rawSlopeKb": 63.87188430059524,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9327840464748895,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7260,
+          7315,
+          7487,
+          7533,
+          7552,
+          7574,
+          7698,
+          7714
+        ]
+      },
+      "metrics": {
+        "mountMs": 38.09999999997672,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.3648093115404533,
+      "missing": []
+    },
+    {
+      "id": "overlays-tooltip--alignments",
+      "mountMs": {
+        "n": 7,
+        "value": 37.5,
+        "rawMedian": 37.5,
+        "iqr": 3.949999999895226,
+        "ratio": 0.10533333333053936,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 5.32431175595238,
+        "tailSlopeKb": -20.058519345238096,
+        "rawSlopeKb": 54.749627976190474,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9015245825277044,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7203,
+          7272,
+          7426,
+          7467,
+          7511,
+          7527,
+          7579,
+          7591
+        ]
+      },
+      "metrics": {
+        "mountMs": 37.5,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.36168895492838693,
+      "missing": []
+    },
+    {
+      "id": "forms-slider--default",
+      "mountMs": {
+        "n": 7,
+        "value": 36.699999999953434,
+        "rawMedian": 36.699999999953434,
+        "iqr": 1.8999999999650754,
+        "ratio": 0.0517711171653266,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 13.51288132440476,
+        "tailSlopeKb": -10.473363095238092,
+        "rawSlopeKb": 62.938197544642854,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9041690717989138,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7057,
+          7120,
+          7308,
+          7355,
+          7393,
+          7415,
+          7486,
+          7499
+        ]
+      },
+      "metrics": {
+        "mountMs": 36.699999999953434,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.35752847944522814,
+      "missing": []
+    },
+    {
+      "id": "containment-accordion--all-types",
+      "mountMs": {
+        "n": 7,
+        "value": 36.09999999997672,
+        "rawMedian": 36.09999999997672,
+        "iqr": 4.250000000029104,
+        "ratio": 0.1177285318568378,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 16.627976190476197,
+        "tailSlopeKb": -11.682347470238092,
+        "rawSlopeKb": 66.05329241071429,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9120476850237121,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7004,
+          7062,
+          7249,
+          7312,
+          7355,
+          7387,
+          7433,
+          7466
+        ]
+      },
+      "metrics": {
+        "mountMs": 36.09999999997672,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.3544081228331617,
+      "missing": []
+    },
+    {
+      "id": "overlays-alertdialog--default",
+      "mountMs": {
+        "n": 7,
+        "value": 35.59999999997672,
+        "rawMedian": 35.59999999997672,
+        "iqr": 2.4000000000814907,
+        "ratio": 0.06741573033941181,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.705000000000243,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.705000000000243,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 10.372814360119051,
+        "tailSlopeKb": -1.1663318452380977,
+        "rawSlopeKb": 59.798130580357146,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9225027940552265,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          7043,
+          7092,
+          7266,
+          7307,
+          7334,
+          7354,
+          7453,
+          7462
+        ]
+      },
+      "metrics": {
+        "mountMs": 35.59999999997672,
+        "frameP95": 16.705000000000243,
+        "longTasks": 0
+      },
+      "score": 0.35185772585593933,
+      "missing": []
+    },
+    {
+      "id": "forms-label--default",
+      "mountMs": {
+        "n": 7,
+        "value": 34,
+        "rawMedian": 34,
+        "iqr": 9.399999999965075,
+        "ratio": 0.2764705882342669,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999727,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -0.3567708333333357,
+        "tailSlopeKb": -18.283128720238096,
+        "rawSlopeKb": 49.06854538690476,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8823199566425606,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6639,
+          6686,
+          6848,
+          6883,
+          6901,
+          6920,
+          6979,
+          6985
+        ]
+      },
+      "metrics": {
+        "mountMs": 34,
+        "frameP95": 16.799999999999727,
+        "longTasks": 0
+      },
+      "score": 0.3444848786826371,
+      "missing": []
+    },
+    {
+      "id": "containment-card--all-layouts",
+      "mountMs": {
+        "n": 7,
+        "value": 33.5,
+        "rawMedian": 33.5,
+        "iqr": 2.5000000000582077,
+        "ratio": 0.07462686567337934,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.705000000000243,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.705000000000243,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 6.152483258928569,
+        "tailSlopeKb": -21.949144345238096,
+        "rawSlopeKb": 55.577799479166664,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8891226946057498,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6622,
+          6678,
+          6845,
+          6894,
+          6934,
+          6950,
+          7000,
+          7009
+        ]
+      },
+      "metrics": {
+        "mountMs": 33.5,
+        "frameP95": 16.705000000000243,
+        "longTasks": 0
+      },
+      "score": 0.3409364777134042,
+      "missing": []
+    },
+    {
+      "id": "app-plugin-plugincard--default",
+      "mountMs": {
+        "n": 7,
+        "value": 33,
+        "rawMedian": 33,
+        "iqr": 2.6000000000058208,
+        "ratio": 0.07878787878805517,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 11.41875930059524,
+        "tailSlopeKb": -13.655003720238092,
+        "rawSlopeKb": 60.844075520833336,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8823453481376339,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6548,
+          6622,
+          6812,
+          6856,
+          6887,
+          6905,
+          6973,
+          6983
+        ]
+      },
+      "metrics": {
+        "mountMs": 33,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.33828628033698077,
+      "missing": []
+    },
+    {
+      "id": "effects-react-bits-fadecontent--default",
+      "mountMs": {
+        "n": 7,
+        "value": 33,
+        "rawMedian": 33,
+        "iqr": 4.4500000000116415,
+        "ratio": 0.13484848484883763,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 179
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 6.266183035714285,
+        "tailSlopeKb": -22.343284970238095,
+        "rawSlopeKb": 55.69149925595238,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8834518815677554,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6601,
+          6655,
+          6828,
+          6875,
+          6916,
+          6928,
+          6981,
+          6988
+        ]
+      },
+      "metrics": {
+        "mountMs": 33,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.33828628033698077,
+      "missing": []
+    },
+    {
+      "id": "forms-switch--all-states",
+      "mountMs": {
+        "n": 7,
+        "value": 32.09999999997672,
+        "rawMedian": 32.09999999997672,
+        "iqr": 3.900000000023283,
+        "ratio": 0.1214953271036172,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999727,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 5.344261532738095,
+        "tailSlopeKb": -18.672972470238093,
+        "rawSlopeKb": 54.76957775297619,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9109416729499661,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6802,
+          6856,
+          7013,
+          7053,
+          7093,
+          7125,
+          7170,
+          7181
+        ]
+      },
+      "metrics": {
+        "mountMs": 32.09999999997672,
+        "frameP95": 16.799999999999727,
+        "longTasks": 0
+      },
+      "score": 0.334603749410589,
+      "missing": []
+    },
+    {
+      "id": "containment-scrollarea--both-axes",
+      "mountMs": {
+        "n": 7,
+        "value": 31.900000000023283,
+        "rawMedian": 31.900000000023283,
+        "iqr": 4.0499999999883585,
+        "ratio": 0.1269592476484452,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 15.761393229166664,
+        "tailSlopeKb": -9.931175595238095,
+        "rawSlopeKb": 65.18670944940476,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9128685501632277,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6803,
+          6872,
+          7044,
+          7118,
+          7152,
+          7172,
+          7245,
+          7259
+        ]
+      },
+      "metrics": {
+        "mountMs": 31.900000000023283,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.33256562654809146,
+      "missing": []
+    },
+    {
+      "id": "editor-filterpickercontent--default",
+      "mountMs": {
+        "n": 7,
+        "value": 31.900000000023283,
+        "rawMedian": 31.900000000023283,
+        "iqr": 3.2000000000116415,
+        "ratio": 0.10031347962411617,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 0.9208519345238102,
+        "tailSlopeKb": -24.009691220238096,
+        "rawSlopeKb": 50.346168154761905,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8793392404074716,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6471,
+          6520,
+          6677,
+          6725,
+          6752,
+          6770,
+          6811,
+          6823
+        ]
+      },
+      "metrics": {
+        "mountMs": 31.900000000023283,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.33256562654809146,
+      "missing": []
+    },
+    {
+      "id": "containment-collapsible--controlled",
+      "mountMs": {
+        "n": 7,
+        "value": 31.800000000046566,
+        "rawMedian": 31.800000000046566,
+        "iqr": 4.550000000017462,
+        "ratio": 0.14308176100662892,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 179
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 7.274739583333336,
+        "tailSlopeKb": -5.915941220238096,
+        "rawSlopeKb": 56.70005580357143,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9135950806425946,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6679,
+          6726,
+          6894,
+          6942,
+          6962,
+          6981,
+          7064,
+          7079
+        ]
+      },
+      "metrics": {
+        "mountMs": 31.800000000046566,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.33204556711284794,
+      "missing": []
+    },
+    {
+      "id": "forms-button--all-sizes",
+      "mountMs": {
+        "n": 7,
+        "value": 31.300000000046566,
+        "rawMedian": 31.300000000046566,
+        "iqr": 8.099999999976717,
+        "ratio": 0.2587859424908839,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.705000000000243,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.705000000000243,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -2.7098214285714306,
+        "tailSlopeKb": -27.262816220238093,
+        "rawSlopeKb": 46.715494791666664,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8648200121638493,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6540,
+          6596,
+          6748,
+          6783,
+          6813,
+          6822,
+          6864,
+          6873
+        ]
+      },
+      "metrics": {
+        "mountMs": 31.300000000046566,
+        "frameP95": 16.705000000000243,
+        "longTasks": 0
+      },
+      "score": 0.32949517013562557,
+      "missing": []
+    },
+    {
+      "id": "feedback-emptystate--default",
+      "mountMs": {
+        "n": 7,
+        "value": 31.199999999953434,
+        "rawMedian": 31.199999999953434,
+        "iqr": 2.599999999976717,
+        "ratio": 0.08333333333271145,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 1.19140625,
+        "tailSlopeKb": -18.469847470238093,
+        "rawSlopeKb": 50.616722470238095,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8899226476985916,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6516,
+          6570,
+          6730,
+          6765,
+          6792,
+          6808,
+          6865,
+          6876
+        ]
+      },
+      "metrics": {
+        "mountMs": 31.199999999953434,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.32892521050017615,
+      "missing": []
+    },
+    {
+      "id": "app-chrome-pagetoolbar--default",
+      "mountMs": {
+        "n": 7,
+        "value": 30.599999999976717,
+        "rawMedian": 30.599999999976717,
+        "iqr": 6.7000000000116415,
+        "ratio": 0.2189542483665601,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 179
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -4.199637276785715,
+        "tailSlopeKb": -36.023363095238096,
+        "rawSlopeKb": 45.22567894345238,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8205208081037567,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6377,
+          6425,
+          6589,
+          6626,
+          6655,
+          6671,
+          6687,
+          6694
+        ]
+      },
+      "metrics": {
+        "mountMs": 30.599999999976717,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.32580485388810976,
+      "missing": []
+    },
+    {
+      "id": "feedback-spinner--colors",
+      "mountMs": {
+        "n": 7,
+        "value": 30.5,
+        "rawMedian": 30.5,
+        "iqr": 1.5000000000582077,
+        "ratio": 0.049180327870760904,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 179
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 3.1539713541666643,
+        "tailSlopeKb": -18.109691220238094,
+        "rawSlopeKb": 52.57928757440476,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8967635575244656,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6527,
+          6582,
+          6742,
+          6781,
+          6813,
+          6830,
+          6885,
+          6899
+        ]
+      },
+      "metrics": {
+        "mountMs": 30.5,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.32528479445286623,
+      "missing": []
+    },
+    {
+      "id": "effects-react-bits-decryptedtext--animate-on-view",
+      "mountMs": {
+        "n": 7,
+        "value": 30.099999999976717,
+        "rawMedian": 30.099999999976717,
+        "iqr": 5.4500000000116415,
+        "ratio": 0.18106312292411486,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 5.993908110119051,
+        "tailSlopeKb": -17.513206845238095,
+        "rawSlopeKb": 55.419224330357146,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8738349673953993,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6750,
+          6807,
+          6990,
+          7032,
+          7057,
+          7072,
+          7134,
+          7142
+        ]
+      },
+      "metrics": {
+        "mountMs": 30.099999999976717,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.32320455671128684,
+      "missing": []
+    },
+    {
+      "id": "forms-secretinput--all-states",
+      "mountMs": {
+        "n": 7,
+        "value": 30,
+        "rawMedian": 30,
+        "iqr": 4.699999999895226,
+        "ratio": 0.15666666666317422,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.705000000000243,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.705000000000243,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 4.561941964285715,
+        "tailSlopeKb": -22.619456845238094,
+        "rawSlopeKb": 53.98725818452381,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8872106422225128,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6723,
+          6784,
+          6944,
+          6994,
+          7031,
+          7044,
+          7087,
+          7106
+        ]
+      },
+      "metrics": {
+        "mountMs": 30,
+        "frameP95": 16.705000000000243,
+        "longTasks": 0
+      },
+      "score": 0.3227343974756438,
+      "missing": []
+    },
+    {
+      "id": "containment-jsontree--arrays",
+      "mountMs": {
+        "n": 7,
+        "value": 29.599999999976717,
+        "rawMedian": 29.599999999976717,
+        "iqr": 3.3999999999941792,
+        "ratio": 0.11486486486475857,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999965,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999965,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 8.120675223214285,
+        "tailSlopeKb": -16.981566220238093,
+        "rawSlopeKb": 57.54599144345238,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8852079890956733,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6563,
+          6631,
+          6808,
+          6852,
+          6884,
+          6902,
+          6962,
+          6972
+        ]
+      },
+      "metrics": {
+        "mountMs": 29.599999999976717,
+        "frameP95": 16.799999999999965,
+        "longTasks": 0
+      },
+      "score": 0.3216022635264768,
+      "missing": []
+    },
+    {
+      "id": "app-chrome-pageheader--default",
+      "mountMs": {
+        "n": 7,
+        "value": 29.599999999976717,
+        "rawMedian": 29.599999999976717,
+        "iqr": 1.5499999999883585,
+        "ratio": 0.05236486486451276,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999955,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999955,
+        "unstable": false,
+        "reason": null,
+        "samples": 179
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 2.140438988095241,
+        "tailSlopeKb": -20.739378720238093,
+        "rawSlopeKb": 51.565755208333336,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8774298226573448,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6378,
+          6435,
+          6602,
+          6638,
+          6666,
+          6683,
+          6734,
+          6745
+        ]
+      },
+      "metrics": {
+        "mountMs": 29.599999999976717,
+        "frameP95": 16.799999999999955,
+        "longTasks": 0
+      },
+      "score": 0.3216022635264767,
+      "missing": []
+    },
+    {
+      "id": "foundations-variant-matrix--alert-matrix",
+      "mountMs": {
+        "n": 7,
+        "value": 29.70000000006985,
+        "rawMedian": 29.70000000006985,
+        "iqr": 2.449999999953434,
+        "ratio": 0.08249158248982061,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 11.83686755952381,
+        "tailSlopeKb": -13.667503720238095,
+        "rawSlopeKb": 61.262183779761905,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8762445830877552,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6550,
+          6640,
+          6823,
+          6874,
+          6902,
+          6913,
+          6985,
+          6997
+        ]
+      },
+      "metrics": {
+        "mountMs": 29.70000000006985,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.32112431897031285,
+      "missing": []
+    },
+    {
+      "id": "forms-input--all-types",
+      "mountMs": {
+        "n": 7,
+        "value": 29.5,
+        "rawMedian": 29.5,
+        "iqr": 1.6999999999534339,
+        "ratio": 0.05762711864248928,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999738,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999738,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 0.1940569196428541,
+        "tailSlopeKb": -18.444456845238093,
+        "rawSlopeKb": 49.61937313988095,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8899271207116628,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6558,
+          6605,
+          6764,
+          6799,
+          6826,
+          6838,
+          6894,
+          6911
+        ]
+      },
+      "metrics": {
+        "mountMs": 29.5,
+        "frameP95": 16.799999999999738,
+        "longTasks": 0
+      },
+      "score": 0.32108220409123106,
+      "missing": []
+    },
+    {
+      "id": "feedback-badge--all-variants",
+      "mountMs": {
+        "n": 7,
+        "value": 29.400000000023283,
+        "rawMedian": 29.400000000023283,
+        "iqr": 7.099999999976717,
+        "ratio": 0.2414965986384726,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -2.7144252232142847,
+        "tailSlopeKb": -30.543284970238094,
+        "rawSlopeKb": 46.71089099702381,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8545209397955176,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6445,
+          6498,
+          6654,
+          6690,
+          6723,
+          6734,
+          6766,
+          6775
+        ]
+      },
+      "metrics": {
+        "mountMs": 29.400000000023283,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.3195641406639769,
+      "missing": []
+    },
+    {
+      "id": "feedback-alert--all-variants",
+      "mountMs": {
+        "n": 7,
+        "value": 29.29999999993015,
+        "rawMedian": 29.29999999993015,
+        "iqr": 2.550000000046566,
+        "ratio": 0.08703071672534625,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.705000000000243,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.705000000000243,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 6.66787574404762,
+        "tailSlopeKb": -16.181175595238095,
+        "rawSlopeKb": 56.093191964285715,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9116111580345738,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6491,
+          6548,
+          6707,
+          6750,
+          6792,
+          6810,
+          6873,
+          6882
+        ]
+      },
+      "metrics": {
+        "mountMs": 29.29999999993015,
+        "frameP95": 16.705000000000243,
+        "longTasks": 0
+      },
+      "score": 0.3190939814277285,
+      "missing": []
+    },
+    {
+      "id": "forms-textarea--all-states",
+      "mountMs": {
+        "n": 7,
+        "value": 29.099999999976717,
+        "rawMedian": 29.099999999976717,
+        "iqr": 1.5,
+        "ratio": 0.05154639175261856,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999727,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 1.0809616815476204,
+        "tailSlopeKb": -15.658128720238096,
+        "rawSlopeKb": 50.506277901785715,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9025284154191933,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6572,
+          6619,
+          6775,
+          6810,
+          6837,
+          6853,
+          6916,
+          6929
+        ]
+      },
+      "metrics": {
+        "mountMs": 29.099999999976717,
+        "frameP95": 16.799999999999727,
+        "longTasks": 0
+      },
+      "score": 0.31900196634965156,
+      "missing": []
+    },
+    {
+      "id": "feedback-statusdot--decorative-vs-standalone",
+      "mountMs": {
+        "n": 7,
+        "value": 29.199999999953434,
+        "rawMedian": 29.199999999953434,
+        "iqr": 1.849999999976717,
+        "ratio": 0.06335616438286532,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 0.2619512648809561,
+        "tailSlopeKb": -22.560863095238094,
+        "rawSlopeKb": 49.68726748511905,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8764678231286449,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6544,
+          6597,
+          6755,
+          6799,
+          6825,
+          6834,
+          6884,
+          6898
+        ]
+      },
+      "metrics": {
+        "mountMs": 29.199999999953434,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.3185240217928845,
+      "missing": []
+    },
+    {
+      "id": "app-plugin-plugincategorybadge--all-categories",
+      "mountMs": {
+        "n": 7,
+        "value": 29.099999999976717,
+        "rawMedian": 29.099999999976717,
+        "iqr": 3.4499999999825377,
+        "ratio": 0.11855670103042261,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.710000000000218,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.710000000000218,
+        "unstable": false,
+        "reason": null,
+        "samples": 179
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -2.78706287202381,
+        "tailSlopeKb": -30.952269345238093,
+        "rawSlopeKb": 46.638253348214285,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8447057241186147,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6374,
+          6427,
+          6588,
+          6623,
+          6653,
+          6666,
+          6694,
+          6705
+        ]
+      },
+      "metrics": {
+        "mountMs": 29.099999999976717,
+        "frameP95": 16.710000000000218,
+        "longTasks": 0
+      },
+      "score": 0.31810376275684205,
+      "missing": []
+    },
+    {
+      "id": "app-board-staticboarddisplay--default",
+      "mountMs": {
+        "n": 7,
+        "value": 28.699999999982538,
+        "rawMedian": 28.699999999982538,
+        "iqr": 1.9999999999708962,
+        "ratio": 0.06968641114885411,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 6.57319568452381,
+        "tailSlopeKb": -14.161644345238095,
+        "rawSlopeKb": 55.998511904761905,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8805175257309312,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6509,
+          6580,
+          6749,
+          6801,
+          6820,
+          6829,
+          6906,
+          6912
+        ]
+      },
+      "metrics": {
+        "mountMs": 28.699999999982538,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.315923724616213,
+      "missing": []
+    },
+    {
+      "id": "app-chrome-themetoggle--default",
+      "mountMs": {
+        "n": 7,
+        "value": 28.5,
+        "rawMedian": 28.5,
+        "iqr": 2.1999999999825377,
+        "ratio": 0.07719298245552764,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 2.8575148809523796,
+        "tailSlopeKb": -23.862816220238095,
+        "rawSlopeKb": 52.282831101190474,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8498536614356381,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6374,
+          6429,
+          6614,
+          6651,
+          6678,
+          6688,
+          6734,
+          6748
+        ]
+      },
+      "metrics": {
+        "mountMs": 28.5,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.3148836057455746,
+      "missing": []
+    },
+    {
+      "id": "editor-drawcharpickercontent--character-selected",
+      "mountMs": {
+        "n": 7,
+        "value": 28.300000000046566,
+        "rawMedian": 28.300000000046566,
+        "iqr": 0.8500000000349246,
+        "ratio": 0.030035335690230598,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.79999999999996,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.79999999999996,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 11.522786458333336,
+        "tailSlopeKb": -8.175316220238095,
+        "rawSlopeKb": 60.94810267857143,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9200550975067018,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6473,
+          6527,
+          6704,
+          6744,
+          6781,
+          6816,
+          6885,
+          6895
+        ]
+      },
+      "metrics": {
+        "mountMs": 28.300000000046566,
+        "frameP95": 16.79999999999996,
+        "longTasks": 0
+      },
+      "score": 0.31484149086710045,
+      "missing": []
+    },
+    {
+      "id": "primitives-layout-flex--centered",
+      "mountMs": {
+        "n": 7,
+        "value": 28.199999999953434,
+        "rawMedian": 28.199999999953434,
+        "iqr": 3.449999999953434,
+        "ratio": 0.12234042553046563,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -0.6916852678571459,
+        "tailSlopeKb": -22.469847470238093,
+        "rawSlopeKb": 48.73363095238095,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8727016445383102,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6538,
+          6585,
+          6749,
+          6784,
+          6811,
+          6821,
+          6872,
+          6884
+        ]
+      },
+      "metrics": {
+        "mountMs": 28.199999999953434,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.3133234274392387,
+      "missing": []
+    },
+    {
+      "id": "primitives-layout-grid--card-grid",
+      "mountMs": {
+        "n": 7,
+        "value": 27.79999999993015,
+        "rawMedian": 27.79999999993015,
+        "iqr": 0.40000000002328306,
+        "ratio": 0.014388489209506765,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.705000000000254,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.705000000000254,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 6.4603329613095255,
+        "tailSlopeKb": -15.293284970238098,
+        "rawSlopeKb": 55.88564918154762,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9105551929223288,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6538,
+          6586,
+          6747,
+          6798,
+          6833,
+          6850,
+          6913,
+          6926
+        ]
+      },
+      "metrics": {
+        "mountMs": 27.79999999993015,
+        "frameP95": 16.705000000000254,
+        "longTasks": 0
+      },
+      "score": 0.3112930898972599,
+      "missing": []
+    },
+    {
+      "id": "app-plugin-scaledboardteaser--default",
+      "mountMs": {
+        "n": 7,
+        "value": 27.79999999998836,
+        "rawMedian": 27.79999999998836,
+        "iqr": 3.3999999999650754,
+        "ratio": 0.12230215827217623,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 8.73939732142857,
+        "tailSlopeKb": -11.540159970238093,
+        "rawSlopeKb": 58.164713541666664,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8897273227125135,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6480,
+          6555,
+          6726,
+          6780,
+          6800,
+          6814,
+          6884,
+          6903
+        ]
+      },
+      "metrics": {
+        "mountMs": 27.79999999998836,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.311243189697962,
+      "missing": []
+    },
+    {
+      "id": "app-chrome-maincontent--ai-panel-open",
+      "mountMs": {
+        "n": 7,
+        "value": 27.5,
+        "rawMedian": 27.5,
+        "iqr": 2.3500000000058208,
+        "ratio": 0.08545454545475711,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999727,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 1.6376023065476204,
+        "tailSlopeKb": -15.699144345238096,
+        "rawSlopeKb": 51.062918526785715,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.88704872796481,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6391,
+          6438,
+          6600,
+          6644,
+          6663,
+          6673,
+          6743,
+          6752
+        ]
+      },
+      "metrics": {
+        "mountMs": 27.5,
+        "frameP95": 16.799999999999727,
+        "longTasks": 0
+      },
+      "score": 0.31068101538393933,
+      "missing": []
+    },
+    {
+      "id": "primitives-typography-code--default",
+      "mountMs": {
+        "n": 7,
+        "value": 27.5,
+        "rawMedian": 27.5,
+        "iqr": 1.7500000001164153,
+        "ratio": 0.06363636364059692,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999727,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -0.2017299107142847,
+        "tailSlopeKb": -20.870628720238095,
+        "rawSlopeKb": 49.22358630952381,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8710283643306643,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6497,
+          6545,
+          6707,
+          6751,
+          6769,
+          6779,
+          6838,
+          6844
+        ]
+      },
+      "metrics": {
+        "mountMs": 27.5,
+        "frameP95": 16.799999999999727,
+        "longTasks": 0
+      },
+      "score": 0.31068101538393933,
+      "missing": []
+    },
+    {
+      "id": "primitives-layout-stack--alignment-options",
+      "mountMs": {
+        "n": 7,
+        "value": 27.600000000093132,
+        "rawMedian": 27.600000000093132,
+        "iqr": 2,
+        "ratio": 0.0724637681156975,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 3.3092447916666643,
+        "tailSlopeKb": -12.866331845238093,
+        "rawSlopeKb": 52.73456101190476,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.90895308956773,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6533,
+          6585,
+          6740,
+          6785,
+          6807,
+          6827,
+          6889,
+          6908
+        ]
+      },
+      "metrics": {
+        "mountMs": 27.600000000093132,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.31020307082777776,
+      "missing": []
+    },
+    {
+      "id": "feedback-skeleton--all-shapes",
+      "mountMs": {
+        "n": 7,
+        "value": 27.099999999976717,
+        "rawMedian": 27.099999999976717,
+        "iqr": 1.2000000000116415,
+        "ratio": 0.04428044280489567,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999955,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999955,
+        "unstable": false,
+        "reason": null,
+        "samples": 179
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 4.181315104166664,
+        "tailSlopeKb": -10.221409970238092,
+        "rawSlopeKb": 53.60663132440476,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9184315913067399,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6443,
+          6500,
+          6653,
+          6689,
+          6722,
+          6733,
+          6809,
+          6827
+        ]
+      },
+      "metrics": {
+        "mountMs": 27.099999999976717,
+        "frameP95": 16.799999999999955,
+        "longTasks": 0
+      },
+      "score": 0.30860077764236216,
+      "missing": []
+    },
+    {
+      "id": "primitives-typography-text--default",
+      "mountMs": {
+        "n": 7,
+        "value": 27.199999999953434,
+        "rawMedian": 27.199999999953434,
+        "iqr": 1.0499999999301508,
+        "ratio": 0.03860294117396869,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.705000000000243,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.705000000000243,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -0.4767020089285694,
+        "tailSlopeKb": -22.450316220238093,
+        "rawSlopeKb": 48.948614211309526,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8641355996468761,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6547,
+          6595,
+          6759,
+          6802,
+          6821,
+          6831,
+          6886,
+          6892
+        ]
+      },
+      "metrics": {
+        "mountMs": 27.199999999953434,
+        "frameP95": 16.705000000000243,
+        "longTasks": 0
+      },
+      "score": 0.30817273328519335,
+      "missing": []
+    },
+    {
+      "id": "primitives-layout-box--as-section",
+      "mountMs": {
+        "n": 7,
+        "value": 27,
+        "rawMedian": 27,
+        "iqr": 2.400000000023283,
+        "ratio": 0.08888888888975123,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.705000000000243,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.705000000000243,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -0.9593098958333357,
+        "tailSlopeKb": -22.944847470238095,
+        "rawSlopeKb": 48.46600632440476,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8630323045797728,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6553,
+          6601,
+          6764,
+          6808,
+          6826,
+          6836,
+          6885,
+          6898
+        ]
+      },
+      "metrics": {
+        "mountMs": 27,
+        "frameP95": 16.705000000000243,
+        "longTasks": 0
+      },
+      "score": 0.3071326144147064,
+      "missing": []
+    },
+    {
+      "id": "primitives-typography-heading--default",
+      "mountMs": {
+        "n": 7,
+        "value": 26.600000000093132,
+        "rawMedian": 26.600000000093132,
+        "iqr": 1.3000000000465661,
+        "ratio": 0.04887218045270732,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -0.640625,
+        "tailSlopeKb": -22.481566220238093,
+        "rawSlopeKb": 48.784691220238095,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8653160469783305,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6554,
+          6608,
+          6768,
+          6811,
+          6830,
+          6839,
+          6895,
+          6901
+        ]
+      },
+      "metrics": {
+        "mountMs": 26.600000000093132,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.3050024764741319,
+      "missing": []
+    },
+    {
+      "id": "app-board-boardteaser--default",
+      "mountMs": {
+        "n": 7,
+        "value": 26.39999999999418,
+        "rawMedian": 26.39999999999418,
+        "iqr": 0.8999999999941792,
+        "ratio": 0.03409090909069613,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999727,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 9.279994419642854,
+        "tailSlopeKb": -17.147972470238095,
+        "rawSlopeKb": 58.70531063988095,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9131979477422606,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6313,
+          6368,
+          6531,
+          6578,
+          6632,
+          6642,
+          6710,
+          6717
+        ]
+      },
+      "metrics": {
+        "mountMs": 26.39999999999418,
+        "frameP95": 16.799999999999727,
+        "longTasks": 0
+      },
+      "score": 0.30496036159489864,
+      "missing": []
+    },
+    {
+      "id": "containment-table--default",
+      "mountMs": {
+        "n": 7,
+        "value": 26.29999999993015,
+        "rawMedian": 26.29999999993015,
+        "iqr": 0.9500000000116415,
+        "ratio": 0.03612167300434086,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999727,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 2.4637741815476204,
+        "tailSlopeKb": -12.708909970238096,
+        "rawSlopeKb": 51.889090401785715,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9112312913436629,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6386,
+          6438,
+          6593,
+          6628,
+          6658,
+          6671,
+          6732,
+          6760
+        ]
+      },
+      "metrics": {
+        "mountMs": 26.29999999993015,
+        "frameP95": 16.799999999999727,
+        "longTasks": 0
+      },
+      "score": 0.3044403021592011,
+      "missing": []
+    },
+    {
+      "id": "primitives-typography-textlink--default",
+      "mountMs": {
+        "n": 7,
+        "value": 26,
+        "rawMedian": 26,
+        "iqr": 1.2000000000698492,
+        "ratio": 0.04615384615653266,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999727,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -0.2185639880952408,
+        "tailSlopeKb": -20.699925595238096,
+        "rawSlopeKb": 49.206752232142854,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8718884010856476,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6502,
+          6549,
+          6711,
+          6755,
+          6774,
+          6783,
+          6843,
+          6849
+        ]
+      },
+      "metrics": {
+        "mountMs": 26,
+        "frameP95": 16.799999999999727,
+        "longTasks": 0
+      },
+      "score": 0.30288012385347063,
+      "missing": []
+    },
+    {
+      "id": "forms-checkbox--checkbox-list",
+      "mountMs": {
+        "n": 7,
+        "value": 26,
+        "rawMedian": 26,
+        "iqr": 1.9500000000116415,
+        "ratio": 0.07500000000044775,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 0.9398716517857153,
+        "tailSlopeKb": -16.455784970238092,
+        "rawSlopeKb": 50.36518787202381,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.9000561312359725,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6448,
+          6500,
+          6655,
+          6690,
+          6717,
+          6733,
+          6789,
+          6808
+        ]
+      },
+      "metrics": {
+        "mountMs": 26,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.3018821198614601,
+      "missing": []
+    },
+    {
+      "id": "primitives-typography-list--default",
+      "mountMs": {
+        "n": 7,
+        "value": 25.5,
+        "rawMedian": 25.5,
+        "iqr": 1.0000000001164153,
+        "ratio": 0.03921568627907511,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": -1.0105561755952408,
+        "tailSlopeKb": -22.799144345238094,
+        "rawSlopeKb": 48.414760044642854,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8637897723527632,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6540,
+          6587,
+          6750,
+          6794,
+          6812,
+          6822,
+          6870,
+          6885
+        ]
+      },
+      "metrics": {
+        "mountMs": 25.5,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.29928182268463716,
+      "missing": []
+    },
+    {
+      "id": "app-chrome-fiestalogo--default",
+      "mountMs": {
+        "n": 7,
+        "value": 25.29999999998836,
+        "rawMedian": 25.29999999998836,
+        "iqr": 1.2000000000407454,
+        "ratio": 0.04743083004115801,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999955,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999955,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 0.078869047619051,
+        "tailSlopeKb": -19.121800595238096,
+        "rawSlopeKb": 49.504185267857146,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8863526130175686,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6343,
+          6391,
+          6550,
+          6585,
+          6612,
+          6622,
+          6686,
+          6692
+        ]
+      },
+      "metrics": {
+        "mountMs": 25.29999999998836,
+        "frameP95": 16.799999999999955,
+        "longTasks": 0
+      },
+      "score": 0.2992397078058603,
+      "missing": []
+    },
+    {
+      "id": "app-chrome-fiestaicon--as-image-src",
+      "mountMs": {
+        "n": 7,
+        "value": 24.79999999998836,
+        "rawMedian": 24.79999999998836,
+        "iqr": 1.3000000000174623,
+        "ratio": 0.05241935483943841,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 2.7017299107142847,
+        "tailSlopeKb": -21.878050595238093,
+        "rawSlopeKb": 52.12704613095238,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8732971045037812,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6402,
+          6449,
+          6611,
+          6674,
+          6693,
+          6702,
+          6754,
+          6767
+        ]
+      },
+      "metrics": {
+        "mountMs": 24.79999999998836,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.29564140663702454,
+      "missing": []
+    },
+    {
+      "id": "app-chrome-skiptocontent--default",
+      "mountMs": {
+        "n": 7,
+        "value": 24.600000000034925,
+        "rawMedian": 24.600000000034925,
+        "iqr": 3.249999999970896,
+        "ratio": 0.13211382113684073,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 0.0577566964285694,
+        "tailSlopeKb": -18.192503720238093,
+        "rawSlopeKb": 49.483072916666664,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8811164753260603,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6344,
+          6397,
+          6554,
+          6598,
+          6615,
+          6625,
+          6685,
+          6700
+        ]
+      },
+      "metrics": {
+        "mountMs": 24.600000000034925,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.2946012877665376,
+      "missing": []
+    },
+    {
+      "id": "app-seasons-sidebaraurorahorizontal--custom-colors",
+      "mountMs": {
+        "n": 7,
+        "value": 24.600000000034925,
+        "rawMedian": 24.600000000034925,
+        "iqr": 0.8500000000058208,
+        "ratio": 0.034552845528642843,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 179
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 2.4545200892857153,
+        "tailSlopeKb": -13.813597470238093,
+        "rawSlopeKb": 51.87983630952381,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8802826016743608,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6461,
+          6515,
+          6686,
+          6721,
+          6739,
+          6749,
+          6825,
+          6832
+        ]
+      },
+      "metrics": {
+        "mountMs": 24.600000000034925,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.2946012877665376,
+      "missing": []
+    },
+    {
+      "id": "app-chrome-boardicon--default",
+      "mountMs": {
+        "n": 7,
+        "value": 24.60000000000582,
+        "rawMedian": 24.60000000000582,
+        "iqr": 2.3000000000174623,
+        "ratio": 0.09349593496003732,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 0.1235584077380949,
+        "tailSlopeKb": -18.601878720238094,
+        "rawSlopeKb": 49.54887462797619,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8890911284111038,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6302,
+          6355,
+          6510,
+          6546,
+          6573,
+          6582,
+          6646,
+          6654
+        ]
+      },
+      "metrics": {
+        "mountMs": 24.60000000000582,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.2946012877663862,
+      "missing": []
+    },
+    {
+      "id": "app-seasons-sidebaraurora--custom-colors",
+      "mountMs": {
+        "n": 7,
+        "value": 24.300000000046566,
+        "rawMedian": 24.300000000046566,
+        "iqr": 2.499999999970896,
+        "ratio": 0.10288065843481915,
+        "unstable": false,
+        "reason": null
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000273,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.700000000000273,
+        "unstable": false,
+        "reason": null,
+        "samples": 179
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 2.686244419642854,
+        "tailSlopeKb": -14.027659970238098,
+        "rawSlopeKb": 52.11156063988095,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8891738605964552,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6461,
+          6514,
+          6677,
+          6720,
+          6739,
+          6748,
+          6824,
+          6831
+        ]
+      },
+      "metrics": {
+        "mountMs": 24.300000000046566,
+        "frameP95": 16.700000000000273,
+        "longTasks": 0
+      },
+      "score": 0.2930411094605043,
+      "missing": []
+    },
+    {
+      "id": "app-chrome-pagelayout--default",
+      "mountMs": {
+        "n": 7,
+        "value": null,
+        "rawMedian": 28,
+        "iqr": 11.399999999965075,
+        "ratio": 0.40714285714160986,
+        "unstable": true,
+        "reason": "high-variance"
+      },
+      "frame": {
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999955,
+        "rawP50": 16.699999999999818,
+        "rawP95": 16.799999999999955,
+        "unstable": false,
+        "reason": null,
+        "samples": 180
+      },
+      "longTasks": 0,
+      "retention": {
+        "verdict": "unknown",
+        "slopeKb": 1.8796968005952408,
+        "tailSlopeKb": -16.667894345238096,
+        "rawSlopeKb": 51.305013020833336,
+        "baselineSlopeKb": 49.425316220238095,
+        "r2": 0.8920814196417359,
+        "reason": "uncalibrated",
+        "cycles": 8,
+        "uncalibratedVerdict": "clean",
+        "heapKbByCycle": [
+          6328,
+          6380,
+          6542,
+          6578,
+          6605,
+          6618,
+          6681,
+          6693
+        ]
+      },
+      "metrics": {
+        "mountMs": null,
+        "frameP95": 16.799999999999955,
+        "longTasks": 0
+      },
+      "score": 0.16766467065868174,
+      "missing": [
+        "mountMs"
+      ]
     }
   ]
 }

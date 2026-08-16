@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "last_run_at": "2026-08-07T19:09:05Z",
+  "last_run_at": "2026-08-16T17:09:13Z",
   "themes": [
     {
       "id": "barrel-tree-shaking",
@@ -55,12 +55,12 @@
       "title": "Re-render cascade mapping",
       "question": "Where does a parent re-render cascade across component boundaries, and which context values or prop identities cause it?",
       "surfaces": ["src/components/board/**", "src/components/chrome/**"],
-      "status": "pending",
+      "status": "done",
       "source": "seed",
       "added_at": "2026-08-07T00:00:00Z",
-      "last_investigated_at": null,
-      "findings": [],
-      "notes": "This is the theme the per-file sweep structurally cannot see: the cost lives in the edges between components, not inside any one file."
+      "last_investigated_at": "2026-08-16T17:09:13Z",
+      "findings": [63],
+      "notes": "Ranked #1: surfaces join to the most expensive component exports (BoardSelector 73,530 B gz — largest single component; LanguageSelector 60,142; Sidebar 57,492) and the highest-mount bench stories (chrome-appshell--collapsed 55.5ms, chrome-sidebar--ai-active 52.7ms, board-scaledboarddisplay 47.1ms). VERDICT: RESOLVED at the library level — nothing new to file. This theme was already investigated in a prior run and filed as #63 (CLOSED/COMPLETED, not rejected; rejected-findings.jsonl is empty), whose fixes are all present in the current tree: (a) every chrome component is now memo'd — sidebar, board-selector, language-selector, theme-toggle, main-content, page-header/page-layout/page-toolbar, fiesta-logo, board-icon; (b) the Select context churn is stabilized via lib/select-items stabilizeSelectItems + render-phase state adjustment (#62), so SelectItemsContext value and Base UI `items` stay referentially stable; (c) Sidebar's window-resize appInset listener is now rAF-coalesced and bails when the inset is unchanged (sidebar.tsx:275-296), and the ResizeObserver header-height publish is likewise coalesced + skips unchanged writes. The board render path is triple-protected against cascades: BoardDisplay + CharTile + GridRow + StaticGridRow + StaticTile all memo'd with custom comparators; the grid array is useMemo'd and rows are reference-stable so a BoardDisplay re-render does not reach the tiles; flapSpeed is compared via resolveFlapSpeed so a fresh {durationMs} object does not re-render; loading uses one shared ticker per cadence instead of ~132 per-tile intervals; board-surfaces.ts materials and board-metrics class maps are module-scope. The seasonal auroras (SidebarAurora/SidebarAuroraHorizontal, rendered directly by Sidebar) are memo'd on a stable `colors` ref. The ONLY residual cascade is consumer-side prop identity: the memo #63 added to the chrome shell only bails if the consuming app passes referentially-stable slot/array/render-prop values (Sidebar.boardSelector/mobileBoardSelector/versionSlot/themeToggleSlot/primaryItems/secondaryItems/renderLink/ai, MainContent.children). At the AppShell demo composition these are recreated on every shell state change, so memo does not bail — but that is not a library defect (a presentational/controlled library cannot stabilize consumer-supplied identities) and #63 explicitly deferred it as the separate discovered theme `prop-contract-stability`. Not refiled: doing so would re-propose a finding #63 already deferred AND belongs to the 'memo'd component + unstable consumer props' false-positive class. Considered and rejected as a finding: ScaledBoardDisplay uses React's default shallow memo while wrapping the custom-comparator BoardDisplay — this is the normal memo pattern (stable for the default flapSpeed='standard'/no-custom-label case) and BoardDisplay's comparator backstops the tiles regardless, so it is not a defect."
     },
     {
       "id": "css-paint-budget",
@@ -73,6 +73,18 @@
       "last_investigated_at": null,
       "findings": [],
       "notes": "Large blur radii and layer promotion show up in the bench as frame p95 above the vsync floor."
+    },
+    {
+      "id": "prop-contract-stability",
+      "title": "Prop-contract stability for the presentational shell",
+      "question": "Now that the chrome shell is uniformly memo'd (#63), its memos only bail when the consuming app passes referentially-stable slot/array/render-prop values — which the documented AppShell composition does not. Should the library close this at its own boundary (a composed AppShell that owns stable slot/callback identities, and/or a stabilization hook) rather than leaving every consumer to hand-memoize, and what does the un-bailed cascade actually cost per shell state change?",
+      "surfaces": ["src/components/chrome/**", "src/components/forms/select.tsx"],
+      "status": "pending",
+      "source": "discovered",
+      "added_at": "2026-08-16T17:09:13Z",
+      "last_investigated_at": null,
+      "findings": [],
+      "notes": "Referenced by #63 as a tracked-separate discovered theme but never persisted to this file (state write-back gap). The residual is genuinely consumer-side for a presentational library, so a naive 'memoize your props' issue against the library is a false positive — the run must instead evaluate whether the library should OWN the stable identities (a composed <AppShell> that memoizes slots/callbacks internally, or a documented stabilization helper), and measure the real per-interaction cost first. A human should prune this if the answer is 'leave it to consumers'."
     }
   ]
 }
