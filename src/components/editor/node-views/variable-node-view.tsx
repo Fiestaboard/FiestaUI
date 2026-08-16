@@ -59,7 +59,7 @@ export function VariableNodeView({ node, labels }: VariableNodeViewProps) {
             viewport. FillSpaceNodeView's badge already carries `group`. */}
         <Badge
           variant="variable"
-          className="group inline-flex flex-nowrap items-center gap-1 px-1.5 py-0 border-dashed cursor-grab hover:bg-tag-variable/20 active:cursor-grabbing mr-0.5 transition-all duration-150"
+          className="group inline-flex flex-nowrap items-center gap-1 px-1.5 py-0 border-dashed cursor-grab hover:bg-tag-variable/20 active:cursor-grabbing mr-0.5 transition-all duration-control"
         >
           {/* Raw <span>s throughout this Badge: they render inside TipTap's
               contentEditable where sub-xs sizes (text-[10px]/[11px]) and the

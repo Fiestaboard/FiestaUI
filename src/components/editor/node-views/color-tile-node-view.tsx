@@ -76,7 +76,7 @@ export function ColorTileNodeView({ node, labels }: ColorTileNodeViewProps) {
             as="span"
             className={cn(
               "relative rounded-[3px] cursor-grab",
-              "transition-all duration-150",
+              "transition-all duration-control",
               "hover:scale-105",
               "active:cursor-grabbing active:scale-100",
             )}

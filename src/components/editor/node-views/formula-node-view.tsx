@@ -154,7 +154,7 @@ export function FormulaNodeView({
           <TooltipTrigger asChild>
             <Badge
               variant="formula"
-              className="inline-flex flex-nowrap items-center gap-1 px-1.5 py-0 border-dashed cursor-pointer hover:bg-amber-500/20 mr-0.5 transition-all duration-150 active:scale-95"
+              className="inline-flex flex-nowrap items-center gap-1 px-1.5 py-0 border-dashed cursor-pointer hover:bg-amber-500/20 mr-0.5 transition-all duration-control active:scale-95"
               // Use onMouseDown instead of onClick — ProseMirror's drag-handle
               // intercepts mousedown on atom nodes before React's onClick fires.
               onMouseDown={openPanel}

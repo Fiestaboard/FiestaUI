@@ -39,7 +39,7 @@ export function WrappedTextView({ node, deleteNode, labels }: WrappedTextViewPro
       as="span"
       className={cn(
         "inline-block align-middle rounded-md px-2 py-0.5 text-xs font-medium cursor-grab",
-        "border transition-all duration-150",
+        "border transition-all duration-control",
         "bg-warning/15 border-warning/30 text-warning",
         "hover:bg-warning/20",
         "active:cursor-grabbing",
