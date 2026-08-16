@@ -23,6 +23,38 @@ understanding its own breaking changes.
   FiestaBoard is built now.
 - The automation never merges the downstream PR; a human on FiestaBoard does.
 
+### Amendment 2026-08-15 — second consumer: the docs site
+
+`Fiestaboard/fiestaboard.github.io` became a real source repo (it used to be
+generated deploy output) and depends on `@fiestaboard/ui` from npm, so it now
+goes stale on every release exactly the way FiestaBoard used to. It is the
+second consumer, added as a matrix leg rather than a second workflow.
+
+What the consumers do NOT share, and is therefore configuration on the leg
+rather than an assumption in the scripts:
+
+|                    | FiestaBoard                       | docs site                                          |
+| ------------------ | --------------------------------- | -------------------------------------------------- |
+| npm app            | `web/`                            | repo root                                          |
+| install            | `--legacy-peer-deps`              | plain                                              |
+| validation         | `typecheck`, `test:run`           | `lint`, `typecheck`, `format:check`, `build`       |
+| retried on failure | `test:run` (shared-process flake) | nothing                                            |
+| adoption pass      | yes                               | no — it consumes the kit, it has no hand-rolled UI |
+
+The docs site has no unit suite, so its Docusaurus build _is_ the test that a
+design-system upgrade did not break it; it runs in `DOCS_PR_MODE` to compile
+only the current docs version, matching that repo's own `pr-build.yml`.
+
+Legs run with `fail-fast: false`: a red docs site must not stop FiestaBoard's
+upgrade from landing, or vice versa.
+
+**Credentials:** no new setup. `CLAUDE_BOT_APP_ID` points at the
+`fiestaboard-ci-bot` App, which is installed org-wide on `Fiestaboard`
+(`repository_selection: all`) with `contents: write` and
+`pull_requests: write`, so a new consumer repo is covered the moment it
+exists. Only a future App scoped to selected repositories would need the new
+repo added before its leg could push.
+
 ## Architecture
 
 One new workflow in FiestaUI: `.github/workflows/downstream-upgrade.yml`.

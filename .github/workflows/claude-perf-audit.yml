@@ -242,7 +242,7 @@ jobs:
             **Read `vrt/skip.json` early in every run.** It lists story-ID
             patterns excluded from visual regression, each with a reason.
             Map those story IDs back to their source files (story ID
-            `ui-aurora--*` comes from `src/components/ui/aurora.tsx`,
+            `effects-aurora--*` comes from `src/components/effects/aurora.tsx`,
             `board-boarddisplay--*` from
             `src/components/board/board-display.tsx`, and so on).
 
@@ -258,7 +258,7 @@ jobs:
               the real memory and per-frame wins live.
 
             At the time this workflow was written, `vrt/skip.json` excluded
-            `ui-aurora--*` and two `board-boarddisplay--loading*` stories.
+            `effects-aurora--*` and two `app-board-boarddisplay--loading*` stories.
             Trust the file over this paragraph — it may have changed.
 
             One of those skip reasons is itself a finding worth acting on:
@@ -356,7 +356,7 @@ jobs:
 
             The highest-value surfaces in this repo, roughly in order:
 
-            - `src/components/ui/aurora.tsx` and
+            - `src/components/effects/aurora.tsx` and
               `src/components/seasons/*` — WebGL via `ogl`. Per-frame
               allocations, uniform churn, missing disposal, and animation
               loops that keep running off-screen or in a hidden tab are the
@@ -364,7 +364,7 @@ jobs:
             - `src/components/board/*` — board displays render character
               grids. Per-cell work that could be hoisted, unstable element
               identity, and unnecessary full-grid re-renders dominate.
-            - `src/components/ui/react-bits/*` — animated text effects driven
+            - `src/components/effects/react-bits/*` — animated text effects driven
               by timers/rAF.
             - `src/index.ts` — the barrel. Its shape decides what a consumer
               who imports one button is forced to download.

@@ -1,9 +1,26 @@
 name: Downstream Upgrade
 
-# Keeps ONE evergreen upgrade PR open on Fiestaboard/FiestaBoard pinning
-# @fiestaboard/ui to the newest FiestaUI release. Mechanical bump first;
-# Claude (Opus) TDD-fixes breakage only when validation fails; FiestaBoard
-# CI is polled and must be green before the PR is labeled upgrade-green.
+# Keeps ONE evergreen upgrade PR open on each downstream consumer of
+# @fiestaboard/ui, pinned to the newest FiestaUI release. Mechanical bump
+# first; Claude (Opus) TDD-fixes breakage only when validation fails; the
+# consumer's own CI is polled and must be green before the PR is labeled
+# upgrade-green.
+#
+# Consumers are the matrix below. They differ in ways the shared scripts
+# take as configuration, not assumption:
+#
+#   Fiestaboard/FiestaBoard         app in web/, --legacy-peer-deps install,
+#                                   typecheck + vitest, design-system
+#                                   adoption pass enabled
+#   Fiestaboard/fiestaboard.github.io  app at the repo root, plain install,
+#                                   no unit suite (lint/typecheck/format/
+#                                   Docusaurus build is the validation),
+#                                   no adoption pass — it consumes the kit,
+#                                   it has no hand-rolled UI to swap
+#
+# Legs are independent (fail-fast: false): a red docs site must not stop
+# FiestaBoard's upgrade from landing, or vice versa.
+#
 # See docs/superpowers/specs/2026-08-01-downstream-upgrade-design.md.
 
 on:
@@ -45,19 +62,55 @@ permissions:
   issues: write # adoption pass files component-request issues on this repo
 
 env:
-  TARGET_REPO: Fiestaboard/FiestaBoard
   UPGRADE_BRANCH: fiestaui-upgrade
   MAINTAINER: jeffredodd
   MAX_ATTEMPTS: "3"
   FIESTAUI_DIR: ${{ github.workspace }}/fiestaui
-  FIESTABOARD_DIR: ${{ github.workspace }}/fiestaboard
+  DOWNSTREAM_DIR: ${{ github.workspace }}/downstream
   LOG_FILE: ${{ github.workspace }}/validate.log
   ATTEMPTS_FILE: ${{ github.workspace }}/du-attempts
 
 jobs:
   upgrade:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - key: fiestaboard
+            name: FiestaBoard
+            repo: Fiestaboard/FiestaBoard
+            repo_name: FiestaBoard
+            app_dir: web
+            install_flags: "--legacy-peer-deps"
+            validate_targets: "typecheck test:run"
+            retry_targets: "test:run"
+            adopt: true
+            docs_pr_mode: ""
+          - key: docs-site
+            name: Docs site
+            repo: Fiestaboard/fiestaboard.github.io
+            repo_name: fiestaboard.github.io
+            app_dir: "."
+            install_flags: ""
+            # No unit suite: the Docusaurus build is what actually catches a
+            # broken design-system upgrade. DOCS_PR_MODE below keeps it to
+            # the latest docs version instead of recompiling every archived
+            # one, matching the repo's own pr-build.yml.
+            validate_targets: "lint typecheck format:check build"
+            retry_targets: ""
+            adopt: false
+            docs_pr_mode: "1"
+    env:
+      TARGET_REPO: ${{ matrix.repo }}
+      APP_DIR: ${{ matrix.app_dir }}
+      INSTALL_FLAGS: ${{ matrix.install_flags }}
+      VALIDATE_TARGETS: ${{ matrix.validate_targets }}
+      RETRY_TARGETS: ${{ matrix.retry_targets }}
+      DOWNSTREAM_NAME: ${{ matrix.name }}
+      DOCS_PR_MODE: ${{ matrix.docs_pr_mode }}
     steps:
       - name: Checkout FiestaUI
         uses: actions/checkout@v7
@@ -81,12 +134,13 @@ jobs:
           gh release view "v$VERSION" --json body --jq '.body' > "$GITHUB_WORKSPACE/release-notes.md" || true
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "prev=$PREV" >> "$GITHUB_OUTPUT"
-          echo "Upgrading FiestaBoard to v$VERSION (previous: v${PREV:-none})"
+          echo "Upgrading $TARGET_REPO to v$VERSION (previous: v${PREV:-none})"
 
       # continue-on-error keeps dry runs usable before the App secrets are
       # configured; live runs still fail loudly at the push step if the
-      # token is missing.
-      - name: Mint FiestaBoard App token
+      # token is missing. The App must be installed on every repo in the
+      # matrix — a missing installation surfaces here as an empty token.
+      - name: Mint downstream App token
         id: app-token
         continue-on-error: ${{ inputs.dry_run == true }}
         uses: actions/create-github-app-token@v3
@@ -94,15 +148,15 @@ jobs:
           app-id: ${{ secrets.CLAUDE_BOT_APP_ID }}
           private-key: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
           owner: Fiestaboard
-          repositories: FiestaBoard
+          repositories: ${{ matrix.repo_name }}
 
-      - name: Checkout FiestaBoard
+      - name: Checkout downstream
         uses: actions/checkout@v7
         with:
-          repository: Fiestaboard/FiestaBoard
+          repository: ${{ matrix.repo }}
           # Falls back to github.token for dry runs (public repo, read-only).
           token: ${{ steps.app-token.outputs.token || github.token }}
-          path: fiestaboard
+          path: downstream
           fetch-depth: 0
 
       - name: Setup Node
@@ -110,14 +164,14 @@ jobs:
         with:
           node-version: "24"
 
-      # Baseline: if FiestaBoard main is already red, the upgrade isn't to
-      # blame — mark blocked and stop before spending Claude tokens.
-      - name: Baseline check on FiestaBoard main
+      # Baseline: if the consumer's main is already red, the upgrade isn't
+      # to blame — mark blocked and stop before spending Claude tokens.
+      - name: Baseline check on downstream main
         id: baseline
         run: |
-          # --legacy-peer-deps matches FiestaBoard's own CI install flags.
-          (cd "$FIESTABOARD_DIR/web" && npm ci --legacy-peer-deps --no-audit)
-          if "$FIESTAUI_DIR/scripts/downstream-upgrade/validate.sh" "$FIESTABOARD_DIR" "$LOG_FILE"; then
+          # shellcheck disable=SC2086 # INSTALL_FLAGS is an intentional word list
+          (cd "$DOWNSTREAM_DIR/$APP_DIR" && npm ci $INSTALL_FLAGS --no-audit)
+          if "$FIESTAUI_DIR/scripts/downstream-upgrade/validate.sh" "$DOWNSTREAM_DIR" "$LOG_FILE"; then
             echo "ok=true" >> "$GITHUB_OUTPUT"
           else
             echo "ok=false" >> "$GITHUB_OUTPUT"
@@ -125,20 +179,20 @@ jobs:
 
       - name: Reset evergreen branch and bump
         run: |
-          cd "$FIESTABOARD_DIR"
+          cd "$DOWNSTREAM_DIR"
           git config user.name "fiestaui-automation[bot]"
           git config user.email "fiestaui-automation[bot]@users.noreply.github.com"
           git checkout -B "$UPGRADE_BRANCH" origin/main
-          "$FIESTAUI_DIR/scripts/downstream-upgrade/bump.sh" . "${{ steps.meta.outputs.version }}"
-          git add web/package.json web/package-lock.json
+          "$FIESTAUI_DIR/scripts/downstream-upgrade/bump.sh" . "${{ steps.meta.outputs.version }}" "$APP_DIR"
+          git add "$APP_DIR/package.json" "$APP_DIR/package-lock.json"
           git commit -m "chore(deps): bump @fiestaboard/ui to v${{ steps.meta.outputs.version }}"
 
       - name: Dry run — show diff and stop
         if: inputs.dry_run == true
         run: |
-          cd "$FIESTABOARD_DIR"
+          cd "$DOWNSTREAM_DIR"
           git show --stat HEAD
-          git diff origin/main..HEAD -- web/package.json
+          git diff origin/main..HEAD -- "$APP_DIR/package.json"
           echo "Baseline ok: ${{ steps.baseline.outputs.ok }}"
           echo "DRY RUN: skipping push, PR sync, validation loop."
 
@@ -146,10 +200,10 @@ jobs:
         if: inputs.dry_run != true
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REPO: ${{ env.TARGET_REPO }}
+          REPO: ${{ matrix.repo }}
           BRANCH: ${{ env.UPGRADE_BRANCH }}
         run: |
-          cd "$FIESTABOARD_DIR"
+          cd "$DOWNSTREAM_DIR"
           # The branch is automation-owned; force push IS the evergreen
           # reset semantics.
           git push --force origin "$UPGRADE_BRANCH"
@@ -170,11 +224,11 @@ jobs:
         if: inputs.dry_run != true && steps.baseline.outputs.ok == 'false'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REPO: ${{ env.TARGET_REPO }}
+          REPO: ${{ matrix.repo }}
           BRANCH: ${{ env.UPGRADE_BRANCH }}
         run: |
           {
-            echo "@$MAINTAINER FiestaBoard \`main\` fails typecheck/tests **before** the"
+            echo "@$MAINTAINER \`$TARGET_REPO\` \`main\` fails validation **before** the"
             echo "v${{ steps.meta.outputs.version }} bump — baseline failure, not an upgrade issue."
             echo "The upgrade PR was still updated, but no fixes were attempted."
             echo
@@ -184,7 +238,7 @@ jobs:
           } > "$GITHUB_WORKSPACE/comment.md"
           "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" comment "$GITHUB_WORKSPACE/comment.md"
           "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" set-state blocked
-          echo "::warning::FiestaBoard baseline is red; marked upgrade-blocked."
+          echo "::warning::$TARGET_REPO baseline is red; marked upgrade-blocked."
 
       - name: Validate bump, fix with Claude if needed
         id: fix
@@ -196,7 +250,7 @@ jobs:
         run: |
           npm install -g @anthropic-ai/claude-code
           : > "$LOG_FILE"
-          if "$FIESTAUI_DIR/scripts/downstream-upgrade/validate.sh" "$FIESTABOARD_DIR" "$LOG_FILE"; then
+          if "$FIESTAUI_DIR/scripts/downstream-upgrade/validate.sh" "$DOWNSTREAM_DIR" "$LOG_FILE"; then
             echo "clean upgrade — no Claude needed"
             echo "green=true" >> "$GITHUB_OUTPUT"
           elif "$FIESTAUI_DIR/scripts/downstream-upgrade/fix-loop.sh"; then
@@ -207,32 +261,34 @@ jobs:
 
       # Best-effort design-system adoption: swap FiestaBoard's hand-rolled
       # UI onto @fiestaboard/ui while the tree is green. Never blocks the
-      # upgrade — adopt.sh always exits 0 and rolls back a red tree. See
-      # docs/superpowers/specs/2026-08-02-design-system-adoption-design.md.
+      # upgrade — adopt.sh always exits 0 and rolls back a red tree. Only
+      # runs for consumers with hand-rolled UI to replace (matrix.adopt).
+      # See docs/superpowers/specs/2026-08-02-design-system-adoption-design.md.
       - name: Adopt design-system components
-        if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true' && steps.fix.outputs.green == 'true' && inputs.adopt != false
+        if: inputs.dry_run != true && matrix.adopt && steps.baseline.outputs.ok == 'true' && steps.fix.outputs.green == 'true' && inputs.adopt != false
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # FiestaUI-scoped: issue filing
           NEW_VERSION: ${{ steps.meta.outputs.version }}
           UI_REPO: ${{ github.repository }}
+          FIESTABOARD_DIR: ${{ env.DOWNSTREAM_DIR }}
           SUMMARY_FILE: ${{ github.workspace }}/adoption-summary.md
         run: |
           # claude-code was installed globally by the validate/fix step.
           "$FIESTAUI_DIR/scripts/downstream-upgrade/adopt.sh"
 
-      - name: Push fixes and confirm FiestaBoard CI
+      - name: Push fixes and confirm downstream CI
         id: ci
         if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REPO: ${{ env.TARGET_REPO }}
+          REPO: ${{ matrix.repo }}
           BRANCH: ${{ env.UPGRADE_BRANCH }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           PREV_VERSION: ${{ steps.meta.outputs.prev }}
           NEW_VERSION: ${{ steps.meta.outputs.version }}
         run: |
-          cd "$FIESTABOARD_DIR"
+          cd "$DOWNSTREAM_DIR"
           git push --force origin "$UPGRADE_BRANCH"
           pr=$("$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" sync \
             "$NEW_VERSION" "$GITHUB_WORKSPACE/pr-body.md")
@@ -254,7 +310,7 @@ jobs:
               touch "$GITHUB_WORKSPACE/adoption-dropped"
               {
                 echo
-                echo "FiestaBoard CI went red with adoption commits present;"
+                echo "$TARGET_REPO CI went red with adoption commits present;"
                 echo "all adoption commits were dropped and CI re-run."
               } >> "$GITHUB_WORKSPACE/adoption-summary.md"
               git push --force origin "$UPGRADE_BRANCH"
@@ -284,13 +340,13 @@ jobs:
         if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REPO: ${{ env.TARGET_REPO }}
+          REPO: ${{ matrix.repo }}
           BRANCH: ${{ env.UPGRADE_BRANCH }}
         run: |
-          cd "$FIESTABOARD_DIR"
+          cd "$DOWNSTREAM_DIR"
           if [ "${{ steps.ci.outputs.result }}" = "green" ]; then
             {
-              echo "✅ FiestaBoard CI is green for **v${{ steps.meta.outputs.version }}**."
+              echo "✅ $TARGET_REPO CI is green for **v${{ steps.meta.outputs.version }}**."
               fixes=$(git log origin/main..HEAD --oneline --grep='\[fiestaui-upgrade\]' || true)
               if [ -n "$fixes" ]; then
                 echo; echo "Claude applied fixes:"; echo '```'; echo "$fixes"; echo '```'
@@ -306,7 +362,7 @@ jobs:
           else
             {
               echo "@$MAINTAINER automated fixes for v${{ steps.meta.outputs.version }} did not"
-              echo "reach green (attempts exhausted). Last failure output:"
+              echo "reach green on \`$TARGET_REPO\` (attempts exhausted). Last failure output:"
               echo '```'
               tail -c 4000 "$LOG_FILE"
               echo '```'
@@ -316,5 +372,5 @@ jobs:
             fi
             "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" comment "$GITHUB_WORKSPACE/comment.md"
             "$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" set-state blocked
-            echo "::warning::Upgrade blocked; maintainer pinged. Workflow exits 0 (release itself succeeded)."
+            echo "::warning::Upgrade blocked on $TARGET_REPO; maintainer pinged. Workflow exits 0 (release itself succeeded)."
           fi

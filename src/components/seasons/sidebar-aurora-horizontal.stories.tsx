@@ -4,7 +4,7 @@ import { PRIDE_SEASON } from "../../lib/seasons";
 import { SidebarAuroraHorizontal } from "./sidebar-aurora-horizontal";
 
 const meta = {
-  title: "Seasons/SidebarAuroraHorizontal",
+  title: "App/Seasons/SidebarAuroraHorizontal",
   component: SidebarAuroraHorizontal,
   parameters: {
     layout: "centered",

@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { SkipToContent } from "./skip-to-content";
 
 const meta = {
-  title: "Chrome/SkipToContent",
+  title: "App/Chrome/SkipToContent",
   component: SkipToContent,
   parameters: {
     layout: "centered",

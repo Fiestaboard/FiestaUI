@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { BoardTeaser } from "./board-teaser";
 
 const meta = {
-  title: "Board/BoardTeaser",
+  title: "App/Board/BoardTeaser",
   component: BoardTeaser,
   parameters: {
     layout: "centered",

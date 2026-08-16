@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
+import { Badge } from "../feedback/badge";
+import { Button } from "../forms/button";
 import { PageToolbar } from "./page-toolbar";
 
 const meta = {
-  title: "Chrome/PageToolbar",
+  title: "App/Chrome/PageToolbar",
   component: PageToolbar,
   parameters: {
     layout: "padded",

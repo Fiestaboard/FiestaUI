@@ -10,7 +10,7 @@ import { StaticBoardDisplay } from "./static-board-display";
 // answer for a slot narrower than the board is `ScaledBoardDisplay`, whose
 // `PhoneWidth` story shows a full board in a 311px box (issue #192).
 const meta = {
-  title: "Board/StaticBoardDisplay",
+  title: "App/Board/StaticBoardDisplay",
   component: StaticBoardDisplay,
   parameters: {
     layout: "centered",

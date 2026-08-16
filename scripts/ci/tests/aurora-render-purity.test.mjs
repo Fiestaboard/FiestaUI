@@ -1,4 +1,4 @@
-// Static conformance test for src/components/ui/aurora.tsx (issue #72).
+// Static conformance test for src/components/effects/aurora.tsx (issue #72).
 //
 // These are *source-text* assertions, not behavioral tests: the component
 // drives a WebGL canvas via rAF, which node:test cannot exercise. What we can
@@ -24,7 +24,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const auroraPath = resolve(repoRoot, "src/components/ui/aurora.tsx");
+const auroraPath = resolve(repoRoot, "src/components/effects/aurora.tsx");
 const src = readFileSync(auroraPath, "utf8");
 
 test("aurora syncs propsRef inside useLayoutEffect, not in the render body", () => {

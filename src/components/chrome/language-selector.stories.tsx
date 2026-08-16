@@ -11,7 +11,7 @@ const OPTIONS = [
 ];
 
 const meta = {
-  title: "Chrome/LanguageSelector",
+  title: "App/Chrome/LanguageSelector",
   component: LanguageSelector,
   parameters: {
     layout: "centered",

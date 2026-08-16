@@ -2,23 +2,23 @@ import type { Meta } from "@storybook/react";
 import { AlertCircle, CheckCircle2, Info, Mail, Plus, Trash2 } from "lucide-react";
 import { useMemo, useSyncExternalStore } from "react";
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
-import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Skeleton } from "../components/ui/skeleton";
-import { Switch } from "../components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/containment/accordion";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containment/tabs";
+import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
+import { Badge } from "../components/feedback/badge";
+import { Skeleton } from "../components/feedback/skeleton";
+import { Button } from "../components/forms/button";
+import { Input } from "../components/forms/input";
+import { Label } from "../components/forms/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/forms/select";
+import { Switch } from "../components/forms/switch";
 import themeCss from "../styles/theme.css?raw";
 import type { ColorToken, Rgb } from "./token-registry";
 import { buildColorTokenRegistry, contrastRatio, resolveColor, toHex } from "./token-registry";
 
 const meta = {
-  title: "Design System/Inventory",
+  title: "Foundations/Inventory",
   parameters: {
     layout: "fullscreen",
   },

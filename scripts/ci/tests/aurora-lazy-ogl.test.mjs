@@ -20,31 +20,31 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..")
 const STATIC_OGL_VALUE_IMPORT = /(?:^|\n)\s*(?:import(?!\s+type\b)|export)\s[^;]*?from\s*["']ogl["']/;
 
 test("aurora.tsx has no static top-level value import of ogl", () => {
-  const src = readFileSync(join(repoRoot, "src", "components", "ui", "aurora.tsx"), "utf8");
+  const src = readFileSync(join(repoRoot, "src", "components", "effects", "aurora.tsx"), "utf8");
   assert.ok(
     !STATIC_OGL_VALUE_IMPORT.test(src),
-    "src/components/ui/aurora.tsx statically imports ogl at top level; " +
+    "src/components/effects/aurora.tsx statically imports ogl at top level; " +
       'it must use `await import("ogl")` inside the mount effect instead ' +
       '(a type-only `import type ... from "ogl"` is fine)',
   );
 });
 
 test("dist aurora module loads ogl via dynamic import only", (t) => {
-  const distPath = join(repoRoot, "dist", "components", "ui", "aurora.js");
+  const distPath = join(repoRoot, "dist", "components", "effects", "aurora.js");
   if (!existsSync(distPath)) {
     // release:test can run before a build; the dist assertion is enforced by
     // the release pipeline (build precedes release:test there).
-    t.skip("dist/components/ui/aurora.js not built; run `npm run build` first");
+    t.skip("dist/components/effects/aurora.js not built; run `npm run build` first");
     return;
   }
   const dist = readFileSync(distPath, "utf8");
   assert.ok(
     dist.includes('import("ogl")'),
-    'dist/components/ui/aurora.js must contain a dynamic import("ogl") — ' +
+    'dist/components/effects/aurora.js must contain a dynamic import("ogl") — ' +
       "this is what lets bundlers treat ogl as an async chunk boundary",
   );
   assert.ok(
     !/from\s*["']ogl["']/.test(dist),
-    'dist/components/ui/aurora.js must not contain a static `from "ogl"` import',
+    'dist/components/effects/aurora.js must not contain a static `from "ogl"` import',
   );
 });

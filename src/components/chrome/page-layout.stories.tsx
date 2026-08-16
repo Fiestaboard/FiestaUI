@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../containment/card";
 import { PageLayout } from "./page-layout";
 
 /** Sample page content so the responsive container padding is visible. */
@@ -31,7 +31,7 @@ function SampleContent() {
 }
 
 const meta = {
-  title: "Chrome/PageLayout",
+  title: "App/Chrome/PageLayout",
   component: PageLayout,
   parameters: {
     layout: "padded",

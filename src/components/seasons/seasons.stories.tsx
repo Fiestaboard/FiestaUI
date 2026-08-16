@@ -92,7 +92,7 @@ function SeasonPreview({ seasonId }: SeasonPreviewArgs) {
 }
 
 const meta: Meta<SeasonPreviewArgs> = {
-  title: "Seasons/Overview",
+  title: "App/Seasons/Overview",
   parameters: {
     layout: "fullscreen",
   },

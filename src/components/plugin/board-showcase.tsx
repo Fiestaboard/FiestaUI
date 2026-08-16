@@ -20,7 +20,7 @@ import {
 } from "../../lib/board-previews";
 import { cn } from "../../lib/utils";
 import { StaticBoardDisplay } from "../board/static-board-display";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../containment/tabs";
 
 export interface BoardShowcaseLabels extends PreviewShapeLabels {
   /** Accessible name for the shape tab list. */

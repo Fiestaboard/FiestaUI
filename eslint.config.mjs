@@ -114,15 +114,15 @@ const eslintConfig = [
     // cannot follow props, so they false-positive here. The rules stay `error`
     // everywhere else, so a genuinely empty heading, an unassociated label, or
     // a contentless anchor in real markup is still caught.
-    files: ["src/components/ui/alert.tsx"],
+    files: ["src/components/feedback/alert.tsx"],
     rules: { "jsx-a11y/heading-has-content": "off" },
   },
   {
-    files: ["src/components/ui/label.tsx"],
+    files: ["src/components/forms/label.tsx"],
     rules: { "jsx-a11y/label-has-associated-control": "off" },
   },
   {
-    files: ["src/components/ui/text-link.tsx"],
+    files: ["src/components/typography/text-link.tsx"],
     rules: { "jsx-a11y/anchor-has-content": "off" },
   },
   {

@@ -5,10 +5,10 @@ import { Fragment, memo, useEffect, useRef, useState } from "react";
 
 import type { Season } from "../../lib/seasons";
 import { cn } from "../../lib/utils";
+import { Button } from "../forms/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
 import { SidebarAurora } from "../seasons/sidebar-aurora";
 import { SidebarAuroraHorizontal } from "../seasons/sidebar-aurora-horizontal";
-import { Button } from "../ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { FIESTA_ICON_DATA_URI } from "./fiesta-icon";
 import { FiestaLogo } from "./fiesta-logo";
 

@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { ArrowDownToLine, CheckCircle } from "lucide-react";
 
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
+import { Badge } from "../feedback/badge";
+import { Button } from "../forms/button";
 import { PluginCard } from "./plugin-card";
 
 const meta = {
-  title: "Plugin/PluginCard",
+  title: "App/Plugin/PluginCard",
   component: PluginCard,
   parameters: {
     layout: "centered",

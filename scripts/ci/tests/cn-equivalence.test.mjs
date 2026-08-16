@@ -45,8 +45,8 @@ const outfile = path.join(mkdtempSync(path.join(cacheDir, "cn-equivalence-")), "
 buildSync({
   stdin: {
     contents: `
-      export { buttonVariants } from "./src/components/ui/button.tsx";
-      export { headingVariants } from "./src/components/ui/heading.tsx";
+      export { buttonVariants } from "./src/components/forms/button.tsx";
+      export { headingVariants } from "./src/components/typography/heading.tsx";
       export { cn } from "./src/lib/utils.ts";
     `,
     resolveDir: repoRoot,
@@ -104,13 +104,13 @@ const newForm = ({ variant, size, className }) => cn(buttonVariants({ variant, s
 // string. Re-copy these whenever the source literal changes.
 const HOISTED_STATICS = {
   "switch.tsx thumb": {
-    source: "src/components/ui/switch.tsx",
+    source: "src/components/forms/switch.tsx",
     binding: "thumbClassName",
     value:
       "bg-background dark:bg-foreground pointer-events-none block size-5 rounded-full border border-input ring-0 transition-transform data-[checked]:translate-x-[calc(100%+2px)] data-[unchecked]:translate-x-0",
   },
   "slider.tsx thumb": {
-    source: "src/components/ui/slider.tsx",
+    source: "src/components/forms/slider.tsx",
     binding: "thumbClassName",
     value:
       "block size-4 shrink-0 rounded-full border border-primary bg-background shadow-sm ring-ring/50 transition-[color,box-shadow] outline-none hover:ring-[3px] focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 before:absolute before:top-1/2 before:left-1/2 before:size-6 before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] group-aria-invalid/slider:border-destructive group-aria-invalid/slider:ring-destructive/20 dark:group-aria-invalid/slider:ring-destructive/40",
@@ -138,7 +138,7 @@ const HOISTED_STATICS = {
 // drift the way the HOISTED_STATICS copies did.
 const BASE_SURVIVAL = {
   "heading.tsx headingVariants": {
-    source: "src/components/ui/heading.tsx",
+    source: "src/components/typography/heading.tsx",
     binding: "headingVariants",
     variants: headingVariants,
     matrix: {
@@ -152,7 +152,7 @@ const BASE_SURVIVAL = {
     alwaysPresent: ["leading-tight"],
   },
   "button.tsx buttonVariants": {
-    source: "src/components/ui/button.tsx",
+    source: "src/components/forms/button.tsx",
     binding: "buttonVariants",
     variants: buttonVariants,
     matrix: {
