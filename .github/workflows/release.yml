@@ -210,10 +210,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # The version commit and tag go straight onto `main`. `main-protection`
-      # still requires a PR with a green `CI Success` for every human change;
-      # the Claude bot app is the ruleset's single bypass actor, and the
-      # checkout above holds its token, which is what makes this push legal.
+      # The version commit and tag go straight onto `main`. The rulesets
+      # targeting `main` still require a PR with a green `CI Success` for every
+      # human change; the Claude bot app is a bypass actor on each of them, and
+      # the checkout above holds its token, which is what makes this push legal.
+      # That bypass is load-bearing and lives in repo settings, not in this
+      # file — editing the bypass list in the UI replaces it rather than
+      # appending, which is how v3.0.0 published and tagged but never landed.
+      # Adding a ruleset that targets `main` means adding the app to its
+      # bypass list too, or this step starts failing again.
       #
       # Every earlier design here routed the commit through an auto-merged PR
       # and none were stable. The PR is created with GITHUB_TOKEN, so its
@@ -238,9 +243,30 @@ jobs:
             git checkout -f -B version-bump origin/main
             git tag -d "v${VERSION}" 2>/dev/null || true
             npm version "$VERSION" -m "chore: release v%s"
-            if git push origin "version-bump:refs/heads/main" --follow-tags; then
+            # --atomic: without it a rejected branch ref still leaves the tag
+            # pushed, so v$VERSION ends up on a commit that never reached main
+            # and the next attempt's `git tag -d` cannot take it back. The
+            # v3.0.0 release stranded its tag exactly that way. Both refs land
+            # together or neither does.
+            # Output goes to a file rather than through `| tee`: the exit
+            # status of a pipeline is its *last* command, so piping the push
+            # into tee would report success on every rejection.
+            if git push --atomic origin "version-bump:refs/heads/main" --follow-tags \
+                 >"${RUNNER_TEMP}/push.log" 2>&1; then
+              cat "${RUNNER_TEMP}/push.log"
               echo "Landed v${VERSION} on main (attempt ${attempt})."
               exit 0
+            fi
+            cat "${RUNNER_TEMP}/push.log"
+            # Only a race is worth retrying. A ruleset refusal is a standing
+            # config problem: five attempts cannot talk it round, and calling
+            # it "main moved under us" buries the real cause under a wall of
+            # identical rejections.
+            if grep -q 'GH013\|repository rule violations' "${RUNNER_TEMP}/push.log"; then
+              echo "::error::Push to main was refused by a branch ruleset, not a race. \
+          The Claude bot app must be a bypass actor on every ruleset targeting main; \
+          check the rules URL in the push output above."
+              exit 1
             fi
             echo "main moved under us — retrying (attempt ${attempt})."
             sleep $((attempt * 5))
