@@ -101,7 +101,15 @@ function AppShellDemo({
       <MainContent collapsed={collapsed} maxWidth={1680}>
         <PageLayout>
           <PageHeader icon={Home} title="Home" description="Your board at a glance." />
-          <PageToolbar left={<Badge>2 boards</Badge>} right={<Button variant="brand">New page</Button>} />
+          {/* The count is `secondary`, not the default brand fill. A metadata
+              badge and the page's primary action are not peers, and rendering
+              both in the one brand pigment put two saturated orange objects at
+              opposite ends of an otherwise empty row with no hierarchy between
+              them. */}
+          <PageToolbar
+            left={<Badge variant="secondary">2 boards</Badge>}
+            right={<Button variant="brand">New page</Button>}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <Card>
               <CardHeader>

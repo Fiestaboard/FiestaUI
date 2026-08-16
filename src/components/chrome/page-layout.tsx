@@ -33,7 +33,16 @@ export const PageLayout = memo(function PageLayout({
     >
       <div
         className={cn(
-          "container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 lg:py-3 max-w-full",
+          // lg:py-7, not lg:py-3. The old value aligned the top of the page
+          // content with the top EDGE of the inset sidebar rail — a real
+          // alignment, but to the wrong landmark, and it made desktop the
+          // tightest breakpoint in the ramp (12px, against 32px at md).
+          // It only read as acceptable while PageHeader drew a card whose own
+          // py-4 supplied the missing inset. With the header now bare type,
+          // 28px puts the page title on the same optical line as the wordmark
+          // in the rail beside it, which is the landmark a reader actually
+          // sees.
+          "container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 lg:py-7 max-w-full",
           // When pinned to the viewport (e.g. calendar mode), the inner content
           // owns the scrolling — trim mobile vertical padding so the child gets
           // back the pixels normally reserved for page breathing room.

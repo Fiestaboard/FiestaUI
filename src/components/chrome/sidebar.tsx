@@ -544,7 +544,17 @@ export const Sidebar = memo(function Sidebar({
               <button
                 onClick={onToggleCollapsed}
                 aria-label={collapsed ? labels.expandSidebar : labels.collapseSidebar}
-                className="absolute -right-3.5 top-[51px] z-[var(--z-sidebar-toggle)] flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-md hover:bg-accent hover:text-foreground transition-colors"
+                // Painted in the RAIL's vocabulary, not the page's. This used
+                // to be `bg-background text-muted-foreground`, which took its
+                // fill from the page and its glyph from whatever
+                // --muted-foreground resolved to INSIDE .sidebar-gradient —
+                // two different surfaces for one control. Once the rail became
+                // a fixture that is dark in both themes, that mismatch went
+                // from fragile to invisible: a white circle with a white
+                // chevron on it in light mode. The toggle is a knob on the
+                // rail, so it uses --sidebar/--sidebar-foreground and reads
+                // identically in both themes.
+                className="absolute -right-3.5 top-[51px] z-[var(--z-sidebar-toggle)] flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-md transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               >
                 {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
               </button>
