@@ -1,10 +1,9 @@
 name: "Claude: A11y Auto-Review"
 
 # =============================================================================
-# Auto-runs a Claude accessibility review on any PR touching FiestaUI's shipped
-# source or its Storybook/a11y configuration. Posts ONE review comment.
-# Read-only on contents — only pull-requests:write so the action can leave its
-# review.
+# Runs a Claude accessibility review against one PR, on request. Posts ONE
+# review comment. Read-only on contents — only pull-requests:write so the
+# action can leave its review.
 #
 # This is a quality gate for human PRs as much as for bot ones. CI's
 # `a11y-tests` job already runs axe over every story in both themes and blocks
@@ -14,32 +13,45 @@ name: "Claude: A11y Auto-Review"
 # name rather than its presence, and any diff that quietly reduces a11y
 # coverage.
 #
-# `pull_request_target` runs from the base ref's workflow definition, so
-# malicious head-branch edits can't fire. We only check out the BASE ref —
-# never the PR head — per the CodeQL `actions/untrusted-checkout` rule (the
-# "pwn-request" pattern). PR head content is read read-only via
-# `gh api .../contents/<path>?ref=<head_sha>` from inside the prompt: bytes
-# piped through Claude as data, never materialized in a location a later step
-# could execute. Belt and braces: `--allowed-tools` is read-only.
+# THIS REVIEW IS MANUAL. It used to fire automatically on every
+# `pull_request_target` touching `src/**`, `.storybook/**` or
+# `eslint.config.mjs`, with `types: [opened, synchronize, reopened,
+# ready_for_review]` — so every push to a PR started another review. PR #223
+# (a stories-only change) collected four runs of this workflow and four of its
+# perf twin before it merged. The scheduled audit (`claude-a11y-audit.yml`) is
+# what sweeps the repo for accessibility debt; this workflow is now the
+# on-demand review you reach for when a specific PR warrants one.
 #
-# Draft PRs are skipped — a draft signals "not ready for review yet". The
-# trigger includes `ready_for_review` so the review fires when the author flips
-# draft -> ready.
+# Run it from the Actions tab, or:
+#
+#     gh workflow run claude-a11y-audit-review.yml -f pr_number=223
+#
+# The dispatcher needs write access to the repo — `claude-code-action` gates
+# every run on the actor's permission level — which is exactly the audience
+# this workflow is for.
+#
+# We only check out the BASE ref — never the PR head — per the CodeQL
+# `actions/untrusted-checkout` rule (the "pwn-request" pattern). PR head
+# content is read read-only via `gh api .../contents/<path>?ref=<head_sha>`
+# from inside the prompt: bytes piped through Claude as data, never
+# materialized in a location a later step could execute. Belt and braces:
+# `--allowed-tools` is read-only. That posture is unchanged by the trigger
+# swap and is why the checkout below still resolves the base ref explicitly.
 # =============================================================================
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - "src/**"
-      - ".storybook/**"
-      - "eslint.config.mjs"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to review for accessibility impact"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: claude-a11y-audit-review-${{ github.event.pull_request.number }}
+  group: claude-a11y-audit-review-${{ inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
@@ -51,22 +63,46 @@ jobs:
     # The name-only fast path below is the real fix; the extra 5 minutes is
     # headroom for large source diffs.
     timeout-minutes: 20
-    if: github.event.pull_request.draft == false
     permissions:
       contents: read
       pull-requests: write
       id-token: write
       actions: read
     steps:
+      # Dispatch supplies a number and nothing else, so the head SHA and base
+      # ref come from the API. All three are repo metadata, never PR file
+      # content, so they are safe to expand into later expressions. `jq -er`
+      # fails the job on a typo'd number rather than running the review
+      # against an empty head SHA.
+      - name: Resolve PR coordinates
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          INPUT_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          set -euo pipefail
+          meta=$(gh pr view "$INPUT_NUMBER" --json headRefOid,baseRefName,isDraft)
+          {
+            echo "number=$INPUT_NUMBER"
+            echo "head_sha=$(printf '%s' "$meta" | jq -er .headRefOid)"
+            echo "base_ref=$(printf '%s' "$meta" | jq -er .baseRefName)"
+          } >> "$GITHUB_OUTPUT"
+          # Draft is reported, not enforced: dispatching is already an
+          # explicit "review this now", and a draft is a legitimate thing to
+          # ask for early feedback on.
+          if [ "$(printf '%s' "$meta" | jq -er .isDraft)" = "true" ]; then
+            echo "::notice::PR #$INPUT_NUMBER is a draft — reviewing anyway (dispatch is explicit)."
+          fi
+
       - name: Checkout base ref (trusted)
         uses: actions/checkout@v7
         with:
-          # pull_request_target grants secrets — never check out PR head.
-          # The base ref gives Claude the trusted canonical source to compare
-          # against. PR head content is read via
+          # Never check out PR head. The base ref gives Claude the trusted
+          # canonical source to compare against. PR head content is read via
           # `gh api .../contents/<path>?ref=<head_sha>` from inside the
           # prompt — data piped through Claude, never executed.
-          ref: ${{ github.event.pull_request.base.ref }}
+          ref: ${{ steps.pr.outputs.base_ref }}
           fetch-depth: 1
           persist-credentials: false
 
@@ -74,21 +110,18 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Skip the OIDC -> claude[bot] App-token exchange. On
-          # pull_request_target events the App exchange returns
-          # `401 Invalid OIDC token`; providing github_token bypasses that
-          # exchange entirely. Cost: the review is posted as
+          # Skip the OIDC -> claude[bot] App-token exchange, which returned
+          # `401 Invalid OIDC token` here; providing github_token bypasses it
+          # entirely. Kept after the move to workflow_dispatch because it is
+          # the known-working path — the cost is only that the review posts as
           # `github-actions[bot]` rather than `claude[bot]`.
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Bot-authored PRs need reviewing too — that's the point. Three
-          # identities show up: the audit cron pushes as `claude`, the review
-          # badge itself is `github-actions`, and `fiestaboard-ci-bot` is the
-          # app whose token `vrt-update.yml` (and `ci.yml`'s `vrt-seed`) pushes
-          # baselines with. Omitting that last one means every baseline refresh
-          # trades one red check for two: the `synchronize` the push fires is
-          # attributed to the app, and this guard rejects it in ~10s before any
-          # review work runs. See #175.
-          allowed_bots: "claude,github-actions,fiestaboard-ci-bot"
+          # `allowed_bots` is deliberately absent. It existed to let
+          # bot-authored PR *events* past the actor gate (#175: a baseline
+          # push by `fiestaboard-ci-bot` fired `synchronize` and was rejected
+          # in ~10s). There are no PR events any more — the actor is whoever
+          # dispatched the run, which the gate already requires to have write
+          # access. Re-add it only if a bot ever needs to dispatch this.
           show_full_output: "true"
           claude_args: >-
             --model claude-sonnet-4-6
@@ -96,7 +129,12 @@ jobs:
             --allowed-tools "Read,Glob,Grep,Bash(ls:*),Bash(cat:*),Bash(find:*),Bash(grep:*),Bash(rg:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr review:*),Bash(gh api:*)"
           prompt: |
             You are the FiestaUI accessibility reviewer. Review PR
-            #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+            #${{ steps.pr.outputs.number }} — read its title and description
+            with `gh pr view ${{ steps.pr.outputs.number }}`.
+
+            (The title is fetched rather than interpolated: it is
+            author-controlled text, and injecting it into this prompt would
+            let a PR author write instructions to you.)
 
             FiestaUI is a React 19 component library on Base UI with Tailwind
             v4 tokens, published as `@fiestaboard/ui`. Every accessibility
@@ -178,14 +216,14 @@ jobs:
 
             ## How to access PR content
 
-            Start with `gh pr diff ${{ github.event.pull_request.number }} --name-only`.
+            Start with `gh pr diff ${{ steps.pr.outputs.number }} --name-only`.
             If more than ~200 files change (typical of a `vrt/baselines/**`
             refresh — every re-baseline touches ~2,800 PNGs), do NOT fetch the
             full diff: it will not fit your time budget. Review only the
             non-baseline files, fetching each one's diff via
-            `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files --paginate --jq '.[] | select(.filename | startswith("vrt/baselines/") | not)'`.
-            Otherwise use `gh pr diff ${{ github.event.pull_request.number }}` for the diff.
-            Use `gh api repos/${{ github.repository }}/contents/<path>?ref=${{ github.event.pull_request.head.sha }}`
+            `gh api repos/${{ github.repository }}/pulls/${{ steps.pr.outputs.number }}/files --paginate --jq '.[] | select(.filename | startswith("vrt/baselines/") | not)'`.
+            Otherwise use `gh pr diff ${{ steps.pr.outputs.number }}` for the diff.
+            Use `gh api repos/${{ github.repository }}/contents/<path>?ref=${{ steps.pr.outputs.head_sha }}`
             for full file contents. Never `git checkout` the PR head.
 
             ## Output
