@@ -23,7 +23,10 @@ EOF
 chmod +x "$tmp/bin/claude"
 
 run_loop() {
-  FIESTAUI_DIR="$REPO_ROOT" FIESTABOARD_DIR="$tmp/fb" LOG_FILE="$tmp/log" \
+  FIESTAUI_DIR="$REPO_ROOT" DOWNSTREAM_DIR="$tmp/fb" LOG_FILE="$tmp/log" \
+  DOWNSTREAM_NAME="${DOWNSTREAM_NAME:-FiestaBoard}" \
+  APP_DIR="${APP_DIR:-web}" \
+  VALIDATE_TARGETS="${VALIDATE_TARGETS:-typecheck test:run}" \
   PREV_VERSION=0.3.0 NEW_VERSION=0.4.0 \
   ATTEMPTS_FILE="$tmp/attempts" MAX_ATTEMPTS=3 \
   CLAUDE_BIN="$tmp/bin/claude" \
@@ -39,6 +42,25 @@ assert_eq "2" "$(cat "$tmp/attempts")" "counter persisted"
 # Rendered prompt reached claude with substitutions applied.
 assert_file_contains "$tmp/claude-calls.log" "v0.4.0" "version substituted into prompt"
 assert_file_contains "$tmp/claude-calls.log" "--model opus" "opus model requested"
+# Consumer identity and its validation command are rendered, so the prompt
+# tells Claude which repo it is in and how to check its own work.
+assert_file_contains "$tmp/claude-calls.log" "FiestaBoard" "downstream name substituted"
+assert_file_contains "$tmp/claude-calls.log" "npm run typecheck && npm run test:run" \
+  "validate hint built from VALIDATE_TARGETS"
+
+# The same loop drives a consumer with a different shape: root app, no unit
+# suite. No placeholder may leak through unsubstituted.
+: > "$tmp/claude-calls.log"; rm -f "$tmp/fixed" "$tmp/attempts"
+DOWNSTREAM_NAME="Docs site" APP_DIR="." \
+  VALIDATE_TARGETS="lint typecheck format:check build" \
+  run_loop 1 || fail "docs-shaped loop should succeed when fixed on attempt 1"
+assert_file_contains "$tmp/claude-calls.log" "Docs site" "docs name substituted"
+assert_file_contains "$tmp/claude-calls.log" \
+  "npm run lint && npm run typecheck && npm run format:check && npm run build" \
+  "docs validate hint built from its own targets"
+if grep -qF '{{' "$tmp/claude-calls.log"; then
+  fail "unsubstituted {{PLACEHOLDER}} left in the rendered prompt"
+fi
 
 # Counter already at max → no further claude calls, exit 1.
 : > "$tmp/claude-calls.log"; rm -f "$tmp/fixed"; echo 3 > "$tmp/attempts"
