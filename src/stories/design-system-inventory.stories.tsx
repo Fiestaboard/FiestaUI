@@ -14,6 +14,9 @@ import { Label } from "../components/forms/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/forms/select";
 import { Switch } from "../components/forms/switch";
 import themeCss from "../styles/theme.css?raw";
+import type { InventorySection } from "./component-inventory";
+import { INVENTORY_SECTIONS } from "./component-inventory";
+import { DEMOS } from "./component-inventory-demos";
 import type { ColorToken, Rgb } from "./token-registry";
 import { buildColorTokenRegistry, contrastRatio, resolveColor, toHex } from "./token-registry";
 
@@ -27,285 +30,122 @@ const meta = {
 
 export default meta;
 
+/* ------------------------------------------------------------------ *
+ * AllComponents — the catalogue (see ./component-inventory.ts)
+ *
+ * The sections and the demos are NOT written here. They come from the
+ * inventory registry, which `scripts/ci/tests/component-inventory-coverage.
+ * test.mjs` checks against `src/index.ts`: a component that ships without an
+ * entry fails CI. The previous version of this story was hand-authored and
+ * had drifted to 11 of ~73 components before anyone noticed, because nothing
+ * was checking.
+ * ------------------------------------------------------------------ */
+
+const STATIC_SECTIONS = INVENTORY_SECTIONS.filter((section) => section.entries.some((entry) => !entry.animated));
+const ANIMATED_SECTIONS = INVENTORY_SECTIONS.filter((section) => section.entries.some((entry) => entry.animated));
+
+const countEntries = (sections: readonly InventorySection[]) =>
+  sections.reduce((total, section) => total + section.entries.length, 0);
+
+/** One component: its name, what it is for, and it rendered. */
+const InventoryItem = ({ name, summary }: { name: string; summary: string }) => {
+  const Demo = DEMOS[name as keyof typeof DEMOS];
+  return (
+    <div className="border-border grid gap-4 border-t py-6 md:grid-cols-[14rem_minmax(0,1fr)]">
+      <div className="space-y-1">
+        <h3 className="font-mono text-sm font-medium">{name}</h3>
+        <p className="text-muted-foreground text-xs">{summary}</p>
+      </div>
+      <div className="min-w-0">
+        <Demo />
+      </div>
+    </div>
+  );
+};
+
+const InventorySectionBlock = ({ section }: { section: InventorySection }) => {
+  const entries = section.entries.filter((entry) => !entry.animated);
+  if (entries.length === 0) return null;
+  return (
+    <section id={`inv-section-${section.id}`} className="scroll-mt-8 space-y-2">
+      <h2 className="text-2xl font-semibold">{section.title}</h2>
+      <p className="text-muted-foreground max-w-3xl text-sm">{section.description}</p>
+      <div>
+        {entries.map((entry) => (
+          <InventoryItem key={entry.name} name={entry.name} summary={entry.summary} />
+        ))}
+      </div>
+    </section>
+  );
+};
+
 export const AllComponents = () => (
-  <div className="min-h-screen bg-background p-8">
-    <div className="max-w-7xl mx-auto space-y-12">
-      {/* Header */}
+  <div className="bg-background min-h-screen p-8">
+    <div className="mx-auto max-w-7xl space-y-12">
       <div className="border-b pb-6">
-        <h1 className="text-4xl font-bold mb-2">Design System Inventory</h1>
-        <p className="text-muted-foreground">
-          Complete overview of all UI components and their variants for token testing
+        <h1 className="mb-2 text-4xl font-bold">Component Inventory</h1>
+        <p className="text-muted-foreground max-w-3xl text-sm">
+          Every component <span className="font-mono text-xs">@fiestaboard/ui</span> exports —{" "}
+          {countEntries(INVENTORY_SECTIONS)} of them, grouped the way{" "}
+          <span className="font-mono text-xs">src/components/</span> groups them. The list is a registry, not hand-
+          written prose, and a CI test fails if a component ships without an entry here. Switch theme and season in the
+          toolbar to see the whole system move together.
+        </p>
+        <p className="text-muted-foreground mt-2 max-w-3xl text-xs">
+          The {countEntries(ANIMATED_SECTIONS)} continuously animated components are in the{" "}
+          <span className="font-medium">MotionAndEffects</span> story instead: a free-running animation lands every
+          screenshot on a different frame, which would make this page impossible to diff.
+        </p>
+        <nav aria-label="Sections" className="mt-4 flex flex-wrap gap-2">
+          {STATIC_SECTIONS.map((section) => (
+            <a
+              key={section.id}
+              href={`#inv-section-${section.id}`}
+              className="border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50 rounded-md border px-2.5 py-1 text-xs transition-colors outline-none focus-visible:ring-[3px]"
+            >
+              {section.title}
+            </a>
+          ))}
+        </nav>
+      </div>
+
+      {STATIC_SECTIONS.map((section) => (
+        <InventorySectionBlock key={section.id} section={section} />
+      ))}
+    </div>
+  </div>
+);
+
+/**
+ * The animated half of the inventory, kept out of `AllComponents` so that one
+ * page stays screenshot-stable. This story is listed in vrt/skip.json for the
+ * same reason `ui-aurora--*` already is.
+ */
+export const MotionAndEffects = () => (
+  <div className="bg-background min-h-screen p-8">
+    <div className="mx-auto max-w-7xl space-y-12">
+      <div className="border-b pb-6">
+        <h1 className="mb-2 text-4xl font-bold">Motion &amp; Effects</h1>
+        <p className="text-muted-foreground max-w-3xl text-sm">
+          The {countEntries(ANIMATED_SECTIONS)} components that animate continuously. They are inventoried in the same
+          registry as everything in <span className="font-medium">AllComponents</span> — they render here because a
+          free-running animation cannot be visually regression-tested, not because they are any less part of the system.
         </p>
       </div>
 
-      {/* Buttons */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Buttons</h2>
-        <div className="space-y-6">
+      {ANIMATED_SECTIONS.map((section) => (
+        <section key={section.id} id={`inv-section-${section.id}`} className="scroll-mt-8 space-y-2">
+          <h2 className="text-2xl font-semibold">{section.title}</h2>
+          <p className="text-muted-foreground max-w-3xl text-sm">{section.description}</p>
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">All Variants</h3>
-            <div className="flex flex-wrap gap-3">
-              <Button variant="default">Default</Button>
-              <Button variant="secondary">Secondary</Button>
-              <Button variant="destructive">Destructive</Button>
-              <Button variant="outline">Outline</Button>
-              <Button variant="ghost">Ghost</Button>
-              <Button variant="link">Link</Button>
-            </div>
+            {section.entries
+              .filter((entry) => entry.animated)
+              .map((entry) => (
+                <InventoryItem key={entry.name} name={entry.name} summary={entry.summary} />
+              ))}
           </div>
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">All Sizes</h3>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button size="sm">Small</Button>
-              <Button size="default">Default</Button>
-              <Button size="lg">Large</Button>
-              <Button size="icon" aria-label="Add">
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button size="icon-sm" aria-label="Add">
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button size="icon-lg" aria-label="Add">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">With Icons</h3>
-            <div className="flex flex-wrap gap-3">
-              <Button>
-                <Mail className="h-4 w-4 mr-2" />
-                With Icon
-              </Button>
-              <Button variant="destructive">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-              <Button variant="outline" size="icon" aria-label="Add">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">States</h3>
-            <div className="flex flex-wrap gap-3">
-              <Button disabled>Disabled</Button>
-              <Button variant="outline" disabled>
-                Disabled Outline
-              </Button>
-              <Button variant="ghost" disabled>
-                Disabled Ghost
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Badges */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Badges</h2>
-        <div className="flex flex-wrap gap-3">
-          <Badge variant="default">Default</Badge>
-          <Badge variant="secondary">Secondary</Badge>
-          <Badge variant="destructive">Destructive</Badge>
-          <Badge variant="outline">Outline</Badge>
-        </div>
-      </section>
-
-      {/* Alerts */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Alerts</h2>
-        <div className="space-y-4 max-w-2xl">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertTitle>Default Alert</AlertTitle>
-            <AlertDescription>This is a default informational alert.</AlertDescription>
-          </Alert>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error Alert</AlertTitle>
-            <AlertDescription>This is a destructive/error alert.</AlertDescription>
-          </Alert>
-          <Alert>
-            <CheckCircle2 className="h-4 w-4" />
-            <AlertTitle>Success</AlertTitle>
-            <AlertDescription>Operation completed successfully.</AlertDescription>
-          </Alert>
-        </div>
-      </section>
-
-      {/* Cards */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Cards</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Card</CardTitle>
-              <CardDescription>A simple card with header</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Card content goes here</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>With Footer</CardTitle>
-              <CardDescription>Card with footer actions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm">Content section</p>
-            </CardContent>
-            <CardFooter>
-              <Button size="sm" className="w-full">
-                Action
-              </Button>
-            </CardFooter>
-          </Card>
-          <Card className="border-primary">
-            <CardHeader>
-              <CardTitle>Highlighted Card</CardTitle>
-              <CardDescription>With custom border</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Badge variant="default">Featured</Badge>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Form Inputs */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Form Inputs</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-          <div className="space-y-2">
-            <Label htmlFor="text">Text Input</Label>
-            <Input id="text" type="text" placeholder="Enter text..." />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Input</Label>
-            <Input id="email" type="email" placeholder="user@example.com" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password Input</Label>
-            <Input id="password" type="password" placeholder="••••••••" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="disabled">Disabled Input</Label>
-            <Input id="disabled" type="text" placeholder="Disabled" disabled />
-          </div>
-        </div>
-      </section>
-
-      {/* Switches */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Switches</h2>
-        <div className="flex flex-wrap gap-6">
-          <div className="flex items-center gap-2">
-            <Switch id="switch-1" />
-            <Label htmlFor="switch-1">Default</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch id="switch-2" defaultChecked />
-            <Label htmlFor="switch-2">Checked</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch id="switch-3" disabled />
-            <Label htmlFor="switch-3">Disabled</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch id="switch-4" defaultChecked disabled />
-            <Label htmlFor="switch-4">Disabled Checked</Label>
-          </div>
-        </div>
-      </section>
-
-      {/* Select */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Select</h2>
-        <div className="max-w-xs space-y-2">
-          <Label>Choose an option</Label>
-          <Select defaultValue="option1">
-            <SelectTrigger aria-label="Example option">
-              <SelectValue placeholder="Select..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="option1">Option 1</SelectItem>
-              <SelectItem value="option2">Option 2</SelectItem>
-              <SelectItem value="option3">Option 3</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </section>
-
-      {/* Tabs */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Tabs</h2>
-        <Tabs defaultValue="tab1" className="max-w-2xl">
-          <TabsList>
-            <TabsTrigger value="tab1">Tab 1</TabsTrigger>
-            <TabsTrigger value="tab2">Tab 2</TabsTrigger>
-            <TabsTrigger value="tab3">Tab 3</TabsTrigger>
-          </TabsList>
-          <TabsContent value="tab1" className="mt-4">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Content for Tab 1</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="tab2" className="mt-4">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Content for Tab 2</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="tab3" className="mt-4">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Content for Tab 3</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </section>
-
-      {/* Accordion */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Accordion</h2>
-        <Accordion type="single" collapsible className="max-w-2xl">
-          <AccordionItem value="item-1">
-            <AccordionTrigger>Section 1</AccordionTrigger>
-            <AccordionContent>Content for the first accordion section</AccordionContent>
-          </AccordionItem>
-          <AccordionItem value="item-2">
-            <AccordionTrigger>Section 2</AccordionTrigger>
-            <AccordionContent>Content for the second accordion section</AccordionContent>
-          </AccordionItem>
-          <AccordionItem value="item-3">
-            <AccordionTrigger>Section 3</AccordionTrigger>
-            <AccordionContent>Content for the third accordion section</AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </section>
-
-      {/* Skeletons */}
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Skeleton Loaders</h2>
-        <div className="space-y-4 max-w-2xl">
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-          </div>
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-12 w-12 rounded-full" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-3 w-3/4" />
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+      ))}
     </div>
   </div>
 );
