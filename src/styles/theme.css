@@ -333,16 +333,29 @@
   --input: color-mix(in oklch, var(--foreground) 50%, transparent);
   --ring: var(--primary); /* = --primary, see the invariant above */
   /* ============================================================
-   * The rail is a FIXTURE, not a surface (#231). --sidebar and its family
-   * are deliberately IDENTICAL in light and dark: warm graphite housing,
-   * the same way the board bezel is the same object under any room light.
-   * Before this the rail sat far lighter than its page in dark and far
-   * darker than its page in light — the same component on opposite sides
-   * of the page's luminance, which is a large part of why the two themes
-   * felt like two products. White labels hold 16.5:1 on the rail.
+   * THE RAIL FOLLOWS THE THEME (#231).
+   *
+   * It was theme-invariant for a while — one warm graphite rail in both
+   * modes, argued as "a fixture, like the board bezel". That argument was
+   * measured and it does not hold: the same hex is 14.87:1 against the
+   * light page and 1.20:1 against the dark one. It was never invariant in
+   * the way that matters. In light mode it was the single highest-contrast
+   * object on the screen, which is the exact "the chrome out-shouts the
+   * product" fault that got the gradient deleted.
+   *
+   * So light mode gets a light rail at L 0.93 — a step DOWN from the page,
+   * not up. Chrome separation in light mode is always a low ratio (1.11:1
+   * here) and that is correct: the edge is carried by the derived border,
+   * not by a luminance cliff. Going lighter than the page instead lands at
+   * 1.03-1.05:1, which is genuinely invisible.
+   *
+   * The fork is deliberately ONE PAIR — this token and its foreground.
+   * Everything else on the rail derives from --sidebar-foreground (see
+   * .sidebar-gradient), which is what stops this from re-becoming the
+   * many-valued fork that shipped black labels onto a dark rail.
    * ============================================================ */
-  --sidebar: oklch(0.24 0.005 73);
-  --sidebar-foreground: oklch(0.985 0.002 73);
+  --sidebar: oklch(0.93 0.003 73);
+  --sidebar-foreground: oklch(0.16 0.008 73);
   --sidebar-accent: oklch(1 0 0 / 14%);
   --sidebar-accent-foreground: oklch(0.985 0.002 73);
   --sidebar-border: oklch(1 0 0 / 10%);
@@ -490,8 +503,14 @@
      A bright violet also cleared the floor (5.66:1) and was rejected on
      hierarchy, not on arithmetic: it became the loudest object on the screen,
      louder than the primary action, which is backwards for a nav state. */
-  --nav-active: var(--primary);
-  --nav-active-foreground: var(--primary-foreground);
+  /* THE ONE PLACE THE PILL CANNOT BE --primary. The tile is L 0.78, so it
+     needs a dark surround: against a light rail it tops out at 2.00:1 even
+     if the rail were pure white, under 1.4.11's 3:1 for a state. On a light
+     rail the pill inverts instead — ink fill, page-coloured label, 16.78:1
+     against the rail. The dark rail keeps the tile (8.12:1), so "one pigment
+     means on" still holds everywhere it physically can. */
+  --nav-active: var(--foreground);
+  --nav-active-foreground: var(--background);
   --nav-active-hover: oklch(1 0 0 / 14%);
   /* Fiesta gradient palette — three board hues at ONE lightness (0.46),
      identical in both themes. Because the aurora never changes luminance
@@ -691,7 +710,8 @@
   --border: color-mix(in oklch, var(--foreground) 12%, transparent);
   --input: color-mix(in oklch, var(--foreground) 40%, transparent);
   --ring: var(--primary); /* = --primary, see the invariant in :root */
-  /* The rail is a fixture — identical to :root. See the note there. */
+  /* Warm graphite, one step up from --card so the rail reads as housing
+     rather than as more page. See the note in :root. */
   --sidebar: oklch(0.24 0.005 73);
   --sidebar-foreground: oklch(0.985 0.002 73);
   --sidebar-accent: oklch(1 0 0 / 14%);
@@ -1112,11 +1132,12 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
    rail is now a fixture that does not change with the theme, so the fork is
    not just unnecessary, it was actively wrong: it painted black text onto a
    dark rail the moment the light stops were darkened. */
-.sidebar-gradient .logo-on-gradient,
-.sidebar-gradient-horizontal .logo-on-gradient {
-  --brand: oklch(0.78 0.166 73);
-  --sidebar-foreground: oklch(1 0 0);
-}
+/* Nothing to override any more, and that is the point.
+   "Board" reads --sidebar-foreground, which follows the rail. "Fiesta" reads
+   --brand, which is --hue-orange and already resolves per theme: #8f5d00 on
+   the light rail (4.58:1) and #f6a401 on the dark one (8.12:1). Both halves
+   were previously pinned — white and the tile — and both would have failed on
+   a light rail, the tile at 1.75:1. Deleting the override is the fix. */
 
 /* ============================================================
  * THE RAIL IS QUIET; THE LOCKUP CARRIES THE BRAND (#231).
@@ -1145,18 +1166,24 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
  * whole light/dark fork below it is gone — along with the class of bug where
  * darkening the light stops left black labels on a dark rail.
  * ============================================================ */
+/* Every local override here is DERIVED from --sidebar-foreground rather than
+   hardcoded to white. That is the whole reason the rail can follow the theme
+   again: the previous set assumed a dark rail, so the moment the rail went
+   light it painted white labels on a light surface. Deriving means the rail
+   has exactly one value to fork (--sidebar and its foreground) and everything
+   sitting on it follows for free. */
 .sidebar-gradient {
   background: var(--sidebar);
   color: var(--sidebar-foreground);
   border-radius: var(--radius-chrome);
-  --sidebar-accent: oklch(1 0 0 / 10%);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --foreground: oklch(0.985 0.002 73);
-  --muted-foreground: oklch(1 0 0 / 72%);
-  --accent: oklch(1 0 0 / 10%);
-  --accent-foreground: oklch(1 0 0);
-  --border: oklch(1 0 0 / 12%);
+  --sidebar-accent: color-mix(in oklch, var(--sidebar-foreground) 10%, transparent);
+  --sidebar-accent-foreground: var(--sidebar-foreground);
+  --sidebar-border: color-mix(in oklch, var(--sidebar-foreground) 14%, transparent);
+  --foreground: var(--sidebar-foreground);
+  --muted-foreground: color-mix(in oklch, var(--sidebar-foreground) 72%, transparent);
+  --accent: color-mix(in oklch, var(--sidebar-foreground) 10%, transparent);
+  --accent-foreground: var(--sidebar-foreground);
+  --border: color-mix(in oklch, var(--sidebar-foreground) 14%, transparent);
 }
 
 /* No CSS gradient paints here any more (#231). The rail is a flat brand
@@ -1170,16 +1197,15 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
      same object at two widths, so they get the same treatment — a gradient on
      one and not the other is how two chromes start disagreeing. */
   background: var(--sidebar);
-  color: oklch(1 0 0);
+  color: var(--sidebar-foreground);
   border-radius: var(--radius-chrome-mobile);
-  --foreground: oklch(1 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0 0 0 / 22%);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --muted-foreground: oklch(1 0 0 / 78%);
-  --accent: oklch(0 0 0 / 20%);
-  --accent-foreground: oklch(1 0 0);
-  --border: oklch(1 0 0 / 16%);
+  --foreground: var(--sidebar-foreground);
+  --sidebar-accent: color-mix(in oklch, var(--sidebar-foreground) 12%, transparent);
+  --sidebar-accent-foreground: var(--sidebar-foreground);
+  --muted-foreground: color-mix(in oklch, var(--sidebar-foreground) 78%, transparent);
+  --accent: color-mix(in oklch, var(--sidebar-foreground) 12%, transparent);
+  --accent-foreground: var(--sidebar-foreground);
+  --border: color-mix(in oklch, var(--sidebar-foreground) 16%, transparent);
 }
 .dark .sidebar-gradient-horizontal {
   color: oklch(1 0 0);
