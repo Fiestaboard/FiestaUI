@@ -475,6 +475,22 @@
   --brand: var(--hue-orange);
   --brand-foreground: oklch(0.205 0.008 73);
   --brand-tile: var(--primary); /* DEPRECATED alias — same pigment now */
+  /* ============================================================
+   * THE WORDMARK IS A LOGOTYPE, and WCAG 1.4.3 exempts logotypes from
+   * contrast outright: "text that is part of a logo or brand name has no
+   * minimum contrast requirement."
+   *
+   * It was reading --brand, which is --hue-orange — the token that exists
+   * SPECIFICALLY to clear AA as body text. So the one element the spec
+   * excuses was the one held to the strictest version of the rule, and it
+   * paid in saturation: #8f5d00, a dark ochre, sitting directly beside a
+   * taco mark full of bright orange. The wordmark looked duller than the
+   * icon it is locked up with.
+   *
+   * Freed from a floor it never had, it goes where it belongs — in the
+   * middle of the mark's own shell tones. 2.60:1 on the light rail.
+   * ============================================================ */
+  --brand-wordmark: oklch(0.66 0.141 73);
   --brand-tile-foreground: oklch(0.205 0.008 73);
   --brand-hover: color-mix(in oklch, var(--brand) 82%, var(--foreground));
   /* DEPRECATED alias, removed in the next minor. Kept so consumers pinned
@@ -768,6 +784,9 @@
   --brand: var(--hue-orange); /* text step — see :root */
   --brand-foreground: oklch(0.205 0.008 73);
   --brand-tile: var(--primary); /* DEPRECATED alias — same pigment now */
+  /* On a dark rail the wordmark can be the literal tile — the exact pigment
+     the hardware flips, and the one the icon beside it already uses. 8.12:1. */
+  --brand-wordmark: var(--primary);
   --brand-tile-foreground: oklch(0.205 0.008 73);
   --brand-hover: color-mix(in oklch, var(--brand) 82%, var(--foreground));
   --brand-emphasis: var(--brand); /* DEPRECATED — see :root */
@@ -1132,12 +1151,14 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
    rail is now a fixture that does not change with the theme, so the fork is
    not just unnecessary, it was actively wrong: it painted black text onto a
    dark rail the moment the light stops were darkened. */
-/* Nothing to override any more, and that is the point.
-   "Board" reads --sidebar-foreground, which follows the rail. "Fiesta" reads
-   --brand, which is --hue-orange and already resolves per theme: #8f5d00 on
-   the light rail (4.58:1) and #f6a401 on the dark one (8.12:1). Both halves
-   were previously pinned — white and the tile — and both would have failed on
-   a light rail, the tile at 1.75:1. Deleting the override is the fix. */
+/* "Board" reads --sidebar-foreground, which follows the rail — it used to be
+   pinned to white and vanished the moment the rail went light. "Fiesta" reads
+   --brand-wordmark; see the note on that token for why a wordmark must not be
+   held to a body-text contrast floor. */
+.sidebar-gradient .logo-on-gradient,
+.sidebar-gradient-horizontal .logo-on-gradient {
+  --brand: var(--brand-wordmark);
+}
 
 /* ============================================================
  * THE RAIL IS QUIET; THE LOCKUP CARRIES THE BRAND (#231).
