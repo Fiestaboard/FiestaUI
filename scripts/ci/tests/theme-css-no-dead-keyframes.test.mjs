@@ -101,9 +101,11 @@ test("the keyframes that ARE referenced survived the cleanup", () => {
     "sheet-slide-in-left",
     "sheet-slide-in-top",
     "sheet-slide-in-bottom",
-    "pride-burst",
     "card-fade-in",
-    "sidebar-gradient-flow",
+    // `pride-burst` and `sidebar-gradient-flow` were removed from this list
+    // deliberately: the confetti easter egg went with season support, and the
+    // gradient flow went with the gradient. Both were live when this guard was
+    // written; neither has a referrer now.
   ]) {
     assert.ok(declaredKeyframes.includes(name), `expected live @keyframes ${name} to remain in theme.css`);
   }

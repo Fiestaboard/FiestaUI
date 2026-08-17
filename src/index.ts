@@ -62,9 +62,6 @@ export * from "./components/chrome/page-toolbar";
 export * from "./components/chrome/sidebar";
 export * from "./components/chrome/skip-to-content";
 export * from "./components/chrome/theme-toggle";
-export * from "./components/seasons/sidebar-aurora";
-export * from "./components/seasons/sidebar-aurora-horizontal";
-export * from "./lib/seasons";
 export { cn } from "./lib/utils";
 // Board preview — the split-flap Vestaboard display renderer + its data.
 export * from "./components/board/board-display";

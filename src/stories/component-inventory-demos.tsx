@@ -151,8 +151,6 @@ import { BoardShowcase } from "../components/plugin/board-showcase";
 import { PluginCard } from "../components/plugin/plugin-card";
 import { PluginCategoryBadge } from "../components/plugin/plugin-category-badge";
 import { ScaledBoardTeaser } from "../components/plugin/scaled-board-teaser";
-import { SidebarAurora } from "../components/seasons/sidebar-aurora";
-import { SidebarAuroraHorizontal } from "../components/seasons/sidebar-aurora-horizontal";
 import { Code } from "../components/typography/code";
 import { Heading } from "../components/typography/heading";
 import { List, ListItem } from "../components/typography/list";
@@ -220,8 +218,6 @@ const TEMPLATE_VARIABLES: ToolbarTemplateVariables = {
 
 const PLUGIN_MANIFESTS = { weather: { icon: "cloud" }, datetime: { icon: "clock" }, stocks: { icon: "trending-up" } };
 const resolvePickerIcon = createLucideIconResolver({ Cloud, Clock, TrendingUp });
-
-const SEASON_COLORS = ["#e40303", "#ff8c00", "#ffed00", "#008026", "#004dff", "#750787"];
 
 const noop = () => {};
 
@@ -1118,16 +1114,6 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   Aurora: () => (
     <div className="relative h-40 w-full max-w-lg overflow-hidden rounded-lg border border-border">
       <Aurora />
-    </div>
-  ),
-  SidebarAurora: () => (
-    <div className="relative h-40 w-32 overflow-hidden rounded-lg border border-border">
-      <SidebarAurora colors={SEASON_COLORS} />
-    </div>
-  ),
-  SidebarAuroraHorizontal: () => (
-    <div className="relative h-14 w-full max-w-md overflow-hidden rounded-lg border border-border">
-      <SidebarAuroraHorizontal colors={SEASON_COLORS} />
     </div>
   ),
   DecryptedText: () => <DecryptedText text="FIESTABOARD" animateOn="view" className="font-mono text-lg" />,

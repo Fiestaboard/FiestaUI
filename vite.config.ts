@@ -28,11 +28,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     lib: {
-      // seasons-drafts is a second entry on purpose: nothing reachable from
-      // index.ts imports it (it's Storybook-only data kept out of the
-      // barrel), but it must still be emitted to dist so the `./*` subpath
-      // export (`@fiestaboard/ui/lib/seasons-drafts`) resolves.
-      entry: ["src/index.ts", "src/lib/seasons-drafts.ts"],
+      entry: ["src/index.ts"],
       formats: ["es"],
     },
     rollupOptions: {

@@ -15,15 +15,6 @@
  * token values here without a parity check on the consumer side.
  */
 @import "tw-animate-css";
-/* Seasonal themes — one file per season, inert unless the season class
-   is stamped on <html>. Only the LIVE season (pride) is inlined here so
-   consumers get it automatically; the design drafts are NOT imported —
-   they'd ship ~18 KB of rule families keyed on classes the app never
-   stamps. A consumer that promotes a draft opts in with:
-     @import "@fiestaboard/ui/seasons/<id>.css";
-   (see README "Seasonal theming"). Storybook imports every draft
-   directly in storybook.css so the Season toolbar can preview them. */
-@import "./seasons/pride.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -933,54 +924,6 @@
  * Consumed by the chrome components (Sidebar, PageHeader, …).
  * ============================================================ */
 
-/* Pride styling lives in seasons/pride.css alongside the draft seasons. */
-
-/* Season easter egg — confetti burst particles spawned by JS on logo click
-   (class name kept as pride-burst-* for app compatibility; every season's
-   fireSeasonBurst() uses it) */
-@keyframes pride-burst {
-  0% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(0.2);
-    opacity: 0;
-  }
-}
-/* Wrapper so the 48 particles append to the live tree in a single mutation
-   and share one animationend listener. Fixed (out of flow) so the empty
-   container never affects body layout; no transform/filter/contain here, so
-   the fixed particles still resolve against the viewport. */
-.pride-burst {
-  position: fixed;
-  top: 0;
-  left: 0;
-  /* The fixed container forms a stacking context, trapping the particles'
-     z-index inside it — so the container itself must sit at confetti level
-     or the burst paints under sheets/modals/tooltips. */
-  z-index: var(--z-confetti);
-  pointer-events: none;
-}
-.pride-burst-particle {
-  position: fixed;
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  pointer-events: none;
-  z-index: var(--z-confetti);
-  /* 0.8s default is a one-off (JS overrides via --dur), so it stays inline */
-  animation: pride-burst var(--dur, 0.8s) var(--motion-ease-out) forwards;
-}
-
-/* fireSeasonBurst() already skips the burst under reduced motion, but mirror
-   every other motion surface in this file with a CSS gate as a backstop. */
-@media (prefers-reduced-motion: reduce) {
-  .pride-burst-particle {
-    animation: none !important;
-  }
-}
-
 /* Board switch transition — the app-wide board selector wraps its state
    update in document.startViewTransition() (see current-board-context.tsx),
    stamping html[data-board-switch="forward"|"backward"]. Only the page
@@ -1207,11 +1150,9 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   --border: color-mix(in oklch, var(--sidebar-foreground) 14%, transparent);
 }
 
-/* No CSS gradient paints here any more (#231). The rail is a flat brand
-   surface; colour arrives through the wordmark, the active pill, and the
-   per-page hue on the page icon. The layer element stays because seasons
-   still mount the WebGL <SidebarAurora> inside this stacking context, and
-   because it is what clips the rail's rounded corners. */
+/* No CSS gradient paints here any more (#231). The rail is a flat surface;
+   colour arrives through the wordmark, the active pill, and the per-page hue
+   on the page icon. */
 
 .sidebar-gradient-horizontal {
   /* Flat, like the desktop rail (#231). The mobile bar and the rail are the
@@ -1239,43 +1180,12 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   --border: oklch(1 0 0 / 18%);
 }
 
-/* The rail's stacking context (was: the compositor gradient flow, #57).
-   Nothing animates here now — the gradient it existed to move is gone. The
-   layer element survives for two jobs it still does: it clips the rail to its
-   rounded corners (the desktop <aside> cannot take overflow:hidden, because
-   the edge toggle overhangs it), and it gives the seasonal WebGL
-   <SidebarAurora> a stacking context beneath the rail's content. */
-.sidebar-gradient,
-.sidebar-gradient-horizontal {
-  /* Keep the z-index:-1 layer above this element's own background even when
-     the container isn't otherwise a stacking context (e.g. story wrappers). */
-  isolation: isolate;
-}
-.sidebar-gradient-layer {
-  position: absolute;
-  inset: 0;
-  z-index: -1; /* under the container's content, above its background */
-  overflow: hidden;
-  border-radius: inherit;
-  background: inherit; /* inheritance link: ::before re-inherits from here */
-  pointer-events: none;
-}
-.sidebar-gradient-layer::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  background: inherit;
-  will-change: transform;
-}
-/* The vertical rail no longer scrolls a gradient, so the overscan layer and
-   its 117-second loop are gone with it. A flat surface has nothing to animate,
-   and this was the single largest source of "the chrome is the brightest thing
-   on screen". */
-/* Horizontal: the container's gradient box is 400% × 100%; one loop travels
-   33.33% background-position = 100% of the container, so the ::before
-   overscans to 200% width and translateX(-50%) reproduces one period. */
-
+/* .sidebar-gradient-layer is gone (#57 is closed). It existed to host a
+   compositor-only copy of the scrolling gradient, and later to give the
+   seasonal WebGL aurora a stacking context under the rail's content. There is
+   no gradient and no aurora, and a flat background clips to its own
+   border-radius, so the element, the `isolation: isolate` it required, and the
+   will-change hint it carried all had nothing left to do. */
 /* Navigation entrance animations */
 @keyframes nav-slide-in-left {
   from {
@@ -1297,16 +1207,9 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
     transform: translateY(0);
   }
 }
-/* Desktop: entrance on the container; the gradient flow runs on
-   .sidebar-gradient-layer::before and starts after 400ms. */
-/* 117s gradient loop is an ambient one-off; its 0.4s/0.35s start delays
-   mirror the entrance durations (slowest/slower) and stay literal with them */
 @media (min-width: 1024px) {
   .sidebar-gradient {
     animation: nav-slide-in-left var(--motion-duration-slowest) var(--motion-ease-out) both;
-  }
-  .sidebar-gradient .sidebar-gradient-layer::before {
-    animation-delay: 0.4s;
   }
 }
 .sidebar-gradient-horizontal {
@@ -1343,45 +1246,18 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   .content-shift {
     transition: none;
   }
-  .sidebar-gradient {
-    animation: none;
-    background-position: 50% 25%;
-  }
+  .sidebar-gradient,
   .sidebar-gradient-horizontal {
     animation: none;
-    background-position: 25% 50%;
-  }
-  /* Freeze the compositor layer at the same intended mid-gradient pose
-     (equivalent to background-position 50% 25% / 25% 50% on the container). */
-  .sidebar-gradient .sidebar-gradient-layer::before {
-    animation: none;
-    transform: translateY(-12.5%); /* -50% of the container = bg-position 50% 25% */
-  }
-  .sidebar-gradient-horizontal .sidebar-gradient-layer::before {
-    animation: none;
-    transform: translateX(-37.5%); /* -75% of the container = bg-position 25% 50% */
   }
 }
 .reduce-motion .sidebar-transition,
 .reduce-motion .content-shift {
   transition: none;
 }
-.reduce-motion .sidebar-gradient {
-  animation: none;
-  background-position: 50% 25%;
-}
+.reduce-motion .sidebar-gradient,
 .reduce-motion .sidebar-gradient-horizontal {
   animation: none;
-  background-position: 25% 50%;
-}
-/* Same freeze pose as the prefers-reduced-motion block above. */
-.reduce-motion .sidebar-gradient .sidebar-gradient-layer::before {
-  animation: none;
-  transform: translateY(-12.5%);
-}
-.reduce-motion .sidebar-gradient-horizontal .sidebar-gradient-layer::before {
-  animation: none;
-  transform: translateX(-37.5%);
 }
 
 /* ============================================================

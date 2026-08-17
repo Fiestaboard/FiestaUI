@@ -200,8 +200,6 @@ export const INVENTORY = [
       "Continuously animated components. These render in the MotionAndEffects story rather than here: a free-running animation lands every screenshot on a different frame, which would make the whole inventory page impossible to diff.",
     entries: [
       { name: "Aurora", summary: "WebGL aurora backdrop.", animated: true },
-      { name: "SidebarAurora", summary: "The sidebar's seasonal aurora treatment.", animated: true },
-      { name: "SidebarAuroraHorizontal", summary: "The mobile header's horizontal aurora.", animated: true },
       { name: "DecryptedText", summary: "Scramble-in text reveal.", animated: true },
       { name: "FadeContent", summary: "Fades its children in on mount or on view.", animated: true },
     ],

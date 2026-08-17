@@ -5,7 +5,7 @@ import { test } from "node:test";
 
 // Conformance test for the repo's memoization policy (issue #63).
 //
-// board/** and seasons/** wrap every render component in `memo(function Name(...))`
+// board/** wraps every render component in `memo(function Name(...))`
 // so parent re-renders stop at the family boundary. The chrome family is the app
 // frame and sits directly under app-shell state, so the same policy must hold:
 // every exported chrome component is wrapped in `memo(` with a named inner
@@ -38,7 +38,7 @@ for (const file of chromeFiles) {
       [],
       `un-memoized exported component(s) in chrome/${file}: ${unmemoized.join(", ")} — ` +
         `wrap in \`export const Name = memo(function Name(...) {...})\` ` +
-        `(see board/board-display.tsx / seasons/sidebar-aurora.tsx for the idiom)`,
+        `(see board/board-display.tsx for the idiom)`,
     );
   });
 

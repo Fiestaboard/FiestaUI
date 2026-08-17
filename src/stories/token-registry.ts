@@ -284,8 +284,15 @@ const GROUP_DEFINITIONS: ReadonlyArray<{
   {
     id: "brand",
     title: "Brand",
-    description: "FiestaBoard orange — sidebar active state, links, key UI.",
+    description: "FiestaBoard orange — links, the wordmark, and the tile the primary button fills with.",
     matches: family("brand"),
+  },
+  {
+    id: "hue",
+    title: "The six board hues",
+    description:
+      "The hardware's six inks at an ink lightness, for icons, rules and text. The raw tiles cannot do this job: board yellow is 1.15:1 on light paper.",
+    matches: family("hue"),
   },
   {
     id: "status",

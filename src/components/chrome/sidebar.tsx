@@ -3,12 +3,9 @@
 import { ChevronLeft, ChevronRight, Menu, Sparkles, X } from "lucide-react";
 import { Fragment, memo, useEffect, useRef, useState } from "react";
 
-import type { Season } from "../../lib/seasons";
 import { cn } from "../../lib/utils";
 import { Button } from "../forms/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
-import { SidebarAurora } from "../seasons/sidebar-aurora";
-import { SidebarAuroraHorizontal } from "../seasons/sidebar-aurora-horizontal";
 import { FIESTA_ICON_DATA_URI } from "./fiesta-icon";
 import { FiestaLogo } from "./fiesta-logo";
 
@@ -127,9 +124,7 @@ export interface SidebarProps {
    * aware asset URLs).
    */
   logoIconSrc?: string;
-  /** Active season: auroras render in its colors and the logo becomes a button. */
-  season?: Season | null;
-  /** Click handler for the seasonal logo button (celebration lives in the app). */
+  /** Click handler for the logo. When present, the lockup renders as a button. */
   onLogoClick?: (e: React.MouseEvent) => void;
   /** AI assistant nav entry; omit to hide. */
   ai?: { active: boolean; onOpen: () => void };
@@ -158,7 +153,6 @@ export const Sidebar = memo(function Sidebar({
   onToggleCollapsed,
   onTransitionEnd,
   logoIconSrc = FIESTA_ICON_DATA_URI,
-  season = null,
   onLogoClick,
   ai,
   boardSelector,
@@ -412,7 +406,7 @@ export const Sidebar = memo(function Sidebar({
           "flex items-center gap-3 flex-1 ml-2"
         : "flex items-center gap-2 overflow-hidden px-4 py-4";
 
-    if (season) {
+    if (onLogoClick) {
       return (
         <button
           type="button"
@@ -442,9 +436,6 @@ export const Sidebar = memo(function Sidebar({
         ref={headerRef}
         className="lg:hidden fixed top-2 left-3 right-3 z-[var(--z-mobile-header)] overflow-hidden sidebar-gradient-horizontal"
       >
-        {/* Compositor-driven gradient scroll — see .sidebar-gradient-layer in theme.css (#57) */}
-        <div aria-hidden className="sidebar-gradient-layer" />
-        {season && <SidebarAuroraHorizontal colors={season.colors} />}
         <div className="relative z-[1] flex min-h-14 flex-wrap items-center gap-y-2 px-4 py-2">
           <Button
             variant="ghost"
@@ -488,7 +479,6 @@ export const Sidebar = memo(function Sidebar({
         onKeyDown={handleMobileMenuKeyDown}
         style={mobileMenuOpen ? MOBILE_MENU_STYLE_OPEN : MOBILE_MENU_STYLE_CLOSED}
       >
-        <div aria-hidden className="sidebar-gradient-layer" />
         <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {primaryItems.map(renderMobileNavItem)}
           {ai && (
@@ -534,10 +524,6 @@ export const Sidebar = memo(function Sidebar({
             }
           }}
         >
-          {/* Compositor-driven gradient scroll — the layer (not the aside) clips,
-              because the edge toggle button below overhangs the aside (#57) */}
-          <div aria-hidden className="sidebar-gradient-layer" />
-          {season && <SidebarAurora colors={season.colors} />}
           {/* Edge toggle button -- sits on the sidebar border, Jira-style */}
           <Tooltip>
             <TooltipTrigger asChild>

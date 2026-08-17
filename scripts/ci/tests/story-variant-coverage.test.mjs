@@ -148,6 +148,20 @@ const discriminators = (variantsFn, group, keys) => {
   return out;
 };
 
+/**
+ * Variants kept only as back-compat aliases, exempt from coverage.
+ *
+ * Button/Badge `brand` used to fill with the literal tile because --primary was
+ * a mustard; --primary IS the tile now, so `brand` and `default` are the same
+ * button. It survives one minor so consumers do not break on the same release
+ * that changes every value. Exempting it beats propping it up with a cosmetic
+ * difference that would exist only to satisfy this test.
+ */
+const DEPRECATED_ALIASES = {
+  "Button → AllVariants": ["brand"],
+  "Badge → AllVariants": ["brand"],
+};
+
 for (const entry of REGISTRY) {
   const group = entry.group ?? "variant";
   const label = `${entry.label} → ${entry.story}`;
@@ -156,7 +170,14 @@ for (const entry of REGISTRY) {
     const variantsFn = bundle[`${entry.module}Component`][entry.variantsExport];
     assert.ok(typeof variantsFn === "function", `${entry.module}.tsx must export ${entry.variantsExport}`);
 
-    const declared = Object.keys(variantsFn.config?.variants?.[group] ?? {});
+    // Deprecated aliases are dropped BEFORE discriminators are computed, not
+    // filtered out afterwards. `brand` is byte-identical to `default`, so with
+    // both in the set NEITHER has a class of its own and the guard flags
+    // `default` — the variant that is actually fine. Removing the alias first
+    // restores the real question: does every distinct variant get rendered?
+    const declared = Object.keys(variantsFn.config?.variants?.[group] ?? {}).filter(
+      (key) => !(DEPRECATED_ALIASES[label] ?? []).includes(key),
+    );
     assert.ok(declared.length > 0, `${label}: no "${group}" group in the cva config — registry entry is stale`);
 
     const story = bundle[`${entry.module}Stories`][entry.story];

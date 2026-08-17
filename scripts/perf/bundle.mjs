@@ -156,7 +156,9 @@ async function measureEntry(contents, resolveDir) {
 /**
  * Gzip the stylesheets dist/ ships verbatim.
  *
- * theme.css and each seasons/*.css are copied into dist/ untouched by the build
+ * theme.css is copied into dist/ untouched by the build (seasons/*.css used to
+ * be too, before season support was removed — the seasons/ branch below is kept
+ * because it degrades correctly against older dists in a size comparison)
  * (see package.json's build script), so unlike the JS exports there is nothing
  * to bundle — a consumer pays their gzipped size as shipped. Measure that
  * directly, at the same gzip level as the JS numbers, so compare.mjs can gate

@@ -2,14 +2,3 @@
 @import "tailwindcss";
 @import "./fonts.css";
 @import "./theme.css";
-
-/* Draft seasons are opt-in for consumers (theme.css inlines only the live
-   pride season), but the Season toolbar and Seasons/* stories preview every
-   draft — so import them directly here to keep those previews styled. */
-@import "./seasons/halloween.css";
-@import "./seasons/thanksgiving.css";
-@import "./seasons/christmas.css";
-@import "./seasons/new-year.css";
-@import "./seasons/easter.css";
-@import "./seasons/mothers-day.css";
-@import "./seasons/fathers-day.css";
