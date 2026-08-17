@@ -1,11 +1,7 @@
 [
   {
-    "id": "ui-aurora--*",
-    "reason": "Aurora runs a free-running requestAnimationFrame WebGL loop (uTime = rAF timestamp) that does not honor prefers-reduced-motion, so every shot lands on an arbitrary animation frame. Proven unstable run-to-run locally (up to ~173k differing pixels)."
-  },
-  {
     "id": "foundations-inventory--motion-and-effects",
-    "reason": "The animated half of the component inventory: Aurora, SidebarAurora and SidebarAuroraHorizontal all run free-running rAF WebGL loops, and DecryptedText scrambles on a timer. Same instability as ui-aurora--*. Splitting these off is what keeps foundations-inventory--all-components — the other ~68 components — diffable."
+    "reason": "The animated half of the component inventory: DecryptedText scrambles on a timer, so every shot catches a different point in the reveal. Splitting these off is what keeps foundations-inventory--all-components — the other ~68 components — diffable."
   },
   {
     "id": "board-boarddisplay--loading",

@@ -68,7 +68,8 @@ import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
 import { createLucideIconResolver, VariablePickerContent } from "../components/editor/variable-picker-content";
-import { Aurora } from "../components/effects/aurora";
+import { BoardBackdrop } from "../components/board/board-backdrop";
+import { WizardProgress } from "../components/wizard/wizard-progress";
 import DecryptedText from "../components/effects/react-bits/decrypted-text";
 import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
@@ -1111,9 +1112,20 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
 
   /* ---- Motion & effects ---- */
-  Aurora: () => (
-    <div className="relative h-40 w-full max-w-lg overflow-hidden rounded-lg border border-border">
-      <Aurora />
+  BoardBackdrop: () => (
+    <div className="bg-background relative h-40 w-full max-w-md overflow-hidden rounded-lg">
+      <BoardBackdrop phrases={["WELCOME", "72 AND CLEAR", "N JUDAH 4 MIN", "SUNSET 8 04"]} rowCount={6} />
+    </div>
+  ),
+  WizardShell: () => (
+    <div className="text-muted-foreground text-sm">
+      Full-screen overlay — see <span className="font-mono text-xs">App/Wizard/WizardShell</span> for the real thing.
+      Rendering it inline here would cover the inventory page it is listed on.
+    </div>
+  ),
+  WizardProgress: () => (
+    <div className="w-full max-w-sm">
+      <WizardProgress steps={["Connect", "Customize", "Finish"]} current={2} label="Setup progress" />
     </div>
   ),
   DecryptedText: () => <DecryptedText text="FIESTABOARD" animateOn="view" className="font-mono text-lg" />,

@@ -160,6 +160,7 @@ export const INVENTORY = [
       { name: "StaticBoardDisplay", summary: "The unscaled primitive — a real tile grid at sm/md/lg." },
       { name: "ScaledBoardDisplay", summary: "StaticBoardDisplay scaled to fit a slot narrower than the board." },
       { name: "BoardDisplay", summary: "The animated display, with flap cascade and a live region." },
+      { name: "BoardBackdrop", summary: "A field of split-flap rows used as a page backdrop." },
       { name: "BoardTeaser", summary: "One-line teaser strip for cards and lists." },
     ],
   },
@@ -194,12 +195,21 @@ export const INVENTORY = [
     ],
   },
   {
+    id: "wizard",
+    title: "Setup wizard",
+    description:
+      "The full-screen shell for a multi-step first-run flow. Presentational only — step order, validation and persistence stay with the consumer.",
+    entries: [
+      { name: "WizardShell", summary: "Overlay, card, header, progress and footer slots for a setup flow." },
+      { name: "WizardProgress", summary: "Segmented step indicator with labels and aria-current." },
+    ],
+  },
+  {
     id: "motion",
     title: "Motion & effects",
     description:
       "Continuously animated components. These render in the MotionAndEffects story rather than here: a free-running animation lands every screenshot on a different frame, which would make the whole inventory page impossible to diff.",
     entries: [
-      { name: "Aurora", summary: "WebGL aurora backdrop.", animated: true },
       { name: "DecryptedText", summary: "Scramble-in text reveal.", animated: true },
       { name: "FadeContent", summary: "Fades its children in on mount or on view.", animated: true },
     ],

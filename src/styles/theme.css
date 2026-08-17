@@ -482,6 +482,15 @@
    * middle of the mark's own shell tones. 2.60:1 on the light rail.
    * ============================================================ */
   --brand-wordmark: oklch(0.66 0.141 73);
+  /* The backdrop is a DARK board in both themes, so light mode needs the
+     lower number: a full-strength wall of black tiles on paper stops being a
+     background and becomes the subject, with the card marooned in a hole
+     punched through it.
+     At this strength the field reads as TEXTURE rather than as text, and that
+     is the right call once it covers the whole viewport — the grid carries the
+     brand on its own, and legible words wallpapered edge to edge would compete
+     with the form the screen exists to get filled in. */
+  --board-backdrop-opacity: 0.16;
   --brand-tile-foreground: oklch(0.205 0.008 73);
   --brand-hover: color-mix(in oklch, var(--brand) 82%, var(--foreground));
   /* DEPRECATED alias, removed in the next minor. Kept so consumers pinned
@@ -520,7 +529,7 @@
   --nav-active-foreground: var(--background);
   --nav-active-hover: oklch(1 0 0 / 14%);
   /* Fiesta gradient palette — three board hues at ONE lightness (0.46),
-     identical in both themes. Because the aurora never changes luminance
+     identical in both themes. Because that surface never changes luminance
      across its 117s loop, the contrast of anything sitting on it is a
      constant rather than a function of wall-clock time. */
   --fiesta-red: oklch(0.46 0.15 29);
@@ -594,15 +603,15 @@
    * surface       | --radius-surface       | rounded-lg   | 10px  | modal surfaces (dialog, alert-dialog), alert, sidebar nav pills
    * card          | --radius-card          | rounded-xl   | 12px  | card, page-header icon tile
    * pill          | --radius-pill          | rounded-full |  ∞    | badge, switch, slider, overlay close (dialog + sheet), scroll-area thumb, sidebar edge toggle, empty-state icon
-   * chrome        | --radius-chrome        | (css/inline) | 14px  | desktop sidebar shell + its aurora inset
-   * chrome-mobile | --radius-chrome-mobile | (css/inline) | 16px  | mobile header/menu shell, its aurora inset, menu clip-path reveal
+   * chrome        | --radius-chrome        | (css/inline) | 14px  | desktop sidebar shell
+   * chrome-mobile | --radius-chrome-mobile | (css/inline) | 16px  | mobile header/menu shell, menu clip-path reveal
    *
    * Components KEEP their Tailwind rounded-* classes — those already
    * resolve through the --radius calc chain, so each role token below
    * is defined with the same math and stays in lockstep with them.
    * New components pick a ROLE from this table instead of a raw size.
    * The chrome radii are deliberately fixed px (not on the rem-based
-   * --radius chain): they match the aurora canvas insets exactly.
+   * --radius chain).
    *
    * Deliberately off-scale (left as-is): pride-burst particle 2px,
    * scroll-area viewport rounded-[inherit]. Both are arbitrary-value
@@ -626,7 +635,7 @@
    *   --z-sidebar          50  desktop sidebar rail
    *   --z-sidebar-toggle   51  edge collapse button — LOCAL value: the
    *                            fixed z-50 aside is its own stacking
-   *                            context, so 51 only beats the aurora
+   *                            context, so 51 only beats the rail's own
    *                            canvas / z-[1] content column inside it
    *   --z-mobile-backdrop  90  dimming layer behind the mobile menu
    *   --z-mobile-menu      95  mobile slide-down menu panel
@@ -658,7 +667,7 @@
    *
    * Not on the scale (local stacking / one-offs): select scroll
    * buttons z-10 (sticky inside the popup), sidebar/header content
-   * z-[1] (above the aurora canvas), board-switch view-transition
+   * z-[1] (above the rail surface), board-switch view-transition
    * groups 0/1 (::view-transition pseudo-tree only).
    * ============================================================ */
   --z-popover: 50;
@@ -778,6 +787,8 @@
   /* On a dark rail the wordmark can be the literal tile — the exact pigment
      the hardware flips, and the one the icon beside it already uses. 8.12:1. */
   --brand-wordmark: var(--primary);
+  /* Dark tiles on a dark page need far less to read. See :root. */
+  --board-backdrop-opacity: 0.28;
   --brand-tile-foreground: oklch(0.205 0.008 73);
   --brand-hover: color-mix(in oklch, var(--brand) 82%, var(--foreground));
   --brand-emphasis: var(--brand); /* DEPRECATED — see :root */
@@ -794,13 +805,13 @@
      surface behind it — see the fallback rules near .nav-active.
 
      Now board violet and theme-invariant — identical to :root. Because the
-     rail is a fixture and the aurora holds one luminance, the pill no
+     rail is a flat, known surface, the pill no
      longer needs a per-theme value, and its contrast no longer depends on
      where a 117-second animation happens to be. */
   --nav-active: var(--primary); /* see :root */
   --nav-active-foreground: var(--primary-foreground);
   --nav-active-hover: oklch(1 0 0 / 14%);
-  /* Constant-luminance aurora — identical to :root. See the note there. */
+  /* Identical to :root. See the note there. */
   --fiesta-red: oklch(0.46 0.15 29);
   --fiesta-orange: oklch(0.46 0.098 73);
   --fiesta-purple: oklch(0.46 0.15 315);
@@ -1094,14 +1105,12 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
    rail is now a fixture that does not change with the theme, so the fork is
    not just unnecessary, it was actively wrong: it painted black text onto a
    dark rail the moment the light stops were darkened. */
-/* "Board" reads --sidebar-foreground, which follows the rail — it used to be
-   pinned to white and vanished the moment the rail went light. "Fiesta" reads
-   --brand-wordmark; see the note on that token for why a wordmark must not be
-   held to a body-text contrast floor. */
-.sidebar-gradient .logo-on-gradient,
-.sidebar-gradient-horizontal .logo-on-gradient {
-  --brand: var(--brand-wordmark);
-}
+/* The `.logo-on-gradient` override is gone: FiestaLogo now reads
+   --brand-wordmark and --foreground directly, so it is correct on the rail, on
+   a wizard card and anywhere else without a scoped rule pinning it. That rule
+   had already caused two bugs by pinning what should have been a token — white
+   "Board" that vanished on a light rail, then a tile-orange "Fiesta" that would
+   have. */
 
 /* ============================================================
  * THE RAIL IS QUIET; THE LOCKUP CARRIES THE BRAND (#231).
@@ -1182,8 +1191,8 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 
 /* .sidebar-gradient-layer is gone (#57 is closed). It existed to host a
    compositor-only copy of the scrolling gradient, and later to give the
-   seasonal WebGL aurora a stacking context under the rail's content. There is
-   no gradient and no aurora, and a flat background clips to its own
+   seasonal WebGL aurora a stacking context under the rail's content. Both of
+   those are gone now, and a flat background clips to its own
    border-radius, so the element, the `isolation: isolate` it required, and the
    will-change hint it carried all had nothing left to do. */
 /* Navigation entrance animations */
@@ -1270,7 +1279,7 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
  * animated gradient whose luminance changed over a 117-second loop, so its
  * contrast could not be computed — only sampled at runtime.
  *
- * The aurora now holds ONE lightness (0.46) at every stop, so the surface
+ * The rail is now one flat lightness, so the surface
  * behind the pill is a known quantity and the pill can simply be opaque.
  * A solid board-violet fill carries a white label at 9.11:1 in both themes.
  *
@@ -1344,6 +1353,50 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
     0 0 0 1px var(--ring-edge),
     0 0 0 3px var(--ring),
     0 0 0 4px var(--ring-edge);
+}
+
+/* ============================================================
+ * BOARD BACKDROP — the one-shot settle (#231).
+ *
+ * Each row drops and settles once on mount, like a row of flaps landing, and
+ * then STOPS. That is the whole performance contract: a first-run screen is
+ * disproportionately likely to be on a phone, and an ambient loop there costs
+ * battery for as long as the screen is open. The WebGL aurora this replaces
+ * held a GL context and ran a shader every frame; this runs for ~700ms and
+ * then the field is inert DOM.
+ *
+ * transform and opacity only, so it stays on the compositor: no layout, no
+ * paint, no main-thread work per frame.
+ * ============================================================ */
+@keyframes board-backdrop-settle {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.72);
+  }
+  to {
+    opacity: var(--board-backdrop-opacity, 0.28);
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+.board-backdrop-row {
+  opacity: var(--board-backdrop-opacity, 0.28);
+  animation: board-backdrop-settle 0.42s var(--motion-ease-standard) both;
+}
+
+/* Already settled, nothing declared. Not `animation: none` on top of a rule
+   that also sets the from-state — the row must not be left at opacity 0. */
+@media (prefers-reduced-motion: reduce) {
+  .board-backdrop-row {
+    animation: none;
+    opacity: var(--board-backdrop-opacity, 0.28);
+    transform: none;
+  }
+}
+.reduce-motion .board-backdrop-row {
+  animation: none;
+  opacity: var(--board-backdrop-opacity, 0.28);
+  transform: none;
 }
 
 /* Card fade-in animation (inspired by reactbits CardNav) */

@@ -250,6 +250,7 @@ export const NON_COLOR_TOKEN_CATEGORIES: ReadonlyArray<{
   { id: "motion", label: "Motion durations & easings", matches: (n) => n.startsWith("--motion-") },
   { id: "z", label: "Z-index layer scale", matches: (n) => n.startsWith("--z-") },
   { id: "elevation", label: "Elevation shadows", matches: (n) => n.startsWith("--elevation-") },
+  { id: "board", label: "Board rendering", matches: (n) => n.startsWith("--board-") },
 ];
 
 /* ------------------------------------------------------------------ *
@@ -340,7 +341,7 @@ const GROUP_DEFINITIONS: ReadonlyArray<{
   {
     id: "gradient",
     title: "Gradient palette",
-    description: "Stops for the sidebar aurora and the page icon gradient.",
+    description: "The three warm brand stops. Historically the sidebar gradient; now unused by chrome.",
     matches: family("fiesta", "icon-g1", "icon-g2", "icon-g3", "icon-g4", "icon-g5", "icon-g6"),
     pairsWithBackground: true,
   },

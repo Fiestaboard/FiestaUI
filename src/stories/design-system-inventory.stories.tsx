@@ -118,8 +118,8 @@ export const AllComponents = () => (
 
 /**
  * The animated half of the inventory, kept out of `AllComponents` so that one
- * page stays screenshot-stable. This story is listed in vrt/skip.json for the
- * same reason `ui-aurora--*` already is.
+ * page stays screenshot-stable. This story is listed in vrt/skip.json: its
+ * components animate on a timer, so every shot lands on a different frame.
  */
 export const MotionAndEffects = () => (
   <div className="bg-background min-h-screen p-8">
