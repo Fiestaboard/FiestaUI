@@ -69,7 +69,13 @@ export function PluginCategoryBadge({ category, label, className }: PluginCatego
     <span
       data-category={category}
       className={cn(
-        "inline-flex w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md",
+        // max-w-full + a truncating label, not shrink-0: on a narrow plugin
+        // card the longest category names ("Weather & Environment") are wider
+        // than the card, and a nowrap chip that cannot shrink overflows past
+        // the card's edge instead of clipping inside it. The tile keeps its
+        // size — it is the part that carries the meaning — and the word gives
+        // way, which is the intended failure mode at this width.
+        "inline-flex w-fit max-w-full items-center gap-1.5 rounded-md",
         "border border-white/10 bg-board-surface-dark py-1 pl-1.5 pr-2",
         className,
       )}
@@ -85,7 +91,7 @@ export function PluginCategoryBadge({ category, label, className }: PluginCatego
           "after:absolute after:inset-x-0 after:top-1/2 after:h-px after:bg-black/45 after:content-['']",
         )}
       />
-      <span className="font-mono text-[0.68rem] font-semibold uppercase leading-none tracking-wide text-board-text-on-dark">
+      <span className="truncate font-mono text-[0.68rem] font-semibold uppercase leading-none tracking-wide text-board-text-on-dark">
         {label ?? category}
       </span>
     </span>
