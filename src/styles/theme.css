@@ -121,6 +121,9 @@
   --color-brand-emphasis: var(--brand-emphasis);
   /* The literal tile. Field only — see the brand note in :root. */
   --color-brand-tile: var(--brand-tile);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-ring-edge: var(--ring-edge);
   --color-brand-tile-foreground: var(--brand-tile-foreground);
   --color-brand-hover: var(--brand-hover);
 
@@ -239,12 +242,12 @@
    *
    * Do not add a seventh hue. token-registry.ts asserts this in CI.
    * ============================================================ */
-  --background: oklch(0.965 0.006 73);
-  --foreground: oklch(0.16 0.012 73);
+  --background: oklch(0.965 0.003 73);
+  --foreground: oklch(0.16 0.008 73);
   --card: oklch(0.995 0.003 73);
-  --card-foreground: oklch(0.16 0.012 73);
+  --card-foreground: oklch(0.16 0.008 73);
   --popover: oklch(0.995 0.003 73);
-  --popover-foreground: oklch(0.16 0.012 73);
+  --popover-foreground: oklch(0.16 0.008 73);
   /* ============================================================
    * INVARIANT — "one token means 'this control is on'" (#156/#159).
    * --primary is the single pigment that says a control is the primary
@@ -256,20 +259,44 @@
    * that is what made the dark theme brandless (see .dark below).
    * --primary carries the FiestaBoard warm orange in BOTH themes.
    *
-   * As of the hue lock it sits on hue 73 — the board's own orange — rather
-   * than the 60/62 it had drifted to, which was 13deg off the tile it was
-   * documented as coming from. 5.08:1 on --background; white label 5.62:1.
+   * --primary IS THE TILE, and the label on it is board ink (#231).
+   *
+   * It was oklch(0.52 0.111 73) = #8f5d00 — the board's orange darkened until
+   * a WHITE label cleared AA on it. But maxC(0.52, 73) is exactly 0.111, so
+   * that value was not a badly-tuned orange, it was the most orange anything
+   * can be at that lightness: a mustard. The brand had been WCAG-darkened into
+   * a different colour, which is the failure the audit opened with.
+   *
+   * The white label was the only reason it had to be dark, and the white label
+   * was never designed — it is stock shadcn's --primary-foreground that nobody
+   * re-asked when the FiestaBoard palette landed. The dark theme had already
+   * worked this out and used board ink.
+   *
+   * So: --primary is the literal #f5a623, theme-invariant, with board ink on
+   * it at 8.84:1 — better than white on #8f5d00 ever managed (5.63:1). The
+   * accessible option was the MORE saturated one the whole time. It also makes
+   * the most-clicked pixel in the product the exact colour the hardware flips.
+   *
+   * White on this field is 2.03:1 and is banned; there is exactly one
+   * on-primary foreground token so that is enforceable.
    * ============================================================ */
-  --primary: oklch(0.52 0.111 73);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.925 0.008 73);
-  --secondary-foreground: oklch(0.16 0.012 73);
-  --muted: oklch(0.935 0.008 73);
+  --primary: #f5a623;
+  --primary-foreground: oklch(0.205 0.008 73);
+  /* Hover RAISES label contrast (8.84 -> 10.78); press lowers it to 7.04. */
+  --primary-hover: oklch(0.84 0.128 73);
+  --primary-active: oklch(0.72 0.153 73);
+  /* Board ink hairline that bounds the focus ring. The ring is --primary, and
+     an orange band is only 1.83:1 against a light page, so the INK carries the
+     boundary and the orange carries the identity. */
+  --ring-edge: oklch(0.205 0.008 73);
+  --secondary: oklch(0.925 0.003 73);
+  --secondary-foreground: oklch(0.16 0.008 73);
+  --muted: oklch(0.935 0.003 73);
   /* Muted text needs >=4.5:1 contrast vs --background to meet WCAG AA.
      8.32:1 on --background, 9.07:1 on --card, 7.61:1 on --muted. */
-  --muted-foreground: oklch(0.4 0.014 73);
-  --accent: oklch(0.945 0.007 73);
-  --accent-foreground: oklch(0.16 0.012 73);
+  --muted-foreground: oklch(0.4 0.006 73);
+  --accent: oklch(0.945 0.003 73);
+  --accent-foreground: oklch(0.16 0.008 73);
   /* Board red. 5.36:1 on --background; white label 5.93:1. */
   --destructive: oklch(0.52 0.16 29);
   --destructive-foreground: oklch(1 0 0);
@@ -304,7 +331,7 @@
    * ============================================================ */
   --border: color-mix(in oklch, var(--foreground) 11%, transparent);
   --input: color-mix(in oklch, var(--foreground) 50%, transparent);
-  --ring: oklch(0.52 0.111 73); /* = --primary, see the invariant above */
+  --ring: var(--primary); /* = --primary, see the invariant above */
   /* ============================================================
    * The rail is a FIXTURE, not a surface (#231). --sidebar and its family
    * are deliberately IDENTICAL in light and dark: warm graphite housing,
@@ -314,12 +341,12 @@
    * of the page's luminance, which is a large part of why the two themes
    * felt like two products. White labels hold 16.5:1 on the rail.
    * ============================================================ */
-  --sidebar: oklch(0.24 0.016 73);
+  --sidebar: oklch(0.24 0.005 73);
   --sidebar-foreground: oklch(0.985 0.002 73);
-  --sidebar-accent: oklch(0.42 0.15 315 / 18%);
+  --sidebar-accent: oklch(1 0 0 / 14%);
   --sidebar-accent-foreground: oklch(0.985 0.002 73);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.52 0.111 73); /* = --primary, see the invariant above */
+  --sidebar-ring: var(--primary); /* = --primary, see the invariant above */
   /* Board blue. 5.01:1 on --background; white label 5.54:1. */
   --info: oklch(0.52 0.151 251);
   --info-foreground: oklch(1 0 0);
@@ -428,9 +455,13 @@
    * instead of decreasing it, which is what the old --brand-emphasis
    * hover did on the docs site (9.86 -> 3.99, below AA).
    * ============================================================ */
-  --brand: var(--primary);
-  --brand-foreground: oklch(1 0 0);
-  --brand-tile: #f5a623;
+  /* --brand is the TEXT step and is no longer an alias of --primary. Now that
+     --primary is the literal tile, it is 1.83:1 on a light page — legal as a
+     field, illegal as a link. --hue-orange is the same hue at the ink plateau
+     (5.08:1 light / 9.63:1 dark), which is what body copy and links need. */
+  --brand: var(--hue-orange);
+  --brand-foreground: oklch(0.205 0.008 73);
+  --brand-tile: var(--primary); /* DEPRECATED alias — same pigment now */
   --brand-tile-foreground: oklch(0.205 0.008 73);
   --brand-hover: color-mix(in oklch, var(--brand) 82%, var(--foreground));
   /* DEPRECATED alias, removed in the next minor. Kept so consumers pinned
@@ -443,10 +474,25 @@
      and the one token in the file carrying no rationale. White label
      9.11:1. The fill is only 1.81:1 against the rail, so the 3:1 state
      indicator SC 1.4.11 asks for is carried by the gold left marker on
-     .nav-active, not by the fill. */
-  --nav-active: oklch(0.42 0.15 315);
-  --nav-active-foreground: oklch(1 0 0); /* white */
-  --nav-active-hover: oklch(0.42 0.15 315 / 18%);
+     .nav-active, not by the fill.
+
+     NO LONGER TRUE, and the marker is gone with it. The pill was dark violet
+     because it carried a WHITE label, which forced it down to 1.81:1 against
+     the rail — under SC 1.4.11's 3:1 for a state — and the gold bar was a
+     patch for that number, not a design. Flipping the label to board ink frees
+     the fill to go bright — and the fill it goes to is --primary itself, so
+     "the current page" becomes the same pigment as "the focused control" and
+     "the primary action". That is the #156/#159 invariant finally covering the
+     thing it always claimed to. 8.12:1 against the rail, ink label 8.84:1, so
+     the fill carries the state on its own: 1.4.11 asks for 3:1, not for a
+     marker, and does not care which pixels supply it.
+
+     A bright violet also cleared the floor (5.66:1) and was rejected on
+     hierarchy, not on arithmetic: it became the loudest object on the screen,
+     louder than the primary action, which is backwards for a nav state. */
+  --nav-active: var(--primary);
+  --nav-active-foreground: var(--primary-foreground);
+  --nav-active-hover: oklch(1 0 0 / 14%);
   /* Fiesta gradient palette — three board hues at ONE lightness (0.46),
      identical in both themes. Because the aurora never changes luminance
      across its 117s loop, the contrast of anything sitting on it is a
@@ -609,12 +655,12 @@
      Only lightness moves. Surfaces carry the same warm cast at hue 73, and
      the card lift went 0.030 -> 0.050 so a dark card reads as an object
      rather than an outline drawn on a void. */
-  --background: oklch(0.145 0.008 73);
-  --foreground: oklch(0.965 0.004 73);
-  --card: oklch(0.195 0.01 73);
-  --card-foreground: oklch(0.965 0.004 73);
-  --popover: oklch(0.235 0.01 73);
-  --popover-foreground: oklch(0.965 0.004 73);
+  --background: oklch(0.145 0.004 73);
+  --foreground: oklch(0.965 0.003 73);
+  --card: oklch(0.195 0.004 73);
+  --card-foreground: oklch(0.965 0.003 73);
+  --popover: oklch(0.235 0.004 73);
+  --popover-foreground: oklch(0.965 0.003 73);
   /* Brand-bearing primary (#156). This used to be oklch(0.922 0 0) — stock
      shadcn's achromatic dark primary, never re-designed when the FiestaBoard
      palette landed. Dark is the DEFAULT theme, so every default Button,
@@ -623,17 +669,20 @@
      surface (light 0.52 -> dark 0.72) and held on the same hue family.
      Upholds the "one token means 'this control is on'" invariant declared in
      :root: --ring and --sidebar-ring below repeat this exact value. */
-  --primary: oklch(0.74 0.158 73);
-  /* Board ink on-accent foreground, matching every other dark accent
-     foreground in this block. 7.55:1 on --primary. */
+  /* Theme-invariant: a physical tile does not have a theme. Identical to
+     :root — see the note there. 9.77:1 on --background here. */
+  --primary: #f5a623;
   --primary-foreground: oklch(0.205 0.008 73);
-  --secondary: oklch(0.255 0.011 73);
-  --secondary-foreground: oklch(0.965 0.004 73);
-  --muted: oklch(0.235 0.01 73);
+  --primary-hover: oklch(0.84 0.128 73);
+  --primary-active: oklch(0.72 0.153 73);
+  --ring-edge: oklch(0.205 0.008 73);
+  --secondary: oklch(0.255 0.004 73);
+  --secondary-foreground: oklch(0.965 0.003 73);
+  --muted: oklch(0.235 0.004 73);
   /* 8.10:1 on --background, 7.51:1 on --card, 6.86:1 on --muted. */
-  --muted-foreground: oklch(0.725 0.012 73);
-  --accent: oklch(0.225 0.01 73);
-  --accent-foreground: oklch(0.965 0.004 73);
+  --muted-foreground: oklch(0.725 0.004 73);
+  --accent: oklch(0.225 0.004 73);
+  --accent-foreground: oklch(0.965 0.003 73);
   /* Board red. 6.88:1 on --background; board-ink label 6.23:1. */
   --destructive: oklch(0.7 0.17 29);
   --destructive-foreground: oklch(0.205 0.008 73);
@@ -641,14 +690,14 @@
      Full rationale in the :root block — do not merge the two. */
   --border: color-mix(in oklch, var(--foreground) 12%, transparent);
   --input: color-mix(in oklch, var(--foreground) 40%, transparent);
-  --ring: oklch(0.74 0.158 73); /* = --primary, see the invariant in :root */
+  --ring: var(--primary); /* = --primary, see the invariant in :root */
   /* The rail is a fixture — identical to :root. See the note there. */
-  --sidebar: oklch(0.24 0.016 73);
+  --sidebar: oklch(0.24 0.005 73);
   --sidebar-foreground: oklch(0.985 0.002 73);
-  --sidebar-accent: oklch(0.42 0.15 315 / 18%);
+  --sidebar-accent: oklch(1 0 0 / 14%);
   --sidebar-accent-foreground: oklch(0.985 0.002 73);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.74 0.158 73); /* = --primary, see the invariant in :root */
+  --sidebar-ring: var(--primary); /* = --primary, see the invariant in :root */
   /* Board blue. 8.57:1 on --background; board-ink label 7.76:1. */
   --info: oklch(0.74 0.139 251);
   --info-foreground: oklch(0.205 0.008 73);
@@ -696,9 +745,9 @@
   /* See the :root note: the dark figure here is not a contrast ratio worth
      quoting. Modality in dark is carried by --elevation-modal. */
   --overlay: oklch(0.08 0.006 73 / 72%);
-  --brand: var(--primary);
+  --brand: var(--hue-orange); /* text step — see :root */
   --brand-foreground: oklch(0.205 0.008 73);
-  --brand-tile: #f5a623; /* theme-invariant: a physical tile has no theme */
+  --brand-tile: var(--primary); /* DEPRECATED alias — same pigment now */
   --brand-tile-foreground: oklch(0.205 0.008 73);
   --brand-hover: color-mix(in oklch, var(--brand) 82%, var(--foreground));
   --brand-emphasis: var(--brand); /* DEPRECATED — see :root */
@@ -718,9 +767,9 @@
      rail is a fixture and the aurora holds one luminance, the pill no
      longer needs a per-theme value, and its contrast no longer depends on
      where a 117-second animation happens to be. */
-  --nav-active: oklch(0.42 0.15 315);
-  --nav-active-foreground: oklch(1 0 0); /* white */
-  --nav-active-hover: oklch(0.42 0.15 315 / 18%);
+  --nav-active: var(--primary); /* see :root */
+  --nav-active-foreground: var(--primary-foreground);
+  --nav-active-hover: oklch(1 0 0 / 14%);
   /* Constant-luminance aurora — identical to :root. See the note there. */
   --fiesta-red: oklch(0.46 0.15 29);
   --fiesta-orange: oklch(0.46 0.098 73);
@@ -1302,25 +1351,19 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
  * behind the pill is a known quantity and the pill can simply be opaque.
  * A solid board-violet fill carries a white label at 9.11:1 in both themes.
  *
- * The fill is only ~1.8:1 against the rail, which is under SC 1.4.11's 3:1
- * for a component state — so the GOLD MARKER, not the fill, is the state
- * indicator. It is --brand-tile (the literal board orange) against the
- * rail at ~9:1, and it is not decorative: removing it fails 1.4.11.
+ * NO MARKER. There was a 3px gold bar on the leading edge, and it existed for
+ * one reason: the pill was dark violet with a white label, which put it at
+ * 1.81:1 against the rail, under SC 1.4.11's 3:1 for a state. The bar was a
+ * patch for a number, and a left accent rail is a stock device besides.
+ *
+ * Flipping the label to board ink lets the fill go bright — 5.66:1 against the
+ * rail — so the state carries itself. 1.4.11 asks for 3:1; it does not ask for
+ * a marker, and it does not care which pixels supply it. `font-semibold` on
+ * the label remains as the non-colour second signal.
  * ============================================================ */
 .nav-active {
-  position: relative;
   background: var(--nav-active);
   color: var(--nav-active-foreground);
-}
-
-.nav-active::before {
-  content: "";
-  position: absolute;
-  inset-block: 15%;
-  inset-inline-start: 0;
-  width: 3px;
-  border-radius: 0 2px 2px 0;
-  background: var(--brand-tile);
 }
 
 .nav-active-hover:hover {
@@ -1329,24 +1372,55 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 
 /* The hover tint is the only chrome token left carrying alpha, so this is
    the one transparency branch that still has work to do. */
+/* A literal, not a color-mix. Mixing hue 315 into the hue-73 rail takes the
+   shorter arc and lands around hue 47 — a seventh hue, and a brown one, inside
+   a palette whose whole rule is six. */
 @media (prefers-reduced-transparency: reduce) {
   .nav-active-hover:hover {
-    background: color-mix(in oklch, var(--nav-active) 30%, var(--sidebar));
+    background: oklch(0.34 0.02 73);
   }
 }
 
 /* Users who ask for more contrast get the most legible path, not the least
    (#162) — a heavier marker and a white hairline around the pill. */
+/* More contrast means MORE CONTRAST, not more chrome: the same pigment, lifted.
+   Fill vs rail 8.12 -> 10.60:1, ink label 8.84 -> 11.54:1. No rim, no marker. */
 @media (prefers-contrast: more) {
   .nav-active {
-    box-shadow: inset 0 0 0 2px oklch(1 0 0 / 0.35);
-  }
-  .nav-active::before {
-    width: 4px;
+    --nav-active: oklch(0.86 0.115 73);
   }
   .nav-active-hover:hover {
-    background: color-mix(in oklch, var(--nav-active) 45%, var(--sidebar));
+    background: oklch(1 0 0 / 24%);
   }
+}
+
+/* ============================================================
+ * FOCUS RING — two-tone, because --ring is now the tile.
+ *
+ * The old recipe was `focus-visible:ring-ring/50 focus-visible:ring-[3px]`.
+ * Two problems. The alpha: composited in gamma space a 50% band measures
+ * 2.04-2.19:1 in light and 2.63-2.76:1 in dark against the surfaces it lands
+ * on — under SC 2.4.11's 3:1, on every control in the system, and that defect
+ * predates this palette. And the pigment: --ring follows --primary, which is
+ * now #f5a623 at 1.83:1 on a light page, so a solid orange band would not fix
+ * it either.
+ *
+ * So the ring is bounded by board ink. The ink hairlines carry the boundary
+ * (16:1 on light surfaces) and the orange band carries the identity, which is
+ * the same division of labour the tile chip uses. In dark the outer hairline
+ * merges into the page (1.11:1) and the orange band — 9.77:1 there — carries
+ * the indicator directly, which is why the recipe is safe in both themes for
+ * different reasons.
+ * ============================================================ */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 1px var(--ring-edge),
+    0 0 0 3px var(--ring),
+    0 0 0 4px var(--ring-edge);
 }
 
 /* Card fade-in animation (inspired by reactbits CardNav) */

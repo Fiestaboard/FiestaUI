@@ -6,25 +6,32 @@ import { cn } from "../../lib/utils";
 import { Spinner } from "../feedback/spinner";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,background-color,border-color,box-shadow] duration-control disabled:pointer-events-none disabled:opacity-50 data-[loading]:cursor-progress [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,background-color,border-color,box-shadow] duration-control disabled:pointer-events-none disabled:opacity-50 data-[loading]:cursor-progress [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 focus-ring aria-invalid:border-destructive",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        // The primary button IS a tile (#231): the literal #f5a623 the
-        // hardware flips, identical in both themes, with a board-ink label at
-        // 8.83:1. It must never take a white label — white on the tile is
-        // 2.03:1 — which is why it has its own foreground token rather than
-        // borrowing --brand-foreground.
+        // No rim, no border, no ring standing in for one. --primary is the
+        // literal #f5a623 tile with a board-ink label at 8.84:1 — better than
+        // the white-on-#8f5d00 it replaces (5.63:1) — so the label carries the
+        // control and the fill carries the brand.
         //
-        // The tile is only 1.83:1 against a light page, so the 1px --primary
-        // rim is not decoration: it is what makes the button's boundary
-        // identifiable under SC 1.4.11 (5.08:1 against --background). It
-        // stands in for the bezel around a real flap. Do not remove it.
-        brand:
-          "bg-brand-tile text-brand-tile-foreground shadow-sm ring-1 ring-inset ring-primary hover:bg-brand-tile/90 focus-visible:ring-brand/30",
+        // The hover is a stated token, not `bg-primary/90`. An alpha hover
+        // composites toward the page, which measured 5.40 -> 4.46 on the field
+        // and 5.97 -> 4.94 on the label, i.e. BELOW AA on hover. This one goes
+        // the other way: the label reads 10.78:1 hovered, 7.04:1 pressed.
+        default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active",
+        // DEPRECATED — alias of `default` for one minor, then removed.
+        // This existed to put the literal tile on a button while --primary was
+        // a mustard. --primary IS the tile now, so `brand` and `default` are
+        // the same button, and the `ring-1 ring-inset ring-primary` rim that
+        // used to bound it would be a rim of the fill's own colour.
+        brand: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+          // The destructive focus ring was ring-destructive/20 light and /40
+          // dark, which composite to 1.34:1 and 1.97:1 — the control where a
+          // mis-click costs most had the weakest focus indicator in the system.
+          // It now uses the shared two-tone ring like everything else.
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         // The dark fill is a SURFACE token, not --input. --input now means
         // "control boundary" and carries a real 3:1 value (#161); reusing it
         // as a translucent fill both muddies that meaning and — at the new
