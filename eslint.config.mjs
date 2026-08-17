@@ -15,7 +15,21 @@ const eslintConfig = [
     // .design-sync/ holds claude.ai/design sync artifacts (owned previews use a
     // virtual `@ds-stories` alias and aren't part of the package build), so they
     // aren't linted as repo source.
-    ignores: ["node_modules/**", "dist/**", "storybook-static/**", ".design-sync/**"],
+    // `.ds-sync/**` and `.worktrees/**` are gitignored, so CI never sees them —
+    // but flat config does not read .gitignore, so locally they were linted.
+    // That made `npx eslint` emit ~16k errors from generated tooling, which is
+    // indistinguishable from "lint is broken here" and is why real errors in
+    // src went unnoticed between CI runs. Local lint should match CI's.
+    ignores: [
+      "node_modules/**",
+      "dist/**",
+      "storybook-static/**",
+      ".design-sync/**",
+      ".ds-sync/**",
+      "ds-bundle/**",
+      ".worktrees/**",
+      ".claude/worktrees/**",
+    ],
   },
   ...tseslint.configs.recommended,
   {
