@@ -26,7 +26,7 @@ Both are declared in one place, `VIEWPORTS` in `scripts/vrt/vrt.mjs`, and mirror
 
 ### Determinism measures
 
-Screenshots use one Playwright context per viewport at `deviceScaleFactor: 1`, wait for fonts + network idle + a settle delay, emulate `prefers-reduced-motion: reduce` (the WebGL auroras honor it and freeze on a static frame), and then inject CSS that pauses all animations/transitions and hides the caret before capturing the `#storybook-root` element.
+Screenshots use one Playwright context per viewport at `deviceScaleFactor: 1`, wait for fonts + network idle + a settle delay, emulate `prefers-reduced-motion: reduce`, and then inject CSS that pauses all animations/transitions and hides the caret before capturing the `#storybook-root` element.
 
 ### Writing stories that survive the mobile viewport
 

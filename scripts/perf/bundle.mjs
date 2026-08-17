@@ -24,6 +24,7 @@
  * See docs/superpowers/specs/2026-08-05-perf-bundle-harness-design.md.
  */
 
+import { existsSync } from "node:fs";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -70,6 +71,43 @@ const externalizeBare = {
       path: args.path,
       external: true,
     }));
+  },
+};
+
+/** Bare specifiers found to be absent from node_modules, for the warning below. */
+const missingPackages = new Set();
+
+/**
+ * esbuild plugin: mark bare specifiers that are NOT INSTALLED as external.
+ *
+ * measureTotal deliberately bundles third-party code — that is the "total
+ * delivered cost" it reports — so it needs every package on disk. That breaks
+ * the header's promise that this harness "can measure a dist/ built from any
+ * revision", in one specific case: CI installs dependencies once at HEAD and
+ * then measures the BASE revision's dist. On a PR that REMOVES a dependency,
+ * base's dist still imports it, and esbuild fails with "Could not resolve".
+ *
+ * Absence is checked by looking for the package directory rather than by
+ * attempting resolution: a failed `require.resolve` also fires for ESM-only
+ * packages that are perfectly well installed, and silently externalising one
+ * of those would understate the total instead of erroring loudly.
+ *
+ * A package hitting this path is missing from the measurement's total, which
+ * is the honest result — it is not installed, so its cost cannot be weighed —
+ * and measure() warns so the number is never read as a like-for-like drop.
+ */
+const externalizeMissing = {
+  name: "externalize-missing",
+  setup(builder) {
+    // `#`-prefixed specifiers are Node subpath imports (a package's own
+    // "imports" map), not packages — there is no node_modules/#foo to look
+    // for, so they must resolve normally rather than be reported missing.
+    builder.onResolve({ filter: /^[^./#]/ }, (args) => {
+      const pkg = packageNameOf(args.path);
+      if (!pkg || existsSync(path.join(process.cwd(), "node_modules", pkg))) return null;
+      missingPackages.add(pkg);
+      return { path: args.path, external: true };
+    });
   },
 };
 
@@ -124,6 +162,7 @@ async function measureTotal(contents, resolveDir) {
     minify: true,
     write: false,
     external: CONSUMER_PROVIDED,
+    plugins: [externalizeMissing],
     logLevel: "silent",
   });
   return gzippedSize(result.outputFiles);
@@ -156,7 +195,9 @@ async function measureEntry(contents, resolveDir) {
 /**
  * Gzip the stylesheets dist/ ships verbatim.
  *
- * theme.css and each seasons/*.css are copied into dist/ untouched by the build
+ * theme.css is copied into dist/ untouched by the build (seasons/*.css used to
+ * be too, before season support was removed — the seasons/ branch below is kept
+ * because it degrades correctly against older dists in a size comparison)
  * (see package.json's build script), so unlike the JS exports there is nothing
  * to bundle — a consumer pays their gzipped size as shipped. Measure that
  * directly, at the same gzip level as the JS numbers, so compare.mjs can gate
@@ -220,6 +261,12 @@ async function measure(args) {
   const themeBytes = css["theme.css"]?.bytes;
   const themeNote = themeBytes === undefined ? "" : `, theme.css ${themeBytes}B gz`;
   log(`Wrote ${args.out} — barrel ${barrel.firstPartyBytes}B first-party${themeNote}`);
+  if (missingPackages.size > 0) {
+    log(
+      `WARNING: not installed, so excluded from totalBytes: ${[...missingPackages].sort().join(", ")}. ` +
+        `Expected when measuring a revision that imports a dependency the current install does not have.`,
+    );
+  }
 }
 
 function renderMarkdown(result) {

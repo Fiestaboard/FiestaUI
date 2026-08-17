@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
 import { BoardTeaser } from "../components/board/board-teaser";
 import { ScaledBoardDisplay } from "../components/board/scaled-board-display";
@@ -68,8 +69,6 @@ import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
 import { createLucideIconResolver, VariablePickerContent } from "../components/editor/variable-picker-content";
-import { Aurora } from "../components/effects/aurora";
-import DecryptedText from "../components/effects/react-bits/decrypted-text";
 import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
@@ -151,13 +150,12 @@ import { BoardShowcase } from "../components/plugin/board-showcase";
 import { PluginCard } from "../components/plugin/plugin-card";
 import { PluginCategoryBadge } from "../components/plugin/plugin-category-badge";
 import { ScaledBoardTeaser } from "../components/plugin/scaled-board-teaser";
-import { SidebarAurora } from "../components/seasons/sidebar-aurora";
-import { SidebarAuroraHorizontal } from "../components/seasons/sidebar-aurora-horizontal";
 import { Code } from "../components/typography/code";
 import { Heading } from "../components/typography/heading";
 import { List, ListItem } from "../components/typography/list";
 import { Text } from "../components/typography/text";
 import { TextLink } from "../components/typography/text-link";
+import { WizardProgress } from "../components/wizard/wizard-progress";
 import type { InventoryName } from "./component-inventory";
 
 /* ------------------------------------------------------------------ *
@@ -220,8 +218,6 @@ const TEMPLATE_VARIABLES: ToolbarTemplateVariables = {
 
 const PLUGIN_MANIFESTS = { weather: { icon: "cloud" }, datetime: { icon: "clock" }, stocks: { icon: "trending-up" } };
 const resolvePickerIcon = createLucideIconResolver({ Cloud, Clock, TrendingUp });
-
-const SEASON_COLORS = ["#e40303", "#ff8c00", "#ffed00", "#008026", "#004dff", "#750787"];
 
 const noop = () => {};
 
@@ -1115,22 +1111,22 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
 
   /* ---- Motion & effects ---- */
-  Aurora: () => (
-    <div className="relative h-40 w-full max-w-lg overflow-hidden rounded-lg border border-border">
-      <Aurora />
+  BoardBackdrop: () => (
+    <div className="bg-background relative h-40 w-full max-w-md overflow-hidden rounded-lg">
+      <BoardBackdrop phrases={["WELCOME", "72 AND CLEAR", "N JUDAH 4 MIN", "SUNSET 8 04"]} rowCount={6} />
     </div>
   ),
-  SidebarAurora: () => (
-    <div className="relative h-40 w-32 overflow-hidden rounded-lg border border-border">
-      <SidebarAurora colors={SEASON_COLORS} />
+  WizardShell: () => (
+    <div className="text-muted-foreground text-sm">
+      Full-screen overlay — see <span className="font-mono text-xs">App/Wizard/WizardShell</span> for the real thing.
+      Rendering it inline here would cover the inventory page it is listed on.
     </div>
   ),
-  SidebarAuroraHorizontal: () => (
-    <div className="relative h-14 w-full max-w-md overflow-hidden rounded-lg border border-border">
-      <SidebarAuroraHorizontal colors={SEASON_COLORS} />
+  WizardProgress: () => (
+    <div className="w-full max-w-sm">
+      <WizardProgress steps={["Connect", "Customize", "Finish"]} current={2} label="Setup progress" />
     </div>
   ),
-  DecryptedText: () => <DecryptedText text="FIESTABOARD" animateOn="view" className="font-mono text-lg" />,
   FadeContent: () => (
     <FadeContent>
       <Card className="w-full max-w-xs">

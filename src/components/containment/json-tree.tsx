@@ -15,8 +15,10 @@ import { cn } from "../../lib/utils";
  */
 const VALUE_TONE = {
   string: "text-success",
-  number: "text-warning",
-  boolean: "text-warning",
+  // --hue-yellow: the ink-plateau form of the same hue. --warning is a fill
+  // colour and fails AA as text — see typography/text.tsx.
+  number: "text-hue-yellow",
+  boolean: "text-hue-yellow",
   nullish: "text-muted-foreground italic",
   other: "text-foreground",
 } as const;

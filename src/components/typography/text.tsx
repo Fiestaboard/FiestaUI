@@ -17,7 +17,10 @@ const textVariants = cva("", {
       destructive: "text-destructive",
       info: "text-info",
       success: "text-success",
-      warning: "text-warning",
+      // --hue-yellow, not --warning: --warning is tuned as a FILL (its label is
+      // board ink) and measures 3.25:1 as 12px text. --hue-yellow is the same
+      // board hue at the ink plateau — 4.94:1 light, ~10:1 dark.
+      warning: "text-hue-yellow",
     },
     weight: {
       normal: "font-normal",

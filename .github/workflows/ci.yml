@@ -278,6 +278,21 @@ jobs:
       # Running it from a copy outside the workspace does NOT work: Node
       # resolves bare imports from the importing file's directory, so a copy
       # in $RUNNER_TEMP cannot find esbuild.
+      #
+      # The build is spelled out INLINE rather than run through an npm script,
+      # and that is deliberate on both counts:
+      #
+      #   * No `tsc`. The measurement reads dist/index.js and theme.css and
+      #     never opens a .d.ts, so the declaration emit is not part of what
+      #     this job gates — and including it makes the base unbuildable on any
+      #     PR that REMOVES a dependency. Dependencies are held at head by
+      #     design (see above), so base source importing a package the PR
+      #     deleted fails `tsc` with TS2307, even though vite treats it as
+      #     external and has already emitted the bundle being measured.
+      #   * No `npm run <script>`. The checkout below replaces package.json
+      #     with the BASE revision, so any script added by the PR does not
+      #     exist during "Measure base". A script-based fix here fails with
+      #     "Missing script" on exactly the PRs it was written to unblock.
       - name: Measure base
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -285,7 +300,18 @@ jobs:
           set -euo pipefail
           git checkout --quiet --force "$BASE_SHA" -- \
             src package.json vite.config.ts tsconfig.build.json
-          npm run build
+          # Base's package.json is now in place, so this adds back any
+          # dependency the PR REMOVES — without it, measureTotal cannot weigh
+          # code that base still imports and the comparison is not like for
+          # like. --no-package-lock keeps the head lockfile untouched, and the
+          # `|| true` is deliberate: bundle.mjs externalises anything still
+          # missing and warns, so a registry blip degrades the number instead
+          # of failing the PR.
+          npm install --no-save --no-package-lock --no-audit --no-fund || true
+          npx vite build
+          cp src/styles/theme.css dist/theme.css
+          cp src/styles/fonts.css dist/fonts.css
+          cp src/styles/editor.css dist/editor.css
           node scripts/perf/bundle.mjs measure \
             --out "$RUNNER_TEMP/base.json" --dist "$GITHUB_WORKSPACE/dist"
 
@@ -294,7 +320,15 @@ jobs:
           set -euo pipefail
           git checkout --quiet --force HEAD -- \
             src package.json vite.config.ts tsconfig.build.json
-          npm run build
+          # Symmetry with "Measure base": that step installed BASE's dependency
+          # set into node_modules, so head must restore its own before being
+          # measured. Without this, head is weighed against a tree that still
+          # contains whatever base had and this PR removed.
+          npm install --no-save --no-package-lock --no-audit --no-fund || true
+          npx vite build
+          cp src/styles/theme.css dist/theme.css
+          cp src/styles/fonts.css dist/fonts.css
+          cp src/styles/editor.css dist/editor.css
           node scripts/perf/bundle.mjs measure \
             --out "$RUNNER_TEMP/head.json" --dist "$GITHUB_WORKSPACE/dist"
 

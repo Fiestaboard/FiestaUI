@@ -15,7 +15,6 @@ const EXTERNAL = [
   /^class-variance-authority(\/|$)/,
   /^clsx(\/|$)/,
   /^tailwind-merge(\/|$)/,
-  /^ogl(\/|$)/,
   // Editor runtime. `@tiptap/pm` is imported by subpath (`@tiptap/pm/state`,
   // `/model`, `/history`), hence the trailing-slash alternative on every one
   // of these — a bare `/^@tiptap\/pm$/` would inline the ProseMirror halves.
@@ -28,11 +27,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     lib: {
-      // seasons-drafts is a second entry on purpose: nothing reachable from
-      // index.ts imports it (it's Storybook-only data kept out of the
-      // barrel), but it must still be emitted to dist so the `./*` subpath
-      // export (`@fiestaboard/ui/lib/seasons-drafts`) resolves.
-      entry: ["src/index.ts", "src/lib/seasons-drafts.ts"],
+      entry: ["src/index.ts"],
       formats: ["es"],
     },
     rollupOptions: {

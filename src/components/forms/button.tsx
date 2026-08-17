@@ -6,15 +6,32 @@ import { cn } from "../../lib/utils";
 import { Spinner } from "../feedback/spinner";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,background-color,border-color,box-shadow] duration-control disabled:pointer-events-none disabled:opacity-50 data-[loading]:cursor-progress [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,background-color,border-color,box-shadow] duration-control disabled:pointer-events-none disabled:opacity-50 data-[loading]:cursor-progress [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 focus-ring aria-invalid:border-destructive",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        brand:
-          "bg-brand-emphasis text-brand-foreground shadow-sm hover:bg-brand-emphasis/85 focus-visible:ring-brand/30",
+        // No rim, no border, no ring standing in for one. --primary is the
+        // literal #f5a623 tile with a board-ink label at 8.84:1 — better than
+        // the white-on-#8f5d00 it replaces (5.63:1) — so the label carries the
+        // control and the fill carries the brand.
+        //
+        // The hover is a stated token, not `bg-primary/90`. An alpha hover
+        // composites toward the page, which measured 5.40 -> 4.46 on the field
+        // and 5.97 -> 4.94 on the label, i.e. BELOW AA on hover. This one goes
+        // the other way: the label reads 10.78:1 hovered, 7.04:1 pressed.
+        default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active",
+        // DEPRECATED — alias of `default` for one minor, then removed.
+        // This existed to put the literal tile on a button while --primary was
+        // a mustard. --primary IS the tile now, so `brand` and `default` are
+        // the same button, and the `ring-1 ring-inset ring-primary` rim that
+        // used to bound it would be a rim of the fill's own colour.
+        brand: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+          // The destructive focus ring was ring-destructive/20 light and /40
+          // dark, which composite to 1.34:1 and 1.97:1 — the control where a
+          // mis-click costs most had the weakest focus indicator in the system.
+          // It now uses the shared two-tone ring like everything else.
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         // The dark fill is a SURFACE token, not --input. --input now means
         // "control boundary" and carries a real 3:1 value (#161); reusing it
         // as a translucent fill both muddies that meaning and — at the new
@@ -28,7 +45,13 @@ const buttonVariants = cva(
           "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-card dark:border-input dark:hover:bg-muted",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+        // NOT text-primary. --primary is the literal tile now, which is
+        // 1.83:1 on a light page — legal as a button field, illegal as text.
+        // --brand is the same hue at the ink plateau (5.09:1 / 9.63:1).
+        // The underline is permanent rather than on hover because colour alone
+        // does not distinguish a link from body copy in dark, where --brand vs
+        // --foreground is 2.24:1 (G183 wants 3:1).
+        link: "text-brand underline decoration-1 underline-offset-4 hover:decoration-2",
       },
       // The second `has-…px-*` rule in each padded size is the loading mirror
       // of the first. While loading, the children move inside the label slot,

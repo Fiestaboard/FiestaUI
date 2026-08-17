@@ -4,9 +4,6 @@ import type { Preview } from "@storybook/react-vite";
 import { useEffect } from "react";
 import { INITIAL_VIEWPORTS } from "storybook/viewport";
 
-import { SEASONS } from "../src/lib/seasons";
-import { ALL_SEASONS } from "../src/lib/seasons-drafts";
-
 // The two viewports the visual-regression harness captures
 // (scripts/vrt/vrt.mjs VIEWPORTS) are listed first and named after the VRT
 // keys, so "does this look right on a phone?" can be answered in the toolbar
@@ -28,16 +25,6 @@ function ThemeSync({ theme }: { theme: "light" | "dark" }) {
   return null;
 }
 
-// Seasonal theming preview: stamps the selected season's htmlClass on
-// <html>, exactly like the app shell does in production (June → pride).
-function SeasonSync({ seasonId }: { seasonId: string }) {
-  useEffect(() => {
-    const root = document.documentElement;
-    for (const s of ALL_SEASONS) root.classList.toggle(s.htmlClass, s.id === seasonId);
-  }, [seasonId]);
-  return null;
-}
-
 const preview: Preview = {
   globalTypes: {
     theme: {
@@ -52,25 +39,9 @@ const preview: Preview = {
         dynamicTitle: true,
       },
     },
-    season: {
-      description: "Seasonal theming",
-      toolbar: {
-        title: "Season",
-        icon: "calendar",
-        items: [
-          { value: "none", title: "None" },
-          ...ALL_SEASONS.map((s) => ({
-            value: s.id,
-            title: SEASONS.includes(s) ? s.label : `${s.label} (draft)`,
-          })),
-        ],
-        dynamicTitle: true,
-      },
-    },
   },
   initialGlobals: {
     theme: "dark",
-    season: "none",
   },
   parameters: {
     options: {
@@ -87,7 +58,7 @@ const preview: Preview = {
           "Editor",
           "Effects",
           "App",
-          ["Board", "Chrome", "Plugin", "Seasons"],
+          ["Board", "Chrome", "Plugin"],
         ],
       },
     },
@@ -119,14 +90,12 @@ const preview: Preview = {
   decorators: [
     (Story, context) => {
       const theme = (context.globals.theme || "dark") as "light" | "dark";
-      const seasonId = (context.globals.season || "none") as string;
       // Fullscreen stories (app chrome) render their own landmarks — a
       // <main> wrapper here would nest/duplicate theirs and fail axe.
       const fullscreen = context.parameters.layout === "fullscreen";
       return (
         <>
           <ThemeSync theme={theme} />
-          <SeasonSync seasonId={seasonId} />
           {fullscreen ? (
             <div className="bg-background text-foreground">
               <Story />

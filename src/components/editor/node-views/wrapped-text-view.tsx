@@ -40,7 +40,7 @@ export function WrappedTextView({ node, deleteNode, labels }: WrappedTextViewPro
       className={cn(
         "inline-block align-middle rounded-md px-2 py-0.5 text-xs font-medium cursor-grab",
         "border transition-all duration-control",
-        "bg-warning/15 border-warning/30 text-warning",
+        "bg-warning/15 border-warning/30 text-foreground",
         "hover:bg-warning/20",
         "active:cursor-grabbing",
         "max-h-[1.2rem] h-auto",

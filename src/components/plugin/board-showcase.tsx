@@ -54,13 +54,15 @@ export interface BoardShowcaseProps {
 }
 
 /**
- * Selected pills fill with `brand-emphasis`, not `brand`: in dark mode `brand`
- * is a light amber that fails AA against `brand-foreground` (white).
+ * Selected pills fill with `primary`, the system's single "this control is
+ * on" pigment (see the invariant in theme.css). They used to fill with
+ * `brand-emphasis`, which was a second name for the same value in light mode
+ * and a different one in dark — the drift that token was deleted to end.
  */
 const PILL_CLASS =
   "rounded-full border px-4 py-1.5 text-xs font-medium transition-colors " +
-  "data-[active]:border-brand-emphasis data-[active]:bg-brand-emphasis data-[active]:text-brand-foreground " +
-  "data-[active]:font-semibold hover:border-brand hover:text-brand data-[active]:hover:text-brand-foreground";
+  "data-[active]:border-primary data-[active]:bg-primary data-[active]:text-primary-foreground " +
+  "data-[active]:font-semibold hover:border-brand hover:text-brand data-[active]:hover:text-primary-foreground";
 
 export function BoardShowcase({
   previews,
@@ -131,7 +133,7 @@ export function BoardShowcase({
                 "first:rounded-l-full last:rounded-r-full [&:not(:last-child)]:border-r-0",
                 "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                 active
-                  ? "border-brand-emphasis bg-brand-emphasis font-semibold text-brand-foreground"
+                  ? "border-primary bg-primary font-semibold text-primary-foreground"
                   : "text-muted-foreground hover:border-brand hover:text-brand",
               )}
             >
