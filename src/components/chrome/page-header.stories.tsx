@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { Calendar, GalleryHorizontalEnd, Home, Puzzle, Settings, FileText } from "lucide-react";
+import { Calendar, FileText, GalleryHorizontalEnd, Home, Puzzle, Settings } from "lucide-react";
 
 import { Button } from "../forms/button";
-import { PAGE_HUES, PageHeader, PageIconGradientDefs, pageHue } from "./page-header";
+import { PAGE_HUES, PageHeader, pageHue, PageIconGradientDefs } from "./page-header";
 
 const meta = {
   title: "App/Chrome/PageHeader",

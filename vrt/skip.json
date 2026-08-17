@@ -1,7 +1,7 @@
 [
   {
     "id": "foundations-inventory--motion-and-effects",
-    "reason": "The animated half of the component inventory: DecryptedText scrambles on a timer, so every shot catches a different point in the reveal. Splitting these off is what keeps foundations-inventory--all-components — the other ~68 components — diffable."
+    "reason": "The animated half of the component inventory. DecryptedText — the timer-driven scramble this skip was originally written for — is gone; FadeContent remains, and a shot can still land mid-fade. Kept rather than removed because that is a real race, and splitting these off is what keeps foundations-inventory--all-components diffable."
   },
   {
     "id": "board-boarddisplay--loading",

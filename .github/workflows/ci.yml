@@ -278,6 +278,15 @@ jobs:
       # Running it from a copy outside the workspace does NOT work: Node
       # resolves bare imports from the importing file's directory, so a copy
       # in $RUNNER_TEMP cannot find esbuild.
+      #
+      # `build:measure`, not `build`: it is `vite build` plus the CSS copies,
+      # without the `tsc` declaration emit. The measurement reads dist/index.js
+      # and theme.css and never looks at a .d.ts, so typechecking is not part
+      # of what is being gated here — and including it made the base
+      # unbuildable on any PR that REMOVES a dependency. Dependencies are held
+      # at head by design (see above), so base source importing a package this
+      # PR deleted fails `tsc` with TS2307 even though vite, which treats it as
+      # external, has already emitted the bundle being measured.
       - name: Measure base
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -285,7 +294,7 @@ jobs:
           set -euo pipefail
           git checkout --quiet --force "$BASE_SHA" -- \
             src package.json vite.config.ts tsconfig.build.json
-          npm run build
+          npm run build:measure
           node scripts/perf/bundle.mjs measure \
             --out "$RUNNER_TEMP/base.json" --dist "$GITHUB_WORKSPACE/dist"
 
@@ -294,7 +303,7 @@ jobs:
           set -euo pipefail
           git checkout --quiet --force HEAD -- \
             src package.json vite.config.ts tsconfig.build.json
-          npm run build
+          npm run build:measure
           node scripts/perf/bundle.mjs measure \
             --out "$RUNNER_TEMP/head.json" --dist "$GITHUB_WORKSPACE/dist"
 

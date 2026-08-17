@@ -45,7 +45,13 @@ const buttonVariants = cva(
           "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-card dark:border-input dark:hover:bg-muted",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+        // NOT text-primary. --primary is the literal tile now, which is
+        // 1.83:1 on a light page — legal as a button field, illegal as text.
+        // --brand is the same hue at the ink plateau (5.09:1 / 9.63:1).
+        // The underline is permanent rather than on hover because colour alone
+        // does not distinguish a link from body copy in dark, where --brand vs
+        // --foreground is 2.24:1 (G183 wants 3:1).
+        link: "text-brand underline decoration-1 underline-offset-4 hover:decoration-2",
       },
       // The second `has-…px-*` rule in each padded size is the loading mirror
       // of the first. While loading, the children move inside the label slot,

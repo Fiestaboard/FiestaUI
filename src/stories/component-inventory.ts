@@ -209,10 +209,7 @@ export const INVENTORY = [
     title: "Motion & effects",
     description:
       "Continuously animated components. These render in the MotionAndEffects story rather than here: a free-running animation lands every screenshot on a different frame, which would make the whole inventory page impossible to diff.",
-    entries: [
-      { name: "DecryptedText", summary: "Scramble-in text reveal.", animated: true },
-      { name: "FadeContent", summary: "Fades its children in on mount or on view.", animated: true },
-    ],
+    entries: [{ name: "FadeContent", summary: "Fades its children in on mount or on view.", animated: true }],
   },
 ] as const satisfies readonly InventorySection[];
 

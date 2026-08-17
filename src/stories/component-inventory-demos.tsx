@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
 import { BoardTeaser } from "../components/board/board-teaser";
 import { ScaledBoardDisplay } from "../components/board/scaled-board-display";
@@ -68,9 +69,6 @@ import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
 import { createLucideIconResolver, VariablePickerContent } from "../components/editor/variable-picker-content";
-import { BoardBackdrop } from "../components/board/board-backdrop";
-import { WizardProgress } from "../components/wizard/wizard-progress";
-import DecryptedText from "../components/effects/react-bits/decrypted-text";
 import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
@@ -157,6 +155,7 @@ import { Heading } from "../components/typography/heading";
 import { List, ListItem } from "../components/typography/list";
 import { Text } from "../components/typography/text";
 import { TextLink } from "../components/typography/text-link";
+import { WizardProgress } from "../components/wizard/wizard-progress";
 import type { InventoryName } from "./component-inventory";
 
 /* ------------------------------------------------------------------ *
@@ -1128,7 +1127,6 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <WizardProgress steps={["Connect", "Customize", "Finish"]} current={2} label="Setup progress" />
     </div>
   ),
-  DecryptedText: () => <DecryptedText text="FIESTABOARD" animateOn="view" className="font-mono text-lg" />,
   FadeContent: () => (
     <FadeContent>
       <Card className="w-full max-w-xs">

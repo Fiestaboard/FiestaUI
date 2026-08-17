@@ -265,7 +265,7 @@ function VariablePill({
       <button type="button" onClick={onInsert}>
         {label}
         {preview && (
-          <Text as="span" tone="muted" weight="normal" className="ml-1.5 text-[10px] opacity-70">
+          <Text as="span" tone="muted" weight="normal" className="ml-1.5 text-[10px]">
             {preview.length > 12 ? preview.slice(0, 12) + "…" : preview}
           </Text>
         )}
@@ -748,7 +748,7 @@ export function VariablePickerContent({
                           if (!groupVars || groupVars.length === 0) return null;
                           return (
                             <Box key={groupId}>
-                              <Text className="text-[9px] uppercase tracking-widest text-muted-foreground/70 mt-1 mb-1 pb-0.5 border-b border-border/30">
+                              <Text className="text-[9px] uppercase tracking-widest text-muted-foreground mt-1 mb-1 pb-0.5 border-b border-border/30">
                                 {groupDef.label}
                               </Text>
                               <Flex wrap gap="1.5">
@@ -759,7 +759,7 @@ export function VariablePickerContent({
                         })}
                         {groupedVars["__ungrouped__"] && groupedVars["__ungrouped__"].length > 0 && (
                           <Box>
-                            <Text className="text-[9px] uppercase tracking-widest text-muted-foreground/70 mt-1 mb-1 pb-0.5 border-b border-border/30">
+                            <Text className="text-[9px] uppercase tracking-widest text-muted-foreground mt-1 mb-1 pb-0.5 border-b border-border/30">
                               {l.general}
                             </Text>
                             <Flex wrap gap="1.5">
@@ -771,7 +771,7 @@ export function VariablePickerContent({
                     ) : (
                       filteredGeneralVars.length > 0 && (
                         <Box>
-                          <Text className="text-[9px] uppercase tracking-widest text-muted-foreground/70 mt-1 mb-1 pb-0.5 border-b border-border/30">
+                          <Text className="text-[9px] uppercase tracking-widest text-muted-foreground mt-1 mb-1 pb-0.5 border-b border-border/30">
                             {l.general}
                           </Text>
                           <Flex wrap gap="1.5">

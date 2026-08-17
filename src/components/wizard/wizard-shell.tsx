@@ -1,5 +1,5 @@
-import { BoardBackdrop } from "../board/board-backdrop";
 import { cn } from "../../lib/utils";
+import { BoardBackdrop } from "../board/board-backdrop";
 import { WizardProgress } from "./wizard-progress";
 
 export interface WizardShellProps {

@@ -32,7 +32,6 @@ export * from "./components/typography/list";
 export * from "./components/containment/scroll-area";
 export * from "./components/containment/table";
 export * from "./components/containment/tabs";
-export { default as DecryptedText } from "./components/effects/react-bits/decrypted-text";
 export { default as FadeContent } from "./components/effects/react-bits/fade-content";
 export * from "./components/feedback/skeleton";
 export * from "./components/feedback/spinner";
