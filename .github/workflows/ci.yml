@@ -300,6 +300,14 @@ jobs:
           set -euo pipefail
           git checkout --quiet --force "$BASE_SHA" -- \
             src package.json vite.config.ts tsconfig.build.json
+          # Base's package.json is now in place, so this adds back any
+          # dependency the PR REMOVES — without it, measureTotal cannot weigh
+          # code that base still imports and the comparison is not like for
+          # like. --no-package-lock keeps the head lockfile untouched, and the
+          # `|| true` is deliberate: bundle.mjs externalises anything still
+          # missing and warns, so a registry blip degrades the number instead
+          # of failing the PR.
+          npm install --no-save --no-package-lock --no-audit --no-fund || true
           npx vite build
           cp src/styles/theme.css dist/theme.css
           cp src/styles/fonts.css dist/fonts.css
@@ -312,6 +320,11 @@ jobs:
           set -euo pipefail
           git checkout --quiet --force HEAD -- \
             src package.json vite.config.ts tsconfig.build.json
+          # Symmetry with "Measure base": that step installed BASE's dependency
+          # set into node_modules, so head must restore its own before being
+          # measured. Without this, head is weighed against a tree that still
+          # contains whatever base had and this PR removed.
+          npm install --no-save --no-package-lock --no-audit --no-fund || true
           npx vite build
           cp src/styles/theme.css dist/theme.css
           cp src/styles/fonts.css dist/fonts.css
