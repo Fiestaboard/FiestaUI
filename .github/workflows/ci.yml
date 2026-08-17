@@ -279,14 +279,20 @@ jobs:
       # resolves bare imports from the importing file's directory, so a copy
       # in $RUNNER_TEMP cannot find esbuild.
       #
-      # `build:measure`, not `build`: it is `vite build` plus the CSS copies,
-      # without the `tsc` declaration emit. The measurement reads dist/index.js
-      # and theme.css and never looks at a .d.ts, so typechecking is not part
-      # of what is being gated here — and including it made the base
-      # unbuildable on any PR that REMOVES a dependency. Dependencies are held
-      # at head by design (see above), so base source importing a package this
-      # PR deleted fails `tsc` with TS2307 even though vite, which treats it as
-      # external, has already emitted the bundle being measured.
+      # The build is spelled out INLINE rather than run through an npm script,
+      # and that is deliberate on both counts:
+      #
+      #   * No `tsc`. The measurement reads dist/index.js and theme.css and
+      #     never opens a .d.ts, so the declaration emit is not part of what
+      #     this job gates — and including it makes the base unbuildable on any
+      #     PR that REMOVES a dependency. Dependencies are held at head by
+      #     design (see above), so base source importing a package the PR
+      #     deleted fails `tsc` with TS2307, even though vite treats it as
+      #     external and has already emitted the bundle being measured.
+      #   * No `npm run <script>`. The checkout below replaces package.json
+      #     with the BASE revision, so any script added by the PR does not
+      #     exist during "Measure base". A script-based fix here fails with
+      #     "Missing script" on exactly the PRs it was written to unblock.
       - name: Measure base
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -294,7 +300,10 @@ jobs:
           set -euo pipefail
           git checkout --quiet --force "$BASE_SHA" -- \
             src package.json vite.config.ts tsconfig.build.json
-          npm run build:measure
+          npx vite build
+          cp src/styles/theme.css dist/theme.css
+          cp src/styles/fonts.css dist/fonts.css
+          cp src/styles/editor.css dist/editor.css
           node scripts/perf/bundle.mjs measure \
             --out "$RUNNER_TEMP/base.json" --dist "$GITHUB_WORKSPACE/dist"
 
@@ -303,7 +312,10 @@ jobs:
           set -euo pipefail
           git checkout --quiet --force HEAD -- \
             src package.json vite.config.ts tsconfig.build.json
-          npm run build:measure
+          npx vite build
+          cp src/styles/theme.css dist/theme.css
+          cp src/styles/fonts.css dist/fonts.css
+          cp src/styles/editor.css dist/editor.css
           node scripts/perf/bundle.mjs measure \
             --out "$RUNNER_TEMP/head.json" --dist "$GITHUB_WORKSPACE/dist"
 
