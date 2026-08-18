@@ -33,9 +33,21 @@ FiestaUI ships **no compiled utility CSS**. The consuming app runs Tailwind v4 a
 ```
 
 - `theme.css` carries the design tokens (`@theme inline`, `:root` / `.dark` custom properties), the base layer, the component animation keyframes, and the `dark` custom variant.
-- `fonts.css` is the **opt-in** Geist font registration (`@fontsource-variable/geist` + `@fontsource-variable/geist-mono` `@font-face` rules, ~52 KB fetched for a Latin-only page). Import it alongside `theme.css` unless your app supplies Geist itself — e.g. via `next/font`, a CDN, or a self-hosted subset. If you self-host, skip `fonts.css` and register faces named `"Geist Variable"` / `"Geist Mono Variable"` (the names `theme.css`'s `--font-geist-sans` / `--font-geist-mono` tokens reference); without either, the tokens degrade gracefully to the system font stack.
+- `fonts.css` is the **opt-in** font registration (`@fontsource-variable/archivo` + `@fontsource-variable/spline-sans-mono` `@font-face` rules, ~70 KB fetched for a Latin-only page). Import it alongside `theme.css` unless your app supplies the faces itself — e.g. via `next/font`, a CDN, or a self-hosted subset. If you self-host, skip `fonts.css` and register faces named `"Archivo Variable"` / `"Spline Sans Mono Variable"` (the names `theme.css`'s `--font-sans-stack` / `--font-mono-stack` tokens reference); without either, the tokens degrade gracefully to the system font stack.
 - The `@source` line is **mandatory** — Tailwind v4 does not scan `node_modules` by default, and without it component styles silently vanish. Adjust the relative path to wherever your CSS file lives.
 - Dark mode is class-based: toggle the `dark` class on `<html>`. FiestaUI only defines the variant; your app owns the toggle.
+
+### Typeface
+
+The sans face is **Archivo** as of 5.0.0, replacing Geist. Archivo is drawn from American grotesque signage — the same world the split-flap hardware lives in — and carries a `wdth` 62–125 axis, so headings can run expanded into departure-board territory while UI text stays at normal width, from one family.
+
+`fonts.css` registers the **weight-only** Archivo file (`wght` 100–900, ~34 KB Latin). The width axis lives in the larger `@fontsource-variable/archivo/wdth.css` entrypoint (~88 KB Latin) and is not imported, because nothing in this package sets `font-stretch` yet. Swap the import when expanded display type ships — the family name is identical, so no token or consumer change is needed.
+
+The token names `--font-sans-stack` / `--font-mono-stack` name the **role**, not the vendor. The former `--font-geist-sans` / `--font-geist-mono` names are aliased to them for one minor and will be removed in the next major; nothing in this package references the old names.
+
+Archivo's vertical metrics are meaningfully tighter than Geist's — a 1.089em natural line box against Geist's 1.30em — so text set without an explicit `line-height` renders more compactly. Tailwind's `text-*` utilities set line-height, so most surfaces are unaffected; `heading.stories.tsx` documents where the difference does bite.
+
+The mono face is **Spline Sans Mono**, also as of 5.0.0. It is not a code-editor setting: every split-flap glyph the product draws is `font-mono font-semibold` (`board-display.tsx`, `static-board-display.tsx`), and the template editor that previews the board follows the same token. It was picked on the two metrics that govern a fixed character cell read from a distance — cap height 72.7% of em against Geist Mono's 71.0%, at the same 60.0% glyph advance. Its weight range is 300–700; the only weights paired with `font-mono` in this package are 500 and 600, so no weight synthesizes.
 
 ### Seasonal theming
 

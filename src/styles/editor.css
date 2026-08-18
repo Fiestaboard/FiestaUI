@@ -49,7 +49,8 @@
   margin: 0;
   padding: 0;
   text-transform: uppercase;
-  font-family: "Courier New", "Courier", monospace;
+  /* See the .ProseMirror rule below for why this follows --font-mono. */
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   font-size: 0.875rem;
   letter-spacing: 0;
   line-height: 1.5rem;
@@ -120,9 +121,15 @@
   vertical-align: middle;
 }
 
-/* Text should be monospace and equal width - each character is exactly 1ch */
+/* Text should be monospace and equal width - each character is exactly 1ch.
+ *
+ * Follows --font-mono rather than hardcoding a family. This editor previews
+ * what lands on the board, and the board glyphs are `font-mono font-semibold`
+ * (board-display.tsx, static-board-display.tsx) — so pinning the editor to
+ * Courier New meant the preview was drawn in a different typeface from the
+ * thing it previews, and a global font change silently skipped it. */
 .ProseMirror {
-  font-family: "Courier New", "Courier", monospace;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   font-variant-numeric: tabular-nums;
 }
 
