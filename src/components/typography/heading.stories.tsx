@@ -98,11 +98,23 @@ export const Tones: Story = {
  * Until #199 this story guarded nothing — `leading-tight` was being stripped
  * by tailwind-merge and every heading rendered at Tailwind's default 1.5,
  * which is looser than the intended 1.25 and therefore could not collide
- * whatever the recipe said. It discriminates now: measured in Geist semibold,
- * consecutive line boxes clear each other by 3–4px at 1.5, sit flush at 1.25
- * (nominal em-boxes overlap by under a pixel, with no glyph ink touching),
- * and overlap by 4–6px at `leading-none` — a difference a VRT diff cannot
- * miss.
+ * whatever the recipe said.
+ *
+ * The numbers here were re-derived when the sans face moved from Geist to
+ * Archivo, because the two have very different natural line boxes:
+ * Geist's is 1.30em (asc 100.5% + desc 29.5%), Archivo's is 1.089em
+ * (87.8% + 21.0%). At a 16px base that puts consecutive line boxes at:
+ *
+ *              leading-none (1.0)   leading-tight (1.25)   default (1.5)
+ *   Geist      overlap 4.8px        flush, <1px overlap    clear 3.2px
+ *   Archivo    overlap 1.4px        clear 2.6px            clear 6.6px
+ *
+ * So the guard still discriminates on Archivo — `leading-none` is the only
+ * step that overlaps — but with roughly a third of the former margin, and
+ * `leading-tight` is no longer flush the way it was in Geist. If this story
+ * ever stops catching a `leading-none` regression, that shrunken margin is
+ * why, and the fix is a larger size in the narrow column rather than a
+ * looser step.
  */
 export const Wrapping: Story = {
   parameters: {

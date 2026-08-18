@@ -5,8 +5,8 @@
  * app/globals.css. It must be imported into a Tailwind v4 pipeline:
  *
  *   @import "tailwindcss";
- *   @import "@fiestaboard/ui/fonts.css";   <- opt-in Geist @font-face registrations;
- *   @import "@fiestaboard/ui/theme.css";      skip fonts.css if you self-host Geist
+ *   @import "@fiestaboard/ui/fonts.css";   <- opt-in @font-face registrations;
+ *   @import "@fiestaboard/ui/theme.css";      skip fonts.css if you self-host
  *   @source "../node_modules/@fiestaboard/ui/dist";
  *
  * Dark mode is class-based: toggle the `dark` class on <html>.
@@ -21,8 +21,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans-stack);
+  --font-mono: var(--font-mono-stack);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -196,17 +196,55 @@
 }
 
 :root {
-  /* Font family tokens. The "Geist Variable" / "Geist Mono Variable"
-     names match the @font-face declarations registered by the opt-in
-     @fiestaboard/ui/fonts.css subpath (which wraps
-     @fontsource-variable/geist and @fontsource-variable/geist-mono).
-     Consumers that self-host Geist (next/font, CDN, subset) skip
-     fonts.css; without it these tokens degrade gracefully to the
-     system stacks below. Previously these CSS vars were set by
-     Next.js's next/font wrapper in layout.tsx — moved here so they're
-     owned by the stylesheet, not a build-time JS wrapper. */
-  --font-geist-sans: "Geist Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-geist-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, "SF Mono", Monaco, Menlo, monospace;
+  /* ============================================================
+   * FONT FAMILY TOKENS.
+   *
+   * The family names here match the @font-face declarations registered by
+   * the opt-in @fiestaboard/ui/fonts.css subpath. Consumers that self-host
+   * the faces skip fonts.css; without it these tokens degrade gracefully to
+   * the system stacks below. These CSS vars were once set by Next.js's
+   * next/font wrapper in layout.tsx — moved here so they're owned by the
+   * stylesheet, not a build-time JS wrapper.
+   *
+   * The token NAMES are deliberately vendor-neutral. They used to be
+   * --font-geist-sans / --font-geist-mono, which meant the design system
+   * published a specific foundry's name as its public contract and every
+   * future typeface change was a rename. A design system names the ROLE,
+   * not the vendor. The old names are aliased below for one minor.
+   *
+   * WHY ARCHIVO. It replaced Geist, which was never chosen so much as
+   * inherited — Geist is Vercel's house font, so the product read as
+   * "built with Next.js" rather than as FiestaBoard. Archivo is drawn from
+   * American grotesque signage, which is the world the hardware already
+   * lives in, and it carries a wdth 62-125 axis that no other candidate
+   * offered: normal width is a disciplined UI workhorse, expanded is a
+   * departure board, from one family.
+   *
+   * WHY SPLINE SANS MONO. The mono token is not a code-editor setting: every
+   * split-flap glyph the product draws is `font-mono font-semibold` (see
+   * board-display.tsx and static-board-display.tsx), so this face renders the
+   * hardware preview, and the template editor that previews it. It was chosen
+   * on the two metrics that govern a fixed character cell read at a distance:
+   * cap height 72.7% of em (against Geist Mono's 71.0%) and glyph advance
+   * 60.0%. Weight range is 300-700; the only weights paired with `font-mono`
+   * in this package are 500 and 600, so nothing synthesizes.
+   *
+   * NOTE: fonts.css registers the WEIGHT-ONLY file (34 KB latin), so
+   * font-stretch is inert today. Nothing in this package sets font-stretch
+   * yet, and shipping an axis nothing uses is the same mistake as shipping
+   * an undesigned palette (see the #173 note above). When display-width
+   * type actually lands, switch fonts.css to
+   * @fontsource-variable/archivo/wdth.css (88 KB latin) and the same
+   * "Archivo Variable" family name gains the axis with no token change.
+   * ============================================================ */
+  --font-sans-stack: "Archivo Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono-stack: "Spline Sans Mono Variable", ui-monospace, SFMono-Regular, "SF Mono", Monaco, Menlo, monospace;
+  /* DEPRECATED, removed in the next major: the pre-Archivo token names.
+     Aliased so a consumer referencing var(--font-geist-sans) directly does
+     not break on upgrade — they now resolve to whatever the role tokens
+     above hold, which is the point. */
+  --font-geist-sans: var(--font-sans-stack);
+  --font-geist-mono: var(--font-mono-stack);
   /* Tell the UA which form-control palette to paint (#160). Without this,
      every browser-drawn widget — accent-color'd checkboxes, file/date/number
      chrome, scrollbars, autofill — renders in LIGHT chrome, which on the dark
@@ -837,7 +875,16 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "ss01";
+    /* `font-feature-settings: "ss01"` used to sit here, inherited from
+       FiestaBoard's globals.css. It was already a no-op before the typeface
+       change: neither the Geist nor the Geist Mono builds this package used
+       to ship exposed an ss01 feature (their GSUB tables carry
+       ccmp/kern/liga/locl/pnum/tnum and no stylistic sets), and neither
+       Archivo nor Spline Sans Mono does either. Left in place it would be
+       a trap — the first future typeface that DOES define ss01 would
+       silently switch on an arbitrary alternate glyph set nobody chose.
+       If a stylistic set is ever wanted, name the feature and the face it
+       belongs to at the call site. */
     /* Clip horizontal overflow at the document root so the body itself stays the
      * vertical scroll container. Applying overflow-x to <main> would force its
      * computed overflow-y to `auto`, recreating a nested scrollbar. */

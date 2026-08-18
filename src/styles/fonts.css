@@ -1,16 +1,24 @@
 /**
- * FiestaUI self-hosted Geist fonts — opt-in subpath export.
+ * FiestaUI self-hosted fonts — opt-in subpath export.
  *
- * Registers the "Geist Variable" and "Geist Mono Variable" @font-face
- * declarations that theme.css's --font-geist-sans / --font-geist-mono
+ * Registers the "Archivo Variable" and "Spline Sans Mono Variable" @font-face
+ * declarations that theme.css's --font-sans-stack / --font-mono-stack
  * tokens reference. Import it alongside theme.css:
  *
  *   @import "@fiestaboard/ui/fonts.css";
  *   @import "@fiestaboard/ui/theme.css";
  *
- * Skip this import if your app supplies Geist itself (next/font, CDN,
- * self-hosted subset) — the theme tokens degrade gracefully to the
- * system font stack when these faces are not registered.
+ * Skip this import if your app supplies the faces itself (next/font, CDN,
+ * self-hosted subset) — the theme tokens degrade gracefully to the system
+ * font stack when these faces are not registered.
+ *
+ * Archivo is imported at its WEIGHT-ONLY entrypoint (wght 100-900, ~34 KB
+ * for a Latin-only page). The family also carries a wdth 62-125 axis, which
+ * lives in the larger `/wdth.css` entrypoint (~88 KB). Nothing in this
+ * package sets font-stretch yet, so that cost buys nothing today; switch
+ * this import to "@fontsource-variable/archivo/wdth.css" when expanded
+ * display type actually ships. The family name is identical either way, so
+ * no token or consumer change is needed to make the swap.
  */
-@import "@fontsource-variable/geist";
-@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/archivo";
+@import "@fontsource-variable/spline-sans-mono";
