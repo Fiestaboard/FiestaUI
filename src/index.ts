@@ -10,6 +10,9 @@ export * from "./components/containment/accordion";
 export * from "./components/containment/card";
 export * from "./components/containment/collapsible";
 export * from "./components/containment/json-tree";
+// Data — quantitative readouts (ranked bars, stat strips): promoted docs-site
+// visualizations (#229) that no existing family owns.
+export * from "./components/data/bar-list";
 export * from "./components/feedback/alert";
 export * from "./components/feedback/badge";
 export * from "./components/feedback/empty-state";
