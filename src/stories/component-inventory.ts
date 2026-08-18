@@ -87,7 +87,12 @@ export const INVENTORY = [
       { name: "Switch", summary: "Binary toggle for settings that apply immediately." },
       { name: "Textarea", summary: "Multi-line text input." },
       { name: "TimePicker", summary: "Hour/minute picker with AM-PM and quick presets." },
+      { name: "Toggle", summary: "Two-state button — aria-pressed with the Button-default fill when on." },
       { name: "ToggleCard", summary: "Large pressable tile with icon, title and description; groups into a picker." },
+      {
+        name: "ToggleGroup",
+        summary: "Roving-focus set of Toggles; single or multiple, loose or one segmented frame.",
+      },
     ],
   },
   {
