@@ -61,6 +61,7 @@ import { JsonTree } from "../components/containment/json-tree";
 import { ScrollArea } from "../components/containment/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/containment/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containment/tabs";
+import { BarList } from "../components/data/bar-list";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
@@ -807,6 +808,18 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </Text>
       </TabsContent>
     </Tabs>
+  ),
+
+  /* ---- Data ---- */
+  BarList: () => (
+    <BarList
+      className="w-full max-w-sm"
+      items={[
+        { key: "clock", label: "clock", value: 943 },
+        { key: "weather", label: "weather", value: 611 },
+        { key: "stocks", label: "stocks", value: 214 },
+      ]}
+    />
   ),
 
   /* ---- Overlays ---- */

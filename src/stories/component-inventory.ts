@@ -119,6 +119,18 @@ export const INVENTORY = [
     ],
   },
   {
+    id: "data",
+    title: "Data",
+    description:
+      "Quantitative readouts — measured values as ranked bars and stat rows. Not a chart library: no axes, no legends, no interaction; the number is always rendered as text.",
+    entries: [
+      {
+        name: "BarList",
+        summary: "Ranked label/track/fill/value rows — a thin cousin of a meter; the value text carries the data.",
+      },
+    ],
+  },
+  {
     id: "overlays",
     title: "Overlays",
     description:
