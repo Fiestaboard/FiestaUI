@@ -436,7 +436,12 @@ export const Sidebar = memo(function Sidebar({
         ref={headerRef}
         className="lg:hidden fixed top-2 left-3 right-3 z-[var(--z-mobile-header)] overflow-hidden sidebar-gradient-horizontal"
       >
-        <div className="relative z-[1] flex min-h-14 flex-wrap items-center gap-y-2 px-4 py-2">
+        {/* px-3, not px-4: the pill is already inset 12px by `left-3`, so a
+            16px pad put its contents at 28 while the page's own title sat at
+            16 — the bar and the page below it shared no vertical. At 12 the
+            menu trigger's -ml-2 lands its box on 16, the same line PageLayout
+            gives the H1 and the cards. */}
+        <div className="relative z-[1] flex min-h-14 flex-wrap items-center gap-y-2 px-3 py-2">
           <Button
             variant="ghost"
             size="icon"
