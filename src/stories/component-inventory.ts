@@ -147,6 +147,10 @@ export const INVENTORY = [
       { name: "PageToolbar", summary: "Left/right toolbar row that sits under a PageHeader." },
       { name: "PageLayout", summary: "Page container — max width, responsive padding, optional viewport pinning." },
       { name: "SkipToContent", summary: "Keyboard-only skip link; visible on focus." },
+      {
+        name: "Breadcrumb",
+        summary: "WAI-ARIA breadcrumb trail — nav > ol with link, separator, ellipsis and current-page parts.",
+      },
       { name: "Sidebar", summary: "Primary navigation rail — fixed-positioned, so shown in its own story." },
       { name: "MainContent", summary: "The <main> landmark and its sidebar-aware offset — shown in its own story." },
     ],

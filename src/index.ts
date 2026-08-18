@@ -50,6 +50,7 @@ export * from "./components/typography/text-link";
 // App chrome — branding, sidebar, layout, festive treatments.
 export * from "./components/chrome/board-icon";
 export * from "./components/chrome/board-selector";
+export * from "./components/chrome/breadcrumb";
 export * from "./components/chrome/fiesta-icon";
 export * from "./components/chrome/fiesta-logo";
 export * from "./components/chrome/language-selector";

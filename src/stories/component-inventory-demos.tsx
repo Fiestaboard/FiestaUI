@@ -46,6 +46,15 @@ import { ScaledBoardDisplay } from "../components/board/scaled-board-display";
 import { StaticBoardDisplay } from "../components/board/static-board-display";
 import { BoardIcon } from "../components/chrome/board-icon";
 import { BoardSelector } from "../components/chrome/board-selector";
+import {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "../components/chrome/breadcrumb";
 import { FiestaIcon } from "../components/chrome/fiesta-icon";
 import { FiestaLogo } from "../components/chrome/fiesta-logo";
 import { LanguageSelector } from "../components/chrome/language-selector";
@@ -995,6 +1004,29 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         Target landmark
       </div>
     </Stack>
+  ),
+  // One static trail showing every part: links, an ellipsis for elided
+  // levels, separators and the aria-current page.
+  Breadcrumb: () => (
+    <Breadcrumb aria-label="Breadcrumb">
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink href="#inv-breadcrumb-docs">Docs</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbEllipsis label="More pages" />
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbLink href="#inv-breadcrumb-plugins">Plugins</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>Weather</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
   ),
   Sidebar: () => (
     <SeeItsOwnStory
