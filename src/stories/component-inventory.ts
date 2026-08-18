@@ -165,6 +165,16 @@ export const INVENTORY = [
     ],
   },
   {
+    id: "data",
+    title: "Data",
+    description:
+      "Derived metrics rendered for reading. Distinct from Feedback, which is the system reporting on itself — these display the user's numbers.",
+    entries: [
+      { name: "StatStrip", summary: "Inline row of big-number stats — a description list with an opt-in brand tone." },
+      { name: "StatStripItem", summary: "One value/label pair, for composing a strip with custom value markup." },
+    ],
+  },
+  {
     id: "plugin",
     title: "Plugin directory",
     description: "How a plugin is advertised — on a card in the directory, and on its detail page.",
