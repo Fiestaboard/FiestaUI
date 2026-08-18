@@ -113,6 +113,7 @@ export const INVENTORY = [
       { name: "Card", summary: "Surface with header, content, footer and action slots." },
       { name: "Collapsible", summary: "Single show/hide region driven by its own trigger." },
       { name: "JsonTree", summary: "Expandable JSON viewer with per-type colouring and path selection." },
+      { name: "MediaFrame", summary: "Framed figure for screenshots and media, with a caption/toolbar bar slot." },
       { name: "ScrollArea", summary: "Overflow container with a styled scrollbar." },
       { name: "Table", summary: "Data table with header, body, row and cell parts." },
       { name: "Tabs", summary: "Tab list plus panels." },
@@ -127,6 +128,10 @@ export const INVENTORY = [
       { name: "Dialog", summary: "Modal for focused editing, with header/footer slots." },
       { name: "AlertDialog", summary: "Confirmation modal with explicit cancel and action buttons." },
       { name: "Sheet", summary: "Edge-anchored panel; side is a prop." },
+      {
+        name: "Lightbox",
+        summary: "Click-to-zoom media viewer on a near-black scrim; Esc, backdrop and chip all close.",
+      },
       { name: "Popover", summary: "Non-modal floating panel anchored to its trigger." },
       { name: "DropdownMenu", summary: "Menu with groups, separators, shortcuts, submenus and checkbox items." },
       { name: "Tooltip", summary: "Hover/focus label; needs a TooltipProvider ancestor." },
