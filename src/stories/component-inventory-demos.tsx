@@ -72,6 +72,7 @@ import { createLucideIconResolver, VariablePickerContent } from "../components/e
 import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
+import { Chip } from "../components/feedback/chip";
 import { EmptyState } from "../components/feedback/empty-state";
 import { Skeleton } from "../components/feedback/skeleton";
 import { Spinner } from "../components/feedback/spinner";
@@ -631,6 +632,15 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <Badge variant="variable">variable</Badge>
       <Badge variant="success">success</Badge>
       <Badge variant="formula">formula</Badge>
+    </Flex>
+  ),
+  Chip: () => (
+    <Flex gap="2" wrap>
+      <Chip>release</Chip>
+      <Chip>plugins</Chip>
+      <Chip asChild mono>
+        <a href="#v5.11">5.11</a>
+      </Chip>
     </Flex>
   ),
   EmptyState: () => (
