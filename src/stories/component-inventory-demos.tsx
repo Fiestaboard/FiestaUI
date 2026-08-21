@@ -63,6 +63,14 @@ import {
 import { FiestaIcon } from "../components/chrome/fiesta-icon";
 import { FiestaLogo } from "../components/chrome/fiesta-logo";
 import { LanguageSelector } from "../components/chrome/language-selector";
+import {
+  NavList,
+  NavListItem,
+  NavListLink,
+  NavListSection,
+  NavListSectionContent,
+  NavListSectionTrigger,
+} from "../components/chrome/nav-list";
 import { PageHeader, PageIconGradientDefs } from "../components/chrome/page-header";
 import { PageLayout } from "../components/chrome/page-layout";
 import { PageToolbar } from "../components/chrome/page-toolbar";
@@ -1148,6 +1156,39 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
+  ),
+  // Flat rows, the aria-current pill, and one section expanded around it —
+  // the docs sidebar's shape at rail width. Static: the section's open state
+  // is a defaultOpen, so the demo photographs identically every run.
+  NavList: () => (
+    <nav aria-label="NavList example" className="w-[240px]">
+      <NavList>
+        <NavListItem>
+          <NavListLink href="#inv-nav-list-start">Getting started</NavListLink>
+        </NavListItem>
+        <NavListSection defaultOpen>
+          <NavListSectionTrigger>Components</NavListSectionTrigger>
+          <NavListSectionContent>
+            <NavListItem>
+              <NavListLink href="#inv-nav-list-button">Button</NavListLink>
+            </NavListItem>
+            <NavListItem>
+              <NavListLink href="#inv-nav-list-self" active>
+                NavList
+              </NavListLink>
+            </NavListItem>
+          </NavListSectionContent>
+        </NavListSection>
+        <NavListSection>
+          <NavListSectionTrigger>Recipes</NavListSectionTrigger>
+          <NavListSectionContent>
+            <NavListItem>
+              <NavListLink href="#inv-nav-list-theming">Theming</NavListLink>
+            </NavListItem>
+          </NavListSectionContent>
+        </NavListSection>
+      </NavList>
+    </nav>
   ),
   Sidebar: () => (
     <SeeItsOwnStory
