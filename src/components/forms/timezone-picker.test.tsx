@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitForElementToBeRemoved, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type * as React from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -194,8 +194,12 @@ describe("TimezonePicker", () => {
     await user.click(input);
     await user.keyboard("{ArrowDown}{Escape}");
 
+    // Base UI unmounts the popup once its exit animations settle, so the list
+    // outlives the keypress by a tick. `waitForElementToBeRemoved` still fails
+    // if it never goes away -- it only tolerates the delay.
+    await waitForElementToBeRemoved(() => screen.queryByRole("listbox"));
+
     expect(input).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     expect(onValueChange).not.toHaveBeenCalled();
   });
 
@@ -219,7 +223,8 @@ describe("TimezonePicker", () => {
     // That is the primitive's behaviour, not something this wrapper chooses.
     await user.click(screen.getByTestId("outside"));
 
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() => screen.queryByRole("listbox"));
+
     expect(screen.getByRole("combobox", { name: "Time zone" })).toHaveAttribute("aria-expanded", "false");
   });
 
