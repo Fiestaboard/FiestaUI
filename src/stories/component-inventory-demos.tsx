@@ -19,7 +19,11 @@ import "../styles/editor.css";
 
 import {
   AlertCircle,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   Bell,
+  Bold,
   Calendar,
   CheckCircle2,
   ChevronsUpDown,
@@ -27,6 +31,7 @@ import {
   Cloud,
   Inbox,
   Info,
+  Italic,
   Mail,
   Monitor,
   Palette,
@@ -97,6 +102,7 @@ import { Slider } from "../components/forms/slider";
 import { Switch } from "../components/forms/switch";
 import { Textarea } from "../components/forms/textarea";
 import { TimePicker } from "../components/forms/time-picker";
+import { Toggle, ToggleGroup } from "../components/forms/toggle";
 import { SegmentedControl, SegmentedControlItem, ToggleCard, ToggleCardGroup } from "../components/forms/toggle-card";
 import { Box } from "../components/layout/box";
 import { Flex } from "../components/layout/flex";
@@ -582,6 +588,22 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Stack>
   ),
   TimePicker: TimePickerDemo,
+  Toggle: () => (
+    <Flex align="center" gap="3" wrap>
+      <Toggle aria-label="Bold" size="icon">
+        <Bold />
+      </Toggle>
+      <Toggle aria-label="Italic" size="icon" defaultPressed>
+        <Italic />
+      </Toggle>
+      <Toggle variant="outline" defaultPressed>
+        <Bold /> Pressed
+      </Toggle>
+      <Toggle variant="outline" disabled>
+        <Bold /> Disabled
+      </Toggle>
+    </Flex>
+  ),
   ToggleCard: () => (
     <ToggleCardGroup aria-label="Board type" defaultValue="flagship" columns="2" className="w-full max-w-lg">
       <ToggleCard
@@ -592,6 +614,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       />
       <ToggleCard value="note" icon={<StickyNote />} title="Note" description="Custom grid, battery powered." />
     </ToggleCardGroup>
+  ),
+  ToggleGroup: () => (
+    <ToggleGroup aria-label="Text alignment" segmented defaultValue={["left"]}>
+      <Toggle value="left" size="icon" aria-label="Align left">
+        <AlignLeft />
+      </Toggle>
+      <Toggle value="center" size="icon" aria-label="Align center">
+        <AlignCenter />
+      </Toggle>
+      <Toggle value="right" size="icon" aria-label="Align right">
+        <AlignRight />
+      </Toggle>
+    </ToggleGroup>
   ),
 
   /* ---- Feedback ---- */
