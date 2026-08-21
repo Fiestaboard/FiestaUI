@@ -27,6 +27,7 @@ import { type CSSProperties, memo, useCallback, useEffect, useMemo, useRef, useS
 import {
   BOARD_CHARS,
   type BoardToken,
+  type Code62Glyph,
   EXTRA_CHARS,
   getCharFromToken,
   getCharIndex,
@@ -1201,6 +1202,17 @@ export interface BoardDisplayProps {
   className?: string;
   boardType?: "black" | "white";
   deviceType?: DeviceType;
+  /** Which glyph this board's code-62 flap carries.
+   *
+   *  Flagship only: Note and note-array hardware always draw the heart, and
+   *  ignore this. Vestaboard replaced the Flagship's degree flap with a heart on
+   *  units manufactured from 2026, and nothing queryable tells the two apart, so
+   *  a consuming app has to pass what its user told it (FiestaBoard#1657).
+   *  Defaults to `"degree"` — the glyph every Flagship carried before the
+   *  change — so a caller that does not pass it renders as it always did.
+   *
+   *  Display-only: both glyphs are character code 62 on the wire. */
+  code62Glyph?: Code62Glyph;
   /** Skip animation infrastructure and render plain divs per tile. Much
    *  cheaper for static previews that never animate. */
   isStatic?: boolean;
@@ -1260,6 +1272,7 @@ export const BoardDisplay = memo(
     className = "",
     boardType = "black",
     deviceType = "flagship",
+    code62Glyph,
     isStatic = false,
     notesWide = 1,
     notesTall = 1,
@@ -1315,8 +1328,8 @@ export const BoardDisplay = memo(
     // Memoize grid calculation to avoid recalculating on every render
     const grid = useMemo(() => {
       const messageForGrid = message ?? "";
-      return messageToGrid(messageForGrid, dims.rows, dims.cols, deviceType);
-    }, [message, dims.rows, dims.cols, deviceType]);
+      return messageToGrid(messageForGrid, dims.rows, dims.cols, deviceType, code62Glyph);
+    }, [message, dims.rows, dims.cols, deviceType, code62Glyph]);
 
     // White board has light bezel and border
     const isWhiteBoard = boardType === "white";
@@ -1340,12 +1353,12 @@ export const BoardDisplay = memo(
       // `messageToText` rather than a local regex (issue #205): it reads the
       // message with the same parser the tiles do, so the name says what is
       // actually on the board, and all three renderers now derive it one way.
-      const text = messageToText(message, deviceType);
+      const text = messageToText(message, deviceType, code62Glyph);
       // A board of nothing but color tiles draws no text; it is not empty, so
       // it gets the generic name rather than `emptyLabel` or a dangling
       // "Board display: " with nothing after it.
       return text ? messageLabel(text) : NO_TEXT_LABEL;
-    }, [message, deviceType, isLoading, loadingLabel, emptyLabel, messageLabel]);
+    }, [message, deviceType, code62Glyph, isLoading, loadingLabel, emptyLabel, messageLabel]);
 
     // What the live region says, when one is asked for (issue #206).
     //
@@ -1488,6 +1501,7 @@ export const BoardDisplay = memo(
       prevProps.className === nextProps.className &&
       prevProps.boardType === nextProps.boardType &&
       prevProps.deviceType === nextProps.deviceType &&
+      prevProps.code62Glyph === nextProps.code62Glyph &&
       prevProps.notesWide === nextProps.notesWide &&
       prevProps.notesTall === nextProps.notesTall &&
       prevProps.isStatic === nextProps.isStatic &&

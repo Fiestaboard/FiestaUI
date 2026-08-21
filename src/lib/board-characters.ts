@@ -211,31 +211,62 @@ export function parseLine(line: string, maxTokens: number = Infinity): BoardToke
 }
 
 /**
- * On Note, the degree symbol (code 62) displays as a heart.
+ * Which glyph a board's code-62 flap physically carries.
+ *
+ * Code 62 is one character code with two possible flaps. Vestaboard shipped
+ * every Flagship with a degree flap until 2026, when they replaced it with a
+ * heart on newly-manufactured units ("Every new Vestaboard purchased will ship
+ * with the heart in place of the degree symbol"). Note has always carried the
+ * heart. So `deviceType` alone no longer says what a board draws, and nothing
+ * queryable distinguishes a degree-era Flagship from a heart-era one — only the
+ * owner knows. See FiestaBoard#1657.
+ *
+ * This is display-only. Both glyphs encode to code 62 on the wire; nothing here
+ * changes what is sent to a board.
+ */
+export type Code62Glyph = "degree" | "heart";
+
+/**
+ * Decide which glyph a board draws for code 62.
+ *
+ * Note and note-array hardware only ever shipped the heart flap, so their glyph
+ * is a property of the device and `code62Glyph` is ignored for them. Flagship is
+ * the ambiguous one, and the caller has to say: unset means `"degree"`, the
+ * glyph every Flagship carried before the hardware change, so a caller that has
+ * not been taught about the new flap keeps rendering exactly as it did.
+ */
+export function resolveCode62Glyph(deviceType: string, code62Glyph?: Code62Glyph): Code62Glyph {
+  if (deviceType === "note" || deviceType === "note_array") return "heart";
+  return code62Glyph ?? "degree";
+}
+
+/**
+ * Draw code 62 as the glyph this board's flap actually carries.
  *
  * Shared by {@link messageToGrid} and {@link messageToText} rather than written
  * out twice: the tiles and the accessible name have to agree about what the
- * board draws, or a Note board shows ♥ while announcing "degree" (WCAG 1.1.1).
+ * board draws, or a board shows ♥ while announcing "degree" (WCAG 1.1.1).
  */
-function applyDeviceSubstitution(token: BoardToken, isNote: boolean): BoardToken {
-  if (isNote && token.type === "char" && token.value === "°") return { type: "char", value: "♥" };
+function applyCode62Glyph(token: BoardToken, glyph: Code62Glyph): BoardToken {
+  if (glyph === "heart" && token.type === "char" && token.value === "°") return { type: "char", value: "♥" };
   return token;
 }
 
 /**
  * Convert a message string to a rows×cols grid of tokens.
- * Lines are split on `\n`, truncated/padded to the grid, and on the Note
- * device the degree symbol (code 62) displays as a heart.
+ * Lines are split on `\n`, truncated/padded to the grid, and code 62 draws as
+ * the glyph {@link resolveCode62Glyph} picks for this board.
  */
 export function messageToGrid(
   message: string,
   rows: number,
   cols: number,
   deviceType: string = "flagship",
+  code62Glyph?: Code62Glyph,
 ): BoardToken[][] {
   const lines = message.split("\n");
   const grid: BoardToken[][] = [];
-  const isNote = deviceType === "note";
+  const glyph = resolveCode62Glyph(deviceType, code62Glyph);
 
   for (let row = 0; row < rows; row++) {
     const line = lines[row] || "";
@@ -247,7 +278,7 @@ export function messageToGrid(
     // Fill to cols width
     for (let col = 0; col < cols; col++) {
       if (col < tokens.length) {
-        rowTokens.push(applyDeviceSubstitution(tokens[col], isNote));
+        rowTokens.push(applyCode62Glyph(tokens[col], glyph));
       } else {
         rowTokens.push(BLANK_TOKEN);
       }
@@ -274,21 +305,22 @@ export function messageToGrid(
  * (they occupy a cell but say nothing), lines join with a space, and runs of
  * whitespace collapse so a half-empty board does not announce a long silence.
  *
- * `deviceType` is taken for the same reason {@link messageToGrid} takes it: on
- * Note, `°` draws as a heart, and a name that said "degree" would describe
- * something the board is not showing.
+ * `deviceType` and `code62Glyph` are taken for the same reason
+ * {@link messageToGrid} takes them: they decide whether `°` draws as a heart,
+ * and a name that said "degree" would describe something the board is not
+ * showing.
  *
  * Returns `""` for a message that draws no text at all — a color-only board —
  * so callers can fall back to a generic name instead of a dangling prefix.
  */
-export function messageToText(message: string, deviceType: string = "flagship"): string {
-  const isNote = deviceType === "note";
+export function messageToText(message: string, deviceType: string = "flagship", code62Glyph?: Code62Glyph): string {
+  const glyph = resolveCode62Glyph(deviceType, code62Glyph);
   return message
     .split("\n")
     .map((line) =>
       parseLine(line)
         .map((token) => {
-          const drawn = applyDeviceSubstitution(token, isNote);
+          const drawn = applyCode62Glyph(token, glyph);
           return drawn.type === "char" ? drawn.value : " ";
         })
         .join(""),

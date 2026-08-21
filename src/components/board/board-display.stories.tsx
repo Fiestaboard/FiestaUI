@@ -55,6 +55,12 @@ const meta = {
       control: { type: "number", min: 1, max: 8 },
       description: "Notes tall (note_array only)",
     },
+    code62Glyph: {
+      control: "select",
+      options: ["degree", "heart"],
+      description:
+        "Which glyph this board's code-62 flap carries. Flagship only — Note hardware always draws the heart. Vestaboard replaced the Flagship's degree flap with a heart on units built from 2026, and nothing queryable tells them apart, so the owner has to say. Defaults to `degree`. Display-only: both are code 62 on the wire.",
+    },
     isStatic: {
       control: "boolean",
       description: "Render the cheap static path (no animation infrastructure per tile)",
@@ -282,6 +288,38 @@ export const NoteDevice: Story = {
     isLoading: false,
     deviceType: "note",
   },
+};
+
+/**
+ * The same Flagship board, drawn twice: `code62Glyph` is the only difference.
+ *
+ * Character code 62 is one code with two possible flaps. Flagships built before
+ * 2026 carry a degree sign; newer ones carry a heart in the same slot, and
+ * nothing the app can query tells them apart — so the board's owner tells us.
+ * Note the accessible name under each board: it is derived from the same
+ * substitution as the tiles, so a board drawing ♥ never announces "degree".
+ */
+export const FlagshipCode62Flap: Story = {
+  args: {
+    message: "{blue}52{/blue}°F AND CLIMBING",
+    size: "md",
+    isLoading: false,
+    deviceType: "flagship",
+  },
+  render: (args) => (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <div className="text-sm text-muted-foreground">
+          code62Glyph=&quot;degree&quot; (default) — a Flagship built before 2026
+        </div>
+        <BoardDisplay {...args} code62Glyph="degree" />
+      </div>
+      <div className="flex flex-col gap-2">
+        <div className="text-sm text-muted-foreground">code62Glyph=&quot;heart&quot; — a Flagship built from 2026</div>
+        <BoardDisplay {...args} code62Glyph="heart" />
+      </div>
+    </div>
+  ),
 };
 
 export const NoteArray: Story = {
