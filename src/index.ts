@@ -75,6 +75,7 @@ export * from "./lib/board-colors";
 export * from "./lib/board-dimensions";
 export * from "./lib/board-previews";
 // Data display — derived metrics rendered for reading, not editing (#229).
+export * from "./components/data/bar-list";
 export * from "./components/data/stat-strip";
 // Plugin directory — how a plugin is advertised on a card and a detail page.
 export * from "./components/plugin/board-showcase";

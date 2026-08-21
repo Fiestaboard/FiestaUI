@@ -176,6 +176,10 @@ export const INVENTORY = [
     entries: [
       { name: "StatStrip", summary: "Inline row of big-number stats — a description list with an opt-in brand tone." },
       { name: "StatStripItem", summary: "One value/label pair, for composing a strip with custom value markup." },
+      {
+        name: "BarList",
+        summary: "Ranked label/track/fill/value rows — a thin cousin of a meter; the value text carries the data.",
+      },
     ],
   },
   {
