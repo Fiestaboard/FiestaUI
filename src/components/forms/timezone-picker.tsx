@@ -402,7 +402,11 @@ function TimezonePicker({
             // `focus-visible:ring-ring/50 ring-[3px]` recipe, which #228
             // measured at 2.04-2.19:1 in light — under SC 2.4.11's 3:1.
             "focus-ring",
-            "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
+            // Border only: the ring colours Input pairs with this line need a ring
+            // WIDTH to paint, and this field carries `.focus-ring` (a box-shadow
+            // recipe) instead of Tailwind ring utilities, so they would set
+            // --tw-ring-color and render nothing.
+            "aria-invalid:border-destructive",
             "disabled:cursor-not-allowed disabled:opacity-50",
             className,
           )}
