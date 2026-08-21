@@ -85,8 +85,26 @@ npm install
 npm run storybook        # component workbench on :6006
 npm run build            # dist/ — ESM + d.ts + theme.css
 npm run lint && npm run typecheck && npm run format:check
+npm test                 # unit tests (Vitest + jsdom), single run
+npm run test:watch       # the same suite, watching
 npm run build-storybook && npm run test-storybook   # axe a11y sweep (needs the static build served on :6006)
 ```
+
+### Unit tests
+
+Vitest + Testing Library on jsdom, configured in `vitest.config.ts` (deliberately a separate file from the library build's `vite.config.ts`) with globals bootstrapped in `src/test/setup.ts`.
+
+Tests are **colocated**: the test for `src/components/forms/button.tsx` is `src/components/forms/button.test.tsx`. Only `src/**/*.test.{ts,tsx}` is collected — the harness suites under `scripts/` keep their own runners (`npm run perf:test`, `npm run release:test`).
+
+**Tailwind does not run in jsdom.** No stylesheet is loaded, so class strings are inert and `getComputedStyle` reports UA defaults for every component in this package; an assertion on a colour or a size there passes for the wrong reason. Assert on what jsdom actually models — roles, accessible names, ARIA state, focus, keyboard, events and `data-*` props. Appearance is covered twice already, by VRT (`docs/VISUAL_REGRESSION.md`) and by the Storybook a11y sweep, both of which run a real browser.
+
+Three files are maintained as exemplars of the house pattern; copy the nearest one:
+
+| Exemplar                                    | Pattern it models                                                       |
+| ------------------------------------------- | ----------------------------------------------------------------------- |
+| `src/components/chrome/breadcrumb.test.tsx` | presentational — landmark, list semantics, `aria-current`, `asChild`    |
+| `src/components/forms/button.test.tsx`      | interactive — `userEvent`, keyboard activation, busy/disabled semantics |
+| `src/components/forms/toggle.test.tsx`      | ARIA state and selection — `aria-pressed`, roving tabindex, arrow keys  |
 
 ### Visual parity rule
 

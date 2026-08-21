@@ -83,6 +83,22 @@ const NON_SHIPPING_MATCHERS = [
   },
   { label: "VRT baselines", test: (p) => p === "vrt" || p.startsWith("vrt/") },
   { label: "Storybook config", test: (p) => p === ".storybook" || p.startsWith(".storybook/") },
+  // Colocated unit tests. These are the one thing under src/ that is not a
+  // build input: tsconfig.build.json excludes them from the declaration emit
+  // and nothing reachable from src/index.ts imports them, so vite never sees
+  // them either — `npm pack` is byte-identical with or without them. They must
+  // still be CODE (a test-only PR has to run the suite that runs the tests),
+  // which is why they are listed here and NOT in NON_CODE_MATCHERS.
+  //
+  // Without this, every test-only PR would cut a version whose tarball is
+  // identical to the last one — the empty-release failure the CI-infrastructure
+  // matcher above already exists to prevent, and one this repo is about to hit
+  // repeatedly as per-issue test coverage lands.
+  { label: "unit test", test: (p) => /^src\/.+\.test\.tsx?$/.test(p) },
+  {
+    label: "unit test harness",
+    test: (p) => p === "vitest.config.ts" || p === "src/test" || p.startsWith("src/test/"),
+  },
 ];
 
 /**

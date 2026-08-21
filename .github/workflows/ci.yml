@@ -218,6 +218,34 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Gated like build/a11y/VRT rather than run unconditionally like lint: this
+    # job only exercises src/, so a prose-only PR has nothing for it to say.
+    # A test-only PR still runs it — scripts/ci/classify-changes.mjs counts
+    # `src/**/*.test.tsx` as CODE (it is only excluded from *shipping*), so the
+    # PRs that add coverage are never the ones that skip the coverage run.
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit
+
+      # jsdom, no browser download — this is the fast half of the test estate.
+      # Behaviour, roles and ARIA live here; appearance stays in VRT and the
+      # Storybook a11y run, which are the jobs that own a real browser.
+      - name: Vitest
+        run: npm test
+
   build:
     name: Build package
     runs-on: ubuntu-latest
@@ -501,7 +529,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [changes, lint, build, a11y-tests, automation, visual-regression]
+    needs: [changes, lint, unit-tests, build, a11y-tests, automation, visual-regression]
     if: always()
     steps:
       - name: Check all jobs
