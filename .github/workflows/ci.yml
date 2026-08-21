@@ -17,15 +17,12 @@ on:
   # PR A changing a token silently invalidates PR B's baselines, and neither
   # PR is red on its own.
   merge_group:
-  # seed_baselines exists because vrt-update.yml can't be dispatched until it
-  # lands on the default branch — dispatching CI with this input runs the same
-  # baseline seeding from this ref. Remove once vrt-update.yml is on main.
+  # Manual runs of the full suite. The baseline-seeding input that used to live
+  # here is gone: it existed only because vrt-update.yml could not be dispatched
+  # until it reached the default branch, which it has. Seeding and rebaselining
+  # are vrt-update.yml's job, and duplicating them here would mean maintaining
+  # two sharded fan-outs that rewrite the same tree.
   workflow_dispatch:
-    inputs:
-      seed_baselines:
-        description: "Regenerate vrt/baselines and commit to this branch"
-        type: boolean
-        default: false
 
 jobs:
   # `CI Success` is the one required check on `main`, so this workflow must run
@@ -104,95 +101,40 @@ jobs:
           # script writes `code=<bool>` to stdout and its rationale to stderr.
           echo "$files" | node scripts/ci/classify-changes.mjs >> "$GITHUB_OUTPUT"
 
-  vrt-seed:
-    name: Seed VRT baselines
-    if: github.event_name == 'workflow_dispatch' && inputs.seed_baselines
+  # Sizes the two sharded suites. Separate from `changes` because it answers a
+  # different question — `changes` decides IF the expensive jobs run, this
+  # decides HOW WIDE they run — and because both are cheap enough that keeping
+  # them independent costs nothing while letting either be read on its own.
+  #
+  # Deliberately not gated on `needs.changes`: a matrix's `strategy` is
+  # evaluated before `if`, so a skipped planner leaves the VRT and a11y
+  # matrices with no shard list at all and GitHub errors the workflow rather
+  # than skipping the jobs. It runs always and stays cheap; the `if` on the
+  # consuming jobs is what actually skips the work.
+  plan-shards:
+    name: Plan test shards
     runs-on: ubuntu-latest
-    # Same work as vrt-update.yml — a full two-viewport re-shoot — so it carries
-    # the same budget. Left at 25 it would time out on the first seed after the
-    # mobile viewport landed, and only when someone actually dispatched it.
-    timeout-minutes: 40
-    permissions:
-      contents: write
+    timeout-minutes: 5
+    outputs:
+      vrt_shards: ${{ steps.plan.outputs.vrt_shards }}
+      vrt_shard_count: ${{ steps.plan.outputs.vrt_shard_count }}
+      a11y_shards: ${{ steps.plan.outputs.a11y_shards }}
+      a11y_shard_count: ${{ steps.plan.outputs.a11y_shard_count }}
     steps:
-      # Dispatched on `main`, the push below lands on the default branch, which
-      # `main-protection` covers. GITHUB_TOKEN is not a bypass actor on that
-      # ruleset — the Claude bot app is the only one — so checking out with the
-      # default credentials makes the push bounce. Same reason as release.yml.
-      - name: Mint app token
-        id: app-token
-        uses: actions/create-github-app-token@v3
-        with:
-          app-id: ${{ secrets.CLAUDE_BOT_APP_ID }}
-          private-key: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
-
       - uses: actions/checkout@v7
-        with:
-          token: ${{ steps.app-token.outputs.token }}
 
+      # No `npm ci` — the planner is dependency-free and only counts files, so
+      # this job is seconds. Pinned node for the same reason `changes` pins it.
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
-          cache: npm
 
-      - name: Install dependencies
-        run: npm ci --no-audit
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-a11y-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Build Storybook
-        run: npm run build-storybook -- --quiet
-
-      - name: Start Storybook static server
-        run: |
-          npx http-server storybook-static --port 6006 --silent &
-          sleep 5
-
-      - name: Regenerate baselines
-        # Two viewports doubles the shot count — same budget as the identical
-        # step in vrt-update.yml.
-        timeout-minutes: 25
-        run: npm run vrt:update
-
-      - name: Commit and push baselines
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A vrt/baselines
-          if git diff --cached --quiet; then
-            echo "Baselines unchanged — nothing to commit"
-            exit 0
-          fi
-
-          # Name every baseline this rewrites — see the same block in
-          # vrt-update.yml for why a silent rebaseline is the failure mode.
-          changed=()
-          while IFS= read -r f; do changed+=("$f"); done \
-            < <(git diff --cached --name-only -- vrt/baselines)
-          {
-            echo "chore(vrt): seed visual baselines"
-            echo
-            echo "${#changed[@]} baseline image(s) changed:"
-            echo
-            printf '%s\n' "${changed[@]#vrt/baselines/}" | sed 's/^/- /'
-          } > "${RUNNER_TEMP}/vrt-commit-msg.txt"
-
-          {
-            echo "### Baselines seeded (${#changed[@]})"
-            printf '%s\n' "${changed[@]#vrt/baselines/}" | sed 's/^/- /'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          git commit -F "${RUNNER_TEMP}/vrt-commit-msg.txt"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
-        env:
-          GITHUB_REF_NAME: ${{ github.ref_name }}
+      # Counts the committed baseline tree and derives a shard count from it,
+      # so the job count tracks the suite instead of being a number someone has
+      # to remember to bump. Rule and rationale live in the script.
+      - name: Plan
+        id: plan
+        run: node scripts/ci/plan-shards.mjs >> "$GITHUB_OUTPUT"
 
   lint:
     name: Lint & Typecheck
@@ -424,15 +366,22 @@ jobs:
           ./actionlint -color
 
   a11y-tests:
-    name: Accessibility Tests (${{ matrix.theme }})
+    name: Accessibility Tests (${{ matrix.theme }} ${{ matrix.shard }}/${{ needs.plan-shards.outputs.a11y_shard_count }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: changes
+    # Was 15 for the whole unsharded theme. A shard does a fraction of the work
+    # behind the same ~65s of setup, so the budget follows it down.
+    timeout-minutes: 10
+    needs: [changes, plan-shards]
     if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false
+      # Two dimensions, and they are not interchangeable. `theme` is a
+      # Storybook global baked into the URL, so it must be a separate axis —
+      # each leg re-visits every story it owns under one theme. `shard` splits
+      # the story list within a theme. Legs = themes x shards.
       matrix:
         theme: [dark, light]
+        shard: ${{ fromJSON(needs.plan-shards.outputs.a11y_shards) }}
     steps:
       - uses: actions/checkout@v7
 
@@ -461,24 +410,40 @@ jobs:
           npx http-server storybook-static --port 6006 --silent &
           sleep 5
 
+      # `--shard` is the test runner's own flag (it is Jest underneath), so a11y
+      # needs no harness code of its own — unlike VRT, whose runner we wrote.
+      # The shard TOTAL comes from the planner rather than `strategy.job-total`,
+      # which counts every leg: with the theme axis that is 2N, and each job
+      # would claim to be shard i of 2N while only N slices exist.
       - name: Run Storybook a11y tests
         timeout-minutes: 8
+        env:
+          THEME: ${{ matrix.theme }}
+          SHARD: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ needs.plan-shards.outputs.a11y_shard_count }}
         run: |
           URL="http://localhost:6006"
-          if [ "${{ matrix.theme }}" = "light" ]; then
+          if [ "$THEME" = "light" ]; then
             URL="${URL}?globals=theme:light"
           fi
-          npm run test-storybook:ci -- --url "$URL"
+          npm run test-storybook:ci -- --url "$URL" --shard "${SHARD}/${SHARD_TOTAL}"
 
   visual-regression:
-    name: Visual Regression
+    name: Visual Regression (${{ matrix.shard }}/${{ needs.plan-shards.outputs.vrt_shard_count }})
     runs-on: ubuntu-latest
-    # VRT shoots every story at two viewports (desktop + mobile) x two themes,
-    # so the screenshot step costs roughly double what it did when this job was
-    # single-viewport. Budget = install/build (~7 min) + the 25 min step cap.
-    timeout-minutes: 35
-    needs: changes
+    # Was 35 for one job shooting all ~2,100 shots. A shard shoots ~1/N of them
+    # behind the same ~65s of setup, and the planner caps N so a shard never
+    # carries more than ~150 shots (~40s of shooting) unless the cap binds.
+    timeout-minutes: 15
+    needs: [changes, plan-shards]
     if: needs.changes.outputs.code == 'true'
+    strategy:
+      # Independent slices: one shard finding drift says nothing about whether
+      # the others would, and cancelling them would hide the rest of the drift
+      # behind whichever shard happened to fail first.
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan-shards.outputs.vrt_shards) }}
     steps:
       - uses: actions/checkout@v7
 
@@ -507,17 +472,24 @@ jobs:
           npx http-server storybook-static --port 6006 --silent &
           sleep 5
 
+      # Shard 1 additionally owns the whole-suite inventory checks (new, stale
+      # and stray baselines) so they are reported once per run rather than once
+      # per shard — see scripts/vrt/shard.mjs.
       - name: Run visual regression
-        # Two viewports doubles the shot count; 12 -> 25 keeps the same headroom
-        # over the observed runtime that the single-viewport budget had.
-        timeout-minutes: 25
-        run: npm run vrt
+        timeout-minutes: 10
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ needs.plan-shards.outputs.vrt_shard_count }}
+        run: npm run vrt -- --shard "${SHARD}/${SHARD_TOTAL}"
 
+      # Artifact names must be unique within a run, so the shard index is part
+      # of the name; without it the matrix legs collide and only one upload
+      # survives. Download them all at once with the `vrt-diffs-*` pattern.
       - name: Upload diff images
         if: failure()
         uses: actions/upload-artifact@v5
         with:
-          name: vrt-diffs
+          name: vrt-diffs-${{ matrix.shard }}
           path: vrt/diffs/
           if-no-files-found: ignore
 
@@ -525,11 +497,19 @@ jobs:
   # report rather than inherit a skip — a job that skipped because `changes`
   # ruled it irrelevant is a pass, not a failure, so only `failure` and
   # `cancelled` are treated as red. `changes` is in `needs` so that a broken
-  # classifier fails the merge gate instead of silently skipping everything.
+  # classifier fails the merge gate instead of silently skipping everything —
+  # and `plan-shards` for the same reason, one step further out: a planner that
+  # emitted a malformed shard list would leave the VRT and a11y matrices
+  # unbuilt, and an unbuilt matrix reports as skipped, which this job reads as
+  # a pass. Depending on the planner directly makes that failure red instead.
+  #
+  # A matrix job contributes one entry to `needs.*.result` per leg, so a single
+  # red shard out of fifteen fails the gate — which is what `fail-fast: false`
+  # buys: every shard reports its own drift before the gate closes.
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [changes, lint, unit-tests, build, a11y-tests, automation, visual-regression]
+    needs: [changes, plan-shards, lint, unit-tests, build, a11y-tests, automation, visual-regression]
     if: always()
     steps:
       - name: Check all jobs
