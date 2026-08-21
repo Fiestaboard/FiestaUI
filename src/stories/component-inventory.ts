@@ -121,6 +121,10 @@ export const INVENTORY = [
       { name: "Accordion", summary: "Vertically stacked disclosure sections." },
       { name: "Card", summary: "Surface with header, content, footer and action slots." },
       { name: "Collapsible", summary: "Single show/hide region driven by its own trigger." },
+      {
+        name: "IconTile",
+        summary: "Rounded square that centres one icon; three sizes, muted or board-black ground, decorative.",
+      },
       { name: "JsonTree", summary: "Expandable JSON viewer with per-type colouring and path selection." },
       { name: "MediaFrame", summary: "Framed figure for screenshots and media, with a caption/toolbar bar slot." },
       { name: "ScrollArea", summary: "Overflow container with a styled scrollbar." },

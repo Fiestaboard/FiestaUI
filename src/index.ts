@@ -9,6 +9,7 @@
 export * from "./components/containment/accordion";
 export * from "./components/containment/card";
 export * from "./components/containment/collapsible";
+export * from "./components/containment/icon-tile";
 export * from "./components/containment/json-tree";
 export * from "./components/containment/media-frame";
 export * from "./components/feedback/alert";

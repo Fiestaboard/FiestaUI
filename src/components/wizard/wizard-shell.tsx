@@ -1,9 +1,15 @@
 import { cn } from "../../lib/utils";
 import { BoardBackdrop } from "../board/board-backdrop";
+import { IconTile } from "../containment/icon-tile";
 import { WizardProgress } from "./wizard-progress";
 
 export interface WizardShellProps {
-  /** Brand mark for the header medallion — an <img>, an inline SVG, anything. */
+  /**
+   * Brand mark for the header medallion — an <img>, an inline SVG, anything.
+   * Rendered inside a decorative {@link IconTile}, so it is hidden from
+   * assistive technology: the `wordmark` beside it is the lockup's name and
+   * announcing both would say the product twice.
+   */
   icon?: React.ReactNode;
   /**
    * Wordmark rendered beside the mark. Together they are the product lockup —
@@ -107,13 +113,18 @@ export function WizardShell({
                 medallion nearly vanished into a light card and the taco lost
                 the ground its outlines were drawn against. This is the same
                 device as the category tile chip: brand artwork sits on board
-                black, wherever it lands. */}
+                black, wherever it lands. That ground is now IconTile's
+                `tone="board"` (#229 item 5) rather than a hand-rolled span —
+                same classes, one owner. */}
             <div className="flex items-center justify-between gap-4">
               <span className="flex min-w-0 items-center gap-3">
                 {icon ? (
-                  <span className="bg-board-surface-dark flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-white/10 sm:size-14">
+                  // `sm:size-14` stays at the call site rather than becoming a
+                  // fourth IconTile size: the responsive bump is this header's
+                  // composition, not a step on the shared 32/40/48 scale.
+                  <IconTile size="lg" tone="board" className="sm:size-14">
                     {icon}
-                  </span>
+                  </IconTile>
                 ) : null}
                 {wordmark}
               </span>
