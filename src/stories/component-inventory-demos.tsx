@@ -71,6 +71,7 @@ import { ThemeToggle } from "../components/chrome/theme-toggle";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/containment/accordion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
+import { IconTile } from "../components/containment/icon-tile";
 import { JsonTree } from "../components/containment/json-tree";
 import { MediaFrame, MediaFrameBar, MediaFrameMedia } from "../components/containment/media-frame";
 import { ScrollArea } from "../components/containment/scroll-area";
@@ -813,6 +814,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         <div className="rounded-md border border-border px-4 py-3 font-mono text-sm">Office</div>
       </CollapsibleContent>
     </Collapsible>
+  ),
+  IconTile: () => (
+    <div className="flex items-end gap-3">
+      <IconTile size="sm">
+        <Cloud />
+      </IconTile>
+      <IconTile size="md">
+        <Bell />
+      </IconTile>
+      <IconTile size="lg" tone="board">
+        <Cloud />
+      </IconTile>
+    </div>
   ),
   JsonTree: () => (
     <Frame>
