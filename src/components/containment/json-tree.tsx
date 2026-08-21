@@ -123,7 +123,7 @@ export interface JsonTreeProps {
  * complete out of the box (Tab to reach, Enter/Space to toggle); Arrow
  * Left/Right are wired up on top as the affordance tree users reach for.
  */
-export function JsonTree({
+export const JsonTree = React.memo(function JsonTreeNode({
   data,
   path = "",
   onSelect,
@@ -271,4 +271,4 @@ export function JsonTree({
       )}
     </div>
   );
-}
+});

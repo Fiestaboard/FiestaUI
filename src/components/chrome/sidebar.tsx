@@ -21,6 +21,10 @@ const MOBILE_ITEM_BASE = "flex items-center gap-3 rounded-lg px-4 py-3 text-base
 const MOBILE_ITEM_ACTIVE = cn(MOBILE_ITEM_BASE, NAV_ITEM_ACTIVE);
 const MOBILE_ITEM_INACTIVE = cn(MOBILE_ITEM_BASE, NAV_ITEM_INACTIVE);
 
+// The AI row is a <button> in a column of <a>s: links fill the column as
+// flex items, a button shrinks to fit, so its base carries the one class the
+// link base doesn't need — w-full. Everything else matches the item classes
+// exactly: the row reads as just another destination, which is the point.
 const MOBILE_AI_BASE = "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-base font-medium min-h-[48px]";
 const MOBILE_AI_ACTIVE = cn(MOBILE_AI_BASE, NAV_ITEM_ACTIVE);
 const MOBILE_AI_INACTIVE = cn(MOBILE_AI_BASE, NAV_ITEM_INACTIVE);
@@ -126,7 +130,14 @@ export interface SidebarProps {
   logoIconSrc?: string;
   /** Click handler for the logo. When present, the lockup renders as a button. */
   onLogoClick?: (e: React.MouseEvent) => void;
-  /** AI assistant nav entry; omit to hide. */
+  /**
+   * AI assistant nav entry; omit to hide. Renders as the LAST ROW of the main
+   * nav list — visually identical to the items around it, scrolling with
+   * them. It used to be its own one-row section between two hairlines below
+   * the list; a single entry fenced off by dividers read as a stranded
+   * mini-menu, and every hairline it added shrank the space the list had
+   * before it needed to scroll.
+   */
   ai?: { active: boolean; onOpen: () => void };
   /** Board switcher slots (rendered only when provided). */
   boardSelector?: React.ReactNode;
@@ -553,30 +564,30 @@ export const Sidebar = memo(function Sidebar({
             <TooltipContent side="right">{collapsed ? labels.expandSidebar : labels.collapseSidebar}</TooltipContent>
           </Tooltip>
 
+          {/* Two regions, one hairline each — not five divider-fenced sections.
+              TOP is pinned context (logo, board switcher), then ONE nav list
+              that owns all remaining height and scrolls inside itself when it
+              outgrows it; BOTTOM is pinned meta (secondary links, account,
+              version/theme). The AI row lives inside the list like any other
+              destination — it used to sit alone between two extra hairlines
+              below the list, a one-item "section" that stole two rows of
+              height from the very list that had to scroll around it. */}
           <div className="relative z-[1] flex h-full flex-col overflow-hidden">
-            {/* Header */}
+            {/* Header — logo and the board context switcher are one pinned
+                block: the switcher scopes every destination below it, so it
+                stays visible while the list scrolls. */}
             {logoBlock("desktop")}
+            {boardSelector && <div className="shrink-0 px-2 pb-3">{boardSelector}</div>}
 
             <div className="mx-2 border-t border-sidebar-border" />
 
-            {/* Board context switcher — first thing under the logo: it scopes
-                every destination below it, so it leads the menu. */}
-            {boardSelector && (
-              <>
-                <div className="shrink-0 px-2 pb-3 pt-3">{boardSelector}</div>
-                <div className="mx-2 border-t border-sidebar-border" />
-              </>
-            )}
-
-            {/* Primary Navigation — flex-1 pins secondary + version row to the bottom */}
+            {/* The nav list — flex-1 gives it every pixel the pinned blocks
+                don't use; min-h-0 lets it actually shrink so overflow-y
+                scrolls the LIST, never the sidebar. */}
             <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto py-4 px-2">
               {primaryItems.map(renderDesktopNavItem)}
-            </nav>
-
-            {ai && (
-              <>
-                <div className="mx-2 border-t border-sidebar-border" />
-                <div className="shrink-0 px-2 py-2">
+              {ai &&
+                (collapsed ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -586,20 +597,26 @@ export const Sidebar = memo(function Sidebar({
                         className={ai.active ? DESKTOP_AI_ACTIVE : DESKTOP_AI_INACTIVE}
                       >
                         <Sparkles className="h-5 w-5 flex-shrink-0" />
-                        <span className={collapsed ? NAV_LABEL_COLLAPSED : NAV_LABEL_EXPANDED}>
-                          {labels.aiAssistant}
-                        </span>
+                        <span className={NAV_LABEL_COLLAPSED}>{labels.aiAssistant}</span>
                       </button>
                     </TooltipTrigger>
-                    {collapsed && (
-                      <TooltipContent side="right" className="font-medium">
-                        {labels.aiAssistant}
-                      </TooltipContent>
-                    )}
+                    <TooltipContent side="right" className="font-medium">
+                      {labels.aiAssistant}
+                    </TooltipContent>
                   </Tooltip>
-                </div>
-              </>
-            )}
+                ) : (
+                  // Expanded rows pay no tooltip machinery — same reasoning as
+                  // renderDesktopNavItem above.
+                  <button
+                    type="button"
+                    onClick={ai.onOpen}
+                    className={ai.active ? DESKTOP_AI_ACTIVE : DESKTOP_AI_INACTIVE}
+                  >
+                    <Sparkles className="h-5 w-5 flex-shrink-0" />
+                    <span className={NAV_LABEL_EXPANDED}>{labels.aiAssistant}</span>
+                  </button>
+                ))}
+            </nav>
 
             <div className="mx-2 border-t border-sidebar-border" />
 
