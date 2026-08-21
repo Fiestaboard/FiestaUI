@@ -72,6 +72,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { JsonTree } from "../components/containment/json-tree";
+import { MediaFrame, MediaFrameBar, MediaFrameMedia } from "../components/containment/media-frame";
 import { ScrollArea } from "../components/containment/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/containment/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containment/tabs";
@@ -148,6 +149,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "../components/overlays/dropdown-menu";
+import { Lightbox, LightboxContent, LightboxTrigger } from "../components/overlays/lightbox";
 import {
   Popover,
   PopoverContent,
@@ -181,6 +183,19 @@ import type { InventoryName } from "./component-inventory";
  * ------------------------------------------------------------------ */
 
 const BOARD_MESSAGE = "     AIR QUALITY\n     AQI 42  GOOD\n\n      VISIBILITY\n  8.5 MILES  CLEAR";
+
+// Inline SVG data URI, not a fetched image: the inventory is VRT-shot
+// offline, and a data URI paints identically on every run.
+const SCREENSHOT_PLACEHOLDER = `data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='675' viewBox='0 0 1200 675'>` +
+    `<defs><pattern id='t' width='60' height='80' patternUnits='userSpaceOnUse'>` +
+    `<rect x='4' y='4' width='52' height='72' rx='6' fill='#292524'/>` +
+    `</pattern></defs>` +
+    `<rect width='1200' height='675' fill='#0c0a09'/>` +
+    `<rect width='1200' height='675' fill='url(#t)'/>` +
+    `<text x='600' y='358' font-family='monospace' font-size='72' letter-spacing='18' fill='#fbbf24' text-anchor='middle'>FIESTABOARD</text>` +
+    `</svg>`,
+)}`;
 
 const SHOWCASE_PREVIEWS = [
   {
@@ -804,6 +819,14 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <JsonTree data={JSON_SAMPLE} path="response" defaultExpandedDepth={1} />
     </Frame>
   ),
+  MediaFrame: () => (
+    <MediaFrame className="w-full max-w-md">
+      <MediaFrameMedia>
+        <img src={SCREENSHOT_PLACEHOLDER} alt="Split-flap board spelling FIESTABOARD" />
+      </MediaFrameMedia>
+      <MediaFrameBar>The kitchen board running the morning briefing page.</MediaFrameBar>
+    </MediaFrame>
+  ),
   ScrollArea: () => (
     <ScrollArea className="h-40 w-48 rounded-md border border-border">
       <Stack gap="1" className="p-4">
@@ -932,6 +955,23 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </SheetHeader>
       </SheetContent>
     </Sheet>
+  ),
+  // Rendered closed like every overlay here; the trigger is a zoomable
+  // MediaFrame, which is the composition the component exists for.
+  Lightbox: () => (
+    <Lightbox>
+      <MediaFrame className="w-full max-w-md">
+        <LightboxTrigger asChild>
+          <MediaFrameMedia aria-label="Zoom board screenshot">
+            <img src={SCREENSHOT_PLACEHOLDER} alt="Split-flap board spelling FIESTABOARD" />
+          </MediaFrameMedia>
+        </LightboxTrigger>
+        <MediaFrameBar>Click the screenshot to zoom.</MediaFrameBar>
+      </MediaFrame>
+      <LightboxContent aria-label="Board screenshot, zoomed">
+        <img src={SCREENSHOT_PLACEHOLDER} alt="Split-flap board spelling FIESTABOARD" />
+      </LightboxContent>
+    </Lightbox>
   ),
   Popover: () => (
     <Popover>
