@@ -66,6 +66,8 @@ import { JsonTree } from "../components/containment/json-tree";
 import { ScrollArea } from "../components/containment/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/containment/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containment/tabs";
+import { BarList } from "../components/data/bar-list";
+import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
@@ -77,6 +79,7 @@ import { createLucideIconResolver, VariablePickerContent } from "../components/e
 import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
+import { Chip } from "../components/feedback/chip";
 import { EmptyState } from "../components/feedback/empty-state";
 import { Skeleton } from "../components/feedback/skeleton";
 import { Spinner } from "../components/feedback/spinner";
@@ -668,6 +671,15 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <Badge variant="formula">formula</Badge>
     </Flex>
   ),
+  Chip: () => (
+    <Flex gap="2" wrap>
+      <Chip>release</Chip>
+      <Chip>plugins</Chip>
+      <Chip asChild mono>
+        <a href="#v5.11">5.11</a>
+      </Chip>
+    </Flex>
+  ),
   EmptyState: () => (
     <Frame>
       <EmptyState
@@ -842,6 +854,18 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </Text>
       </TabsContent>
     </Tabs>
+  ),
+
+  /* ---- Data ---- */
+  BarList: () => (
+    <BarList
+      className="w-full max-w-sm"
+      items={[
+        { key: "clock", label: "clock", value: 943 },
+        { key: "weather", label: "weather", value: 611 },
+        { key: "stocks", label: "stocks", value: 214 },
+      ]}
+    />
   ),
 
   /* ---- Overlays ---- */
@@ -1061,6 +1085,29 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </div>
   ),
   BoardTeaser: () => <BoardTeaser teaser="AQI 42 GOOD" size="md" />,
+
+  /* ---- Data ---- */
+  StatStrip: () => (
+    <StatStrip
+      tone="brand"
+      items={[
+        { value: "52", label: "plugins" },
+        { value: "5,612", label: "unique cloners" },
+      ]}
+    />
+  ),
+  StatStripItem: () => (
+    <StatStrip>
+      <StatStripItem
+        value={
+          <>
+            99.4<span className="text-base font-normal text-muted-foreground">%</span>
+          </>
+        }
+        label="uptime"
+      />
+    </StatStrip>
+  ),
 
   /* ---- Plugin directory ---- */
   PluginCard: () => (
