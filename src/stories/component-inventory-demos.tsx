@@ -122,6 +122,7 @@ import { Swatch, SwatchGroup } from "../components/forms/swatch";
 import { Switch } from "../components/forms/switch";
 import { Textarea } from "../components/forms/textarea";
 import { TimePicker } from "../components/forms/time-picker";
+import { TimezonePicker } from "../components/forms/timezone-picker";
 import { Toggle, ToggleGroup } from "../components/forms/toggle";
 import { SegmentedControl, SegmentedControlItem, ToggleCard, ToggleCardGroup } from "../components/forms/toggle-card";
 import { Box } from "../components/layout/box";
@@ -302,6 +303,29 @@ function TimePickerDemo() {
         Start time
       </Label>
       <TimePicker id="inv-time" aria-labelledby="inv-time-label" value={value} onValueChange={setValue} />
+    </Stack>
+  );
+}
+
+/**
+ * Zones are pinned rather than derived: `TimezonePicker` defaults to the
+ * runtime's whole IANA table with offsets computed for *now*, and this page is
+ * photographed by VRT — `+02:00` would become `+01:00` the night the clocks
+ * change.
+ */
+const INVENTORY_ZONES = [
+  { id: "Europe/Berlin", offset: "+02:00" },
+  { id: "Europe/London", offset: "+01:00" },
+  { id: "America/New_York", offset: "-04:00" },
+  { id: "Asia/Tokyo", offset: "+09:00" },
+];
+
+function TimezonePickerDemo() {
+  const [value, setValue] = useState("Europe/Berlin");
+  return (
+    <Stack gap="1.5" className="w-full max-w-[240px]">
+      <Label htmlFor="inv-timezone">Time zone</Label>
+      <TimezonePicker id="inv-timezone" timezones={INVENTORY_ZONES} value={value} onValueChange={setValue} />
     </Stack>
   );
 }
@@ -629,6 +653,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Stack>
   ),
   TimePicker: TimePickerDemo,
+  TimezonePicker: TimezonePickerDemo,
   Toggle: () => (
     <Flex align="center" gap="3" wrap>
       <Toggle aria-label="Bold" size="icon">

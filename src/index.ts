@@ -46,6 +46,7 @@ export * from "./components/forms/swatch";
 export * from "./components/forms/switch";
 export * from "./components/forms/textarea";
 export * from "./components/forms/time-picker";
+export * from "./components/forms/timezone-picker";
 export * from "./components/forms/toggle";
 export * from "./components/forms/toggle-card";
 export * from "./components/layout/stack";
