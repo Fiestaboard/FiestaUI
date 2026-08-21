@@ -76,7 +76,7 @@ export const INVENTORY = [
     title: "Forms",
     description: "Inputs and controls. Every one is keyboard-operable and carries a visible focus ring.",
     entries: [
-      { name: "Button", summary: "Seven variants × six sizes, plus a loading state that reserves its own width." },
+      { name: "Button", summary: "Seven variants × seven sizes, plus a loading state that reserves its own width." },
       { name: "Checkbox", summary: "Native checkbox styled to the system." },
       { name: "Input", summary: "Single-line text input across the HTML input types." },
       { name: "Label", summary: "Form label wired to its control by htmlFor." },

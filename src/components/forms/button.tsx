@@ -65,6 +65,23 @@ const buttonVariants = cva(
         sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 has-[>[data-slot=button-loading]>[data-slot=button-label]>svg]:px-2.5",
         lg: "h-10 rounded-md px-6 has-[>svg]:px-4 has-[>[data-slot=button-loading]>[data-slot=button-label]>svg]:px-4",
         icon: "size-9",
+        // 24px, for an icon affordance that sits INSIDE something else — a
+        // Badge, a chip, a code block, a dense settings row — where 32px
+        // (`icon-sm`) is taller than its host and breaks the layout (#240).
+        //
+        // 24 exactly, and not the ~20px the nine hand-rolled versions
+        // downstream actually measure: WCAG 2.2 SC 2.5.8 (Target Size,
+        // Minimum) is 24×24, and the kit must not ship the size that fails
+        // it. This is the floor for the whole package — nothing goes below.
+        //
+        // The glyph override needs the important suffix. The base sets
+        // `[&_svg:not([class*='size-'])]:size-4` (16px, which leaves a 4px
+        // gutter in a 24px box, where every target site draws 12px), and a
+        // plain `size-3` here has IDENTICAL specificity to it — Tailwind's
+        // stylesheet order would decide the winner, not this source order.
+        // A caller who sizes their own glyph (`size-3.5`) still wins, because
+        // the `:not([class*='size-'])` guard stops this rule matching at all.
+        "icon-xs": "size-6 [&_svg:not([class*='size-'])]:size-3!",
         "icon-sm": "size-8",
         "icon-lg": "size-10",
       },
@@ -83,6 +100,10 @@ const SPINNER_SIZE_BY_BUTTON_SIZE: Record<ButtonSize, SpinnerSize> = {
   default: "md",
   icon: "md",
   sm: "sm",
+  // The smallest Spinner (14px) inside the smallest button (24px), rather
+  // than a new Spinner step: 14px leaves a 5px gutter, and a fourth size
+  // would exist for exactly one button.
+  "icon-xs": "sm",
   "icon-sm": "sm",
   lg: "lg",
   "icon-lg": "lg",

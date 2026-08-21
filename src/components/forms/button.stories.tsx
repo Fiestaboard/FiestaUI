@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { ChevronLeft, ChevronRight, Mail, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Copy, Mail, Plus, Save, Trash2, X } from "lucide-react";
 
 import { Button } from "./button";
 
@@ -18,8 +18,10 @@ const meta = {
     },
     size: {
       control: "select",
-      options: ["default", "sm", "lg", "icon", "icon-sm", "icon-lg"],
-      description: "Size variant (icon sizes are square)",
+      options: ["default", "sm", "lg", "icon", "icon-xs", "icon-sm", "icon-lg"],
+      description:
+        "Size variant (icon sizes are square: 24 / 32 / 36 / 40px). `icon-xs` is the 24px floor — WCAG 2.2 " +
+        "SC 2.5.8's minimum target, for affordances that sit inside a chip, a code block or a dense row.",
     },
     disabled: {
       control: "boolean",
@@ -121,6 +123,25 @@ export const Icon: Story = {
     size: "icon",
     variant: "outline",
     "aria-label": "Add",
+  },
+};
+
+/**
+ * The 24px icon affordance, for the control that lives *inside* something
+ * else. 24 is not a rounded-down 32: it is WCAG 2.2 SC 2.5.8 (Target Size,
+ * Minimum) exactly, and it is the floor for the whole package — the versions
+ * this replaces measure ~20px, which fails that criterion. Below 24px the
+ * answer is not a smaller button, it is a bigger host.
+ *
+ * It is a full `Button`, so it brings the one thing the hand-rolled versions
+ * lost: a visible focus ring. Tab to it.
+ */
+export const IconXs: Story = {
+  args: {
+    children: <X className="size-3" />,
+    size: "icon-xs",
+    variant: "ghost",
+    "aria-label": "Clear override",
   },
 };
 
@@ -242,6 +263,9 @@ export const AllSizes = () => (
     <Button size="icon" aria-label="Add">
       <Plus className="h-4 w-4" />
     </Button>
+    <Button size="icon-xs" aria-label="Add">
+      <Plus className="size-3" />
+    </Button>
     <Button size="icon-sm" aria-label="Add">
       <Plus className="h-4 w-4" />
     </Button>
@@ -269,6 +293,49 @@ export const IconButtons = () => (
     <Button variant="secondary" size="icon" aria-label="Add">
       <Plus className="h-4 w-4" />
     </Button>
+  </div>
+);
+
+/**
+ * The hosts `icon-xs` exists for: a dense rule row and a share-string block,
+ * where a 32px `icon-sm` would double the row height. `ghost` is the variant
+ * every one of these sites wants — no field of its own, so the affordance
+ * belongs to the row rather than sitting on top of it.
+ *
+ * The glyphs are 12px: the size variant supplies that automatically, and a
+ * caller who writes their own `size-3.5` still wins, because the base rule
+ * only matches an svg with no `size-*` class of its own.
+ *
+ * The host must not clip. `Badge` is `overflow-hidden`, so a 24px button
+ * inside a 20px badge clips both the button and the outward focus ring —
+ * which is the defect this size exists to remove, not an example of it. Those
+ * sites want `Chip` (26px, operable, 2.5.8-clean) or a padded row like the
+ * ones below.
+ */
+export const IconXsInDenseHosts = () => (
+  <div className="flex w-full sm:w-[420px] flex-col gap-4">
+    <div className="flex flex-col gap-1 rounded-lg border p-2">
+      {["Status is Blocked", "Owner is unset"].map((rule, index) => (
+        <div key={rule} className="flex items-center gap-2 rounded-md px-2 py-1 text-sm">
+          <span className="flex-1 truncate">{rule}</span>
+          <Button variant="ghost" size="icon-xs" aria-label={`Move ${rule} up`} disabled={index === 0}>
+            <ArrowUp />
+          </Button>
+          <Button variant="ghost" size="icon-xs" aria-label={`Move ${rule} down`} disabled={index === 1}>
+            <ArrowDown />
+          </Button>
+          <Button variant="ghost" size="icon-xs" aria-label={`Delete ${rule}`}>
+            <Trash2 />
+          </Button>
+        </div>
+      ))}
+    </div>
+    <div className="flex items-center gap-2 rounded-md border bg-muted/50 py-1 pl-3 pr-1 font-mono text-xs">
+      <span className="flex-1 truncate">fiesta.board/p/9f3c2a</span>
+      <Button variant="ghost" size="icon-xs" aria-label="Copy share link">
+        <Copy />
+      </Button>
+    </div>
   </div>
 );
 

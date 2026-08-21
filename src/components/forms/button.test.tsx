@@ -153,4 +153,76 @@ describe("Button", () => {
     expect(button).toHaveAttribute("data-size", "sm");
     expect(button).toHaveAttribute("data-slot", "button");
   });
+
+  /*
+   * #240 — the 24px icon affordance that sits INSIDE something else (a Badge,
+   * a chip, a code block, a dense settings row). What is assertable here is
+   * the published contract (`data-size` is what a consumer targets), the
+   * composition with `ghost` (all nine downstream sites are ghost icon
+   * buttons), and the focus/keyboard behaviour six of those nine hand-rolled
+   * versions lost. The 24px itself is a class string, so its assertion is
+   * VRT's job, not this file's.
+   */
+  describe("icon-xs", () => {
+    it("renders an icon-only affordance and publishes the size as data-size", () => {
+      render(
+        <Button size="icon-xs" aria-label="Clear override">
+          <svg aria-hidden="true" />
+        </Button>,
+      );
+
+      const button = screen.getByRole("button", { name: "Clear override" });
+      expect(button).toHaveAttribute("data-size", "icon-xs");
+      expect(button).toHaveAttribute("data-slot", "button");
+    });
+
+    it('composes with variant="ghost"', async () => {
+      const user = userEvent.setup();
+      const onClick = vi.fn();
+      render(
+        <Button size="icon-xs" variant="ghost" aria-label="Remove tag" onClick={onClick}>
+          <svg aria-hidden="true" />
+        </Button>,
+      );
+
+      const button = screen.getByRole("button", { name: "Remove tag" });
+      expect(button).toHaveAttribute("data-variant", "ghost");
+      expect(button).toHaveAttribute("data-size", "icon-xs");
+
+      await user.click(button);
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("is a real button — its own tab stop, activated by Enter", async () => {
+      const user = userEvent.setup();
+      const onClick = vi.fn();
+      render(
+        <Button size="icon-xs" variant="ghost" aria-label="Move rule up" onClick={onClick}>
+          <svg aria-hidden="true" />
+        </Button>,
+      );
+
+      await user.tab();
+      const button = screen.getByRole("button", { name: "Move rule up" });
+      expect(button).toHaveFocus();
+
+      await user.keyboard("{Enter}");
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the loading contract at icon-xs", () => {
+      render(
+        <Button size="icon-xs" variant="ghost" loading aria-label="Copy share link">
+          <svg aria-hidden="true" />
+        </Button>,
+      );
+
+      // Exercises SPINNER_SIZE_BY_BUTTON_SIZE, which is keyed by ButtonSize —
+      // a size added without its spinner row is a typecheck failure — and
+      // pins that the injected spinner does not steal the accessible name.
+      const button = screen.getByRole("button", { name: "Copy share link" });
+      expect(button).toHaveAttribute("aria-busy", "true");
+      expect(button).not.toBeDisabled();
+    });
+  });
 });
