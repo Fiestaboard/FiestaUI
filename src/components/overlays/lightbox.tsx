@@ -141,11 +141,30 @@ function LightboxContent({
             `top: -40px` float could under a tall image. Viewport-pinning
             with `fixed` was tried and rejected: the popup's translate makes
             it the containing block for fixed descendants, which parked the
-            chip at the popup's corner, not the viewport's. */}
+            chip at the popup's corner, not the viewport's.
+
+            The FOCUS ring is deliberately NOT recolored, and this chip used
+            to carry a `focus-visible:ring-white/60` override that is now
+            gone. Two reasons. Mechanically it had stopped working:
+            OverlayClose moved to the shared `.focus-ring` class, whose
+            box-shadow is `var(--focus-ring-shadow)` — a ring-COLOUR utility
+            only sets `--tw-ring-color`, which nothing on this element reads,
+            so the override was painting nothing while looking like it still
+            worked. And on the merits the shared ring is the better one here:
+            on the worst-case rgb(38,38,38) scrim composite the `--ring` band
+            measures 7.44:1 (10.27:1 over a dark page), where the old
+            white/60 band measured 6.46:1. The `--ring-edge` hairlines that
+            bracket it do vanish into the scrim (1.19:1) — which is exactly
+            the DARK-theme case theme.css already argues for every other
+            control: the hairline carries the boundary on light surfaces, and
+            where it cannot, the 2px orange band carries the indicator on its
+            own, over SC 2.4.11's 3:1. Unlike the chip fill, `--ring` is
+            theme-invariant (#f5a623 in both themes), so a theme-invariant
+            scrim needs no theme-invariant override to sit on it. */}
         <OverlayClose
           data-slot="lightbox-close"
           size="md"
-          className="right-0 top-0 bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60"
+          className="right-0 top-0 bg-white/15 text-white hover:bg-white/25"
         />
       </LightboxPrimitive.Popup>
     </LightboxPortal>

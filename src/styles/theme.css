@@ -452,12 +452,24 @@
    *   formula   dark     10.11/7.96       8.96/7.04      5.99 (--secondary)
    *                       ^15% / ^25% (rest / anchor-hover fill)
    *
-   * The pairs hold. What does NOT hold is a consumer freezing one of these
-   * pigments as a hex: fiestaboard.github.io shipped a hard-coded
-   * `!important` tag colour to "fix AA", and a hex cannot follow the theme —
-   * the light-mode foreground it pinned measures 1.54:1 on the dark-mode
-   * `--card` fill, which is the ~1.5:1 #231 was filed for. The override is
-   * the defect; these tokens are the fix. Delete it downstream.
+   * The pairs hold, and the ~1.5:1 in #231 IS NOT REPRODUCIBLE FROM THIS
+   * FILE. The issue's cell — dark `success` on `--card` — recomputes to
+   * 9.20:1 at the 15% fill and 7.18:1 at the 25% one, and the pre-4.0.0
+   * palette this replaced does not produce a sub-4.5:1 cell anywhere either,
+   * so it is not a number these tokens used to have. It is quoted here
+   * because #231 stays OPEN on it: the tokens are proven, the report is not
+   * explained, and inventing a cause for it would be the same mistake as
+   * inventing a ratio.
+   *
+   * In particular it is NOT the downstream override. fiestaboard.github.io
+   * pins the "New" badge to hexes with `!important`, which is a hex fork of
+   * a token pair and a real maintenance defect — a fork stops tracking a
+   * retune here — but it is theme-AWARE (`.newBadge` plus a
+   * `[data-theme="dark"] .newBadge`, and their build widens every compiled
+   * `.dark` selector to that attribute), so the light pigment never lands on
+   * a dark fill. Both halves clear AA on their own fills: 6.49:1 light,
+   * 7.52:1 dark. It is redundant, not broken. Dropping it downstream is a
+   * cleanup, not a fix, and it does not close #231.
    *
    * Opaque fills (mixing the tint into --background instead of compositing
    * over the live surface) were prototyped and REJECTED: they make the pair
@@ -860,9 +872,10 @@
      13.05:1 on --background; board-ink label 11.81:1. */
   --warning: oklch(0.86 0.17 104);
   --warning-foreground: oklch(0.205 0.008 73);
-  /* The dark half of the #231 matrix — see the table in :root. These are the
-     pigments the docs site's hard-coded hex override replaced, which is why
-     that override measured 1.54:1 here and these measure 7.90-10.39:1. */
+  /* The dark half of the #231 matrix — see the table in :root. These measure
+     7.90-10.39:1 at the 15% fill on every surface a Badge can land on, which
+     includes the dark `--card` cell #231 reports as ~1.5:1 (9.20:1 here). The
+     reported figure is unexplained, not reproduced; #231 stays open on it. */
   --tag-variable: oklch(0.78 0.164 315);
   --tag-variable-foreground: oklch(0.86 0.1 315);
   --tag-success: oklch(0.78 0.17 133);

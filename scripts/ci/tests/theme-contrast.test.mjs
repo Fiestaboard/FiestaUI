@@ -12,10 +12,11 @@ import { fileURLToPath } from "node:url";
  * noticed when the palette moved underneath it. 4.0.0 repointed `--ring` and
  * `--primary` at the literal #f5a623 tile; every call site still spelling the
  * old alpha-ring recipe silently dropped to ~1.36:1, and every consumer that
- * had hard-coded a tag colour to "fix" AA became theme-blind. Review cannot
- * catch that — each file looks fine on its own — so it is asserted here.
+ * forked a tag colour into a hex to "fix" AA stopped tracking the tokens.
+ * Review cannot catch that — each file looks fine on its own — so it is
+ * asserted here.
  *
- * Three assertions, one per issue:
+ * Four assertions:
  *
  *   1. #238 — the banned `ring-ring/<alpha>` focus recipe and `--primary`-as-
  *      text are pinned to an allowlist that may shrink and never grow.
@@ -26,6 +27,11 @@ import { fileURLToPath } from "node:url";
  *   3. #228 item 5 — the focus ring's three-stop recipe is written once, as
  *      `--focus-ring-shadow`, and `.focus-ring` consumes it like any other
  *      caller.
+ *   4. No DEAD ring colour. A `ring-<colour>` utility on its own only sets
+ *      `--tw-ring-color`; without a ring-WIDTH utility in the same class
+ *      string nothing emits a box-shadow, so the override paints nothing while
+ *      looking like it works. Lightbox's close chip carried exactly that after
+ *      OverlayClose moved to `.focus-ring`.
  *
  * This file is picked up by `npm run release:test`
  * (`node --test scripts/ci/tests/*.test.mjs`), which CI's `automation` job
@@ -107,12 +113,16 @@ async function* walk(dir) {
   }
 }
 
+/** relative path -> comment-stripped source, for every scanned file. */
+const sources = new Map();
 const offenders = new Map();
 for (const dir of SCAN_DIRS) {
   for await (const file of walk(dir)) {
     const source = stripComments(await readFile(file, "utf8"));
+    const rel = path.relative(ROOT, file).split(path.sep).join("/");
+    sources.set(rel, source);
     const hits = [...source.matchAll(ALPHA_RING), ...source.matchAll(PRIMARY_AS_TEXT)].map((m) => m[0]);
-    if (hits.length > 0) offenders.set(path.relative(ROOT, file).split(path.sep).join("/"), [...new Set(hits)]);
+    if (hits.length > 0) offenders.set(rel, [...new Set(hits)]);
   }
 }
 
@@ -239,10 +249,10 @@ test("#231: every tag Badge pair clears AA (4.5:1) on every surface, in both the
   assert.deepEqual(
     failures,
     [],
-    "A tag Badge's fill is a translucent tint, so its text pair is a function of whatever surface it lands on. " +
-      "That is the whole of #231: a consumer whose surface was not measured reaches for a hard-coded hex " +
-      "!important override, which is theme-blind and fails at 1.54:1 in the other theme. Retune " +
-      "--tag-*-foreground, not the consumer.",
+    "A tag Badge's fill is a translucent tint, so its text pair is a function of whatever surface it lands on, " +
+      "and a consumer whose surface was never measured forks the pair into hexes it then has to maintain by " +
+      "hand (fiestaboard.github.io's `.newBadge` !important pair is exactly that). Retune --tag-*-foreground " +
+      "and re-run this matrix; do not push the problem downstream.",
   );
 });
 
@@ -276,4 +286,72 @@ test("#228 item 5: the focus ring recipe is declared once, as --focus-ring-shado
   );
   const stops = themeCss.match(/0 0 0 3px var\(--ring\)/g) ?? [];
   assert.equal(stops.length, 1, "the three-stop ring geometry is written more than once in theme.css");
+});
+
+/* ------------------------------------------------------------------ *
+ * 4. No dead ring colour, and no ring painted into a clipped box
+ * ------------------------------------------------------------------ */
+
+/**
+ * A ring utility that only names a COLOUR — `focus-visible:ring-white/60`,
+ * `ring-ring/50` — compiles in Tailwind v4 to `--tw-ring-color: …` and nothing
+ * else. The box-shadow comes from a ring WIDTH utility (`ring`, `ring-2`,
+ * `ring-[3px]`). A colour with no width anywhere paints nothing, which is how
+ * `lightbox.tsx` kept a `focus-visible:ring-white/60` override that read as a
+ * deliberate design decision after `OverlayClose` moved to `.focus-ring` —
+ * whose box-shadow reads `--focus-ring-shadow`, not `--tw-ring-color`.
+ *
+ * Deliberately a FILE-level check, not a per-class-string one: cva splits one
+ * control's classes across several string literals (checkbox.tsx spells the
+ * width and the invalid-state ring colour on different lines), so a per-literal
+ * rule would be all false positives. That makes this a floor, not a ceiling —
+ * it catches the whole-file case the Lightbox hit, and cannot catch a dead
+ * colour in a file that rings something else.
+ */
+const RING_UTILITY = /(?<![\w-])ring-[\w./[\]-]+/g;
+const RING_WIDTH = /^ring-(?:0|1|2|4|8|\[[\d.]+(?:px|rem|em)\])$/;
+const RING_NON_COLOR = /^ring-(?:inset|offset-)/;
+
+test("#238: no ring colour without a ring width to paint it", () => {
+  const dead = [];
+  for (const [file, source] of sources) {
+    if (/(?<![\w-:])ring(?![\w-])/.test(source)) continue; // the bare `ring` utility is a 1px ring
+    const utilities = [...source.matchAll(RING_UTILITY)].map((m) => m[0]);
+    if (utilities.some((u) => RING_WIDTH.test(u))) continue;
+    const colours = utilities.filter((u) => !RING_WIDTH.test(u) && !RING_NON_COLOR.test(u));
+    if (colours.length > 0) dead.push(`${file}: ${[...new Set(colours)].join(", ")}`);
+  }
+  assert.deepEqual(
+    dead,
+    [],
+    "these files set --tw-ring-color and never emit a box-shadow, so the override paints nothing while " +
+      "looking like it works. Either add a ring width, or delete the colour and let the shared `.focus-ring` " +
+      "recipe show through.",
+  );
+});
+
+/**
+ * `ScrollArea`'s viewport is a `tabIndex={0}` tab stop inside an
+ * `overflow-hidden` Root that it fills exactly, so an OUTSET ring on the
+ * viewport — `.focus-ring`, or the `focus-visible:ring-[3px]` before it — is
+ * clipped away in full and the control has no visible focus indicator at all
+ * (SC 2.4.7). The indicator therefore belongs on the Root, keyed to the
+ * viewport's focus. Asserted because both spellings LOOK fixed at the call
+ * site; only the parent's overflow says otherwise.
+ */
+test("#238: ScrollArea draws its focus ring on the Root, not inside the clipped viewport", () => {
+  const source = sources.get("src/components/containment/scroll-area.tsx");
+  assert.ok(source, "scroll-area.tsx moved — repoint this test");
+  assert.doesNotMatch(
+    source,
+    /(?<![\w-])focus-ring(?![\w-])/,
+    "`.focus-ring` is an outset box-shadow and every element in this file sits inside the Root's " +
+      "`overflow-hidden`, so it would be clipped to nothing.",
+  );
+  assert.match(
+    source,
+    /has-\[\[data-slot=scroll-area-viewport\]:focus-visible\]:shadow-\[var\(--focus-ring-shadow\)\]/,
+    "the Root must carry the ring on the viewport's focus, and it must read the published " +
+      "`--focus-ring-shadow` (#228 item 5) rather than re-spelling the three stops.",
+  );
 });
