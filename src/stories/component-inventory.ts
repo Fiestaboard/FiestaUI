@@ -165,6 +165,10 @@ export const INVENTORY = [
         name: "Breadcrumb",
         summary: "WAI-ARIA breadcrumb trail — nav > ol with link, separator, ellipsis and current-page parts.",
       },
+      {
+        name: "NavList",
+        summary: "Vertical nav list — aria-current rows and collapsible sections, for a rail, a menu or a TOC.",
+      },
       { name: "Sidebar", summary: "Primary navigation rail — fixed-positioned, so shown in its own story." },
       { name: "MainContent", summary: "The <main> landmark and its sidebar-aware offset — shown in its own story." },
     ],
