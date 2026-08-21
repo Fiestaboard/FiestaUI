@@ -243,7 +243,7 @@ function NavListSectionTrigger({ className, children, ...props }: React.Componen
  */
 function NavListSectionContent({ className, children, ...props }: React.ComponentProps<"ul">) {
   return (
-    <CollapsibleContent data-slot="nav-list-section-panel" className="overflow-hidden">
+    <CollapsibleContent data-slot="nav-list-section-panel">
       {/*
        * No height animation. The only collapse keyframes in theme.css are the
        * accordion pair, and they animate to `var(--radix-accordion-content-
@@ -251,6 +251,18 @@ function NavListSectionContent({ className, children, ...props }: React.Componen
        * to `auto` and animate nothing (theme.css documents this, issue #71).
        * Reaching for a real one means new CSS in theme.css, which this PR is
        * not touching; the caret's rotation carries the state change meanwhile.
+       *
+       * And NO `overflow-hidden` on the panel — the house rule ToggleGroup
+       * states verbatim. `.focus-ring` is a box-shadow painted 4px OUTSIDE
+       * the row, and an ancestor's `overflow: hidden` clips a descendant's
+       * box-shadow. The sub-rows are `w-full` inside a `<ul>` with no right
+       * gutter, so the panel edge IS the row's right edge: clipping here
+       * erases the focus ring on the right entirely and shaves it above the
+       * first row and below the last. Accordion can afford it because it is
+       * paying for real collapse keyframes; this panel would be clipping for
+       * a transition that does not exist. If a height animation ever lands,
+       * the `overflow-hidden` belongs on a wrapper OUTSIDE the ring's reach,
+       * with a matching gutter inside — not on the ring's own ancestor.
        */}
       {/* eslint-disable-next-line jsx-a11y/no-redundant-roles */}
       <ul
