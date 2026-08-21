@@ -131,7 +131,7 @@ export function BoardShowcase({
               className={cn(
                 "border px-4 py-1.5 text-xs font-medium transition-colors",
                 "first:rounded-l-full last:rounded-r-full [&:not(:last-child)]:border-r-0",
-                "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                "focus-ring",
                 active
                   ? "border-primary bg-primary font-semibold text-primary-foreground"
                   : "text-muted-foreground hover:border-brand hover:text-brand",

@@ -28,13 +28,13 @@ const KEY_TONE = "text-info";
 const INDEX_TONE = "text-tag-variable-foreground";
 
 const TOGGLE_CLASS =
-  "-ml-1 flex w-full items-center gap-1 rounded-sm px-1 py-0.5 text-left text-xs text-muted-foreground transition-colors duration-control hover:bg-muted/60 outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px]";
+  "-ml-1 flex w-full items-center gap-1 rounded-sm px-1 py-0.5 text-left text-xs text-muted-foreground transition-colors duration-control hover:bg-muted/60 focus-ring";
 
 // opacity-0 alone would hide the select affordance from sighted keyboard
 // users, who can reach the button by Tab but would never see it move — hence
 // the focus-visible escape hatch alongside the hover reveal.
 const SELECT_BUTTON_CLASS =
-  "shrink-0 rounded-sm p-0.5 opacity-0 transition-opacity duration-control hover:bg-muted group-hover:opacity-100 focus-visible:opacity-100 outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px]";
+  "shrink-0 rounded-sm p-0.5 opacity-0 transition-opacity duration-control hover:bg-muted group-hover:opacity-100 focus-visible:opacity-100 focus-ring";
 
 const SELECTED_RESET_MS = 1500;
 

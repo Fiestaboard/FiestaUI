@@ -795,7 +795,7 @@ export function FormulaEditorPanel({
                         className={cn(
                           "flex items-center justify-between w-full px-2 py-1.5 text-[11px] font-semibold transition-colors",
                           "bg-muted/40 hover:bg-muted/70",
-                          "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                          "focus-ring",
                           meta?.text ?? "text-muted-foreground",
                         )}
                       >
@@ -824,7 +824,7 @@ export function FormulaEditorPanel({
                                 <button
                                   type="button"
                                   onClick={() => handleFunctionClick(fn.name)}
-                                  className="w-full text-left px-3 py-1 text-xs hover:bg-accent hover:text-accent-foreground transition-colors flex items-baseline gap-2 group outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                  className="w-full text-left px-3 py-1 text-xs hover:bg-accent hover:text-accent-foreground transition-colors flex items-baseline gap-2 group focus-ring"
                                 >
                                   <Text
                                     as="span"
