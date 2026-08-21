@@ -19,7 +19,11 @@ import "../styles/editor.css";
 
 import {
   AlertCircle,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   Bell,
+  Bold,
   Calendar,
   CheckCircle2,
   ChevronsUpDown,
@@ -27,6 +31,7 @@ import {
   Cloud,
   Inbox,
   Info,
+  Italic,
   Mail,
   Monitor,
   Palette,
@@ -70,6 +75,8 @@ import { JsonTree } from "../components/containment/json-tree";
 import { ScrollArea } from "../components/containment/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/containment/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containment/tabs";
+import { BarList } from "../components/data/bar-list";
+import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
@@ -81,6 +88,7 @@ import { createLucideIconResolver, VariablePickerContent } from "../components/e
 import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
+import { Chip } from "../components/feedback/chip";
 import { EmptyState } from "../components/feedback/empty-state";
 import { Skeleton } from "../components/feedback/skeleton";
 import { Spinner } from "../components/feedback/spinner";
@@ -103,6 +111,7 @@ import { Slider } from "../components/forms/slider";
 import { Switch } from "../components/forms/switch";
 import { Textarea } from "../components/forms/textarea";
 import { TimePicker } from "../components/forms/time-picker";
+import { Toggle, ToggleGroup } from "../components/forms/toggle";
 import { SegmentedControl, SegmentedControlItem, ToggleCard, ToggleCardGroup } from "../components/forms/toggle-card";
 import { Box } from "../components/layout/box";
 import { Flex } from "../components/layout/flex";
@@ -588,6 +597,22 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Stack>
   ),
   TimePicker: TimePickerDemo,
+  Toggle: () => (
+    <Flex align="center" gap="3" wrap>
+      <Toggle aria-label="Bold" size="icon">
+        <Bold />
+      </Toggle>
+      <Toggle aria-label="Italic" size="icon" defaultPressed>
+        <Italic />
+      </Toggle>
+      <Toggle variant="outline" defaultPressed>
+        <Bold /> Pressed
+      </Toggle>
+      <Toggle variant="outline" disabled>
+        <Bold /> Disabled
+      </Toggle>
+    </Flex>
+  ),
   ToggleCard: () => (
     <ToggleCardGroup aria-label="Board type" defaultValue="flagship" columns="2" className="w-full max-w-lg">
       <ToggleCard
@@ -598,6 +623,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       />
       <ToggleCard value="note" icon={<StickyNote />} title="Note" description="Custom grid, battery powered." />
     </ToggleCardGroup>
+  ),
+  ToggleGroup: () => (
+    <ToggleGroup aria-label="Text alignment" segmented defaultValue={["left"]}>
+      <Toggle value="left" size="icon" aria-label="Align left">
+        <AlignLeft />
+      </Toggle>
+      <Toggle value="center" size="icon" aria-label="Align center">
+        <AlignCenter />
+      </Toggle>
+      <Toggle value="right" size="icon" aria-label="Align right">
+        <AlignRight />
+      </Toggle>
+    </ToggleGroup>
   ),
 
   /* ---- Feedback ---- */
@@ -640,6 +678,15 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <Badge variant="variable">variable</Badge>
       <Badge variant="success">success</Badge>
       <Badge variant="formula">formula</Badge>
+    </Flex>
+  ),
+  Chip: () => (
+    <Flex gap="2" wrap>
+      <Chip>release</Chip>
+      <Chip>plugins</Chip>
+      <Chip asChild mono>
+        <a href="#v5.11">5.11</a>
+      </Chip>
     </Flex>
   ),
   EmptyState: () => (
@@ -816,6 +863,18 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </Text>
       </TabsContent>
     </Tabs>
+  ),
+
+  /* ---- Data ---- */
+  BarList: () => (
+    <BarList
+      className="w-full max-w-sm"
+      items={[
+        { key: "clock", label: "clock", value: 943 },
+        { key: "weather", label: "weather", value: 611 },
+        { key: "stocks", label: "stocks", value: 214 },
+      ]}
+    />
   ),
 
   /* ---- Overlays ---- */
@@ -1058,6 +1117,29 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </div>
   ),
   BoardTeaser: () => <BoardTeaser teaser="AQI 42 GOOD" size="md" />,
+
+  /* ---- Data ---- */
+  StatStrip: () => (
+    <StatStrip
+      tone="brand"
+      items={[
+        { value: "52", label: "plugins" },
+        { value: "5,612", label: "unique cloners" },
+      ]}
+    />
+  ),
+  StatStripItem: () => (
+    <StatStrip>
+      <StatStripItem
+        value={
+          <>
+            99.4<span className="text-base font-normal text-muted-foreground">%</span>
+          </>
+        }
+        label="uptime"
+      />
+    </StatStrip>
+  ),
 
   /* ---- Plugin directory ---- */
   PluginCard: () => (
