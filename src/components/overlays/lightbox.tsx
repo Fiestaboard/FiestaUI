@@ -153,7 +153,7 @@ function LightboxContent({
             worked. And on the merits the shared ring is the better one here:
             on the worst-case rgb(38,38,38) scrim composite the `--ring` band
             measures 7.44:1 (10.27:1 over a dark page), where the old
-            white/60 band measured 6.46:1. The `--ring-edge` hairlines that
+            white/60 band measured 6.38:1. The `--ring-edge` hairlines that
             bracket it do vanish into the scrim (1.19:1) — which is exactly
             the DARK-theme case theme.css already argues for every other
             control: the hairline carries the boundary on light surfaces, and
