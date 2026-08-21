@@ -84,6 +84,10 @@ export const INVENTORY = [
       { name: "SegmentedControl", summary: "Pill group for a small set of mutually exclusive options." },
       { name: "Select", summary: "Listbox-backed dropdown with grouping and separators." },
       { name: "Slider", summary: "Range control over a continuous value." },
+      {
+        name: "Swatch",
+        summary: "Colour circle where the fill is the choice; groups into a radiogroup picker.",
+      },
       { name: "Switch", summary: "Binary toggle for settings that apply immediately." },
       { name: "Textarea", summary: "Multi-line text input." },
       { name: "TimePicker", summary: "Hour/minute picker with AM-PM and quick presets." },

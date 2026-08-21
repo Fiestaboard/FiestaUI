@@ -1,12 +1,16 @@
 "use client";
 
-import { Radio as RadioPrimitive } from "@base-ui/react/radio";
-import { RadioGroup as RadioGroupPrimitive } from "@base-ui/react/radio-group";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Check } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
+import {
+  SelectableItemRoot,
+  type SelectionGroupBaseProps,
+  type SelectionGroupNameProps,
+  SelectionGroupRoot,
+} from "./selection-group";
 
 /* ------------------------------------------------------------------ *
  * Selection semantics — the one decision this file exists to settle.
@@ -39,138 +43,13 @@ import { cn } from "../../lib/utils";
  * ------------------------------------------------------------------ */
 
 /**
- * A `radiogroup` has no implicit label, so axe (and every screen reader)
- * needs one from the call site. Requiring it in the type means a group can
- * never ship nameless: pass `aria-label`, or `aria-labelledby` pointing at
- * the heading/`<Label>` that already introduces the options.
+ * The radiogroup root and the radio-or-toggle item root now live in
+ * `./selection-group` — SwatchGroup (#245) is the third family that needs
+ * them, so they are shared internal machinery rather than module-private
+ * here. The two prop types are re-exported so the public surface (and
+ * `toggle.tsx`'s import) is unchanged.
  */
-export type SelectionGroupNameProps =
-  { "aria-label": string; "aria-labelledby"?: string } | { "aria-labelledby": string; "aria-label"?: string };
-
-export interface SelectionGroupBaseProps {
-  /** Selected option value (controlled). Pair with `onValueChange`. */
-  value?: string | null;
-  /** Initially selected option value (uncontrolled). */
-  defaultValue?: string | null;
-  /** Fired with the newly selected value. Selection is never emptied. */
-  onValueChange?: (value: string) => void;
-  /** Disables every option in the group. */
-  disabled?: boolean;
-  /** Form field name — each option renders a hidden radio input under it. */
-  name?: string;
-  /** id of the form that owns the group, when rendered outside it. */
-  form?: string;
-  /** Marks the group required for form validation. */
-  required?: boolean;
-}
-
-type SelectionGroupRootProps = SelectionGroupBaseProps & {
-  slot: string;
-  className?: string;
-  children?: React.ReactNode;
-} & Omit<React.ComponentProps<"div">, "defaultValue" | "onChange">;
-
-/**
- * Shared radiogroup root for both group flavours. Base UI's RadioGroup owns
- * the roving tabindex, arrow-key navigation (all four arrows, wrapping) and
- * the hidden inputs; this only normalises the change signature — Base UI
- * hands back `(value, eventDetails)` and the extra argument leaks into
- * `onValueChange={setState}` call sites as a bogus second setState arg.
- */
-function SelectionGroupRoot({ slot, onValueChange, className, children, ...props }: SelectionGroupRootProps) {
-  return (
-    <RadioGroupPrimitive
-      data-slot={slot}
-      className={className}
-      onValueChange={(next) => onValueChange?.(next as string)}
-      {...props}
-    >
-      {children}
-    </RadioGroupPrimitive>
-  );
-}
-
-/**
- * Attributes are typed against `HTMLElement`, not `HTMLButtonElement`: Base
- * UI types Radio.Root's handlers and ref against the `<span>` it renders by
- * default — even when `render` swaps in a real button — and the two
- * element-specific handler sets are mutually unassignable. `HTMLElement` is
- * the one shape both branches accept.
- */
-type SelectableItemRootProps = React.HTMLAttributes<HTMLElement> & {
-  ref?: React.Ref<HTMLElement>;
-  disabled?: boolean;
-  /** True when an ancestor group supplies radiogroup semantics. */
-  grouped: boolean;
-  /** Identifies the option inside its group. Required when `grouped`. */
-  value?: string;
-  /** Standalone toggle state. Omit entirely for a plain (non-toggle) card. */
-  pressed?: boolean;
-  onPressedChange?: (pressed: boolean) => void;
-};
-
-/**
- * The state-carrying element under every ToggleCard / SegmentedControlItem.
- *
- * Both branches render a real `<button>` so `disabled:` styling, implicit
- * keyboard activation and hit-testing behave identically, and both expose
- * the same `data-checked` hook — so ONE class vocabulary styles the radio
- * and the toggle. (Base UI sets `data-checked` itself; the standalone
- * branch mirrors it from `pressed`.)
- */
-function SelectableItemRoot({
-  grouped,
-  value,
-  pressed,
-  onPressedChange,
-  onClick,
-  disabled,
-  ref,
-  children,
-  ...props
-}: SelectableItemRootProps) {
-  if (grouped) {
-    return (
-      // Radio.Root renders a <span> by default; `render` + `nativeButton`
-      // makes it a real button (same treatment Switch gives Switch.Root).
-      <RadioPrimitive.Root
-        value={value}
-        render={<button type="button" />}
-        nativeButton
-        disabled={disabled}
-        onClick={onClick}
-        ref={ref}
-        {...props}
-      >
-        {children}
-      </RadioPrimitive.Root>
-    );
-  }
-
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    onClick?.(event);
-    if (event.defaultPrevented) return;
-    onPressedChange?.(!pressed);
-  };
-
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      ref={ref as React.Ref<HTMLButtonElement>}
-      // `pressed === undefined` means "not a toggle" — a card that merely
-      // navigates or opens something. Emitting aria-pressed="false" there
-      // would announce a pressed-state the control does not have.
-      {...(pressed === undefined
-        ? {}
-        : { "aria-pressed": pressed, ...(pressed ? { "data-checked": "" } : { "data-unchecked": "" }) })}
-      onClick={handleClick}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
+export type { SelectionGroupBaseProps, SelectionGroupNameProps };
 
 /* ------------------------------------------------------------------ *
  * ToggleCard — the large selectable tile.

@@ -109,6 +109,7 @@ import {
   SelectValue,
 } from "../components/forms/select";
 import { Slider } from "../components/forms/slider";
+import { Swatch, SwatchGroup } from "../components/forms/swatch";
 import { Switch } from "../components/forms/switch";
 import { Textarea } from "../components/forms/textarea";
 import { TimePicker } from "../components/forms/time-picker";
@@ -589,6 +590,13 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Stack>
   ),
   Slider: SliderDemo,
+  Swatch: () => (
+    <SwatchGroup aria-label="Board colour" defaultValue="black">
+      <Swatch value="black" color="var(--color-board-surface-dark)" label="Black" />
+      <Swatch value="white" color="var(--color-board-surface-light)" label="White" />
+      <Swatch value="orange" color="var(--color-board-orange)" label="Orange" />
+    </SwatchGroup>
+  ),
   Switch: () => (
     <Flex gap="6" wrap>
       <Flex align="center" gap="2">
