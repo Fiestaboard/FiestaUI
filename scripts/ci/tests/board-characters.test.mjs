@@ -36,9 +36,16 @@ await build({
   outfile,
 });
 
-const { BOARD_CHARS, getCharIndex, isColorTile, parseLine, messageToGrid, tokensEqual } = await import(
-  pathToFileURL(outfile).href
-);
+const {
+  BOARD_CHARS,
+  getCharIndex,
+  isColorTile,
+  parseLine,
+  messageToGrid,
+  messageToText,
+  resolveCode62Glyph,
+  tokensEqual,
+} = await import(pathToFileURL(outfile).href);
 
 after(() => {
   rmSync(outDir, { recursive: true, force: true });
@@ -173,12 +180,64 @@ test("messageToGrid: fills content, truncates long lines, pads short ones", () =
   assert.deepEqual(grid[2], [char("W"), char("W"), char("W"), char("W")]);
 });
 
-test("messageToGrid: degree symbol becomes a heart on the note device only", () => {
-  const note = messageToGrid("°F", 1, 3, "note");
-  assert.deepEqual(note[0][0], char("♥"));
-  assert.deepEqual(note[0][1], char("F"));
+test("messageToGrid: code 62 draws a degree on a flagship that was not told otherwise", () => {
+  // The pre-2026 Flagship flap, and the default every existing caller gets.
   const flagship = messageToGrid("°F", 1, 3, "flagship");
   assert.deepEqual(flagship[0][0], char("°"));
+  assert.deepEqual(flagship[0][1], char("F"));
+});
+
+test("messageToGrid: code 62 draws a heart on a flagship whose flap carries one", () => {
+  // FiestaBoard#1657: Vestaboard swapped the degree flap for a heart on units
+  // built from 2026, and only the owner can tell us which board this is.
+  const grid = messageToGrid("°F", 1, 3, "flagship", "heart");
+  assert.deepEqual(grid[0][0], char("♥"));
+  assert.deepEqual(grid[0][1], char("F"));
+});
+
+test("messageToGrid: note hardware draws a heart whatever the caller asks for", () => {
+  // Note only ever shipped the heart flap, so the setting is not the device's
+  // to take. A caller passing a stale flagship preference must not make a Note
+  // draw a degree it does not have.
+  for (const deviceType of ["note", "note_array"]) {
+    assert.deepEqual(messageToGrid("°F", 1, 3, deviceType)[0][0], char("♥"), deviceType);
+    assert.deepEqual(messageToGrid("°F", 1, 3, deviceType, "degree")[0][0], char("♥"), `${deviceType} + "degree"`);
+  }
+});
+
+// --- resolveCode62Glyph -----------------------------------------------------
+
+test("resolveCode62Glyph: an unset flagship preference means degree", () => {
+  assert.equal(resolveCode62Glyph("flagship"), "degree");
+  assert.equal(resolveCode62Glyph("flagship", undefined), "degree");
+});
+
+test("resolveCode62Glyph: a flagship draws whichever flap its owner reports", () => {
+  assert.equal(resolveCode62Glyph("flagship", "heart"), "heart");
+  assert.equal(resolveCode62Glyph("flagship", "degree"), "degree");
+});
+
+test("resolveCode62Glyph: note hardware is always a heart", () => {
+  assert.equal(resolveCode62Glyph("note"), "heart");
+  assert.equal(resolveCode62Glyph("note_array"), "heart");
+  assert.equal(resolveCode62Glyph("note", "degree"), "heart");
+  assert.equal(resolveCode62Glyph("note_array", "degree"), "heart");
+});
+
+// --- messageToGrid / messageToText agreement --------------------------------
+
+test("the grid and the accessible text never disagree about code 62", () => {
+  // The whole reason one substitution backs both: a board drawing ♥ while its
+  // role="img" name says "degree" is a text alternative for a different image
+  // (WCAG 1.1.1). Sweep every device/preference pair rather than trusting that
+  // two call sites were kept in step by hand.
+  for (const deviceType of ["flagship", "note", "note_array"]) {
+    for (const pref of [undefined, "degree", "heart"]) {
+      const drawn = messageToGrid("°", 1, 1, deviceType, pref)[0][0].value;
+      const announced = messageToText("°", deviceType, pref);
+      assert.equal(announced, drawn, `${deviceType} / ${pref}: tiles drew ${drawn} but the name said ${announced}`);
+    }
+  }
 });
 
 // --- tokensEqual ------------------------------------------------------------

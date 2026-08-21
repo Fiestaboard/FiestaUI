@@ -221,9 +221,24 @@ test("the name says what the tiles draw on a Note, where ° is a heart", async (
     const name = await accessibleName(component, { message: "LOVE °", deviceType: "note" });
     assert.match(name, /LOVE ♥/, `${component} announced ${JSON.stringify(name)} for a board drawing "LOVE ♥"`);
   }
-  // …and only on Note: everywhere else the tile really is a degree sign.
+  // …and a flagship that was told nothing really does draw a degree sign.
   const flagship = await accessibleName("StaticBoardDisplay", { message: "52 °F" });
   assert.match(flagship, /52 °F/, `a flagship board draws °, so its name must keep it; got ${flagship}`);
+});
+
+test("the name follows the flagship's own code-62 flap (FiestaBoard#1657)", async () => {
+  // A Flagship built from 2026 carries a heart where older ones carry a degree,
+  // and the app passes `code62Glyph` because nothing queryable tells them apart.
+  // The name is derived from the same substitution as the tiles, so it has to
+  // move with the setting — not with the device type.
+  for (const component of ["BoardDisplay", "StaticBoardDisplay"]) {
+    const heart = await accessibleName(component, {
+      message: "52 °F",
+      deviceType: "flagship",
+      code62Glyph: "heart",
+    });
+    assert.match(heart, /52 ♥F/, `${component} announced ${JSON.stringify(heart)} for a board drawing "52 ♥F"`);
+  }
 });
 
 test("a board that draws no text falls back to a generic name", async () => {

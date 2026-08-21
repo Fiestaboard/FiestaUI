@@ -12,7 +12,7 @@
 
 import { memo, useMemo } from "react";
 
-import { messageToGrid, messageToText } from "../../lib/board-characters";
+import { type Code62Glyph, messageToGrid, messageToText } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
 import { gapClasses, paddingClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
@@ -23,6 +23,10 @@ export interface StaticBoardDisplayProps {
   size?: "sm" | "md" | "lg";
   boardType?: "black" | "white";
   deviceType?: DeviceType;
+  /** Which glyph this board's code-62 flap carries. Flagship only — Note and
+   *  note-array hardware always draw the heart. Defaults to `"degree"`; see
+   *  {@link Code62Glyph}. */
+  code62Glyph?: Code62Glyph;
   className?: string;
   /** Notes wide (for note_array device; ignored otherwise). */
   notesWide?: number;
@@ -54,6 +58,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   size = "sm",
   boardType = "black",
   deviceType = "flagship",
+  code62Glyph,
   className = "",
   notesWide = 1,
   notesTall = 1,
@@ -68,8 +73,8 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   const textColor = isWhiteBoard ? "var(--color-board-text-on-light)" : "var(--color-board-text-on-dark)";
 
   const grid = useMemo(
-    () => messageToGrid(message ?? "", dims.rows, dims.cols, deviceType),
-    [message, dims.rows, dims.cols, deviceType],
+    () => messageToGrid(message ?? "", dims.rows, dims.cols, deviceType, code62Glyph),
+    [message, dims.rows, dims.cols, deviceType, code62Glyph],
   );
 
   // The board's whole accessible name: the tiles below are aria-hidden, so
@@ -80,11 +85,11 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   const label = useMemo(() => {
     if (!message) return emptyLabel;
     if (previewLabel !== undefined) return previewLabel;
-    // `deviceType` matters: on Note a `°` draws as a heart, and the name has to
+    // The code-62 glyph matters: where a `°` draws as a heart, the name has to
     // say what the tiles draw.
-    const text = messageToText(message, deviceType);
+    const text = messageToText(message, deviceType, code62Glyph);
     return text ? messageLabel(text) : NO_TEXT_LABEL;
-  }, [message, deviceType, previewLabel, messageLabel, emptyLabel]);
+  }, [message, deviceType, code62Glyph, previewLabel, messageLabel, emptyLabel]);
 
   // Seam gap: additional left/top margin applied at Note physical boundaries
   const seamGap = size === "sm" ? "6px" : size === "md" ? "8px" : "10px";
