@@ -1042,7 +1042,14 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
       }
 
       while (heights.length < boardLines) heights.push(24);
-      setLineHeights(heights);
+      // Skip the state update when the measured heights match the current
+      // ones. `onUpdate` schedules this measure on every keystroke, but the
+      // per-line pixel heights only change when a line actually wraps — so
+      // returning `prev` (same reference) lets React bail out and avoids a
+      // guaranteed re-render (and toolbar reconcile) on typical edits.
+      setLineHeights((prev) =>
+        prev.length === heights.length && prev.every((h, i) => h === heights[i]) ? prev : heights,
+      );
     } catch {
       // ignore transient measurement errors
     }
@@ -1376,12 +1383,11 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
           editor={editor}
           currentAlignment={currentAlignment}
           currentWrapEnabled={currentWrapEnabled}
-          onAlignmentChange={(alignment) => {
-            handleAlignmentClick(alignment);
-          }}
-          onWrapToggle={() => {
-            handleWrapClick();
-          }}
+          // Pass the already-`useCallback`-stable handlers directly rather than
+          // wrapping them in fresh inline arrows each render — a new function
+          // identity would defeat the toolbar's `React.memo` on every keystroke.
+          onAlignmentChange={handleAlignmentClick}
+          onWrapToggle={handleWrapClick}
           deviceType={deviceType}
           onSyncFromBoard={onSyncFromBoard}
           syncFromBoardPending={syncFromBoardPending}
