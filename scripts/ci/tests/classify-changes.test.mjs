@@ -89,6 +89,29 @@ test("CI-only infrastructure is code but does not ship", () => {
   }
 });
 
+test("colocated unit tests are code but do not ship", () => {
+  // They sit under src/ but are excluded from tsconfig.build.json's emit and
+  // unreachable from src/index.ts, so the tarball is identical with or without
+  // them. A test-only PR must still run the suite — hence code, not shipped.
+  for (const p of [
+    "src/components/forms/button.test.tsx",
+    "src/components/chrome/breadcrumb.test.tsx",
+    "src/lib/utils.test.ts",
+    "src/test/setup.ts",
+    "vitest.config.ts",
+  ]) {
+    assert.equal(isCodeFile(p), true, `${p} should still run the full suite`);
+    assert.equal(isShippedFile(p), false, `${p} cannot change dist/ and must not cut a release`);
+  }
+});
+
+test("a component and its colocated test are told apart", () => {
+  // The matcher is anchored on `.test.tsx`, so the component beside it — same
+  // directory, one suffix apart — must still ship.
+  assert.equal(isShippedFile("src/components/forms/toggle.tsx"), true);
+  assert.equal(isShippedFile("src/components/forms/toggle.test.tsx"), false);
+});
+
 test("the publish path itself still ships", () => {
   // These decide HOW the tarball is built and versioned, so a change to them
   // can change what consumers receive. Safe direction is to cut a release.
