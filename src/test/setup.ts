@@ -83,3 +83,12 @@ if (!Element.prototype.hasPointerCapture) {
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
+
+// Web Animations API. Base UI's ScrollArea viewport calls `getAnimations()`
+// from a timeout to decide whether a scroll is still animating, so the throw
+// lands as an *unhandled* error after the test that rendered it has already
+// passed — which is why it has to be stubbed globally rather than per-test.
+// An empty list is the honest answer in an environment with no animations.
+if (!Element.prototype.getAnimations) {
+  Element.prototype.getAnimations = () => [];
+}
