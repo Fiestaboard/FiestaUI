@@ -73,16 +73,53 @@ type SelectionGroupRootProps = SelectionGroupBaseProps & {
 /**
  * Shared radiogroup root for both group flavours. Base UI's RadioGroup owns
  * the roving tabindex, arrow-key navigation (all four arrows, wrapping) and
- * the hidden inputs; this only normalises the change signature — Base UI
- * hands back `(value, eventDetails)` and the extra argument leaks into
- * `onValueChange={setState}` call sites as a bogus second setState arg.
+ * the hidden inputs; this normalises the change signature — Base UI hands
+ * back `(value, eventDetails)` and the extra argument leaks into
+ * `onValueChange={setState}` call sites as a bogus second setState arg — and
+ * supplies the Home/End keys Base UI leaves unbound (see below).
  */
-function SelectionGroupRoot({ slot, onValueChange, className, children, ...props }: SelectionGroupRootProps) {
+function SelectionGroupRoot({
+  slot,
+  onValueChange,
+  onKeyDown,
+  className,
+  children,
+  ...props
+}: SelectionGroupRootProps) {
+  /**
+   * WAI-ARIA's radiogroup pattern requires Home/End (first/last option,
+   * moving the selection with focus) and the pinned `@base-ui/react` does not
+   * bind them — verified, not assumed: with a mid-list option checked, End
+   * left both focus and selection where they were.
+   *
+   * This handles those two keys ONLY, so the four arrow keys fall straight
+   * through to Base UI and are never double-handled. Selection is committed
+   * by clicking the target rather than by calling `onValueChange` directly,
+   * because an uncontrolled group's state lives inside Base UI and would
+   * otherwise drift out of sync with what the caller was told.
+   */
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    onKeyDown?.(event);
+    if (event.defaultPrevented) return;
+    if (event.key !== "Home" && event.key !== "End") return;
+
+    const options = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]:not([disabled]):not([aria-disabled="true"])'),
+    );
+    const target = event.key === "Home" ? options.at(0) : options.at(-1);
+    if (!target) return;
+
+    event.preventDefault();
+    target.focus();
+    target.click();
+  };
+
   return (
     <RadioGroupPrimitive
       data-slot={slot}
       className={className}
       onValueChange={(next) => onValueChange?.(next as string)}
+      onKeyDown={handleKeyDown}
       {...props}
     >
       {children}
@@ -241,13 +278,29 @@ const toggleCardHeaderVariants = cva("flex w-full min-w-0", {
   },
 });
 
+/**
+ * The selected-check, in both of its placements. `absolute` corner vs in-flow
+ * trailing is the only difference, so the pigment recipe, the size and the
+ * `group-data-[checked]` reveal live here once rather than twice.
+ */
+const toggleCardIndicatorClassName =
+  "pointer-events-none flex size-4 items-center justify-center rounded-full border border-input text-primary-foreground opacity-0 transition-[color,background-color,border-color,opacity] duration-control group-data-[checked]/toggle-card:border-primary group-data-[checked]/toggle-card:bg-primary group-data-[checked]/toggle-card:opacity-100";
+
 type ToggleCardSize = NonNullable<VariantProps<typeof toggleCardVariants>["size"]>;
 type ToggleCardAlign = NonNullable<VariantProps<typeof toggleCardVariants>["align"]>;
+type ToggleCardIndicator = boolean | "corner" | "trailing";
+
+/** `true` is the corner check the family shipped with; `false` is no check. */
+function resolveIndicatorPlacement(indicator: ToggleCardIndicator): "corner" | "trailing" | null {
+  if (indicator === true) return "corner";
+  if (indicator === false) return null;
+  return indicator;
+}
 
 interface ToggleCardGroupContextValue {
   size?: ToggleCardSize;
   align?: ToggleCardAlign;
-  indicator?: boolean;
+  indicator?: ToggleCardIndicator;
 }
 
 const ToggleCardGroupContext = React.createContext<ToggleCardGroupContextValue | null>(null);
@@ -259,8 +312,11 @@ export type ToggleCardGroupProps = SelectionGroupBaseProps &
     size?: ToggleCardSize;
     /** Content alignment applied to every card in the group. */
     align?: ToggleCardAlign;
-    /** Show the selected-check on every card in the group. @default true */
-    indicator?: boolean;
+    /**
+     * Selected-check placement for every card in the group; a card may
+     * override it. `false` removes it. @default true
+     */
+    indicator?: ToggleCardIndicator;
     className?: string;
     children?: React.ReactNode;
   } & Omit<React.ComponentProps<"div">, "defaultValue" | "onChange">;
@@ -307,10 +363,14 @@ export type ToggleCardProps = Omit<React.ComponentProps<"button">, "value" | "ti
     /** Trailing content on the title row — a badge, a size indicator, a price. */
     meta?: React.ReactNode;
     /**
-     * Render a check in the corner when selected, so selection is not carried
-     * by hue alone. @default true
+     * Where the selected-check goes, so selection is never carried by hue
+     * alone. `"corner"` (=== `true`) floats it over the tile's top-right and
+     * reserves the space a long title would otherwise slide under;
+     * `"trailing"` puts it in flow at the end of the title row, which is the
+     * shape a full-width picker row wants. `false` removes it — only do that
+     * when the tile shows its own selected artwork. @default true
      */
-    indicator?: boolean;
+    indicator?: ToggleCardIndicator;
     /** Extra body content below the title row — a preview, a thumbnail row. */
     children?: React.ReactNode;
   };
@@ -341,7 +401,24 @@ function ToggleCard({
   const group = React.useContext(ToggleCardGroupContext);
   const resolvedSize = size ?? group?.size ?? "md";
   const resolvedAlign = align ?? group?.align ?? "start";
-  const showIndicator = indicator ?? group?.indicator ?? true;
+  const indicatorPlacement = resolveIndicatorPlacement(indicator ?? group?.indicator ?? true);
+
+  const indicatorNode = indicatorPlacement && (
+    <span
+      data-slot="toggle-card-indicator"
+      data-placement={indicatorPlacement}
+      aria-hidden="true"
+      className={cn(
+        toggleCardIndicatorClassName,
+        // A trailing check is a row participant, so it needs no absolute
+        // position and no reserved corner; `mt-0.5` puts it on the title's
+        // optical baseline, matching the leading icon.
+        indicatorPlacement === "corner" ? "absolute right-2 top-2" : "mt-0.5 shrink-0",
+      )}
+    >
+      <Check className="size-3" />
+    </span>
+  );
 
   return (
     <SelectableItemRoot
@@ -355,8 +432,10 @@ function ToggleCard({
         toggleCardVariants({ size: resolvedSize, align: resolvedAlign }),
         // Reserve the corner the indicator floats in so a long title cannot
         // slide under it. A centred tile reserves the space on BOTH sides —
-        // padding only the right would push its content off-centre.
-        showIndicator && (resolvedAlign === "center" ? "px-6" : "pr-8"),
+        // padding only the right would push its content off-centre. A
+        // trailing check is in flow and takes its own room, so it reserves
+        // nothing.
+        indicatorPlacement === "corner" && (resolvedAlign === "center" ? "px-6" : "pr-8"),
         className,
       )}
       {...props}
@@ -393,17 +472,10 @@ function ToggleCard({
             {meta}
           </span>
         )}
+        {indicatorPlacement === "trailing" && indicatorNode}
       </span>
       {children}
-      {showIndicator && (
-        <span
-          data-slot="toggle-card-indicator"
-          aria-hidden="true"
-          className="pointer-events-none absolute right-2 top-2 flex size-4 items-center justify-center rounded-full border border-input text-primary-foreground opacity-0 transition-[color,background-color,border-color,opacity] duration-control group-data-[checked]/toggle-card:border-primary group-data-[checked]/toggle-card:bg-primary group-data-[checked]/toggle-card:opacity-100"
-        >
-          <Check className="size-3" />
-        </span>
-      )}
+      {indicatorPlacement === "corner" && indicatorNode}
     </SelectableItemRoot>
   );
 }

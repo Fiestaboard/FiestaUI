@@ -75,8 +75,13 @@ const meta = {
       description: "Content alignment — `center` stacks icon over title for square tiles",
     },
     indicator: {
-      control: "boolean",
-      description: "Show the corner check when selected so the state is not carried by hue alone. Defaults to true.",
+      control: "select",
+      options: ["corner", "trailing", false],
+      description:
+        'Where the selected-check goes, so the state is never carried by hue alone. `"corner"` (=== `true`, the ' +
+        'default) floats it over the tile and reserves the space a long title would slide under; `"trailing"` ' +
+        "puts it in flow at the end of the title row, for full-width picker rows. `false` removes it — only " +
+        "when the tile already shows its own selected artwork.",
     },
     children: {
       control: false,
@@ -111,7 +116,7 @@ export const Default: Story = {
     pressed: true,
     size: "md",
     align: "start",
-    indicator: true,
+    indicator: "corner",
   },
   render: function Render(args) {
     return (
@@ -216,6 +221,62 @@ export const Sizes = () => (
         <ToggleCard value="b" icon={<Zap />} title={`Size ${size}`} description="Idle" />
       </ToggleCardGroup>
     ))}
+  </div>
+);
+
+/**
+ * `indicator="trailing"` moves the check into the title row instead of
+ * floating it over the corner — the picker-dialog shape, where an option is a
+ * full-width row and the top-right corner is nowhere near its label. Nothing
+ * else changes: the row is still a `radio` inside a `radiogroup`, and it is
+ * `aria-checked` that announces the state. The hand-rolled version of this row
+ * downstream shows the same check with no ARIA at all, so the selection is
+ * invisible to a screen reader — that bug is unreachable from here, because
+ * the check is `aria-hidden` decoration in both placements.
+ */
+export const TrailingIndicatorRows = () => (
+  <ToggleCardGroup aria-label="Page to show" defaultValue="menu" indicator="trailing" className="w-full sm:w-[420px]">
+    <ToggleCard value="none" title="None" description="Leave this slot empty" />
+    <ToggleCard
+      value="welcome"
+      icon={<LayoutTemplate />}
+      title="Welcome board"
+      meta={<Badge variant="secondary">22 × 6</Badge>}
+    />
+    <ToggleCard
+      value="menu"
+      icon={<LayoutTemplate />}
+      title="Daily menu"
+      meta={<Badge variant="secondary">22 × 6</Badge>}
+    />
+    <ToggleCard value="rotation" icon={<GalleryHorizontalEnd />} title="Weekly rotation" description="4 pages" />
+  </ToggleCardGroup>
+);
+
+/**
+ * Both placements at both alignments, checked and unchecked. `corner` floats
+ * over the tile and reserves its room in the padding — on a centred tile,
+ * symmetrically, so the content stays centred. `trailing` takes its room in
+ * the row, after `meta`.
+ */
+export const IndicatorPlacements = () => (
+  <div className="flex w-full flex-col gap-6 sm:w-[420px]">
+    {(["corner", "trailing"] as const).map((placement) => (
+      <ToggleCardGroup
+        key={placement}
+        aria-label={`Indicator ${placement}`}
+        defaultValue="a"
+        columns="2"
+        indicator={placement}
+      >
+        <ToggleCard value="a" icon={<Zap />} title={placement} description="Selected" />
+        <ToggleCard value="b" icon={<Zap />} title={placement} description="Idle" />
+      </ToggleCardGroup>
+    ))}
+    <ToggleCardGroup aria-label="Indicator corner, centred" defaultValue="a" columns="2" align="center">
+      <ToggleCard value="a" icon={<Monitor />} title="corner" description="Centred tile" />
+      <ToggleCard value="b" icon={<Monitor />} title="corner" description="Centred tile" />
+    </ToggleCardGroup>
   </div>
 );
 
@@ -505,8 +566,10 @@ export const SegmentedControlDisabled = () => (
 /**
  * Keyboard contract, both shapes on one screen. Tab reaches the group once
  * and lands on the checked option; arrow keys (all four) move the selection
- * and wrap at the ends. Tab again leaves the whole group — then the standalone
- * toggle below takes its own stop, where Space or Enter flips it in place.
+ * and wrap at the ends, and Home/End jump to the first and last option,
+ * moving the selection with them. Tab again leaves the whole group — then the
+ * standalone toggle below takes its own stop, where Space or Enter flips it
+ * in place.
  */
 export const KeyboardNavigation = () => (
   <div className="flex w-full flex-col gap-6 sm:w-[460px]">
