@@ -15,7 +15,7 @@ import { cn } from "../../lib/utils";
  * 24x24 minimum, which the pre-unification 16px bare Dialog icon did not.
  */
 const overlayCloseVariants = cva(
-  "absolute right-4 top-4 flex items-center justify-center rounded-full bg-muted/80 transition-colors hover:bg-muted outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
+  "absolute right-4 top-4 flex items-center justify-center rounded-full bg-muted/80 transition-colors hover:bg-muted focus-ring disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       size: {

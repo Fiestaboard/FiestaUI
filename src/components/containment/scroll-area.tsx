@@ -10,7 +10,7 @@ function ScrollArea({ className, children, ...props }: React.ComponentProps<type
     <ScrollAreaPrimitive.Root data-slot="scroll-area" className={cn("relative overflow-hidden", className)} {...props}>
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="h-full w-full rounded-[inherit] outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+        className="h-full w-full rounded-[inherit] focus-ring"
         tabIndex={0}
       >
         {children}

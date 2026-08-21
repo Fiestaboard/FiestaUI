@@ -101,7 +101,7 @@ export const AllComponents = () => (
             <a
               key={section.id}
               href={`#inv-section-${section.id}`}
-              className="border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50 rounded-md border px-2.5 py-1 text-xs transition-colors outline-none focus-visible:ring-[3px]"
+              className="border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-ring rounded-md border px-2.5 py-1 text-xs transition-colors"
             >
               {section.title}
             </a>
@@ -423,7 +423,11 @@ export const ColorTokens = () => {
             <div className="text-sm">Small text</div>
             <div className="text-xs">Extra small text</div>
             <div className="text-sm text-muted-foreground">Muted text</div>
-            <div className="text-sm text-primary">Primary text</div>
+            {/* text-brand, not text-primary: --primary is the literal tile at
+                1.83:1 on a light page. --brand is the same hue at the ink
+                plateau (5.09:1 light / 9.63:1 dark) and is the only orange
+                this system sets a sentence in (#238). */}
+            <div className="text-sm text-brand">Brand text</div>
             <div className="text-sm text-destructive">Destructive text</div>
           </div>
         </section>
