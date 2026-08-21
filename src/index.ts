@@ -42,6 +42,7 @@ export * from "./components/feedback/spinner";
 export * from "./components/feedback/status-dot";
 export * from "./components/forms/select";
 export * from "./components/forms/slider";
+export * from "./components/forms/swatch";
 export * from "./components/forms/switch";
 export * from "./components/forms/textarea";
 export * from "./components/forms/time-picker";
