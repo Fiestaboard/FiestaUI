@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
  * Review cannot catch that — each file looks fine on its own — so it is
  * asserted here.
  *
- * Four assertions:
+ * Four subjects, seven assertions:
  *
  *   1. #238 — the banned `ring-ring/<alpha>` focus recipe and `--primary`-as-
  *      text are pinned to an allowlist that may shrink and never grow.
@@ -27,11 +27,12 @@ import { fileURLToPath } from "node:url";
  *   3. #228 item 5 — the focus ring's three-stop recipe is written once, as
  *      `--focus-ring-shadow`, and `.focus-ring` consumes it like any other
  *      caller.
- *   4. No DEAD ring colour. A `ring-<colour>` utility on its own only sets
- *      `--tw-ring-color`; without a ring-WIDTH utility in the same class
- *      string nothing emits a box-shadow, so the override paints nothing while
- *      looking like it works. Lightbox's close chip carried exactly that after
- *      OverlayClose moved to `.focus-ring`.
+ *   4. Rings that paint NOTHING, in the two ways they can. A `ring-<colour>`
+ *      utility on its own only sets `--tw-ring-color`, so with no ring WIDTH
+ *      in the file nothing emits a box-shadow (Lightbox's close chip, after
+ *      OverlayClose moved to `.focus-ring`); and an OUTSET ring on an element
+ *      that fills an `overflow-hidden` parent is clipped away in full
+ *      (ScrollArea's viewport). Both look correct at the call site.
  *
  * This file is picked up by `npm run release:test`
  * (`node --test scripts/ci/tests/*.test.mjs`), which CI's `automation` job
