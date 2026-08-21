@@ -63,6 +63,14 @@ import {
 import { FiestaIcon } from "../components/chrome/fiesta-icon";
 import { FiestaLogo } from "../components/chrome/fiesta-logo";
 import { LanguageSelector } from "../components/chrome/language-selector";
+import {
+  NavList,
+  NavListItem,
+  NavListLink,
+  NavListSection,
+  NavListSectionContent,
+  NavListSectionTrigger,
+} from "../components/chrome/nav-list";
 import { PageHeader, PageIconGradientDefs } from "../components/chrome/page-header";
 import { PageLayout } from "../components/chrome/page-layout";
 import { PageToolbar } from "../components/chrome/page-toolbar";
@@ -71,6 +79,7 @@ import { ThemeToggle } from "../components/chrome/theme-toggle";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/containment/accordion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
+import { IconTile } from "../components/containment/icon-tile";
 import { JsonTree } from "../components/containment/json-tree";
 import { MediaFrame, MediaFrameBar, MediaFrameMedia } from "../components/containment/media-frame";
 import { ScrollArea } from "../components/containment/scroll-area";
@@ -109,9 +118,11 @@ import {
   SelectValue,
 } from "../components/forms/select";
 import { Slider } from "../components/forms/slider";
+import { Swatch, SwatchGroup } from "../components/forms/swatch";
 import { Switch } from "../components/forms/switch";
 import { Textarea } from "../components/forms/textarea";
 import { TimePicker } from "../components/forms/time-picker";
+import { TimezonePicker } from "../components/forms/timezone-picker";
 import { Toggle, ToggleGroup } from "../components/forms/toggle";
 import { SegmentedControl, SegmentedControlItem, ToggleCard, ToggleCardGroup } from "../components/forms/toggle-card";
 import { Box } from "../components/layout/box";
@@ -292,6 +303,29 @@ function TimePickerDemo() {
         Start time
       </Label>
       <TimePicker id="inv-time" aria-labelledby="inv-time-label" value={value} onValueChange={setValue} />
+    </Stack>
+  );
+}
+
+/**
+ * Zones are pinned rather than derived: `TimezonePicker` defaults to the
+ * runtime's whole IANA table with offsets computed for *now*, and this page is
+ * photographed by VRT — `+02:00` would become `+01:00` the night the clocks
+ * change.
+ */
+const INVENTORY_ZONES = [
+  { id: "Europe/Berlin", offset: "+02:00" },
+  { id: "Europe/London", offset: "+01:00" },
+  { id: "America/New_York", offset: "-04:00" },
+  { id: "Asia/Tokyo", offset: "+09:00" },
+];
+
+function TimezonePickerDemo() {
+  const [value, setValue] = useState("Europe/Berlin");
+  return (
+    <Stack gap="1.5" className="w-full max-w-[240px]">
+      <Label htmlFor="inv-timezone">Time zone</Label>
+      <TimezonePicker id="inv-timezone" timezones={INVENTORY_ZONES} value={value} onValueChange={setValue} />
     </Stack>
   );
 }
@@ -589,6 +623,13 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Stack>
   ),
   Slider: SliderDemo,
+  Swatch: () => (
+    <SwatchGroup aria-label="Board colour" defaultValue="black">
+      <Swatch value="black" color="var(--color-board-surface-dark)" label="Black" />
+      <Swatch value="white" color="var(--color-board-surface-light)" label="White" />
+      <Swatch value="orange" color="var(--color-board-orange)" label="Orange" />
+    </SwatchGroup>
+  ),
   Switch: () => (
     <Flex gap="6" wrap>
       <Flex align="center" gap="2">
@@ -612,6 +653,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Stack>
   ),
   TimePicker: TimePickerDemo,
+  TimezonePicker: TimezonePickerDemo,
   Toggle: () => (
     <Flex align="center" gap="3" wrap>
       <Toggle aria-label="Bold" size="icon">
@@ -813,6 +855,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         <div className="rounded-md border border-border px-4 py-3 font-mono text-sm">Office</div>
       </CollapsibleContent>
     </Collapsible>
+  ),
+  IconTile: () => (
+    <div className="flex items-end gap-3">
+      <IconTile size="sm">
+        <Cloud />
+      </IconTile>
+      <IconTile size="md">
+        <Bell />
+      </IconTile>
+      <IconTile size="lg" tone="board">
+        <Cloud />
+      </IconTile>
+    </div>
   ),
   JsonTree: () => (
     <Frame>
@@ -1126,6 +1181,39 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
+  ),
+  // Flat rows, the aria-current pill, and one section expanded around it —
+  // the docs sidebar's shape at rail width. Static: the section's open state
+  // is a defaultOpen, so the demo photographs identically every run.
+  NavList: () => (
+    <nav aria-label="NavList example" className="w-[240px]">
+      <NavList>
+        <NavListItem>
+          <NavListLink href="#inv-nav-list-start">Getting started</NavListLink>
+        </NavListItem>
+        <NavListSection defaultOpen>
+          <NavListSectionTrigger>Components</NavListSectionTrigger>
+          <NavListSectionContent>
+            <NavListItem>
+              <NavListLink href="#inv-nav-list-button">Button</NavListLink>
+            </NavListItem>
+            <NavListItem>
+              <NavListLink href="#inv-nav-list-self" active>
+                NavList
+              </NavListLink>
+            </NavListItem>
+          </NavListSectionContent>
+        </NavListSection>
+        <NavListSection>
+          <NavListSectionTrigger>Recipes</NavListSectionTrigger>
+          <NavListSectionContent>
+            <NavListItem>
+              <NavListLink href="#inv-nav-list-theming">Theming</NavListLink>
+            </NavListItem>
+          </NavListSectionContent>
+        </NavListSection>
+      </NavList>
+    </nav>
   ),
   Sidebar: () => (
     <SeeItsOwnStory

@@ -223,8 +223,30 @@ export interface TemplateEditorToolbarProps {
   /** True while the host is still fetching `templateVariables`. */
   isLoadingVariables?: boolean;
   /**
-   * Forwarded verbatim to the variable picker, which owns these contracts. The
-   * toolbar never reads them; see `variable-picker-content` for what each does.
+   * Renders the Variables dropdown body. Omitted, the toolbar renders its own
+   * lazily-imported `VariablePickerContent` from the data props below — which
+   * stays the right default for a host that has the data anyway.
+   *
+   * The toolbar keeps the trigger, the dropdown, the disabled/empty state (still
+   * decided by `templateVariables`, not by this prop) and the insertion plumbing:
+   * `onInsert` inserts at the caret and closes the dropdown, so a host body never
+   * reimplements either. Same slot shape as `FormulaEditorPanel`'s
+   * `renderVariablePicker`, deliberately — a host can hand the *same* lazy chunk
+   * to both.
+   *
+   * Supplying it lets a host keep the picker's data fetching AND its icon set
+   * inside that chunk instead of resolving both at editor-mount time: the default
+   * path needs `resolveIcon`, which pulls lucide's full `icons` barrel (~1.2 MB,
+   * a barrel object so nothing tree-shakes), plus a manifest request per plugin
+   * and a polled display feed — computed at mount for a dropdown that may never
+   * open (#244, FiestaBoard #1575). Wrapped in the dropdown's `<Suspense>`, so a
+   * bare `lazy()` component can be passed straight in.
+   */
+  renderVariablePicker?: (ctx: { onInsert: (variable: string) => void }) => ReactNode;
+  /**
+   * Forwarded verbatim to the *default* variable picker, which owns these
+   * contracts; unread by the toolbar, and unused when `renderVariablePicker`
+   * supplies the body instead. See `variable-picker-content` for what each does.
    */
   pluginManifests?: Record<string, PluginManifest | undefined>;
   isLoadingManifests?: boolean;
@@ -259,6 +281,7 @@ export function TemplateEditorToolbar({
   onDrawBrushChange,
   templateVariables,
   isLoadingVariables,
+  renderVariablePicker,
   pluginManifests,
   isLoadingManifests,
   pluginDisplayData,
@@ -698,31 +721,40 @@ export function TemplateEditorToolbar({
             {/* Variables Dropdown */}
             {hasVariables ? (
               <ToolbarDropdown label={l.variables} icon={<Code2 className="w-4 h-4" />}>
-                {(close) => (
-                  <Suspense
-                    fallback={
-                      <Box className="p-3 min-w-[300px]">
-                        <Skeleton className="h-4 w-full mb-2" />
-                        <Skeleton className="h-4 w-3/4 mb-2" />
-                        <Skeleton className="h-4 w-1/2" />
-                      </Box>
-                    }
-                  >
-                    <VariablePickerContent
-                      templateVariables={templateVariables}
-                      isLoadingVariables={isLoadingVariables}
-                      pluginManifests={pluginManifests}
-                      isLoadingManifests={isLoadingManifests}
-                      pluginDisplayData={pluginDisplayData}
-                      resolveIcon={resolveIcon}
-                      labels={variablePickerLabels}
-                      onInsert={(variable: string) => {
-                        handleInsert(variable);
-                        close();
-                      }}
-                    />
-                  </Suspense>
-                )}
+                {(close) => {
+                  // Insertion stays the toolbar's: whichever body renders, a
+                  // pick lands at the caret and then dismisses the dropdown.
+                  const onInsert = (variable: string) => {
+                    handleInsert(variable);
+                    close();
+                  };
+                  return (
+                    <Suspense
+                      fallback={
+                        <Box className="p-3 min-w-[300px]">
+                          <Skeleton className="h-4 w-full mb-2" />
+                          <Skeleton className="h-4 w-3/4 mb-2" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </Box>
+                      }
+                    >
+                      {renderVariablePicker ? (
+                        renderVariablePicker({ onInsert })
+                      ) : (
+                        <VariablePickerContent
+                          templateVariables={templateVariables}
+                          isLoadingVariables={isLoadingVariables}
+                          pluginManifests={pluginManifests}
+                          isLoadingManifests={isLoadingManifests}
+                          pluginDisplayData={pluginDisplayData}
+                          resolveIcon={resolveIcon}
+                          labels={variablePickerLabels}
+                          onInsert={onInsert}
+                        />
+                      )}
+                    </Suspense>
+                  );
+                }}
               </ToolbarDropdown>
             ) : (
               <Tooltip>

@@ -76,7 +76,7 @@ export const INVENTORY = [
     title: "Forms",
     description: "Inputs and controls. Every one is keyboard-operable and carries a visible focus ring.",
     entries: [
-      { name: "Button", summary: "Seven variants × six sizes, plus a loading state that reserves its own width." },
+      { name: "Button", summary: "Seven variants × seven sizes, plus a loading state that reserves its own width." },
       { name: "Checkbox", summary: "Native checkbox styled to the system." },
       { name: "Input", summary: "Single-line text input across the HTML input types." },
       { name: "Label", summary: "Form label wired to its control by htmlFor." },
@@ -84,9 +84,17 @@ export const INVENTORY = [
       { name: "SegmentedControl", summary: "Pill group for a small set of mutually exclusive options." },
       { name: "Select", summary: "Listbox-backed dropdown with grouping and separators." },
       { name: "Slider", summary: "Range control over a continuous value." },
+      {
+        name: "Swatch",
+        summary: "Colour circle where the fill is the choice; groups into a radiogroup picker.",
+      },
       { name: "Switch", summary: "Binary toggle for settings that apply immediately." },
       { name: "Textarea", summary: "Multi-line text input." },
       { name: "TimePicker", summary: "Hour/minute picker with AM-PM and quick presets." },
+      {
+        name: "TimezonePicker",
+        summary: "Searchable IANA-zone combobox — filters ~400 zones by id, label or UTC offset.",
+      },
       { name: "Toggle", summary: "Two-state button — aria-pressed with the Button-default fill when on." },
       { name: "ToggleCard", summary: "Large pressable tile with icon, title and description; groups into a picker." },
       {
@@ -121,6 +129,10 @@ export const INVENTORY = [
       { name: "Accordion", summary: "Vertically stacked disclosure sections." },
       { name: "Card", summary: "Surface with header, content, footer and action slots." },
       { name: "Collapsible", summary: "Single show/hide region driven by its own trigger." },
+      {
+        name: "IconTile",
+        summary: "Rounded square that centres one icon; three sizes, muted or board-black ground, decorative.",
+      },
       { name: "JsonTree", summary: "Expandable JSON viewer with per-type colouring and path selection." },
       { name: "MediaFrame", summary: "Framed figure for screenshots and media, with a caption/toolbar bar slot." },
       { name: "ScrollArea", summary: "Overflow container with a styled scrollbar." },
@@ -164,6 +176,10 @@ export const INVENTORY = [
       {
         name: "Breadcrumb",
         summary: "WAI-ARIA breadcrumb trail — nav > ol with link, separator, ellipsis and current-page parts.",
+      },
+      {
+        name: "NavList",
+        summary: "Vertical nav list — aria-current rows and collapsible sections, for a rail, a menu or a TOC.",
       },
       { name: "Sidebar", summary: "Primary navigation rail — fixed-positioned, so shown in its own story." },
       { name: "MainContent", summary: "The <main> landmark and its sidebar-aware offset — shown in its own story." },

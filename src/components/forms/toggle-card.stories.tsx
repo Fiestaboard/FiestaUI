@@ -75,8 +75,13 @@ const meta = {
       description: "Content alignment — `center` stacks icon over title for square tiles",
     },
     indicator: {
-      control: "boolean",
-      description: "Show the corner check when selected so the state is not carried by hue alone. Defaults to true.",
+      control: "select",
+      options: ["corner", "trailing", false],
+      description:
+        'Where the selected-check goes, so the state is never carried by hue alone. `"corner"` (=== `true`, the ' +
+        'default) floats it over the tile and reserves the space a long title would slide under; `"trailing"` ' +
+        "puts it in flow at the end of the title row, for full-width picker rows. `false` removes it — only " +
+        "when the tile already shows its own selected artwork.",
     },
     children: {
       control: false,
@@ -111,7 +116,7 @@ export const Default: Story = {
     pressed: true,
     size: "md",
     align: "start",
-    indicator: true,
+    indicator: "corner",
   },
   render: function Render(args) {
     return (
@@ -216,6 +221,62 @@ export const Sizes = () => (
         <ToggleCard value="b" icon={<Zap />} title={`Size ${size}`} description="Idle" />
       </ToggleCardGroup>
     ))}
+  </div>
+);
+
+/**
+ * `indicator="trailing"` moves the check into the title row instead of
+ * floating it over the corner — the picker-dialog shape, where an option is a
+ * full-width row and the top-right corner is nowhere near its label. Nothing
+ * else changes: the row is still a `radio` inside a `radiogroup`, and it is
+ * `aria-checked` that announces the state. The hand-rolled version of this row
+ * downstream shows the same check with no ARIA at all, so the selection is
+ * invisible to a screen reader — that bug is unreachable from here, because
+ * the check is `aria-hidden` decoration in both placements.
+ */
+export const TrailingIndicatorRows = () => (
+  <ToggleCardGroup aria-label="Page to show" defaultValue="menu" indicator="trailing" className="w-full sm:w-[420px]">
+    <ToggleCard value="none" title="None" description="Leave this slot empty" />
+    <ToggleCard
+      value="welcome"
+      icon={<LayoutTemplate />}
+      title="Welcome board"
+      meta={<Badge variant="secondary">22 × 6</Badge>}
+    />
+    <ToggleCard
+      value="menu"
+      icon={<LayoutTemplate />}
+      title="Daily menu"
+      meta={<Badge variant="secondary">22 × 6</Badge>}
+    />
+    <ToggleCard value="rotation" icon={<GalleryHorizontalEnd />} title="Weekly rotation" description="4 pages" />
+  </ToggleCardGroup>
+);
+
+/**
+ * Both placements at both alignments, checked and unchecked. `corner` floats
+ * over the tile and reserves its room in the padding — on a centred tile,
+ * symmetrically, so the content stays centred. `trailing` takes its room in
+ * the row, after `meta`.
+ */
+export const IndicatorPlacements = () => (
+  <div className="flex w-full flex-col gap-6 sm:w-[420px]">
+    {(["corner", "trailing"] as const).map((placement) => (
+      <ToggleCardGroup
+        key={placement}
+        aria-label={`Indicator ${placement}`}
+        defaultValue="a"
+        columns="2"
+        indicator={placement}
+      >
+        <ToggleCard value="a" icon={<Zap />} title={placement} description="Selected" />
+        <ToggleCard value="b" icon={<Zap />} title={placement} description="Idle" />
+      </ToggleCardGroup>
+    ))}
+    <ToggleCardGroup aria-label="Indicator corner, centred" defaultValue="a" columns="2" align="center">
+      <ToggleCard value="a" icon={<Monitor />} title="corner" description="Centred tile" />
+      <ToggleCard value="b" icon={<Monitor />} title="corner" description="Centred tile" />
+    </ToggleCardGroup>
   </div>
 );
 
@@ -363,6 +424,105 @@ export const SegmentedControlWrapping = () => (
   </SegmentedControl>
 );
 
+/**
+ * `layout="grid"` is the settings-panel shape: equal-width cells that stretch
+ * to fill the row, instead of pills that hug their labels. Two options whose
+ * labels differ in length ("Off" vs "Every 15 minutes") otherwise produce two
+ * very differently sized targets, and the eye reads the longer one as the
+ * more important choice. Everything else is unchanged — this is a layout axis
+ * only, over the same radiogroup, the same roving tabindex and the same
+ * selected pigment.
+ */
+export const SegmentedControlGrid: Story = {
+  render: () => (
+    <SegmentedControl aria-label="Board refresh" layout="grid" defaultValue="manual" className="w-full sm:w-[420px]">
+      <SegmentedControlItem value="manual">Manual</SegmentedControlItem>
+      <SegmentedControlItem value="quarter-hourly">Every 15 minutes</SegmentedControlItem>
+    </SegmentedControl>
+  ),
+  /*
+   * "Equal-width" is a geometry claim, and geometry is the one thing the jsdom
+   * unit tests in toggle-card.test.tsx cannot check — no layout engine, every
+   * box is 0x0. This measures it where a browser exists: the storybook
+   * test-runner (the a11y-tests job). Deterministic — one synchronous read, no
+   * timers, nothing painted differently for VRT.
+   */
+  play: async ({ canvasElement }) => {
+    const cells = Array.from(canvasElement.querySelectorAll<HTMLElement>('[data-layout="grid"][role="radio"]'));
+    if (cells.length !== 2) throw new Error(`expected 2 grid cells, found ${cells.length}`);
+
+    const widths = cells.map((cell) => cell.getBoundingClientRect().width);
+    // Sub-pixel tolerance: `grid-cols-2` is `repeat(2, minmax(0, 1fr))`, so the
+    // two tracks can differ by a rounding remainder and nothing more.
+    if (Math.abs(widths[0] - widths[1]) > 1) {
+      throw new Error(`grid cells are not equal width: ${widths.join(" vs ")}`);
+    }
+  },
+};
+
+/**
+ * Two, three and four columns, fixed at every viewport. This is where the
+ * grid deliberately diverges from `ToggleCardGroup`, which collapses to
+ * `grid-cols-1` on a phone: a segmented cell holds two or three words, so
+ * collapsing it would turn a four-option control into four full-width
+ * buttons — the shape the grid exists to replace.
+ */
+export const SegmentedControlGridColumns = () => (
+  <div className="flex w-full flex-col gap-4 sm:w-[420px]">
+    <SegmentedControl aria-label="Board refresh" layout="grid" columns="2" defaultValue="manual">
+      {["Manual", "Hourly"].map((option) => (
+        <SegmentedControlItem key={option} value={option.toLowerCase()}>
+          {option}
+        </SegmentedControlItem>
+      ))}
+    </SegmentedControl>
+    <SegmentedControl aria-label="Flap speed" layout="grid" columns="3" defaultValue="standard" size="sm">
+      {["Gentle", "Standard", "Rapid"].map((option) => (
+        <SegmentedControlItem key={option} value={option.toLowerCase()}>
+          {option}
+        </SegmentedControlItem>
+      ))}
+    </SegmentedControl>
+    <SegmentedControl aria-label="Rotation" layout="grid" columns="4" defaultValue="6h" size="lg">
+      {["1h", "6h", "12h", "24h"].map((option) => (
+        <SegmentedControlItem key={option} value={option}>
+          {option}
+        </SegmentedControlItem>
+      ))}
+    </SegmentedControl>
+  </div>
+);
+
+/**
+ * The two things a stretched cell has to survive, on one screen: an icon over
+ * a label that has to sit in the middle of a cell it does not fill, and a
+ * label long enough to wrap. Grid cells swap the pill's fixed `h-*` for a
+ * `min-h-*` floor precisely for the second row — a fixed height would clip
+ * the second line rather than grow.
+ */
+export const SegmentedControlGridWithIcons = () => (
+  <div className="flex w-full flex-col gap-4 sm:w-[420px]">
+    <SegmentedControl aria-label="Transition strategy" layout="grid" columns="3" defaultValue="column">
+      <SegmentedControlItem value="column">
+        <Rows3 />
+        By column
+      </SegmentedControlItem>
+      <SegmentedControlItem value="random">
+        <Shuffle />
+        Random
+      </SegmentedControlItem>
+      <SegmentedControlItem value="instant">
+        <Zap />
+        Instant
+      </SegmentedControlItem>
+    </SegmentedControl>
+    <SegmentedControl aria-label="Overnight behaviour" layout="grid" defaultValue="dim">
+      <SegmentedControlItem value="dim">Dim the board overnight</SegmentedControlItem>
+      <SegmentedControlItem value="off">Off</SegmentedControlItem>
+    </SegmentedControl>
+  </div>
+);
+
 function FilterChips() {
   const [tags, setTags] = React.useState<string[]>(["weather"]);
   const toggle = (tag: string) =>
@@ -406,8 +566,10 @@ export const SegmentedControlDisabled = () => (
 /**
  * Keyboard contract, both shapes on one screen. Tab reaches the group once
  * and lands on the checked option; arrow keys (all four) move the selection
- * and wrap at the ends. Tab again leaves the whole group — then the standalone
- * toggle below takes its own stop, where Space or Enter flips it in place.
+ * and wrap at the ends, and Home/End jump to the first and last option,
+ * moving the selection with them. Tab again leaves the whole group — then the
+ * standalone toggle below takes its own stop, where Space or Enter flips it
+ * in place.
  */
 export const KeyboardNavigation = () => (
   <div className="flex w-full flex-col gap-6 sm:w-[460px]">

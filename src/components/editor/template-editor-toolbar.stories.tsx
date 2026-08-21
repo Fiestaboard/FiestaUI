@@ -42,6 +42,14 @@ const meta = {
       control: "select",
       options: ["flagship", "note", "note_array"],
     },
+    renderVariablePicker: {
+      control: false,
+      description:
+        "Renders the Variables dropdown body. Omitted, the toolbar renders its own lazily-imported " +
+        "`VariablePickerContent` from `templateVariables` / `pluginManifests` / `resolveIcon`. Supplying it moves " +
+        "that fetching — and lucide's full icon barrel — into the host's own dropdown-open chunk; the toolbar still " +
+        "owns the trigger, the disabled empty state and `onInsert` (insert at the caret, then close).",
+    },
   },
   args: {
     // The stories exercise the toolbar's own chrome; every editor-backed
@@ -88,6 +96,26 @@ export const SyncingFromBoard: Story = {
 export const WithEntityPicker: Story = {
   args: {
     entityPickerSlot: ({ open }) => (open ? <p>Host entity picker dialog renders here</p> : null),
+  },
+};
+
+/**
+ * Host-supplied Variables panel. The slot exists so a host can keep the
+ * picker's data fetching — and the lucide icon barrel `resolveIcon` needs —
+ * inside the chunk that only loads when the dropdown opens, instead of
+ * resolving both when the editor mounts. `templateVariables` is still what
+ * decides whether the button is enabled at all, so it stays passed.
+ */
+export const WithInjectedVariablePicker: Story = {
+  args: {
+    renderVariablePicker: ({ onInsert }) => (
+      <div className="p-3 min-w-[260px]">
+        <p className="mb-2 text-sm text-muted-foreground">Host variable picker (loaded on open)</p>
+        <button type="button" className="text-sm text-brand focus-ring" onClick={() => onInsert("{{weather.temp}}")}>
+          Insert {"{{weather.temp}}"}
+        </button>
+      </div>
+    ),
   },
 };
 

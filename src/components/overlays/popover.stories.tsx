@@ -199,7 +199,7 @@ function SwatchGrid() {
           key={swatch.name}
           type="button"
           onClick={close}
-          className="flex size-10 items-center justify-center rounded-md border outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+          className="flex size-10 items-center justify-center rounded-md border focus-ring"
         >
           <span className={`size-6 rounded-sm ${swatch.className}`} />
           <span className="sr-only">{swatch.name}</span>

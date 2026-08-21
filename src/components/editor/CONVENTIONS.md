@@ -146,6 +146,15 @@ Rules:
 - App components (`HomeAssistantEntityPicker`) become **render-prop slots**:
   `renderEntityPicker?: (ctx: { value: string; onChange: (v: string) => void }) => React.ReactNode`.
   Omitted slot renders nothing — never a placeholder or a "coming soon".
+- A panel whose data is only needed once it opens may _also_ be offered as an
+  **optional** slot, with the resolved-data path kept as the default:
+  `FormulaEditorPanel.renderVariablePicker` and
+  `TemplateEditorToolbar.renderVariablePicker` both take
+  `(ctx: { onInsert: (variable: string) => void }) => React.ReactNode`. The
+  component keeps the trigger, the open state, the empty/disabled state and the
+  insertion plumbing; only the body moves. That is what lets a host fetch (and
+  import an icon set) inside the same lazy chunk the body lives in instead of at
+  editor-mount time. Omitting the slot must leave existing behaviour untouched.
 
 ---
 

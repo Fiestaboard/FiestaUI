@@ -250,6 +250,10 @@ export const NON_COLOR_TOKEN_CATEGORIES: ReadonlyArray<{
   { id: "motion", label: "Motion durations & easings", matches: (n) => n.startsWith("--motion-") },
   { id: "z", label: "Z-index layer scale", matches: (n) => n.startsWith("--z-") },
   { id: "elevation", label: "Elevation shadows", matches: (n) => n.startsWith("--elevation-") },
+  // --focus-ring-shadow is a box-shadow, not a colour: it composes --ring and
+  // --ring-edge (both of which ARE swatches above) into the three-stop recipe
+  // `.focus-ring` and CSS-only consumers share (#228 item 5).
+  { id: "focus", label: "Focus ring recipe", matches: (n) => n.startsWith("--focus-ring") },
   { id: "board", label: "Board rendering", matches: (n) => n.startsWith("--board-") },
 ];
 
