@@ -363,6 +363,105 @@ export const SegmentedControlWrapping = () => (
   </SegmentedControl>
 );
 
+/**
+ * `layout="grid"` is the settings-panel shape: equal-width cells that stretch
+ * to fill the row, instead of pills that hug their labels. Two options whose
+ * labels differ in length ("Off" vs "Every 15 minutes") otherwise produce two
+ * very differently sized targets, and the eye reads the longer one as the
+ * more important choice. Everything else is unchanged — this is a layout axis
+ * only, over the same radiogroup, the same roving tabindex and the same
+ * selected pigment.
+ */
+export const SegmentedControlGrid: Story = {
+  render: () => (
+    <SegmentedControl aria-label="Board refresh" layout="grid" defaultValue="manual" className="w-full sm:w-[420px]">
+      <SegmentedControlItem value="manual">Manual</SegmentedControlItem>
+      <SegmentedControlItem value="quarter-hourly">Every 15 minutes</SegmentedControlItem>
+    </SegmentedControl>
+  ),
+  /*
+   * "Equal-width" is a geometry claim, and geometry is the one thing the jsdom
+   * unit tests in toggle-card.test.tsx cannot check — no layout engine, every
+   * box is 0x0. This measures it where a browser exists: the storybook
+   * test-runner (the a11y-tests job). Deterministic — one synchronous read, no
+   * timers, nothing painted differently for VRT.
+   */
+  play: async ({ canvasElement }) => {
+    const cells = Array.from(canvasElement.querySelectorAll<HTMLElement>('[data-layout="grid"][role="radio"]'));
+    if (cells.length !== 2) throw new Error(`expected 2 grid cells, found ${cells.length}`);
+
+    const widths = cells.map((cell) => cell.getBoundingClientRect().width);
+    // Sub-pixel tolerance: `grid-cols-2` is `repeat(2, minmax(0, 1fr))`, so the
+    // two tracks can differ by a rounding remainder and nothing more.
+    if (Math.abs(widths[0] - widths[1]) > 1) {
+      throw new Error(`grid cells are not equal width: ${widths.join(" vs ")}`);
+    }
+  },
+};
+
+/**
+ * Two, three and four columns, fixed at every viewport. This is where the
+ * grid deliberately diverges from `ToggleCardGroup`, which collapses to
+ * `grid-cols-1` on a phone: a segmented cell holds two or three words, so
+ * collapsing it would turn a four-option control into four full-width
+ * buttons — the shape the grid exists to replace.
+ */
+export const SegmentedControlGridColumns = () => (
+  <div className="flex w-full flex-col gap-4 sm:w-[420px]">
+    <SegmentedControl aria-label="Board refresh" layout="grid" columns="2" defaultValue="manual">
+      {["Manual", "Hourly"].map((option) => (
+        <SegmentedControlItem key={option} value={option.toLowerCase()}>
+          {option}
+        </SegmentedControlItem>
+      ))}
+    </SegmentedControl>
+    <SegmentedControl aria-label="Flap speed" layout="grid" columns="3" defaultValue="standard" size="sm">
+      {["Gentle", "Standard", "Rapid"].map((option) => (
+        <SegmentedControlItem key={option} value={option.toLowerCase()}>
+          {option}
+        </SegmentedControlItem>
+      ))}
+    </SegmentedControl>
+    <SegmentedControl aria-label="Rotation" layout="grid" columns="4" defaultValue="6h" size="lg">
+      {["1h", "6h", "12h", "24h"].map((option) => (
+        <SegmentedControlItem key={option} value={option}>
+          {option}
+        </SegmentedControlItem>
+      ))}
+    </SegmentedControl>
+  </div>
+);
+
+/**
+ * The two things a stretched cell has to survive, on one screen: an icon over
+ * a label that has to sit in the middle of a cell it does not fill, and a
+ * label long enough to wrap. Grid cells swap the pill's fixed `h-*` for a
+ * `min-h-*` floor precisely for the second row — a fixed height would clip
+ * the second line rather than grow.
+ */
+export const SegmentedControlGridWithIcons = () => (
+  <div className="flex w-full flex-col gap-4 sm:w-[420px]">
+    <SegmentedControl aria-label="Transition strategy" layout="grid" columns="3" defaultValue="column">
+      <SegmentedControlItem value="column">
+        <Rows3 />
+        By column
+      </SegmentedControlItem>
+      <SegmentedControlItem value="random">
+        <Shuffle />
+        Random
+      </SegmentedControlItem>
+      <SegmentedControlItem value="instant">
+        <Zap />
+        Instant
+      </SegmentedControlItem>
+    </SegmentedControl>
+    <SegmentedControl aria-label="Overnight behaviour" layout="grid" defaultValue="dim">
+      <SegmentedControlItem value="dim">Dim the board overnight</SegmentedControlItem>
+      <SegmentedControlItem value="off">Off</SegmentedControlItem>
+    </SegmentedControl>
+  </div>
+);
+
 function FilterChips() {
   const [tags, setTags] = React.useState<string[]>(["weather"]);
   const toggle = (tag: string) =>

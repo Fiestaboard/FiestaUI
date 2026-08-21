@@ -412,21 +412,59 @@ function ToggleCard({
  * SegmentedControl — the compact pill/toolbar flavour of the same idea.
  * ------------------------------------------------------------------ */
 
-const segmentedControlVariants = cva("flex items-center gap-2", {
+/*
+ * The layout axis (#241). Two shapes for one radiogroup:
+ *
+ *   • "inline" — a row of pills that hug their labels. The toolbar shape, and
+ *     the default: changing it would re-flow every shipped call site.
+ *   • "grid" — equal-width cells that stretch to fill the row. What a settings
+ *     panel wants, where two-to-four options of unequal label length otherwise
+ *     produce a ragged row of differently-sized targets and the pill an eye
+ *     lands on is whichever word is longest.
+ *
+ * `columns` uses FIXED `grid-cols-N`, deliberately NOT ToggleCardGroup's
+ * responsive `grid-cols-1 sm:grid-cols-2` collapse: these cells hold two or
+ * three words inside an already-narrow settings panel, so a one-up stack at
+ * phone width would be a full-width button per option — the shape the grid
+ * exists to avoid. Do not "unify" the two.
+ */
+const segmentedControlVariants = cva("gap-2", {
   variants: {
+    layout: {
+      inline: "flex items-center",
+      grid: "grid w-full items-stretch",
+    },
+    // `columns` and `wrap` each belong to exactly one layout, so both are
+    // carried by the compound variants below rather than emitting a class
+    // string the other layout would silently ignore: `grid-cols-*` does
+    // nothing to a flex row and `flex-wrap` does nothing to a grid.
+    columns: {
+      "2": "",
+      "3": "",
+      "4": "",
+    },
     wrap: {
-      true: "flex-wrap",
-      false: "flex-nowrap",
+      true: "",
+      false: "",
     },
   },
+  compoundVariants: [
+    { layout: "grid", columns: "2", class: "grid-cols-2" },
+    { layout: "grid", columns: "3", class: "grid-cols-3" },
+    { layout: "grid", columns: "4", class: "grid-cols-4" },
+    { layout: "inline", wrap: true, class: "flex-wrap" },
+    { layout: "inline", wrap: false, class: "flex-nowrap" },
+  ],
   defaultVariants: {
+    layout: "inline",
+    columns: "2",
     wrap: true,
   },
 });
 
 const segmentedControlItemVariants = cva(
   [
-    "group/segmented-item inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap",
+    "group/segmented-item cursor-pointer items-center justify-center gap-1.5",
     "border border-input bg-transparent font-medium text-foreground",
     "transition-[color,background-color,border-color,box-shadow] duration-control outline-none",
     "not-data-[checked]:hover:border-primary/50 not-data-[checked]:hover:bg-accent",
@@ -440,33 +478,71 @@ const segmentedControlItemVariants = cva(
   ],
   {
     variants: {
+      // Height is a compound of size x layout below: an inline pill is a fixed
+      // h-*, a grid cell is a min-h-* floor so a two-line label can grow.
       size: {
-        // h-7 (28px) clears WCAG 2.2 SC 2.5.8's 24x24 target minimum even at
-        // the compact size (issue #164).
-        sm: "h-7 rounded-md px-2.5 text-xs",
-        md: "h-8 rounded-md px-3 text-sm",
-        lg: "h-9 rounded-md px-4 text-sm",
+        sm: "rounded-md px-2.5 text-xs",
+        md: "rounded-md px-3 text-sm",
+        lg: "rounded-md px-4 text-sm",
+      },
+      layout: {
+        inline: "inline-flex whitespace-nowrap",
+        // A cell fills its grid column, so the label has to be allowed to wrap
+        // (no `whitespace-nowrap`) and centred as text, not just as a flex line.
+        grid: "flex w-full text-center",
       },
     },
+    compoundVariants: [
+      // 28/32/36px. h-7 (28px) clears WCAG 2.2 SC 2.5.8's 24x24 target minimum
+      // even at the compact size (issue #164).
+      { layout: "inline", size: "sm", class: "h-7" },
+      { layout: "inline", size: "md", class: "h-8" },
+      { layout: "inline", size: "lg", class: "h-9" },
+      // Same rank values as a floor rather than a height, plus the vertical
+      // padding a wrapped second line needs — a stretched cell that kept `h-8`
+      // would clip its own label the moment the grid narrowed.
+      { layout: "grid", size: "sm", class: "min-h-7 py-1.5" },
+      { layout: "grid", size: "md", class: "min-h-8 py-1.5" },
+      { layout: "grid", size: "lg", class: "min-h-9 py-2" },
+    ],
     defaultVariants: {
       size: "md",
+      layout: "inline",
     },
   },
 );
 
 type SegmentedControlSize = NonNullable<VariantProps<typeof segmentedControlItemVariants>["size"]>;
+type SegmentedControlLayout = NonNullable<VariantProps<typeof segmentedControlVariants>["layout"]>;
+type SegmentedControlColumns = NonNullable<VariantProps<typeof segmentedControlVariants>["columns"]>;
 
 interface SegmentedControlContextValue {
   size?: SegmentedControlSize;
+  layout?: SegmentedControlLayout;
 }
 
 const SegmentedControlContext = React.createContext<SegmentedControlContextValue | null>(null);
 
 export type SegmentedControlProps = SelectionGroupBaseProps &
   SelectionGroupNameProps &
-  VariantProps<typeof segmentedControlVariants> & {
+  // `layout` and `columns` are re-declared below so they can carry their own
+  // documentation; VariantProps supplies the rest of the axis (`wrap`).
+  Omit<VariantProps<typeof segmentedControlVariants>, "layout" | "columns"> & {
     /** Size applied to every item; an item may override it. */
     size?: SegmentedControlSize;
+    /**
+     * `"inline"` is a row of pills that hug their labels — the toolbar shape.
+     * `"grid"` gives equal-width cells that stretch to fill the row, so the
+     * options read as one control instead of a ragged row of differently
+     * sized targets. Set per group, never per item. @default "inline"
+     */
+    layout?: SegmentedControlLayout;
+    /**
+     * Column count for `layout="grid"`, fixed at every viewport (the cells do
+     * not collapse to one-up on a phone). Ignored — and unstamped — in the
+     * inline row. @default "2"
+     */
+    columns?: SegmentedControlColumns;
     className?: string;
     children?: React.ReactNode;
   } & Omit<React.ComponentProps<"div">, "defaultValue" | "onChange">;
@@ -474,15 +550,31 @@ export type SegmentedControlProps = SelectionGroupBaseProps &
 /**
  * Compact single-select pill row — the toolbar-scale sibling of
  * {@link ToggleCardGroup}, with the same `radiogroup` semantics.
+ *
+ * `layout="grid"` swaps the hugging row for equal-width cells; it is a layout
+ * axis only. Selection semantics, the roving tabindex, the selected pigment
+ * and the focus ring are identical in both shapes.
  */
-function SegmentedControl({ className, size, wrap, children, ...props }: SegmentedControlProps) {
-  const context = React.useMemo<SegmentedControlContextValue>(() => ({ size }), [size]);
+function SegmentedControl({
+  className,
+  size,
+  layout = "inline",
+  columns = "2",
+  wrap,
+  children,
+  ...props
+}: SegmentedControlProps) {
+  const context = React.useMemo<SegmentedControlContextValue>(() => ({ size, layout }), [size, layout]);
 
   return (
     <SegmentedControlContext.Provider value={context}>
       <SelectionGroupRoot
         slot="segmented-control"
-        className={cn(segmentedControlVariants({ wrap }), className)}
+        data-layout={layout}
+        // Only meaningful under the grid; a column count on a hugging row
+        // would advertise a structure the row does not have.
+        data-columns={layout === "grid" ? columns : undefined}
+        className={cn(segmentedControlVariants({ layout, columns, wrap }), className)}
         {...props}
       >
         {children}
@@ -492,7 +584,9 @@ function SegmentedControl({ className, size, wrap, children, ...props }: Segment
 }
 
 export type SegmentedControlItemProps = Omit<React.ComponentProps<"button">, "value"> &
-  VariantProps<typeof segmentedControlItemVariants> & {
+  // `layout` is deliberately not a per-item prop: one cell opting out of the
+  // grid breaks the equal-width row it sits in. It comes from the group.
+  Omit<VariantProps<typeof segmentedControlItemVariants>, "layout"> & {
     /** Identifies the item inside a {@link SegmentedControl}. */
     value?: string;
     /** Standalone toggle state — only outside a SegmentedControl. */
@@ -515,6 +609,8 @@ function SegmentedControlItem({
 }: SegmentedControlItemProps) {
   const group = React.useContext(SegmentedControlContext);
   const resolvedSize = size ?? group?.size ?? "md";
+  // A standalone pill (a filter chip) has no grid to fill, so it stays inline.
+  const resolvedLayout = group?.layout ?? "inline";
 
   return (
     <SelectableItemRoot
@@ -524,7 +620,8 @@ function SegmentedControlItem({
       onPressedChange={onPressedChange}
       data-slot="segmented-control-item"
       data-size={resolvedSize}
-      className={cn(segmentedControlItemVariants({ size: resolvedSize }), className)}
+      data-layout={resolvedLayout}
+      className={cn(segmentedControlItemVariants({ size: resolvedSize, layout: resolvedLayout }), className)}
       {...props}
     >
       {children}
