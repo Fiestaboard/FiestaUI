@@ -13,6 +13,7 @@ export * from "./components/containment/json-tree";
 export * from "./components/containment/media-frame";
 export * from "./components/feedback/alert";
 export * from "./components/feedback/badge";
+export * from "./components/feedback/chip";
 export * from "./components/feedback/empty-state";
 export * from "./components/forms/button";
 export * from "./components/forms/checkbox";
@@ -43,6 +44,7 @@ export * from "./components/forms/slider";
 export * from "./components/forms/switch";
 export * from "./components/forms/textarea";
 export * from "./components/forms/time-picker";
+export * from "./components/forms/toggle";
 export * from "./components/forms/toggle-card";
 export * from "./components/layout/stack";
 export * from "./components/overlays/sheet";
@@ -52,6 +54,7 @@ export * from "./components/typography/text-link";
 // App chrome — branding, sidebar, layout, festive treatments.
 export * from "./components/chrome/board-icon";
 export * from "./components/chrome/board-selector";
+export * from "./components/chrome/breadcrumb";
 export * from "./components/chrome/fiesta-icon";
 export * from "./components/chrome/fiesta-logo";
 export * from "./components/chrome/language-selector";
@@ -75,6 +78,9 @@ export * from "./lib/board-characters";
 export * from "./lib/board-colors";
 export * from "./lib/board-dimensions";
 export * from "./lib/board-previews";
+// Data display — derived metrics rendered for reading, not editing (#229).
+export * from "./components/data/bar-list";
+export * from "./components/data/stat-strip";
 // Plugin directory — how a plugin is advertised on a card and a detail page.
 export * from "./components/plugin/board-showcase";
 export * from "./components/plugin/plugin-card";
