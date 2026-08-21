@@ -10,11 +10,9 @@ export * from "./components/containment/accordion";
 export * from "./components/containment/card";
 export * from "./components/containment/collapsible";
 export * from "./components/containment/json-tree";
-// Data — quantitative readouts (ranked bars, stat strips): promoted docs-site
-// visualizations (#229) that no existing family owns.
-export * from "./components/data/bar-list";
 export * from "./components/feedback/alert";
 export * from "./components/feedback/badge";
+export * from "./components/feedback/chip";
 export * from "./components/feedback/empty-state";
 export * from "./components/forms/button";
 export * from "./components/forms/checkbox";
@@ -76,6 +74,9 @@ export * from "./lib/board-characters";
 export * from "./lib/board-colors";
 export * from "./lib/board-dimensions";
 export * from "./lib/board-previews";
+// Data display — derived metrics rendered for reading, not editing (#229).
+export * from "./components/data/bar-list";
+export * from "./components/data/stat-strip";
 // Plugin directory — how a plugin is advertised on a card and a detail page.
 export * from "./components/plugin/board-showcase";
 export * from "./components/plugin/plugin-card";

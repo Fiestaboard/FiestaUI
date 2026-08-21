@@ -98,6 +98,10 @@ export const INVENTORY = [
     entries: [
       { name: "Alert", summary: "Five status variants with a tinted surface, full-strength border and icon slot." },
       { name: "Badge", summary: "Eight variants: the four solid ones plus the brand and monospace tag tints." },
+      {
+        name: "Chip",
+        summary: "Badge's operable counterpart — a link/button-shaped tag, optionally mono for versions.",
+      },
       { name: "EmptyState", summary: "Icon, title, description and an action for a zero-result view." },
       { name: "Skeleton", summary: "Loading placeholder block." },
       { name: "Spinner", summary: "Indeterminate progress at three sizes, with an accessible label." },
@@ -116,18 +120,6 @@ export const INVENTORY = [
       { name: "ScrollArea", summary: "Overflow container with a styled scrollbar." },
       { name: "Table", summary: "Data table with header, body, row and cell parts." },
       { name: "Tabs", summary: "Tab list plus panels." },
-    ],
-  },
-  {
-    id: "data",
-    title: "Data",
-    description:
-      "Quantitative readouts — measured values as ranked bars and stat rows. Not a chart library: no axes, no legends, no interaction; the number is always rendered as text.",
-    entries: [
-      {
-        name: "BarList",
-        summary: "Ranked label/track/fill/value rows — a thin cousin of a meter; the value text carries the data.",
-      },
     ],
   },
   {
@@ -174,6 +166,20 @@ export const INVENTORY = [
       { name: "BoardDisplay", summary: "The animated display, with flap cascade and a live region." },
       { name: "BoardBackdrop", summary: "A field of split-flap rows used as a page backdrop." },
       { name: "BoardTeaser", summary: "One-line teaser strip for cards and lists." },
+    ],
+  },
+  {
+    id: "data",
+    title: "Data",
+    description:
+      "Derived metrics rendered for reading. Distinct from Feedback, which is the system reporting on itself — these display the user's numbers.",
+    entries: [
+      { name: "StatStrip", summary: "Inline row of big-number stats — a description list with an opt-in brand tone." },
+      { name: "StatStripItem", summary: "One value/label pair, for composing a strip with custom value markup." },
+      {
+        name: "BarList",
+        summary: "Ranked label/track/fill/value rows — a thin cousin of a meter; the value text carries the data.",
+      },
     ],
   },
   {
