@@ -98,6 +98,10 @@ export const INVENTORY = [
     entries: [
       { name: "Alert", summary: "Five status variants with a tinted surface, full-strength border and icon slot." },
       { name: "Badge", summary: "Eight variants: the four solid ones plus the brand and monospace tag tints." },
+      {
+        name: "Chip",
+        summary: "Badge's operable counterpart — a link/button-shaped tag, optionally mono for versions.",
+      },
       { name: "EmptyState", summary: "Icon, title, description and an action for a zero-result view." },
       { name: "Skeleton", summary: "Loading placeholder block." },
       { name: "Spinner", summary: "Indeterminate progress at three sizes, with an accessible label." },
