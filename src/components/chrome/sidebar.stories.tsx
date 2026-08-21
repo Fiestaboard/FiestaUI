@@ -247,7 +247,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       description: "Start collapsed to the icon rail — the edge chevron stays clickable either way.",
       control: "boolean",
     },
-    showAi: { description: "Show the AI assistant entry between primary and secondary nav.", control: "boolean" },
+    showAi: { description: "Show the AI assistant entry as the last row of the nav list.", control: "boolean" },
     aiActive: { description: "Highlight the AI assistant entry as the active route.", control: "boolean" },
     boardCount: {
       description: "How many boards the install has — a single board hides the selector, matching the app.",
@@ -305,6 +305,30 @@ export const AiActive: Story = {
 
 export const WithAccount: Story = {
   render: () => <DemoSidebar renderAccount={({ collapsed }) => <AccountRow collapsed={collapsed} />} />,
+};
+
+/**
+ * When the nav outgrows the rail, the LIST scrolls inside itself — the
+ * header (logo + board switcher) and the bottom block (secondary links,
+ * version/theme) stay pinned, and the AI row scrolls with the list it
+ * belongs to. Twelve extra destinations guarantee overflow at the VRT
+ * viewport heights (800px desktop, 844px mobile).
+ */
+export const OverflowingNav: Story = {
+  render: () => (
+    <DemoSidebar
+      primaryItems={[
+        ...PRIMARY,
+        ...Array.from({ length: 12 }, (_, i) => ({
+          key: `extra-${i + 1}`,
+          href: `#extra-${i + 1}`,
+          icon: FileText,
+          label: `Destination ${i + 1}`,
+        })),
+      ]}
+      ai={{ active: false, onOpen: () => {} }}
+    />
+  ),
 };
 
 /**

@@ -565,7 +565,20 @@
      means on" still holds everywhere it physically can. */
   --nav-active: var(--foreground);
   --nav-active-foreground: var(--background);
-  --nav-active-hover: oklch(1 0 0 / 14%);
+  /* Surface-relative, not a white literal (#228). The old `oklch(1 0 0 / 14%)`
+     was tuned by eye on the DARK rail (3.16:1 there) and was invisible
+     everywhere else: 1.03:1 on the light rail, and 1.015:1 when the class
+     reached the docs site's page surface in 4.0.0 — that site now hand-mixes
+     its own hover to survive us. Mixing the LOCAL foreground instead makes the
+     tint an emphasis of whatever ink the row already carries, so it
+     self-adapts to any surface: 3.36:1 on a dark page, 1.15:1 on a light one.
+     Custom properties substitute var() on the element they are DECLARED on,
+     so this :root value is resolved against the PAGE ink before it ever
+     inherits onto the rail — which is why .sidebar-gradient re-declares the
+     token from --sidebar-foreground (3.07:1 dark rail, within 0.1 of the
+     literal it replaces; 1.15:1 on the light rail, where hover previously
+     did not paint at all). */
+  --nav-active-hover: color-mix(in oklch, var(--foreground) 14%, transparent);
   /* Fiesta gradient palette — three board hues at ONE lightness (0.46),
      identical in both themes. Because that surface never changes luminance
      across its 117s loop, the contrast of anything sitting on it is a
@@ -848,7 +861,10 @@
      where a 117-second animation happens to be. */
   --nav-active: var(--primary); /* see :root */
   --nav-active-foreground: var(--primary-foreground);
-  --nav-active-hover: oklch(1 0 0 / 14%);
+  /* No --nav-active-hover copy here (#228): :root and this block style the
+     same element (html), so the :root color-mix re-resolves against this
+     block's --foreground on its own. A dark duplicate would only be a second
+     place for the recipe to drift. */
   /* Identical to :root. See the note there. */
   --fiesta-red: oklch(0.46 0.15 29);
   --fiesta-orange: oklch(0.46 0.098 73);
@@ -1204,6 +1220,13 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   --accent: color-mix(in oklch, var(--sidebar-foreground) 10%, transparent);
   --accent-foreground: var(--sidebar-foreground);
   --border: color-mix(in oklch, var(--sidebar-foreground) 14%, transparent);
+  /* Re-declared, not inherited (#228): the :root value already resolved its
+     var(--foreground) against the PAGE ink before inheriting here — rebinding
+     --foreground above cannot reach inside an inherited color-mix. From the
+     rail ink: 3.07:1 on the dark rail (the white literal it replaces was
+     3.16:1) and 1.15:1 on the light rail, where the white-on-near-white
+     literal measured 1.03:1 — a hover that never painted. */
+  --nav-active-hover: color-mix(in oklch, var(--sidebar-foreground) 14%, transparent);
 }
 
 /* No CSS gradient paints here any more (#231). The rail is a flat surface;
@@ -1350,12 +1373,20 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 }
 
 /* The hover tint is the only chrome token left carrying alpha, so this is
-   the one transparency branch that still has work to do. */
-/* A literal, not a color-mix. Mixing hue 315 into the hue-73 rail takes the
-   shorter arc and lands around hue 47 — a seventh hue, and a brown one, inside
-   a palette whose whole rule is six. */
+   the one transparency branch that still has work to do. Two surfaces, two
+   opaque answers (#228): 4.0.0 shipped ONE — the rail's — unscoped, and any
+   page-surface consumer (the docs site) inherited a near-black row fill under
+   a page-coloured label. The page rule now answers with --secondary, the
+   opaque page-surface step that follows the theme (1.13:1 light, 1.25:1 dark
+   against --background); the rail keeps its literal, scoped to the rail. */
+/* The rail value is a literal, not a color-mix. Mixing hue 315 into the
+   hue-73 rail takes the shorter arc and lands around hue 47 — a seventh hue,
+   and a brown one, inside a palette whose whole rule is six. */
 @media (prefers-reduced-transparency: reduce) {
   .nav-active-hover:hover {
+    background: var(--secondary);
+  }
+  .sidebar-gradient .nav-active-hover:hover {
     background: oklch(0.34 0.02 73);
   }
 }
@@ -1363,13 +1394,27 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 /* Users who ask for more contrast get the most legible path, not the least
    (#162) — a heavier marker and a white hairline around the pill. */
 /* More contrast means MORE CONTRAST, not more chrome: the same pigment, lifted.
-   Fill vs rail 8.12 -> 10.60:1, ink label 8.84 -> 11.54:1. No rim, no marker. */
+   Fill vs rail 8.12 -> 10.60:1, ink label 8.84 -> 11.54:1. No rim, no marker.
+
+   The fill lift lives in the DARK token block, not on the class (#228): it
+   lifts the TILE pair, and the tile pair only exists in dark — light mode's
+   resting pill is already --foreground under a --background label, the most
+   contrast this palette holds, and 4.0.0's unscoped `.nav-active` retune
+   replaced exactly that pair with a 0.86-lightness fill on the docs site's
+   light pages: 17.54:1 collapsed to 1.40:1 for precisely the readers who
+   asked for more. Scoping by theme instead of by class means a surface where
+   the resting pair is inverted never sees a fill-only retune again.
+   The hover keeps the same recipe as its resting form, lifted 14% -> 24%
+   (4.54:1 dark rail, 5.05:1 dark page, 1.29:1 light page). */
 @media (prefers-contrast: more) {
-  .nav-active {
+  .dark {
     --nav-active: oklch(0.86 0.115 73);
   }
-  .nav-active-hover:hover {
-    background: oklch(1 0 0 / 24%);
+  :root {
+    --nav-active-hover: color-mix(in oklch, var(--foreground) 24%, transparent);
+  }
+  .sidebar-gradient {
+    --nav-active-hover: color-mix(in oklch, var(--sidebar-foreground) 24%, transparent);
   }
 }
 

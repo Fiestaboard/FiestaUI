@@ -61,6 +61,7 @@ import { JsonTree } from "../components/containment/json-tree";
 import { ScrollArea } from "../components/containment/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/containment/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containment/tabs";
+import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
@@ -1036,6 +1037,29 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </div>
   ),
   BoardTeaser: () => <BoardTeaser teaser="AQI 42 GOOD" size="md" />,
+
+  /* ---- Data ---- */
+  StatStrip: () => (
+    <StatStrip
+      tone="brand"
+      items={[
+        { value: "52", label: "plugins" },
+        { value: "5,612", label: "unique cloners" },
+      ]}
+    />
+  ),
+  StatStripItem: () => (
+    <StatStrip>
+      <StatStripItem
+        value={
+          <>
+            99.4<span className="text-base font-normal text-muted-foreground">%</span>
+          </>
+        }
+        label="uptime"
+      />
+    </StatStrip>
+  ),
 
   /* ---- Plugin directory ---- */
   PluginCard: () => (
