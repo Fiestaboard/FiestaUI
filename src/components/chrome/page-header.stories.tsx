@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Button } from "../forms/button";
 import { Input } from "../forms/input";
 import { PAGE_HUES, PageHeader, pageHue, PageIconGradientDefs } from "./page-header";
+import { PageToolbar } from "./page-toolbar";
 
 const meta = {
   title: "App/Chrome/PageHeader",
@@ -122,20 +123,21 @@ export const EveryPage: Story = {
  * while every other line of text on the page sits on a different vertical,
  * and the route reads as having two competing left edges.
  *
- * TWO RULES ARE DRAWN, and they are deliberately not symmetric.
+ * TWO RULES ARE DRAWN, one per column, and everything meets one of them.
  *
- * - The LEFT rule is the card's content edge. The page title, both card
- *   titles and both card bodies meet it; nothing sits to its left but the
- *   cards' own borders.
- * - The RIGHT rule is the container gutter — the cards' edge. The header's
- *   action meets it, and so does the toolbar's field below, because both are
- *   controls and controls run to the gutter. Padding the header's right side
- *   too would pull the action 24px inboard of that field and trade a
- *   left-edge fix for a right-edge break.
+ * - The RED rule is the CONTENT column: the gutter plus 24. The page title
+ *   and description, the header's action, the toolbar's field, and both card
+ *   titles and bodies all start here.
+ * - The BLUE rule is the CHROME column: the gutter itself. Only borders live
+ *   on it — the toolbar's and both cards'.
+ *
+ * The toolbar being a card is what makes this work. As a bare transparent row
+ * its field ran to the blue rule while the title sat on the red one, which is
+ * the misalignment this pair of changes exists to remove.
  *
  * Check both at BOTH viewports: the container's gutter steps 16 → 24 at md,
- * but `Card`'s padding is a constant 24, so the inset the header adds is the
- * same at either size.
+ * but `Card`'s padding is a constant 24, so the inset is the same at either
+ * size.
  */
 export const AlignsWithCardContent: Story = {
   args: {
@@ -148,16 +150,15 @@ export const AlignsWithCardContent: Story = {
     <div className="bg-background min-h-dvh py-8">
       {/* Mirrors PageLayout's own container gutter — the cards sit on it. */}
       <div className="relative container mx-auto max-w-full px-4 md:px-6">
-        {/* Left: the card's content edge — that gutter, plus Card's px-6. */}
+        {/* Content column: the gutter, plus the 24 that Card and PageToolbar
+            both pad by. Every word and every control starts here. */}
         <div className="bg-hue-red pointer-events-none absolute inset-y-0 left-10 w-px opacity-60 md:left-12" />
-        {/* Right: the gutter itself, where every control's edge lands. */}
+        {/* Chrome column: the gutter itself. Only borders sit on it. */}
         <div className="bg-hue-blue pointer-events-none absolute inset-y-0 right-4 w-px opacity-60 md:right-6" />
         <PageHeader {...args}>
           <Button variant="outline">Check for updates</Button>
         </PageHeader>
-        <div className="mb-4">
-          <Input placeholder="Search installed plugins…" />
-        </div>
+        <PageToolbar right={<Input placeholder="Search installed plugins…" />} />
         <div className="space-y-4">
           <Card>
             <CardHeader>

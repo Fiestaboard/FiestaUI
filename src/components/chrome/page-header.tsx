@@ -100,17 +100,19 @@ interface PageHeaderProps {
  * the same vertical as the *border* of every card below it — while the text
  * inside those cards began 24px further in. A settings route therefore showed
  * two left edges a reader could see, and the H1 lined up with the one that is
- * a hairline rather than the one that is words. `pl-6` matches `Card`'s own
+ * a hairline rather than the one that is words. `px-6` matches `Card`'s own
  * content padding, which is a constant 24 at every breakpoint (the container's
  * gutter steps 16 -> 24 at md; the card's does not), so the page title, each
  * card's title and each card's body share one column at every width.
  *
- * LEFT ONLY, and not for lack of symmetry. The action slot is a CONTROL, and
- * the things directly beneath it are also controls — a toolbar's search field,
- * a tab strip, a card's own right edge — all of which run to the container
- * gutter. Padding the right as well pulled Integrations' "Check for updates"
- * 24px inboard of the search box below it, trading a left-edge fix for a
- * right-edge break. Text joins the text column; controls stay on the gutter.
+ * BOTH SIDES, which depends on `PageToolbar` being a card. This was briefly
+ * `pl-6`: while the toolbar was a bare transparent row, its search field ran
+ * to the gutter, and padding the header's right pulled the action slot 24px
+ * inboard of the field directly beneath it. Now that the toolbar draws card
+ * chrome, its controls sit on the content column too, and the action lines up
+ * with them. The symmetry is a consequence of that change, not a preference —
+ * if a route ever puts a full-bleed control under the header again, this is
+ * the pair to revisit together.
  */
 export const PageHeader = memo(function PageHeader({
   icon: Icon,
@@ -125,7 +127,7 @@ export const PageHeader = memo(function PageHeader({
   return (
     <div
       className={cn(
-        "mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 pl-6 animate-card-fade-in",
+        "mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 px-6 animate-card-fade-in",
         className,
       )}
       style={{ animationDelay }}
