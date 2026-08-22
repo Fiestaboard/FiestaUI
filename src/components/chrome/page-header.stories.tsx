@@ -1,8 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Calendar, FileText, GalleryHorizontalEnd, Home, Puzzle, Settings } from "lucide-react";
 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../containment/card";
+import { Badge } from "../feedback/badge";
 import { Button } from "../forms/button";
+import { Input } from "../forms/input";
 import { PAGE_HUES, PageHeader, pageHue, PageIconGradientDefs } from "./page-header";
+import { PageToolbar } from "./page-toolbar";
 
 const meta = {
   title: "App/Chrome/PageHeader",
@@ -108,4 +112,84 @@ export const EveryPage: Story = {
       </div>
     );
   },
+};
+
+/**
+ * THE ALIGNMENT CONTRACT, and the reason PageHeader and PageToolbar both
+ * carry `px-6` of their own.
+ *
+ * A route is a header, a toolbar and some cards, all direct children of the
+ * same `PageLayout` container. That container's gutter puts each card's
+ * BORDER on it — but a card's own `px-6` puts each card's WORDS 24px further
+ * in. So a header and a toolbar with no padding line their contents up with a
+ * hairline while every other line of text on the page sits on a different
+ * vertical, and the route reads as having two competing left edges.
+ *
+ * TWO RULES ARE DRAWN, one per column.
+ *
+ * - The RED rule is the CONTENT column: the gutter plus 24. The page title
+ *   and description, the header's action, the toolbar's tabs and field, and
+ *   both card titles and bodies all start here. This is the line to check.
+ * - The BLUE rule is the gutter itself. After this change NOTHING but a card
+ *   border should touch it — that is the point. It is drawn so a regression
+ *   is visible as something crossing back out to it.
+ *
+ * Check both at BOTH viewports: the container's gutter steps 16 → 24 at md,
+ * but `Card`'s padding is a constant 24, so the inset is the same at either
+ * size.
+ */
+export const AlignsWithCardContent: Story = {
+  args: {
+    icon: Settings,
+    title: "Integrations",
+    description: "Enable and configure data source plugins for your FiestaBoard.",
+  },
+  parameters: { layout: "fullscreen" },
+  render: (args) => (
+    <div className="bg-background min-h-dvh py-8">
+      {/* Mirrors PageLayout's own container gutter — the cards sit on it. */}
+      <div className="relative container mx-auto max-w-full px-4 md:px-6">
+        {/* Content column: the gutter, plus the 24 that Card, PageHeader and
+            PageToolbar all pad by. Every word and every control starts here. */}
+        <div className="bg-hue-red pointer-events-none absolute inset-y-0 left-10 w-px opacity-60 md:left-12" />
+        {/* The gutter itself. Only card borders should reach it. */}
+        <div className="bg-hue-blue pointer-events-none absolute inset-y-0 right-4 w-px opacity-60 md:right-6" />
+        <PageHeader {...args}>
+          <Button variant="outline">Check for updates</Button>
+        </PageHeader>
+        {/* The real Integrations shape — a tab strip and a field that takes the
+            rest — not a right-slot input, which would right-align the field and
+            leave nothing of the toolbar on the content column to check. */}
+        <PageToolbar>
+          <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[auto_minmax(0,1fr)]">
+            <div className="flex items-center gap-1">
+              <Badge>Installed</Badge>
+              <Badge variant="secondary">Marketplace</Badge>
+            </div>
+            <Input placeholder="Search installed plugins…" />
+          </div>
+        </PageToolbar>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Instance name</CardTitle>
+              <CardDescription>Name the FiestaBoard device that controls your boards.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Input placeholder="e.g. Living Room Pi" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+              <CardDescription>Choose how FiestaBoard looks.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline">System</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  ),
 };

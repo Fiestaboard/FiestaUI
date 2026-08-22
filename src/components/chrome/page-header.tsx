@@ -94,6 +94,25 @@ interface PageHeaderProps {
  * `children` is an ACTION SLOT and now renders beside the title rather than
  * below the description, so a route can put its primary action on the header
  * row without hand-writing a float.
+ *
+ * INSET TO THE CARD'S CONTENT, NOT ITS CHROME. The header sits directly in
+ * `PageLayout`'s container, so with no padding of its own its type began on
+ * the same vertical as the *border* of every card below it — while the text
+ * inside those cards began 24px further in. A settings route therefore showed
+ * two left edges a reader could see, and the H1 lined up with the one that is
+ * a hairline rather than the one that is words. `px-6` matches `Card`'s own
+ * content padding, which is a constant 24 at every breakpoint (the container's
+ * gutter steps 16 -> 24 at md; the card's does not), so the page title, each
+ * card's title and each card's body share one column at every width.
+ *
+ * BOTH SIDES, which depends on `PageToolbar` taking the same inset. This was
+ * briefly `pl-6`: while the toolbar had no padding, its search field ran to
+ * the gutter, and padding the header's right pulled the action slot 24px
+ * inboard of the field directly beneath it. The toolbar now takes `px-6` too,
+ * so the action lines up with the controls under it. The symmetry is a
+ * consequence of that pairing, not a preference — if a route ever puts a
+ * full-bleed control under the header again, these two are the pair to
+ * revisit together.
  */
 export const PageHeader = memo(function PageHeader({
   icon: Icon,
@@ -107,7 +126,10 @@ export const PageHeader = memo(function PageHeader({
   const resolved = hue ?? pageHue(title);
   return (
     <div
-      className={cn("mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 animate-card-fade-in", className)}
+      className={cn(
+        "mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 px-6 animate-card-fade-in",
+        className,
+      )}
       style={{ animationDelay }}
     >
       <div className="min-w-0">

@@ -9,3 +9,9 @@ package-lock.json
 .github/perf-audit-state.json
 .github/perf-explore-state.json
 .github/perf-explore/
+# Nested worktrees are gitignored, so CI never sees them — but prettier walks
+# them locally and reports each one's perf-loop state files, so `format:check`
+# failed here while it passed in CI. Local format should match CI's.
+# Mirrors the same ignores in eslint.config.mjs.
+.worktrees/
+.claude/worktrees/

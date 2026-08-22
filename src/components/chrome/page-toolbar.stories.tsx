@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 import { Badge } from "../feedback/badge";
 import { Button } from "../forms/button";
+import { Input } from "../forms/input";
 import { PageToolbar } from "./page-toolbar";
 
 const meta = {
@@ -17,6 +18,10 @@ const meta = {
       control: false,
     },
     right: { description: "Right slot — page-level actions. Omit to left-align the info cluster.", control: false },
+    children: {
+      description: "Escape hatch — replaces the slot layout with your own row, keeping the chrome and its padding.",
+      control: false,
+    },
     className: { control: false },
   },
 } satisfies Meta<typeof PageToolbar>;
@@ -63,8 +68,35 @@ export const LeftOnly: Story = {
   },
 };
 
+/**
+ * A lone action, which Collections uses. This is fine precisely because the
+ * toolbar is bare: card chrome was tried here and turned this shape into a
+ * wide empty bar with a button in the corner, which is one of the reasons the
+ * chrome was dropped in favour of a plain inset.
+ */
 export const RightOnly: Story = {
   args: {
     right: <Button variant="brand">New page</Button>,
+  },
+};
+
+/**
+ * The `children` escape hatch, which is what Integrations uses. Its search
+ * field has to take whatever track the tab strip leaves, and a left/right flex
+ * split cannot express "fill the rest" — so the route supplies its own grid
+ * and the toolbar contributes only the chrome. The controls still land on the
+ * content column, because the padding lives on the outer element either way.
+ */
+export const CustomRow: Story = {
+  args: {
+    children: (
+      <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[auto_minmax(0,1fr)]">
+        <div className="flex items-center gap-1">
+          <Badge>Installed</Badge>
+          <Badge variant="secondary">Marketplace</Badge>
+        </div>
+        <Input placeholder="Search installed plugins…" />
+      </div>
+    ),
   },
 };
