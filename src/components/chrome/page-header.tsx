@@ -105,14 +105,14 @@ interface PageHeaderProps {
  * gutter steps 16 -> 24 at md; the card's does not), so the page title, each
  * card's title and each card's body share one column at every width.
  *
- * BOTH SIDES, which depends on `PageToolbar` being a card. This was briefly
- * `pl-6`: while the toolbar was a bare transparent row, its search field ran
- * to the gutter, and padding the header's right pulled the action slot 24px
- * inboard of the field directly beneath it. Now that the toolbar draws card
- * chrome, its controls sit on the content column too, and the action lines up
- * with them. The symmetry is a consequence of that change, not a preference —
- * if a route ever puts a full-bleed control under the header again, this is
- * the pair to revisit together.
+ * BOTH SIDES, which depends on `PageToolbar` taking the same inset. This was
+ * briefly `pl-6`: while the toolbar had no padding, its search field ran to
+ * the gutter, and padding the header's right pulled the action slot 24px
+ * inboard of the field directly beneath it. The toolbar now takes `px-6` too,
+ * so the action lines up with the controls under it. The symmetry is a
+ * consequence of that pairing, not a preference — if a route ever puts a
+ * full-bleed control under the header again, these two are the pair to
+ * revisit together.
  */
 export const PageHeader = memo(function PageHeader({
   icon: Icon,

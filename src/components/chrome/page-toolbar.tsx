@@ -11,46 +11,36 @@ interface PageToolbarProps {
   /**
    * Escape hatch for a toolbar whose row is not a left/right split — a grid
    * that lets a search field take the remaining track, say. Supplying it
-   * replaces the slot layout entirely; the chrome and its padding stay.
+   * replaces the slot layout entirely; the inset stays.
    */
   children?: React.ReactNode;
   className?: string;
 }
 
 /**
- * A SURFACE, NOT A BARE ROW. The toolbar used to be transparent, so its
- * controls sat on `PageLayout`'s gutter — the same vertical as every card's
- * BORDER, 24px outboard of the words inside those cards. Once `PageHeader`
- * moved its title onto the card content column, the toolbar was the last
- * thing on a route still using the old edge, and a search field starting
- * further left than both the page title above it and the table below it read
- * as broken rather than as full-bleed.
+ * INSET, NOT A SURFACE. The toolbar takes the same `px-6` as `PageHeader`, so
+ * its controls land on the card content column with the page title above them
+ * and every card's words below.
  *
- * Card chrome fixes that by construction rather than by a matching magic
- * number: the toolbar's border lands on the gutter alongside every other
- * card's, and its own `px-6` puts its controls on the content column with
- * everything else. One column for content, one for chrome.
+ * Before this it had no padding at all, which put its controls on
+ * `PageLayout`'s gutter — the same vertical as every card's BORDER, 24px
+ * outboard of the words inside those cards. That was invisible while the
+ * header sat on the gutter too; once the header moved onto the content
+ * column, the toolbar was the last thing on a route still using the old edge,
+ * and a search field starting further left than both the title above it and
+ * the table below it read as broken rather than as full-bleed.
  *
- * `py-4` rather than Card's `py-6` — this is a row of controls, not a section
- * of prose, and the taller pad made it the heaviest object on a page whose
- * actual content sat below it.
- *
- * NOT FOR A LONE ACTION. A toolbar holding one right-aligned button renders
- * as a wide empty bar with a button in the corner — tested on Collections,
- * and it looks like a mistake. A single action belongs in `PageHeader`'s
- * action slot, which puts it on the header row where it reads as the page's
- * primary verb. Reach for this when there is genuinely a row of controls.
+ * NOT A CARD, though card chrome was tried here first and does solve the same
+ * problem — the border lands on the gutter, the padding puts the contents on
+ * the content column. It was rejected for weight: it adds a third surface to
+ * the top of every route that has a toolbar, and on a route whose toolbar is
+ * a single action it renders as a wide empty bar. Bare type and bare controls
+ * on a shared column is the lighter way to get the same alignment, and it
+ * keeps the page background as the thing the header sits on.
  */
 export const PageToolbar = memo(function PageToolbar({ left, right, children, className }: PageToolbarProps) {
   return (
-    <div
-      className={cn(
-        "bg-card mb-4 rounded-xl border px-6 py-4 shadow-card transition-[box-shadow,border-color] duration-base",
-        "animate-card-fade-in",
-        className,
-      )}
-      style={TOOLBAR_STYLE}
-    >
+    <div className={cn("mb-4 px-6 animate-card-fade-in", className)} style={TOOLBAR_STYLE}>
       {children ?? (
         <div
           className={cn(

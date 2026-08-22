@@ -69,12 +69,10 @@ export const LeftOnly: Story = {
 };
 
 /**
- * SUPPORTED, BUT USUALLY THE WRONG CALL. Now that the toolbar is a surface, a
- * lone right-aligned action renders as a wide empty bar with a button in the
- * corner — this story is here so that is visible rather than discovered on a
- * route. Collections shipped exactly this and moved the button to
- * `PageHeader`'s action slot instead, where it reads as the page's primary
- * verb. Use the toolbar when there is genuinely a row of controls.
+ * A lone action, which Collections uses. This is fine precisely because the
+ * toolbar is bare: card chrome was tried here and turned this shape into a
+ * wide empty bar with a button in the corner, which is one of the reasons the
+ * chrome was dropped in favour of a plain inset.
  */
 export const RightOnly: Story = {
   args: {
