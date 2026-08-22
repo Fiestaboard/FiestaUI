@@ -192,6 +192,13 @@ function serializeFilterArg(filter: TemplateFilter): string {
 /** Node types that are inline atoms (cursor can't sit inside them). */
 const ATOM_NODE_TYPES = new Set(["variable", "colorTile", "fillSpace", "formula"]);
 
+/** Tokenizer patterns for {@link parseLineContent}. Hoisted to module scope so
+ * the per-character `while` loop doesn't re-allocate a fresh RegExp each
+ * iteration. None use the `g`/`y` flags, so there is no `lastIndex` state. */
+const DOUBLE_TOKEN_RE = /^\{\{([^}]+)\}\}/;
+const SINGLE_TOKEN_RE = /^\{([a-z]+)\}/i;
+const NEXT_TOKEN_RE = /\{\{|\{[a-z]+\}/i;
+
 /**
  * Parse line content into TipTap nodes
  * Exported for use in insertion utilities
@@ -202,7 +209,7 @@ export function parseLineContent(text: string): JSONContent[] {
 
   while (remaining.length > 0) {
     // Try to match double-bracket tokens {{...}}
-    const doubleMatch = remaining.match(/^\{\{([^}]+)\}\}/);
+    const doubleMatch = remaining.match(DOUBLE_TOKEN_RE);
     if (doubleMatch) {
       const content = doubleMatch[1];
       const fullMatch = doubleMatch[0];
@@ -275,7 +282,7 @@ export function parseLineContent(text: string): JSONContent[] {
     }
 
     // Try to match single-bracket tokens {token}
-    const singleMatch = remaining.match(/^\{([a-z]+)\}/i);
+    const singleMatch = remaining.match(SINGLE_TOKEN_RE);
     if (singleMatch) {
       const tokenName = singleMatch[1].toLowerCase();
 
@@ -302,7 +309,7 @@ export function parseLineContent(text: string): JSONContent[] {
     }
 
     // Plain text - collect until next special token
-    const nextToken = remaining.search(/\{\{|\{[a-z]+\}/i);
+    const nextToken = remaining.search(NEXT_TOKEN_RE);
     if (nextToken === -1) {
       // Rest is plain text
       if (remaining) {

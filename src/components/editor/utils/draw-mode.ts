@@ -44,6 +44,11 @@ export const DRAW_CHARS: string[] = BOARD_CHARS.slice(1, 63).filter((char) => ch
 
 const COLOR_CELL_RE = /^\{\{([a-z]+)\}\}$/;
 
+/** Tokenizer patterns for {@link tokenizeLine}. Hoisted to module scope so the
+ * per-character `while` loop doesn't re-allocate a fresh RegExp each iteration. */
+const DOUBLE_TOKEN_RE = /^\{\{([^}]+)\}\}/;
+const SINGLE_TOKEN_RE = /^\{([a-z0-9]+)\}/i;
+
 /** Canonical spelling for aliased color names ("purple" is an alias of "violet"). */
 function canonicalColor(color: BoardColorToken): BoardColorName {
   return color === "purple" ? "violet" : color;
@@ -79,7 +84,7 @@ function tokenizeLine(line: string): { cells: Cell[]; droppedDynamic: boolean } 
   let remaining = line;
 
   while (remaining.length > 0) {
-    const dbl = remaining.match(/^\{\{([^}]+)\}\}/);
+    const dbl = remaining.match(DOUBLE_TOKEN_RE);
     if (dbl) {
       const content = dbl[1].trim().toLowerCase();
       if (Object.hasOwn(BOARD_COLOR_CODES, content)) {
@@ -92,7 +97,7 @@ function tokenizeLine(line: string): { cells: Cell[]; droppedDynamic: boolean } 
       continue;
     }
 
-    const single = remaining.match(/^\{([a-z0-9]+)\}/i);
+    const single = remaining.match(SINGLE_TOKEN_RE);
     if (single) {
       const token = single[1].toLowerCase();
       const numeric = Number(token);
