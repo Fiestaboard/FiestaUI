@@ -24,7 +24,17 @@ import {
   Undo2,
   WrapText,
 } from "lucide-react";
-import { type ComponentProps, lazy, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ComponentProps,
+  lazy,
+  memo,
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { AVAILABLE_COLORS, type BoardColorName, getBoardColor } from "../../lib/board-colors";
 import { useDepsChanged } from "../../lib/use-deps-changed";
@@ -265,7 +275,7 @@ export interface TemplateEditorToolbarProps {
   formattingPickerLabels?: Partial<FormattingPickerLabels>;
 }
 
-export function TemplateEditorToolbar({
+function TemplateEditorToolbarImpl({
   editor,
   currentAlignment = "left",
   currentWrapEnabled = false,
@@ -989,3 +999,14 @@ export function TemplateEditorToolbar({
     </TooltipProvider>
   );
 }
+
+// Memoized: this toolbar renders unconditionally on every parent render, but
+// its own inputs (alignment, wrap, `editor` identity, the callbacks below)
+// change rarely — while the parent `TemplateEditor` re-renders once per
+// keystroke (a fresh `lineHeights`/`onChange` cycle). The shallow-prop compare
+// bails out of reconciling this ~15-button, tooltip-heavy tree on edits that
+// don't touch it. For the memo to hold, every prop the parent passes must be
+// referentially stable — in particular the `onAlignmentChange`/`onWrapToggle`
+// handlers (hoisted to `useCallback` in `TemplateEditor`) and any object a host
+// forwards through `toolbarProps` (a fresh object each render would defeat it).
+export const TemplateEditorToolbar = memo(TemplateEditorToolbarImpl);
