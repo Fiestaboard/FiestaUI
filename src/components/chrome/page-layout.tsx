@@ -42,15 +42,14 @@ export const PageLayout = memo(function PageLayout({
           // 28px puts the page title on the same optical line as the wordmark
           // in the rail beside it, which is the landmark a reader actually
           // sees.
-          // px-4 at base, not px-3. At 12px the page's own type was the only
-          // text on a phone screen sitting that far left — the mobile header's
-          // menu button, its wordmark and every card's contents all sat at 20px
-          // or beyond, so the H1 read as outdented against the only lines a
-          // reader can actually see. 16px puts the page title on the same
-          // vertical as the header's first control (the pill is inset 12 and
-          // its trigger outdents 8 back out of a 12px pad), which is the
-          // landmark directly above it. md+ still steps to 24 to meet the
-          // card's own px-6, so the desktop convergence is unchanged.
+          // px-4 at base, not px-3. This is now the gutter for the CARDS —
+          // PageHeader carries its own px-6 so its type lands on the card's
+          // content column rather than on this edge. 12px put a card's border
+          // closer to the screen edge than anything else on a phone (the
+          // mobile header's menu button and wordmark both sit at 20px or
+          // beyond), so the content block read as outdented against the only
+          // landmarks above it; 16px brings it into line. md+ steps to 24 for
+          // the wider breathing room desktop can afford.
           "container mx-auto px-4 md:px-6 py-4 sm:py-6 md:py-8 lg:py-7 max-w-full",
           // When pinned to the viewport (e.g. calendar mode), the inner content
           // owns the scrolling — trim mobile vertical padding so the child gets

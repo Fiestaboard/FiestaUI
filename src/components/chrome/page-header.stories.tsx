@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Calendar, FileText, GalleryHorizontalEnd, Home, Puzzle, Settings } from "lucide-react";
 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../containment/card";
 import { Button } from "../forms/button";
+import { Input } from "../forms/input";
 import { PAGE_HUES, PageHeader, pageHue, PageIconGradientDefs } from "./page-header";
 
 const meta = {
@@ -108,4 +110,75 @@ export const EveryPage: Story = {
       </div>
     );
   },
+};
+
+/**
+ * THE ALIGNMENT CONTRACT, and the reason PageHeader carries `pl-6` of its own.
+ *
+ * A route is a header followed by cards, all of them direct children of the
+ * same `PageLayout` container. That container's gutter puts each card's
+ * BORDER on it — but a card's own `px-6` puts each card's WORDS 24px further
+ * in. So a header with no padding of its own lines its H1 up with a hairline
+ * while every other line of text on the page sits on a different vertical,
+ * and the route reads as having two competing left edges.
+ *
+ * TWO RULES ARE DRAWN, and they are deliberately not symmetric.
+ *
+ * - The LEFT rule is the card's content edge. The page title, both card
+ *   titles and both card bodies meet it; nothing sits to its left but the
+ *   cards' own borders.
+ * - The RIGHT rule is the container gutter — the cards' edge. The header's
+ *   action meets it, and so does the toolbar's field below, because both are
+ *   controls and controls run to the gutter. Padding the header's right side
+ *   too would pull the action 24px inboard of that field and trade a
+ *   left-edge fix for a right-edge break.
+ *
+ * Check both at BOTH viewports: the container's gutter steps 16 → 24 at md,
+ * but `Card`'s padding is a constant 24, so the inset the header adds is the
+ * same at either size.
+ */
+export const AlignsWithCardContent: Story = {
+  args: {
+    icon: Settings,
+    title: "Integrations",
+    description: "Enable and configure data source plugins for your FiestaBoard.",
+  },
+  parameters: { layout: "fullscreen" },
+  render: (args) => (
+    <div className="bg-background min-h-dvh py-8">
+      {/* Mirrors PageLayout's own container gutter — the cards sit on it. */}
+      <div className="relative container mx-auto max-w-full px-4 md:px-6">
+        {/* Left: the card's content edge — that gutter, plus Card's px-6. */}
+        <div className="bg-hue-red pointer-events-none absolute inset-y-0 left-10 w-px opacity-60 md:left-12" />
+        {/* Right: the gutter itself, where every control's edge lands. */}
+        <div className="bg-hue-blue pointer-events-none absolute inset-y-0 right-4 w-px opacity-60 md:right-6" />
+        <PageHeader {...args}>
+          <Button variant="outline">Check for updates</Button>
+        </PageHeader>
+        <div className="mb-4">
+          <Input placeholder="Search installed plugins…" />
+        </div>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Instance name</CardTitle>
+              <CardDescription>Name the FiestaBoard device that controls your boards.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Input placeholder="e.g. Living Room Pi" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+              <CardDescription>Choose how FiestaBoard looks.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline">System</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  ),
 };
