@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Calendar, FileText, GalleryHorizontalEnd, Home, Puzzle, Settings } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../containment/card";
+import { Badge } from "../feedback/badge";
 import { Button } from "../forms/button";
 import { Input } from "../forms/input";
 import { PAGE_HUES, PageHeader, pageHue, PageIconGradientDefs } from "./page-header";
@@ -158,7 +159,18 @@ export const AlignsWithCardContent: Story = {
         <PageHeader {...args}>
           <Button variant="outline">Check for updates</Button>
         </PageHeader>
-        <PageToolbar right={<Input placeholder="Search installed plugins…" />} />
+        {/* The real Integrations shape — a tab strip and a field that takes the
+            rest — not a right-slot input, which would right-align the field and
+            leave nothing of the toolbar on the content column to check. */}
+        <PageToolbar>
+          <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[auto_minmax(0,1fr)]">
+            <div className="flex items-center gap-1">
+              <Badge>Installed</Badge>
+              <Badge variant="secondary">Marketplace</Badge>
+            </div>
+            <Input placeholder="Search installed plugins…" />
+          </div>
+        </PageToolbar>
         <div className="space-y-4">
           <Card>
             <CardHeader>
