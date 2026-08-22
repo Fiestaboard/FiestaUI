@@ -556,10 +556,13 @@ export function VariablePickerContent({
 
   /**
    * Filtering walks every array item of every plugin, so it is the expensive
-   * half of a keystroke. Deferring the (polled) display data keeps the input
-   * responsive while the item lists catch up.
+   * half of a keystroke. Deferring both the (polled) display data and the query
+   * keeps the `<Input>` responsive: the field itself binds to `searchQuery` so
+   * it never lags, while the full nested filter reads `deferredQuery` and React
+   * can interrupt a stale pass when the user keeps typing.
    */
   const deferredPluginData = useDeferredValue(pluginDisplayData);
+  const deferredQuery = useDeferredValue(searchQuery);
 
   // Extract metadata and groups from the template variables response
   const variableMetadata = templateVariables?.variable_metadata ?? {};
@@ -586,13 +589,13 @@ export function VariablePickerContent({
   const categories = Object.entries(templateVariables.variables);
 
   const filteredCategories = categories.filter(([category, vars]) => {
-    if (!searchQuery.trim()) return true;
+    if (!deferredQuery.trim()) return true;
 
-    const q = searchQuery.toLowerCase();
+    const q = deferredQuery.toLowerCase();
     const cLower = category.toLowerCase();
 
     if (
-      matchesSearch(category, searchQuery) ||
+      matchesSearch(category, deferredQuery) ||
       cLower
         .replace(/_/g, " ")
         .split(/\s+/)
@@ -607,8 +610,8 @@ export function VariablePickerContent({
     const generalVars =
       arrayNames.length > 0 ? simpleVars.filter((v) => !arrayNames.some((a) => v.startsWith(a + "."))) : simpleVars;
 
-    if (generalVars.some((v) => matchesVariablePath(category, v, searchQuery))) return true;
-    if (arrayNames.some((a) => matchesSearch(a, searchQuery))) return true;
+    if (generalVars.some((v) => matchesVariablePath(category, v, deferredQuery))) return true;
+    if (arrayNames.some((a) => matchesSearch(a, deferredQuery))) return true;
 
     for (const arrayName of arrayNames) {
       const arrayData = asItemArray(deferredPluginData[category]?.[arrayName]);
@@ -618,8 +621,8 @@ export function VariablePickerContent({
           const hasMatch = arrayData.some((item) => {
             const itemLabel = String(item[arraySchema.label_field || "name"] || "");
             return (
-              matchesSearch(itemLabel, searchQuery) ||
-              arraySchema.item_fields.some((f: string) => matchesSearch(f, searchQuery))
+              matchesSearch(itemLabel, deferredQuery) ||
+              arraySchema.item_fields.some((f: string) => matchesSearch(f, deferredQuery))
             );
           });
           if (hasMatch) return true;
@@ -656,7 +659,7 @@ export function VariablePickerContent({
           <Stack gap="3" className="p-2">
             {filteredCategories.length === 0 ? (
               <Text tone="muted" className="p-3 text-center">
-                {l.noVariablesFound(searchQuery)}
+                {l.noVariablesFound(deferredQuery)}
               </Text>
             ) : (
               filteredCategories.map(([category, vars]) => {
@@ -675,23 +678,23 @@ export function VariablePickerContent({
                     : simpleVars;
 
                 const categoryMatches =
-                  searchQuery.trim() &&
-                  (matchesSearch(category, searchQuery) ||
+                  deferredQuery.trim() &&
+                  (matchesSearch(category, deferredQuery) ||
                     category
                       .toLowerCase()
                       .replace(/_/g, " ")
                       .split(/\s+/)
-                      .some((w) => w.includes(searchQuery.toLowerCase())));
+                      .some((w) => w.includes(deferredQuery.toLowerCase())));
 
                 const filteredGeneralVars = categoryMatches
                   ? generalVars
-                  : generalVars.filter((v) => !searchQuery.trim() || matchesVariablePath(category, v, searchQuery));
+                  : generalVars.filter((v) => !deferredQuery.trim() || matchesVariablePath(category, v, deferredQuery));
 
                 const hasArrayMatches =
                   arrayNames.length > 0 &&
                   arrayNames.some((arrayName) => {
-                    if (!searchQuery.trim() || categoryMatches) return true;
-                    if (matchesSearch(arrayName, searchQuery)) return true;
+                    if (!deferredQuery.trim() || categoryMatches) return true;
+                    if (matchesSearch(arrayName, deferredQuery)) return true;
                     const arrayData = asItemArray(deferredPluginData[category]?.[arrayName]);
                     if (!arrayData || arrayData.length === 0) return false;
                     const arraySchema = manifest?.variables?.arrays?.[arrayName];
@@ -699,8 +702,8 @@ export function VariablePickerContent({
                     return arrayData.some((item) => {
                       const label = String(item[arraySchema.label_field || "name"] || "");
                       return (
-                        matchesSearch(label, searchQuery) ||
-                        arraySchema.item_fields.some((f: string) => matchesSearch(f, searchQuery))
+                        matchesSearch(label, deferredQuery) ||
+                        arraySchema.item_fields.some((f: string) => matchesSearch(f, deferredQuery))
                       );
                     });
                   });
@@ -785,9 +788,9 @@ export function VariablePickerContent({
                     {arrayNames.map((arrayName) => {
                       const arrayData = asItemArray(deferredPluginData[category]?.[arrayName]);
                       const shouldShow =
-                        !searchQuery.trim() ||
+                        !deferredQuery.trim() ||
                         categoryMatches ||
-                        matchesSearch(arrayName, searchQuery) ||
+                        matchesSearch(arrayName, deferredQuery) ||
                         (arrayData && arrayData.length > 0);
                       if (!shouldShow) return null;
 
@@ -804,7 +807,7 @@ export function VariablePickerContent({
                             arrayData,
                             manifest,
                             onInsert,
-                            searchQuery,
+                            deferredQuery,
                             l,
                             !!categoryMatches,
                             IconComp,
