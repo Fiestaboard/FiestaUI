@@ -81,6 +81,17 @@ const NON_SHIPPING_MATCHERS = [
     label: "CI automation",
     test: (p) => p === "scripts/ci" || p.startsWith("scripts/ci/"),
   },
+  // The VRT harness itself, alongside the baselines it compares against.
+  // package.json ships only `dist`, and nothing under scripts/ is reachable
+  // from src/index.ts, so changing how screenshots are taken cannot move a
+  // byte of the tarball. It must still be CODE — editing the harness is
+  // editing the suite, so the suite has to run — which is why this sits here
+  // and not in NON_CODE_MATCHERS.
+  //
+  // Without this, sharding the harness would have cut a version identical to
+  // the one before it: the empty release the CI-infrastructure matcher above
+  // already exists to prevent.
+  { label: "VRT harness", test: (p) => p === "scripts/vrt" || p.startsWith("scripts/vrt/") },
   { label: "VRT baselines", test: (p) => p === "vrt" || p.startsWith("vrt/") },
   { label: "Storybook config", test: (p) => p === ".storybook" || p.startsWith(".storybook/") },
   // Colocated unit tests. These are the one thing under src/ that is not a

@@ -13,8 +13,9 @@ import { fileURLToPath } from "node:url";
 // out with the default credentials and pushes to `main` bounces off the ruleset
 // every single time. That is not a hypothetical: it is how the v1.3.3 and
 // v1.4.0 releases published and tagged and then failed to land, and it is what
-// vrt-update.yml and ci.yml's vrt-seed job would have hit the next time either
-// was dispatched on `main`.
+// vrt-update.yml would have hit the next time it was dispatched on `main`.
+// (ci.yml's vrt-seed job shared that hazard until it was retired in favour of
+// vrt-update.yml's sharded fan-out.)
 //
 // The fix is always the same shape (see release.yml): mint the token with
 // actions/create-github-app-token, then hand it to actions/checkout so the

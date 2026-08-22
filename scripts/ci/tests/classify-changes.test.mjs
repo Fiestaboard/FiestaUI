@@ -184,3 +184,20 @@ test("a non-code list is never a shipping list", () => {
     }
   }
 });
+
+test("the VRT harness runs the suite but does not ship", () => {
+  // package.json ships only `dist`, and nothing under scripts/ is reachable
+  // from src/index.ts — so a harness change cannot move a byte of the tarball,
+  // and publishing for one mints a version identical to the last (npm will
+  // never accept a republish of it). It still has to run the suite, because
+  // editing the harness IS editing the suite.
+  for (const p of ["scripts/vrt/vrt.mjs", "scripts/vrt/shard.mjs"]) {
+    assert.equal(isCodeFile(p), true, `${p} should run the suite`);
+    assert.equal(isShippedFile(p), false, `${p} should not earn a release`);
+  }
+});
+
+test("the VRT harness exemption does not leak to neighbouring script dirs", () => {
+  assert.equal(isShippedFile("scripts/release/gate.mjs"), true);
+  assert.equal(isShippedFile("scripts/vrtsomething/other.mjs"), true);
+});
