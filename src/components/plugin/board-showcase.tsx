@@ -11,6 +11,7 @@
 
 import { useState } from "react";
 
+import type { Code62Glyph } from "../../lib/board-characters";
 import {
   type BoardPreviewEntry,
   DEFAULT_SHAPE_LABELS,
@@ -47,6 +48,12 @@ export interface BoardShowcaseProps {
   size?: "sm" | "md" | "lg";
   /** Controlled board colour. Leave unset to let the showcase own it. */
   boardType?: "black" | "white";
+  /**
+   * Which glyph the viewer's board draws for code 62 (FiestaBoard#1666).
+   * Flagship previews only — a `note` or `note_array` preview always draws the
+   * heart its hardware carries, whatever this says. Defaults to `"degree"`.
+   */
+  code62Glyph?: Code62Glyph;
   defaultBoardType?: "black" | "white";
   onBoardTypeChange?: (boardType: "black" | "white") => void;
   labels?: Partial<BoardShowcaseLabels>;
@@ -69,6 +76,7 @@ export function BoardShowcase({
   previewLabel,
   size = "md",
   boardType,
+  code62Glyph,
   defaultBoardType = "black",
   onBoardTypeChange,
   labels,
@@ -111,6 +119,7 @@ export function BoardShowcase({
               size={size}
               boardType={activeBoardType}
               deviceType={preview.device_type ?? "flagship"}
+              code62Glyph={code62Glyph}
               notesWide={preview.notes_wide ?? 1}
               notesTall={preview.notes_tall ?? 1}
               previewLabel={previewLabel}

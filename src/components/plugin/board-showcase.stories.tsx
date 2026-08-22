@@ -35,6 +35,12 @@ const meta = {
       control: "select",
       options: ["black", "white"],
     },
+    code62Glyph: {
+      control: "select",
+      options: ["degree", "heart"],
+      description:
+        "Which glyph the viewer's board draws for code 62. Vestaboard replaced the Flagship's degree flap with a heart on units built from 2026 and nothing queryable tells them apart, so the consumer passes what the owner reported. Defaults to `degree`.",
+    },
   },
 } satisfies Meta<typeof BoardShowcase>;
 

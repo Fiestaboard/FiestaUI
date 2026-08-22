@@ -246,8 +246,13 @@ export function resolveCode62Glyph(deviceType: string, code62Glyph?: Code62Glyph
  * Shared by {@link messageToGrid} and {@link messageToText} rather than written
  * out twice: the tiles and the accessible name have to agree about what the
  * board draws, or a board shows ♥ while announcing "degree" (WCAG 1.1.1).
+ *
+ * Exported for `BoardTeaser`, which tokenizes with {@link parseLine} directly
+ * rather than through {@link messageToGrid} — a one-row strip pads to a tile
+ * count instead of filling a grid — and would otherwise need its own copy of
+ * this substitution (FiestaBoard#1666).
  */
-function applyCode62Glyph(token: BoardToken, glyph: Code62Glyph): BoardToken {
+export function applyCode62Glyph(token: BoardToken, glyph: Code62Glyph): BoardToken {
   if (glyph === "heart" && token.type === "char" && token.value === "°") return { type: "char", value: "♥" };
   return token;
 }

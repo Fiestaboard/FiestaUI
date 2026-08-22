@@ -28,6 +28,12 @@ const meta = {
       options: ["black", "white"],
       description: "Type of board (black or white)",
     },
+    code62Glyph: {
+      control: "select",
+      options: ["degree", "heart"],
+      description:
+        "Which glyph the board this strip stands for draws for code 62. Already resolved by the consumer — a one-row strip has no device shape of its own. Defaults to `degree`.",
+    },
     className: {
       control: "text",
       description: "Additional CSS classes on the strip container",

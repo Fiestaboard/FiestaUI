@@ -14,7 +14,13 @@
 
 import { memo, useMemo } from "react";
 
-import { type BoardToken, messageToText, parseLine } from "../../lib/board-characters";
+import {
+  applyCode62Glyph,
+  type BoardToken,
+  type Code62Glyph,
+  messageToText,
+  parseLine,
+} from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { gapClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
 import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
@@ -26,6 +32,13 @@ export interface BoardTeaserProps {
   tiles?: number;
   size?: "sm" | "md" | "lg";
   boardType?: "black" | "white";
+  /**
+   * Which glyph the board this strip stands for draws for code 62. Already
+   * resolved by the consumer — a strip is one row with no shape of its own, so
+   * it has no `deviceType` to resolve from; a Note consumer passes `"heart"`.
+   * Defaults to `"degree"`, the glyph every Flagship carried before 2026.
+   */
+  code62Glyph?: Code62Glyph;
   className?: string;
 }
 
@@ -34,6 +47,7 @@ export const BoardTeaser = memo(function BoardTeaser({
   tiles = 15,
   size = "sm",
   boardType = "black",
+  code62Glyph = "degree",
   className = "",
 }: BoardTeaserProps) {
   const isWhiteBoard = boardType === "white";
@@ -41,18 +55,23 @@ export const BoardTeaser = memo(function BoardTeaser({
   const textColor = isWhiteBoard ? "var(--color-board-text-on-light)" : "var(--color-board-text-on-dark)";
 
   const row = useMemo<BoardToken[]>(() => {
-    const tokens = parseLine(teaser).slice(0, tiles);
+    const tokens = parseLine(teaser)
+      .slice(0, tiles)
+      .map((token) => applyCode62Glyph(token, code62Glyph));
     while (tokens.length < tiles) {
       tokens.push({ type: "char", value: " " });
     }
     return tokens;
-  }, [teaser, tiles]);
+  }, [teaser, tiles, code62Glyph]);
 
   // Plain-text teaser for the accessible label: color markers stripped,
   // whitespace collapsed. Falls back to a generic label for color-only strips.
   // `messageToText` is the derivation all three renderers share (issue #205) —
   // this used to be its own copy of the same few lines.
-  const label = useMemo(() => messageToText(teaser) || "Board teaser", [teaser]);
+  // "flagship" because a strip has no device of its own: `code62Glyph` arrives
+  // already resolved, and passing a device here would re-resolve it and force a
+  // Note consumer's heart back to whatever the device implies.
+  const label = useMemo(() => messageToText(teaser, "flagship", code62Glyph) || "Board teaser", [teaser, code62Glyph]);
 
   // Tile metrics (sizeClasses/textSizeClasses/gapClasses) come from
   // ../../lib/board-metrics so a teaser strip matches a full board row rendered

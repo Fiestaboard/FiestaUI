@@ -10,6 +10,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import type { Code62Glyph } from "../../lib/board-characters";
 import { cn } from "../../lib/utils";
 import { BoardTeaser } from "../board/board-teaser";
 
@@ -20,6 +21,8 @@ export interface ScaledBoardTeaserProps {
   /** Literal board line, e.g. `"{66}AQI 45 CLEAR"`. */
   teaser: string;
   boardType?: "black" | "white";
+  /** Which glyph the board draws for code 62; see `BoardTeaser`. */
+  code62Glyph?: Code62Glyph;
   /** Strip width in tiles. */
   tiles?: number;
   minScale?: number;
@@ -30,6 +33,7 @@ export interface ScaledBoardTeaserProps {
 export function ScaledBoardTeaser({
   teaser,
   boardType = "black",
+  code62Glyph,
   tiles = 15,
   minScale = 0.85,
   maxScale = 1.5,
@@ -62,7 +66,7 @@ export function ScaledBoardTeaser({
       style={{ height: `${STRIP_HEIGHT * scale}px` }}
     >
       <div style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}>
-        <BoardTeaser teaser={teaser} tiles={tiles} boardType={boardType} />
+        <BoardTeaser teaser={teaser} tiles={tiles} boardType={boardType} code62Glyph={code62Glyph} />
       </div>
     </div>
   );
