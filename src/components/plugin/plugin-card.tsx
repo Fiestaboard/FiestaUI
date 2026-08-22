@@ -13,6 +13,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
+import type { Code62Glyph } from "../../lib/board-characters";
 import { cn } from "../../lib/utils";
 import { Heading } from "../typography/heading";
 import { Text } from "../typography/text";
@@ -41,6 +42,12 @@ export interface PluginCardProps {
   teaser?: string;
   boardType?: "black" | "white";
   /**
+   * Which glyph the viewer's board draws for code 62 — a teaser carrying a
+   * temperature is `°` on an older Flagship and `♥` on one built from 2026
+   * (FiestaBoard#1666). Defaults to `"degree"`.
+   */
+  code62Glyph?: Code62Glyph;
+  /**
    * Renders the card's primary link. Receives the class that stretches it over
    * the card, and the card title as children.
    */
@@ -59,6 +66,7 @@ export function PluginCard({
   categoryLabel,
   teaser,
   boardType = "black",
+  code62Glyph,
   renderLink,
   action,
   className,
@@ -103,7 +111,7 @@ export function PluginCard({
 
       {teaser && (
         <div className="border-t bg-muted/30 px-3 py-4">
-          <ScaledBoardTeaser teaser={teaser} boardType={boardType} />
+          <ScaledBoardTeaser teaser={teaser} boardType={boardType} code62Glyph={code62Glyph} />
         </div>
       )}
     </div>
