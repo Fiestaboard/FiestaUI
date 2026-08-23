@@ -26,6 +26,7 @@ import {
   Bold,
   Calendar,
   CheckCircle2,
+  ChevronRight,
   ChevronsUpDown,
   Clock,
   Cloud,
@@ -78,6 +79,7 @@ import { PageToolbar } from "../components/chrome/page-toolbar";
 import { SkipToContent } from "../components/chrome/skip-to-content";
 import { ThemeToggle } from "../components/chrome/theme-toggle";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/containment/accordion";
+import { ActionCard } from "../components/containment/action-card";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { IconTile } from "../components/containment/icon-tile";
@@ -852,6 +854,23 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         <AccordionContent>Whichever interval the page is scheduled at.</AccordionContent>
       </AccordionItem>
     </Accordion>
+  ),
+  ActionCard: () => (
+    <Stack gap="3" className="w-full max-w-md">
+      <ActionCard
+        tone="primary"
+        icon={<Settings2 />}
+        title="Override temporarily"
+        description="Show something else until the next scheduled page."
+        meta={<ChevronRight />}
+      />
+      <ActionCard
+        icon={<Calendar />}
+        title="Turn off schedule"
+        description="Stops the schedule for this board."
+        loading
+      />
+    </Stack>
   ),
   Card: () => (
     <Grid cols="1" sm="2" gap="4" className="w-full max-w-3xl">

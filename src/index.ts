@@ -7,6 +7,7 @@
  *   @source "../node_modules/@fiestaboard/ui/dist";
  */
 export * from "./components/containment/accordion";
+export * from "./components/containment/action-card";
 export * from "./components/containment/card";
 export * from "./components/containment/collapsible";
 export * from "./components/containment/icon-tile";
