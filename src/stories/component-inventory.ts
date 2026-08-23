@@ -79,6 +79,10 @@ export const INVENTORY = [
       { name: "Button", summary: "Seven variants × seven sizes, plus a loading state that reserves its own width." },
       { name: "Checkbox", summary: "Native checkbox styled to the system." },
       {
+        name: "Combobox",
+        summary: "Filterable option list — a text field over an aria-activedescendant listbox.",
+      },
+      {
         name: "CopyButton",
         summary: "Writes a value to the clipboard and confirms it — awaited, announced, and self-cleaning.",
       },

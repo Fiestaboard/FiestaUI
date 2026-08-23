@@ -106,6 +106,7 @@ import { Spinner } from "../components/feedback/spinner";
 import { StatusDot } from "../components/feedback/status-dot";
 import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
+import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
@@ -305,6 +306,28 @@ function TimePickerDemo() {
         Start time
       </Label>
       <TimePicker id="inv-time" aria-labelledby="inv-time-label" value={value} onValueChange={setValue} />
+    </Stack>
+  );
+}
+
+/**
+ * Pinned option data, for the same reason the zone table below is pinned: this
+ * page is photographed by VRT, so nothing in it may be derived from the clock
+ * or from the runtime.
+ */
+const INVENTORY_ENTITIES: ComboboxOption[] = [
+  { value: "sensor.living_room_temperature", label: "Living room", meta: "21.5\u00B0C", keywords: ["thermostat"] },
+  { value: "sensor.kitchen_temperature", label: "Kitchen", meta: "19.0\u00B0C", keywords: ["thermostat"] },
+  { value: "sensor.outdoor_temperature", label: "Outdoors", meta: "7.2\u00B0C", keywords: ["weather"] },
+  { value: "light.hallway", label: "Hallway light", meta: "unavailable", disabled: true },
+];
+
+function ComboboxDemo() {
+  const [value, setValue] = useState("sensor.living_room_temperature");
+  return (
+    <Stack gap="1.5" className="w-full max-w-[240px]">
+      <Label htmlFor="inv-combobox">Entity</Label>
+      <Combobox id="inv-combobox" options={INVENTORY_ENTITIES} value={value} onValueChange={setValue} />
     </Stack>
   );
 }
@@ -548,6 +571,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </Flex>
     </Stack>
   ),
+  Combobox: ComboboxDemo,
   Checkbox: () => (
     <Stack gap="2">
       <Flex align="center" gap="2">

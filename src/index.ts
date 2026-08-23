@@ -18,6 +18,7 @@ export * from "./components/feedback/chip";
 export * from "./components/feedback/empty-state";
 export * from "./components/forms/button";
 export * from "./components/forms/checkbox";
+export * from "./components/forms/combobox";
 export * from "./components/forms/copy-button";
 export * from "./components/forms/input";
 export * from "./components/forms/label";
