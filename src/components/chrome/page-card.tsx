@@ -30,13 +30,19 @@ interface PageCardProps {
  * This makes the landmark visible instead, which is the one move that ends the
  * argument rather than relocating it.
  *
- * BLOCKS, NOT CHILDREN THAT PAD THEMSELVES. The padding lives here, on every
- * direct child, rather than in each child component. That is what keeps the
- * three block types interchangeable — a `PageHeader`, a `PageSection` and a
- * bare `<div>` are all just blocks, and a route picks whichever fits without
- * restating 24 anywhere. It also means the divider rule has exactly one home:
- * every block after the first takes a top hairline, full-bleed against the
- * card's edges while its content stays on the inset column.
+ * BLOCKS THAT PAD THEMSELVES. The padding and the divider live on
+ * `PageSection`, not on a `[&>*]` rule here. That was the first shape and
+ * adoption killed it within a day: a settings route wraps its sections in
+ * `TabsContent`, an expandable one wraps its section in `Collapsible`, and a
+ * conditional wraps one in nothing at all — none of which are direct children,
+ * so every one of them lost its inset and its rule. A child selector can only
+ * see one level, and real routes nest.
+ *
+ * So this styles only what it must: `PageHeader` and `PageToolbar` predate the
+ * component and space themselves with a bottom margin, which is right on a
+ * page background and wrong inside a card. Those two get their margin swapped
+ * for block padding here, by slot. Everything else pads itself and composes to
+ * any depth.
  *
  * WHAT KEEPS ITS BORDER INSIDE. Sections flatten; items do not. A settings
  * group or a Setup/Preview panel is a region of the page, so it loses its
@@ -58,14 +64,15 @@ export const PageCard = memo(function PageCard({ children, className, fillHeight
     <Card
       data-slot="page-card"
       className={cn(
-        // Card's own rhythm is off: the blocks below own it, so that padding
-        // and dividers are decided in one place rather than two.
+        // Card's own rhythm is off — the blocks own it.
         "gap-0 overflow-hidden py-0",
-        // Every direct child is a block. Full-bleed rule, inset content.
-        "[&>*]:px-6 [&>*]:py-6 [&>*+*]:border-t",
-        // A block that has not migrated still carries its free-floating
-        // bottom margin; inside the card the block padding supplies it.
-        "[&>[data-slot=page-header]]:mb-0 [&>[data-slot=page-toolbar]]:mb-0",
+        // `PageHeader` and `PageToolbar` predate this component and pad
+        // themselves horizontally but not vertically, spacing with a bottom
+        // margin instead. Inside a card they are blocks: swap the margin for
+        // block padding, and give the toolbar the rule above it.
+        "[&>[data-slot=page-header]]:mb-0 [&>[data-slot=page-header]]:py-6",
+        "[&>[data-slot=page-toolbar]]:mb-0 [&>[data-slot=page-toolbar]]:py-6",
+        "[&>[data-slot=page-toolbar]]:border-t",
         fillHeight && "min-h-0 flex-1",
         className,
       )}
@@ -127,13 +134,13 @@ interface PageSectionProps extends Omit<React.ComponentProps<"div">, "title"> {
 /**
  * A BLOCK INSIDE A `PageCard`, optionally titled. This is what a content
  * `Card` becomes once the route itself is the card — the same heading and the
- * same words, with the border replaced by the divider `PageCard` draws above
- * every block after the first.
+ * same words, with its border traded for the hairline above it.
  *
- * IT CARRIES NO PADDING. `PageCard` supplies it, for the reason described
- * there. Standing one up outside a `PageCard` therefore looks unpadded, and
- * that is the correct signal rather than a bug — this component only means
- * something inside one.
+ * IT PADS ITSELF, and draws its own top rule when it is not the first thing in
+ * its container. That is what lets it sit inside a `TabsContent`, a
+ * `Collapsible` or a bare conditional and still land on the content column —
+ * the arrangement every real settings route turns out to need, and the one a
+ * parent's `[&>*]` rule cannot reach.
  *
  * REPLACES `PageInset`. That component existed to put bare body content on the
  * content column of a route that had no card to explain the column. A route
@@ -164,7 +171,15 @@ export const PageSection = memo(function PageSection({
   return (
     <div
       data-slot="page-section"
-      className={cn(fill && "flex min-h-0 flex-1 flex-col overflow-hidden", className)}
+      className={cn(
+        // The content column, and the rule that separates this block from
+        // whatever precedes it. `:not(:first-child)` rather than a sibling
+        // combinator on the parent, so a section nested one level down still
+        // divides correctly against its own neighbours.
+        "px-6 py-6 [&:not(:first-child)]:border-t",
+        fill && "flex min-h-0 flex-1 flex-col overflow-hidden",
+        className,
+      )}
       {...rest}
     >
       {hasHeading && (

@@ -1,0 +1,40 @@
+- main [ref=f15e3]:
+  - generic [ref=f15e4]:
+    - generic [ref=f15e6]:
+      - heading "Settings" [level=1] [ref=f15e7]
+      - paragraph [ref=f15e11]: Configure how your board behaves.
+    - generic [ref=f15e12]:
+      - generic [ref=f15e14]:
+        - heading "Instance name" [level=3] [ref=f15e15]
+        - generic [ref=f15e16]: What this board calls itself on your network.
+      - textbox "Instance name" [ref=f15e17]
+    - generic [ref=f15e18]:
+      - generic [ref=f15e20]:
+        - heading "Appearance" [level=3] [ref=f15e21]
+        - generic [ref=f15e22]: Theme, density and motion.
+      - textbox "Appearance" [ref=f15e23]
+    - generic [ref=f15e24]:
+      - generic [ref=f15e26]:
+        - heading "Language" [level=3] [ref=f15e27]
+        - generic [ref=f15e28]: Interface language and region.
+      - textbox "Language" [ref=f15e29]
+    - generic [ref=f15e30]:
+      - generic [ref=f15e32]:
+        - heading "Time and date" [level=3] [ref=f15e33]
+        - generic [ref=f15e34]: Clock format and time zone.
+      - textbox "Time and date" [ref=f15e35]
+    - generic [ref=f15e36]:
+      - generic [ref=f15e38]:
+        - heading "Location" [level=3] [ref=f15e39]
+        - generic [ref=f15e40]: Used for weather, sunrise and sunset.
+      - textbox "Location" [ref=f15e41]
+    - generic [ref=f15e42]:
+      - generic [ref=f15e44]:
+        - heading "Accessibility" [level=3] [ref=f15e45]
+        - generic [ref=f15e46]: Contrast, focus rings and announcements.
+      - textbox "Accessibility" [ref=f15e47]
+    - generic [ref=f15e48]:
+      - generic [ref=f15e50]:
+        - heading "Animation" [level=3] [ref=f15e51]
+        - generic [ref=f15e52]: Flap speed and transition style.
+      - textbox "Animation" [ref=f15e53]
