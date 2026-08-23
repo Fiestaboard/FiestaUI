@@ -78,6 +78,10 @@ export const INVENTORY = [
     entries: [
       { name: "Button", summary: "Seven variants × seven sizes, plus a loading state that reserves its own width." },
       { name: "Checkbox", summary: "Native checkbox styled to the system." },
+      {
+        name: "Combobox",
+        summary: "Filterable option list — a text field over an aria-activedescendant listbox.",
+      },
       { name: "Input", summary: "Single-line text input across the HTML input types." },
       { name: "Label", summary: "Form label wired to its control by htmlFor." },
       { name: "SecretInput", summary: "Password input with a reveal toggle." },
