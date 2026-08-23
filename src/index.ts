@@ -68,6 +68,7 @@ export * from "./components/chrome/fiesta-logo";
 export * from "./components/chrome/language-selector";
 export * from "./components/chrome/main-content";
 export * from "./components/chrome/nav-list";
+export * from "./components/chrome/page-card";
 export * from "./components/chrome/page-header";
 export * from "./components/chrome/page-inset";
 export * from "./components/chrome/page-layout";

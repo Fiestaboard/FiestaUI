@@ -126,6 +126,7 @@ export const PageHeader = memo(function PageHeader({
   const resolved = hue ?? pageHue(title);
   return (
     <div
+      data-slot="page-header"
       className={cn(
         "mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 px-6 animate-card-fade-in",
         className,

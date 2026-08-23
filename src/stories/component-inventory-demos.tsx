@@ -73,6 +73,7 @@ import {
   NavListSectionContent,
   NavListSectionTrigger,
 } from "../components/chrome/nav-list";
+import { PageCard, PageSection } from "../components/chrome/page-card";
 import { PageHeader, PageIconGradientDefs } from "../components/chrome/page-header";
 import { PageInset } from "../components/chrome/page-inset";
 import { PageLayout } from "../components/chrome/page-layout";
@@ -1196,6 +1197,29 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   // `page-has-heading-one` and `heading-order` are disabled in
   // .storybook/test-runner.ts because stories render heading-bearing
   // components outside a document. Don't "fix" it by faking a lower level.
+  PageCard: () => (
+    <Frame className="max-w-2xl">
+      <PageCard>
+        <PageHeader icon={Calendar} title="Schedule" description="Decide what your board shows and when." />
+        <PageToolbar right={<Button size="sm">New entry</Button>} />
+        <PageSection title="Weekday mornings" description="Runs 07:00 – 09:00, Monday to Friday.">
+          <span className="text-muted-foreground text-sm">Two pages, rotating every 30 seconds.</span>
+        </PageSection>
+      </PageCard>
+    </Frame>
+  ),
+  PageSection: () => (
+    <Frame className="max-w-2xl">
+      <PageCard>
+        <PageSection title="Appearance" description="Theme, density and motion.">
+          <span className="text-muted-foreground text-sm">The first block takes no rule.</span>
+        </PageSection>
+        <PageSection title="Language">
+          <span className="text-muted-foreground text-sm">Every block after it does.</span>
+        </PageSection>
+      </PageCard>
+    </Frame>
+  ),
   PageHeader: () => (
     <Frame className="max-w-2xl">
       <PageIconGradientDefs />
