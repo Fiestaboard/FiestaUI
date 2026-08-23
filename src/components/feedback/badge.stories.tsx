@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import * as React from "react";
 
 import { Badge } from "./badge";
 
@@ -144,5 +145,52 @@ export const StatusList = () => (
         Offline
       </Badge>
     </div>
+  </div>
+);
+
+/**
+ * A badge that owns its dismiss button (#249).
+ *
+ * Three FiestaBoard sites (`active-page-display.tsx:549`, `:565`,
+ * `ai-settings.tsx:338`) put an operable `X` *inside* a `Badge`. At 20px and
+ * `overflow-hidden`, the badge clipped both the 24px `Button size="icon-xs"`
+ * and `.focus-ring`, whose indicator is an outward `box-shadow` and is
+ * therefore erased entirely by an overflow-hidden ancestor — the defect #240
+ * exists to remove, reintroduced one level up.
+ *
+ * The badge stays content and is not itself interactive; it nests exactly one
+ * control, so the call site nests none. Clipping moves from the root to the
+ * label, so long tag text still stays inside the pill.
+ *
+ * Tab to a badge below and check the focus ring is drawn in full.
+ */
+export const Dismissible = () => {
+  const [tags, setTags] = React.useState(["Weather", "Transit", "A tag with a rather long label"]);
+
+  return (
+    <div className="flex max-w-sm flex-wrap items-center gap-2">
+      {tags.map((tag) => (
+        <Badge
+          key={tag}
+          variant="secondary"
+          onDismiss={() => setTags((current) => current.filter((t) => t !== tag))}
+          dismissLabel={`Remove ${tag}`}
+        >
+          {tag}
+        </Badge>
+      ))}
+      {tags.length === 0 ? <span className="text-sm text-muted-foreground">All dismissed.</span> : null}
+    </div>
+  );
+};
+
+/** Every variant carries the dismiss button on its own ink. */
+export const DismissibleVariants = () => (
+  <div className="flex flex-wrap items-center gap-2">
+    {(["default", "secondary", "destructive", "outline", "variable", "success", "formula"] as const).map((variant) => (
+      <Badge key={variant} variant={variant} onDismiss={() => {}} dismissLabel={`Remove ${variant}`}>
+        {variant}
+      </Badge>
+    ))}
   </div>
 );

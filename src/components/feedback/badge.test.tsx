@@ -1,0 +1,149 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+
+import { Badge } from "./badge";
+
+/*
+ * Badge's dismissible form (#249). The defect it removes is structural, so
+ * that is what is asserted here:
+ *
+ *   * The badge stays CONTENT. It is not a button, and it does not gain a
+ *     role — three FiestaBoard sites put an operable X *inside* a Badge,
+ *     and #240 deliberately declined to document that shape because the
+ *     20px overflow-hidden host clips both the 24px button and its focus
+ *     ring (an outward box-shadow, erased entirely by an overflow-hidden
+ *     ancestor).
+ *   * Exactly one control appears, and it is the badge's own.
+ *
+ * The overflow classes ARE asserted here, against this package's usual rule
+ * that class strings are VRT's business. Two reasons it earns the
+ * exception: lifting `overflow-hidden` off the root IS the fix this issue
+ * exists for, and the thing it unclips — a focus ring — is only painted
+ * while focused, so a static screenshot diff is a poor guard for it.
+ * Everything else about the geometry (py-1 for 26px) stays VRT's job.
+ */
+
+function badge(): HTMLElement {
+  const el = document.querySelector<HTMLElement>('[data-slot="badge"]');
+  if (!el) throw new Error("no [data-slot=badge] rendered");
+  return el;
+}
+
+describe("Badge", () => {
+  it("is not interactive on its own", () => {
+    render(<Badge>Weather</Badge>);
+
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("renders no dismiss control unless asked", () => {
+    render(<Badge>Weather</Badge>);
+
+    expect(document.querySelector('[data-slot="badge-dismiss"]')).toBeNull();
+    // Unchanged badges must not gain a label wrapper either.
+    expect(document.querySelector('[data-slot="badge-label"]')).toBeNull();
+  });
+
+  it("owns its dismiss button so the call site nests none", () => {
+    render(
+      <Badge onDismiss={vi.fn()} dismissLabel="Remove Weather">
+        Weather
+      </Badge>,
+    );
+
+    const badge = document.querySelector('[data-slot="badge"]') as HTMLElement;
+    // The badge is still a span, not a button, and holds exactly one control.
+    expect(badge.tagName).toBe("SPAN");
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+  });
+
+  it("names the dismiss button from dismissLabel, not from the glyph", () => {
+    render(
+      <Badge onDismiss={vi.fn()} dismissLabel="Remove Weather">
+        Weather
+      </Badge>,
+    );
+
+    expect(screen.getByRole("button", { name: "Remove Weather" })).toBeInTheDocument();
+  });
+
+  it("fires onDismiss when the button is pressed", async () => {
+    const onDismiss = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <Badge onDismiss={onDismiss} dismissLabel="Remove Weather">
+        Weather
+      </Badge>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Remove Weather" }));
+
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("is reachable and operable by keyboard", async () => {
+    const onDismiss = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <Badge onDismiss={onDismiss} dismissLabel="Remove Weather">
+        Weather
+      </Badge>,
+    );
+
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Remove Weather" })).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+    expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it("lifts overflow off the root so the button and its focus ring survive", () => {
+    // `.focus-ring` draws an outward box-shadow, which an overflow-hidden
+    // ancestor erases entirely — the defect #240 removed, reintroduced one
+    // level up. This is the assertion that fails if the root keeps clipping.
+    render(
+      <Badge onDismiss={vi.fn()} dismissLabel="Remove Weather">
+        Weather
+      </Badge>,
+    );
+
+    expect(badge().className).toContain("overflow-visible");
+    // The clipping moves to the label, so long tag text still stays in the
+    // pill — the reason overflow-hidden was on the root to begin with.
+    expect(document.querySelector('[data-slot="badge-label"]')?.className).toContain("overflow-hidden");
+  });
+
+  it("keeps a plain badge clipping exactly as before", () => {
+    render(<Badge>Weather</Badge>);
+
+    expect(badge().className).toContain("overflow-hidden");
+    expect(badge().className).not.toContain("overflow-visible");
+  });
+
+  it("keeps the label readable beside the button", () => {
+    render(
+      <Badge onDismiss={vi.fn()} dismissLabel="Remove Weather">
+        Weather
+      </Badge>,
+    );
+
+    expect(document.querySelector('[data-slot="badge-label"]')).toHaveTextContent("Weather");
+  });
+
+  it("declines to inject a button under asChild, which owns its element", () => {
+    // asChild hands the rendered element to the caller; there is nowhere to
+    // put the button, so the badge must not silently drop the caller's tree.
+    render(
+      <Badge asChild onDismiss={vi.fn()} dismissLabel="Remove">
+        <a href="#weather">Weather</a>
+      </Badge>,
+    );
+
+    expect(screen.getByRole("link", { name: "Weather" })).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
+    // And it must not take the dismissible geometry either: there is no
+    // button in it, so widening the pill for one would just be wrong.
+    expect(screen.getByRole("link").className).not.toContain("overflow-visible");
+  });
+});
