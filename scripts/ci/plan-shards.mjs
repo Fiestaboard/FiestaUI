@@ -17,7 +17,7 @@
 // Dependency-free ESM so ci.yml and vrt-update.yml can run it with bare `node`.
 //
 // Run directly to plan from the real tree and write $GITHUB_OUTPUT keys:
-//   node scripts/ci/plan-shards.mjs
+//   node scripts/ci/plan-shards.mjs [--profile ci|update]
 
 import { readdir } from "node:fs/promises";
 import path from "node:path";
@@ -54,6 +54,62 @@ export const VRT_LIMITS = { target: 150, max: 16 };
  * and so it scales on its own once story count grows past one runner's worth.
  */
 export const A11Y_LIMITS = { target: 150, max: 6 };
+
+/**
+ * VRT's limits for the `shoot` fan-out in vrt-update.yml, as opposed to the
+ * `compare` fan-out in ci.yml above.
+ *
+ * SAME `target` — deliberately derived rather than retyped, because the sizing
+ * rule does not change: a shard should spend at least as long shooting as it
+ * spends getting ready, and both fan-outs shoot at the same ~0.22s/shot behind
+ * the same setup. Two independently-tuned targets would just drift.
+ *
+ * LOWER `max`, because the slot budget does change. A rebaseline is dispatched
+ * on a branch you just pushed, so it overlaps that branch's CI run essentially
+ * every time — and ci.yml on its own peaks at ~28 legs (16 VRT + 12 a11y)
+ * against the org's 20 shared slots. Asking for 16 more on top guarantees the
+ * shoot matrix arrives in waves: run 32664950563 spread its 16 shard starts
+ * over 2m37s to save shards that only shoot for 33s each.
+ *
+ * The marginal runner is also worth much less than it looks. Setup is fixed at
+ * ~33s, so doubling 8 shards to 16 halves shooting (65s -> 33s) but cuts total
+ * shard time only 99s -> 66s. That 33s of theoretical gain was already being
+ * lost four times over to the stagger it caused.
+ */
+export const VRT_UPDATE_LIMITS = { target: VRT_LIMITS.target, max: 8 };
+
+/**
+ * Named limit sets, so a workflow selects a policy by name instead of encoding
+ * one in its own YAML. `ci` is the default and is what ci.yml plans with;
+ * `update` is vrt-update.yml's.
+ */
+export const PROFILES = {
+  ci: { vrt: VRT_LIMITS, a11y: A11Y_LIMITS },
+  update: { vrt: VRT_UPDATE_LIMITS, a11y: A11Y_LIMITS },
+};
+
+/**
+ * Look up a profile by name, throwing on anything unknown.
+ *
+ * Strict rather than falling back to `ci`, for the same reason `--shard`
+ * parsing is strict: a typo that silently resolves to the default plans a
+ * perfectly valid fan-out of the wrong width, and nothing anywhere turns red.
+ * The cost is a failed planner job, which is loud and takes seconds to fix.
+ *
+ * @param {string} name
+ * @returns {{vrt: {target: number, max: number}, a11y: {target: number, max: number}}}
+ */
+export function resolveProfile(name) {
+  // `Object.hasOwn`, not a truthiness check on `PROFILES[name]`: a plain object
+  // inherits from Object.prototype, so `PROFILES.constructor` is `Object` —
+  // truthy, and it would sail through to be destructured as a limit set,
+  // failing later as an undefined `target` rather than here as a bad name.
+  const profile = Object.hasOwn(PROFILES, String(name)) ? PROFILES[name] : undefined;
+  if (!profile) {
+    throw new Error(`Unknown --profile "${name}": expected one of ${Object.keys(PROFILES).join(", ")}`);
+  }
+  return profile;
+}
 
 /**
  * Shards needed to keep each shard at or under `target`, clamped to `[1, max]`.
@@ -119,11 +175,12 @@ export function countStories(relativePaths) {
  * claim to be shard i of 2N.
  *
  * @param {{shots: number, stories: number}} workload
+ * @param {{vrt: {target: number, max: number}, a11y: {target: number, max: number}}} limits
  * @returns {{vrt: {count: number, list: number[]}, a11y: {count: number, list: number[]}}}
  */
-export function planShards({ shots, stories }) {
-  const vrtCount = shardCount(shots, VRT_LIMITS);
-  const a11yCount = shardCount(stories, A11Y_LIMITS);
+export function planShards({ shots, stories }, limits = PROFILES.ci) {
+  const vrtCount = shardCount(shots, limits.vrt);
+  const a11yCount = shardCount(stories, limits.a11y);
   return {
     vrt: { count: vrtCount, list: shardList(vrtCount) },
     a11y: { count: a11yCount, list: shardList(a11yCount) },
@@ -155,19 +212,31 @@ export async function listBaselines(dir = BASELINES_DIR) {
 // CLI: measure the real tree and print $GITHUB_OUTPUT keys on stdout, with the
 // rationale on stderr so it lands in the job log without polluting the outputs.
 if (import.meta.url === `file://${process.argv[1]}`) {
+  // Only one flag, so no parser: `--profile <name>`, defaulting to `ci`.
+  const flagIndex = process.argv.indexOf("--profile");
+  const profileName = flagIndex === -1 ? "ci" : process.argv[flagIndex + 1];
+  let limits;
+  try {
+    limits = resolveProfile(profileName);
+  } catch (err) {
+    console.error(err.message);
+    process.exit(2);
+  }
+
   const files = await listBaselines();
   const shots = countVrtShots(files);
   const stories = countStories(files);
-  const plan = planShards({ shots, stories });
+  const plan = planShards({ shots, stories }, limits);
 
+  console.error(`Profile: ${profileName}.`);
   console.error(`Baselines: ${shots} shot(s) across ${stories} story/stories.`);
   console.error(
     `VRT: ${plan.vrt.count} shard(s) at ~${Math.ceil(shots / plan.vrt.count)} shots each ` +
-      `(target ${VRT_LIMITS.target}, cap ${VRT_LIMITS.max}).`,
+      `(target ${limits.vrt.target}, cap ${limits.vrt.max}).`,
   );
   console.error(
     `A11y: ${plan.a11y.count} shard(s) x 2 themes = ${plan.a11y.count * 2} legs, ` +
-      `~${Math.ceil(stories / plan.a11y.count)} stories each (target ${A11Y_LIMITS.target}, cap ${A11Y_LIMITS.max}).`,
+      `~${Math.ceil(stories / plan.a11y.count)} stories each (target ${limits.a11y.target}, cap ${limits.a11y.max}).`,
   );
   if (shots === 0) {
     console.error("No baselines found — planning one shard each. Seed baselines to unlock sharding.");

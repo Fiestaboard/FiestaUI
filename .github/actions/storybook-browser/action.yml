@@ -1,0 +1,112 @@
+name: Storybook browser environment
+description: >
+  Dependencies, a cached Chromium, and a served storybook-static — the setup
+  every Playwright job in this repo performs before it does any real work.
+
+# Three jobs need exactly this: ci.yml's `a11y-tests` and `visual-regression`,
+# and vrt-update.yml's `shoot`. They held three byte-identical copies of it, and
+# the copies are what let per-shard overhead grow unnoticed: nobody edits the
+# same eight steps in three files to save eight seconds.
+#
+# Overhead here is multiplied by the fan-out, not amortised across it. A shard
+# shoots for ~33 seconds, so every second of setup is a second charged to all
+# ~16 runners at once — measured at 53s of setup against 33s of work before the
+# two fixes below. Read anything added here as costing N times what it looks
+# like.
+
+inputs:
+  port:
+    description: Port to serve storybook-static on.
+    required: false
+    default: "6006"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: "24"
+        cache: npm
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci --no-audit
+
+    # Keyed `playwright-a11y-*` for continuity: the a11y job seeded this cache
+    # first and every Playwright job in the repo shares the entry, so renaming
+    # it would cold-start all three at once for no benefit.
+    - name: Cache Playwright browsers
+      id: playwright-cache
+      uses: actions/cache@v6
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-a11y-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+    # `--with-deps` is the expensive half of this step and it is NOT what the
+    # cache restores: browser binaries live in ~/.cache/ms-playwright, while
+    # `--with-deps` shells out to apt-get for chromium's shared libraries,
+    # which live in the image. So it re-ran its ~13 seconds of apt on every
+    # cache hit — 13s x every shard x every run, to install packages
+    # `ubuntu-latest` already ships (it comes with Chrome and Chromium
+    # preinstalled, hence their runtime libs).
+    #
+    # On a MISS we still take the full path, because a cold cache is also the
+    # case where an image change could genuinely have dropped a library.
+    #
+    # If a future runner image ever does drop one, this fails loudly at browser
+    # launch naming the missing library rather than silently — and the fix is to
+    # bump the cache key above, forcing one `--with-deps` pass.
+    - name: Install Playwright browsers
+      shell: bash
+      env:
+        CACHE_HIT: ${{ steps.playwright-cache.outputs.cache-hit }}
+      run: |
+        if [ "$CACHE_HIT" = "true" ]; then
+          npx playwright install chromium
+        else
+          npx playwright install --with-deps chromium
+        fi
+
+    - name: Build Storybook
+      shell: bash
+      run: npm run build-storybook -- --quiet
+
+    # Polls the exact URL the consumers fetch first (`vrt.mjs` calls
+    # `<base>/index.json` to enumerate stories; the a11y runner reads the same
+    # file), so readiness is proven rather than assumed.
+    #
+    # This replaces a fixed `sleep 5`, which was wrong in both directions: it
+    # measured ~10s per shard including the npx spawn, and on a slow runner it
+    # could still hand the harness a server that was not up — surfacing as a
+    # confusing "Failed to fetch /index.json" from inside the shoot rather than
+    # as a server that failed to start.
+    #
+    # `node_modules/.bin` directly rather than `npx`, which spends seconds
+    # re-resolving a package that `npm ci` just installed two steps up.
+    #
+    # Guarded rather than assumed, because that path is cwd-relative while
+    # Node's own resolver walks up the tree — so it is correct on a runner
+    # (npm ci installs into $GITHUB_WORKSPACE, which is the cwd) and wrong
+    # anywhere the install lives in a parent, such as a git worktree sharing
+    # its checkout's node_modules. `--no` on the fallback keeps npx from
+    # quietly fetching http-server from the registry when it is genuinely
+    # absent; that should fail, not download.
+    - name: Serve storybook-static
+      shell: bash
+      env:
+        PORT: ${{ inputs.port }}
+      run: |
+        if [ -x node_modules/.bin/http-server ]; then
+          node_modules/.bin/http-server storybook-static --port "$PORT" --silent &
+        else
+          npx --no http-server storybook-static --port "$PORT" --silent &
+        fi
+        for _ in $(seq 1 100); do
+          if curl -sfo /dev/null "http://localhost:${PORT}/index.json"; then
+            echo "storybook-static ready on :${PORT}"
+            exit 0
+          fi
+          sleep 0.2
+        done
+        echo "::error::storybook-static did not serve /index.json on :${PORT} within 20s"
+        exit 1

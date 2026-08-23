@@ -33,8 +33,17 @@ Both VRT and the Storybook a11y run are split across parallel CI jobs, and the j
 - **Shard 1 owns the whole-suite inventory checks** (new, stale, and stray baselines). Those need the full story list rather than one slice, and every shard has it — so exactly one must run them. All of them reporting would print each failure N times; none reporting would silently drop the check that catches a story deleted without a rebaseline. A shard that draws a story with no baseline skips it rather than re-reporting it.
 - A11y uses the test runner's own `--shard` flag (it is Jest underneath), so it needs no harness code. Its matrix is `theme x shard`, because the theme is a Storybook global baked into the URL rather than a test filter.
 - The shard count is **capped** (see `VRT_LIMITS` / `A11Y_LIMITS`). The org is on GitHub Free — 20 concurrent jobs shared across every repo — so past the cap shards get larger rather than more numerous. Coverage never changes; only wall clock does.
+- All three Playwright jobs — `visual-regression`, `a11y-tests`, and vrt-update.yml's `shoot` — get their environment from one composite action, [`.github/actions/storybook-browser`](../.github/actions/storybook-browser/action.yml). Sharing it is not only DRY: a baseline is only useful if the run that _checks_ it renders in the same environment as the run that _recorded_ it, and one definition makes that true by construction rather than by three files agreeing.
 
 Because shard sizing reads the committed baselines, seeding a repo with none yet plans a single shard and runs unsharded. That is correct rather than unfortunate — there is no workload to measure — and it self-corrects on the next run.
+
+#### Why the fan-outs are not the same width
+
+`compare` (ci.yml) plans with the `ci` profile; `shoot` (vrt-update.yml) plans with `--profile update`. Same per-shard sizing rule, smaller slot budget — `node scripts/ci/plan-shards.mjs --profile update` prints what either would pick.
+
+The reason is that **setup is paid by every shard, not amortised across them**. A shard spends ~33s getting ready (checkout, `npm ci`, cached Chromium, Storybook build, serve) and ~0.22s per shot, so the fan-out can never beat 33s no matter how wide it goes. Once a shard shoots for about as long as it prepares, more runners buy seconds — while competing for those 20 shared slots against the CI run a rebaseline always overlaps, because you dispatch it on a branch you just pushed. Measured on run `32664950563`: 16 shards took 2m37s just to _start_, to save shards that shoot for 33s each.
+
+So `update` caps at 8. Shards get larger, never fewer shots — the same property the `ci` cap relies on.
 
 ### Determinism measures
 
@@ -76,7 +85,8 @@ node scripts/vrt/vrt.mjs shoot --out /tmp/shots --url http://localhost:6007   # 
 # One shard's slice — the same thing a single CI job does. Handy for iterating
 # on a subset: a high N keeps the run short.
 npm run vrt -- --url http://localhost:6007 --shard 1/40
-node scripts/ci/plan-shards.mjs   # what CI would pick for the current tree
+node scripts/ci/plan-shards.mjs                    # what CI's `compare` would pick for the current tree
+node scripts/ci/plan-shards.mjs --profile update   # what the update workflow's `shoot` would pick
 ```
 
 ## Skipping flaky stories: `vrt/skip.json`

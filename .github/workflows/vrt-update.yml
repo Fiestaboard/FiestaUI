@@ -12,9 +12,17 @@ name: VRT Update Baselines
 # the app token and check out with it, exactly like release.yml does.
 #
 # Shape: plan -> shoot (matrix) -> adopt. Re-shooting every story at two
-# viewports x two themes is ~8 minutes of screenshots in one job; split across
-# N runners it is under a minute each, and the ~65s of per-runner setup is
-# cheap enough that the split pays for itself several times over.
+# viewports x two themes is ~9 minutes of screenshots in one job; split across
+# N runners each shard shoots for about a minute.
+#
+# The split is worth less than the arithmetic suggests, and knowing why is what
+# keeps this workflow sized sensibly. Setup — checkout, npm ci, cached
+# Playwright, Storybook build, serve — is ~33s and is paid by EVERY shard, so
+# the fan-out cannot go below it no matter how wide. Past the point where a
+# shard shoots for as long as it prepares, extra runners buy seconds while
+# competing for the org's 20 shared slots against the CI run this workflow
+# always overlaps. `--profile update` below encodes that ceiling; the numbers
+# and the measurements behind them live in scripts/ci/plan-shards.mjs.
 #
 # The `adopt` step is what makes the split safe. Baselines are regenerated
 # WHOLESALE, so a shard whose artifact never arrived would otherwise commit a
@@ -55,9 +63,14 @@ jobs:
       # runs unsharded. That is correct rather than unfortunate — there is no
       # workload estimate to shard by — and it self-corrects on the next run,
       # once there is a tree to measure.
+      #
+      # `--profile update` applies the same per-shard sizing rule as ci.yml but
+      # a smaller slot budget. A rebaseline is dispatched on a branch you just
+      # pushed, so it lands beside that branch's CI run — which alone peaks at
+      # ~28 legs against the org's 20 shared slots. See VRT_UPDATE_LIMITS.
       - name: Plan
         id: plan
-        run: node scripts/ci/plan-shards.mjs >> "$GITHUB_OUTPUT"
+        run: node scripts/ci/plan-shards.mjs --profile update >> "$GITHUB_OUTPUT"
 
   shoot:
     name: Shoot (${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }})
@@ -74,30 +87,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --no-audit
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-a11y-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Build Storybook
-        run: npm run build-storybook -- --quiet
-
-      - name: Start Storybook static server
-        run: |
-          npx http-server storybook-static --port 6006 --silent &
-          sleep 5
+      # Shared with ci.yml's two Playwright matrices, so `shoot` and `compare`
+      # cannot drift into different environments — the whole point of a
+      # rebaseline is that it produces bytes the next `compare` will reproduce.
+      - uses: ./.github/actions/storybook-browser
 
       # Writes this shard's slice plus manifest-<i>-of-<N>.json, which records
       # both what the whole run should produce and what this shard produced.

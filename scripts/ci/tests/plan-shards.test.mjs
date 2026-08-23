@@ -6,9 +6,12 @@ import {
   countStories,
   countVrtShots,
   planShards,
+  PROFILES,
+  resolveProfile,
   shardCount,
   shardList,
   VRT_LIMITS,
+  VRT_UPDATE_LIMITS,
 } from "../plan-shards.mjs";
 
 test("shard count divides the workload by the target, rounding up", () => {
@@ -108,4 +111,79 @@ test("the plan is serialisable as GitHub Actions matrix input", () => {
   // quotes parses as a string and silently produces a one-leg matrix.
   assert.deepEqual(JSON.parse(JSON.stringify(plan.vrt.list)), plan.vrt.list);
   assert.equal(JSON.stringify(plan.a11y.list), "[1,2,3,4]");
+});
+
+// --- Profiles -------------------------------------------------------------
+//
+// ci.yml plans `compare`; vrt-update.yml plans `shoot`. Same sizing rule, two
+// slot budgets — see VRT_UPDATE_LIMITS for the measurements behind the split.
+
+test("the update profile applies the same per-shard sizing rule as ci", () => {
+  // Not merely equal today: derived, so retuning one cannot silently leave the
+  // other behind. Shard SIZE is a property of setup cost against per-shot cost,
+  // and both fan-outs pay the same of each.
+  assert.equal(VRT_UPDATE_LIMITS.target, VRT_LIMITS.target);
+});
+
+test("the update profile asks for fewer runner slots than ci's", () => {
+  // The whole point of the profile. A rebaseline overlaps the CI run on the
+  // branch it was dispatched from, and ci.yml alone peaks at ~28 legs against
+  // the org's 20 shared slots.
+  assert.ok(
+    VRT_UPDATE_LIMITS.max < VRT_LIMITS.max,
+    `update cap (${VRT_UPDATE_LIMITS.max}) must be below ci's (${VRT_LIMITS.max})`,
+  );
+});
+
+test("the update profile plans a narrower VRT fan-out for the same tree", () => {
+  const workload = { shots: 2360, stories: 590 }; // the tree as of this commit
+  const ci = planShards(workload, PROFILES.ci);
+  const update = planShards(workload, PROFILES.update);
+
+  assert.equal(ci.vrt.count, 16);
+  assert.equal(update.vrt.count, 8);
+  assert.equal(update.vrt.list.length, 8);
+});
+
+test("narrowing the fan-out changes shard size, never coverage", () => {
+  // The cap makes shards LARGER rather than dropping work — the same property
+  // VRT_LIMITS.max relies on. Every shot must still be owned by some shard.
+  const shots = 2360;
+  const update = planShards({ shots, stories: 590 }, PROFILES.update);
+  assert.ok(
+    update.vrt.count * Math.ceil(shots / update.vrt.count) >= shots,
+    "the planned shards must between them cover every shot",
+  );
+});
+
+test("a11y sizing is identical across profiles", () => {
+  // Only VRT's slot budget differs; a11y is not dispatched by vrt-update.yml
+  // at all, and giving it a second set of numbers would invite drift.
+  const workload = { shots: 2360, stories: 590 };
+  assert.deepEqual(planShards(workload, PROFILES.ci).a11y, planShards(workload, PROFILES.update).a11y);
+});
+
+test("planShards defaults to the ci profile", () => {
+  const workload = { shots: 2360, stories: 590 };
+  assert.deepEqual(planShards(workload), planShards(workload, PROFILES.ci));
+});
+
+test("an unknown profile name throws instead of falling back", () => {
+  // A typo that silently resolved to `ci` would plan a perfectly valid fan-out
+  // of the wrong width, and nothing anywhere would turn red. Same reasoning as
+  // the strict `--shard` parsing in scripts/vrt/shard.mjs.
+  assert.throws(() => resolveProfile("updat"), /Unknown --profile "updat"/);
+  assert.throws(() => resolveProfile(undefined), /Unknown --profile/);
+  // Not reachable via inherited object keys either.
+  assert.throws(() => resolveProfile("constructor"), /Unknown --profile/);
+});
+
+test("every profile resolves to a usable pair of limit sets", () => {
+  for (const name of Object.keys(PROFILES)) {
+    const limits = resolveProfile(name);
+    for (const suite of ["vrt", "a11y"]) {
+      assert.ok(limits[suite].target > 0, `${name}.${suite}.target must be positive`);
+      assert.ok(limits[suite].max >= 1, `${name}.${suite}.max must be at least 1`);
+    }
+  }
 });
