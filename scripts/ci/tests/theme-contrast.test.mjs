@@ -169,8 +169,31 @@ function declarationsFor(css, selector) {
   return out;
 }
 
+/**
+ * The dark token block's selector, spelled in full.
+ *
+ * Dark mode has carried TWO selectors since #228 item 6 — `.dark` and
+ * `[data-theme="dark"]`, paired on every rule and gated by
+ * `dark-selector-pairing.test.mjs`. A pattern matching the bare class stops
+ * finding the block, and `declarationsFor` answers that with an EMPTY map
+ * rather than an error: `darkTokens` then degrades to `lightTokens` and every
+ * assertion below silently re-measures the light palette while still calling
+ * itself dark. The `#231` calibration test catches it today, which is why this
+ * is spelled out rather than loosened — a re-spelling should fail here, not
+ * quietly change what "dark" means.
+ */
+const DARK_SELECTOR = String.raw`\.dark\s*,\s*\[data-theme="dark"\]`;
+
 const lightTokens = declarationsFor(themeCss, ":root");
-const darkTokens = new Map([...lightTokens, ...declarationsFor(themeCss, "\\.dark")]);
+const darkOverrides = declarationsFor(themeCss, DARK_SELECTOR);
+const darkTokens = new Map([...lightTokens, ...darkOverrides]);
+
+test("the dark token block is found, and overrides the light one", () => {
+  // Guards the degradation described above: without this, a selector change
+  // makes the whole "both themes" half of this file assert light twice.
+  assert.ok(darkOverrides.size > 20, `expected theme.css's dark token block, found ${darkOverrides.size} declarations`);
+  assert.notEqual(darkTokens.get("--background"), lightTokens.get("--background"), "dark --background must differ");
+});
 
 function resolve(name, tokens) {
   let value = tokens.get(name);

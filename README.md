@@ -32,10 +32,10 @@ FiestaUI ships **no compiled utility CSS**. The consuming app runs Tailwind v4 a
 @source "../node_modules/@fiestaboard/ui/dist";
 ```
 
-- `theme.css` carries the design tokens (`@theme inline`, `:root` / `.dark` custom properties), the base layer, the component animation keyframes, and the `dark` custom variant.
+- `theme.css` carries the design tokens (`@theme inline`, `:root` / `.dark, [data-theme="dark"]` custom properties), the base layer, the component animation keyframes, and the `dark` custom variant.
 - `fonts.css` is the **opt-in** font registration (`@fontsource-variable/archivo` + `@fontsource-variable/spline-sans-mono` `@font-face` rules, ~70 KB fetched for a Latin-only page). Import it alongside `theme.css` unless your app supplies the faces itself — e.g. via `next/font`, a CDN, or a self-hosted subset. If you self-host, skip `fonts.css` and register faces named `"Archivo Variable"` / `"Spline Sans Mono Variable"` (the names `theme.css`'s `--font-sans-stack` / `--font-mono-stack` tokens reference); without either, the tokens degrade gracefully to the system font stack.
 - The `@source` line is **mandatory** — Tailwind v4 does not scan `node_modules` by default, and without it component styles silently vanish. Adjust the relative path to wherever your CSS file lives.
-- Dark mode is class-based: toggle the `dark` class on `<html>`. FiestaUI only defines the variant; your app owns the toggle.
+- Dark mode responds to **either** signal, and they are equivalent: the `dark` **class** or a `data-theme="dark"` **attribute**. Put whichever your host already toggles on `<html>` — or on any ancestor, to theme just that subtree. FiestaUI only defines the variant; your app owns the toggle. Hosts that stamp the attribute natively (Docusaurus, Astro, Nuxt Color Mode) therefore need no adapter. The pair is left unqualified, at specificity 0-1-0, so a pipeline that appends its own `:root` blocks after `theme.css` (Docusaurus's wide-gamut P3 pass does) still has to raise specificity on its side.
 
 ### Typeface
 
