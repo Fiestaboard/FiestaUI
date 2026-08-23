@@ -17,7 +17,6 @@ import { ThemeToggle } from "./theme-toggle";
 const LABELS = {
   mainNavigation: "Main navigation",
   primaryNavigation: "Primary navigation",
-  secondaryNavigation: "Secondary navigation",
   navigationMenu: "Navigation menu",
   openMenu: "Open menu",
   closeMenu: "Close menu",
@@ -49,12 +48,13 @@ function AppShellDemo({ initialCollapsed = false }: { initialCollapsed?: boolean
     labels: { boardSelector: "Select board", selectBoard: "Select a board", unnamedBoard: "Unnamed board" },
   };
 
-  const primary: SidebarNavItem[] = [
+  const items: SidebarNavItem[] = [
     { key: "home", href: "#", icon: Home, label: "Home", active: true },
     { key: "pages", href: "#pages", icon: FileText, label: "Pages" },
     { key: "collections", href: "#collections", icon: GalleryHorizontalEnd, label: "Collections" },
     { key: "schedule", href: "#schedule", icon: Calendar, label: "Schedule" },
     { key: "integrations", href: "#integrations", icon: Puzzle, label: "Integrations" },
+    { key: "settings", href: "#settings", icon: Settings, label: "Settings" },
   ];
 
   return (
@@ -62,8 +62,7 @@ function AppShellDemo({ initialCollapsed = false }: { initialCollapsed?: boolean
       <SkipToContent label="Skip to main content" />
       <Sidebar
         labels={LABELS}
-        primaryItems={primary}
-        secondaryItems={[{ key: "settings", href: "#settings", icon: Settings, label: "Settings" }]}
+        items={items}
         renderLink={renderLink}
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed(!collapsed)}
