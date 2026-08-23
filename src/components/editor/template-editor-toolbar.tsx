@@ -36,6 +36,7 @@ import {
   useState,
 } from "react";
 
+import type { Code62Glyph } from "../../lib/board-characters";
 import { AVAILABLE_COLORS, type BoardColorName, getBoardColor } from "../../lib/board-colors";
 import { useDepsChanged } from "../../lib/use-deps-changed";
 import { cn } from "../../lib/utils";
@@ -46,7 +47,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ove
 import { Text } from "../typography/text";
 import { ColorPickerContent, type ColorPickerLabels } from "./color-picker-content";
 import type { DeviceType } from "./constants";
-import { DrawCharPickerContent } from "./draw-char-picker-content";
+import { DrawCharPickerContent, type DrawCharPickerLabels } from "./draw-char-picker-content";
 import { FormattingPickerContent, type FormattingPickerLabels } from "./formatting-picker-content";
 import type { LineAlignment } from "./template-editor";
 import { ToolbarDropdown } from "./toolbar-dropdown";
@@ -218,6 +219,13 @@ export interface TemplateEditorToolbarProps {
   onWrapToggle?: () => void;
   className?: string;
   deviceType?: DeviceType;
+  /**
+   * Which glyph the target board's code-62 flap draws. Forwarded to the
+   * colour picker and the draw-character picker; see
+   * {@link ColorPickerContent} for why it cannot be derived from
+   * `deviceType`.
+   */
+  code62Glyph?: Code62Glyph;
   onSyncFromBoard?: () => void;
   syncFromBoardPending?: boolean;
   drawMode?: boolean;
@@ -273,6 +281,13 @@ export interface TemplateEditorToolbarProps {
   variablePickerLabels?: Partial<VariablePickerLabels>;
   colorPickerLabels?: Partial<ColorPickerLabels>;
   formattingPickerLabels?: Partial<FormattingPickerLabels>;
+  /**
+   * Strings for the draw-character picker. Without this the toolbar rendered
+   * DrawCharPickerContent's three labels in English only, which is why
+   * FiestaBoard still renders that picker itself instead of adopting the
+   * toolbar's (#265).
+   */
+  drawCharPickerLabels?: Partial<DrawCharPickerLabels>;
 }
 
 function TemplateEditorToolbarImpl({
@@ -283,6 +298,7 @@ function TemplateEditorToolbarImpl({
   onWrapToggle,
   className,
   deviceType,
+  code62Glyph,
   onSyncFromBoard,
   syncFromBoardPending = false,
   drawMode = false,
@@ -301,6 +317,7 @@ function TemplateEditorToolbarImpl({
   variablePickerLabels,
   colorPickerLabels,
   formattingPickerLabels,
+  drawCharPickerLabels,
 }: TemplateEditorToolbarProps) {
   const l = { ...DEFAULT_TEMPLATE_EDITOR_TOOLBAR_LABELS, ...labels };
   const drawColorLabel = (name: BoardColorName) =>
@@ -648,6 +665,9 @@ function TemplateEditorToolbarImpl({
               {(close) => (
                 <DrawCharPickerContent
                   current={effectiveBrush}
+                  deviceType={deviceType}
+                  code62Glyph={code62Glyph}
+                  labels={drawCharPickerLabels}
                   onSelect={(brush) => {
                     onDrawBrushChange?.(brush);
                     close();
@@ -841,6 +861,7 @@ function TemplateEditorToolbarImpl({
                       close();
                     }}
                     deviceType={deviceType}
+                    code62Glyph={code62Glyph}
                     labels={colorPickerLabels}
                   />
                 )}

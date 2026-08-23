@@ -43,6 +43,7 @@ import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { ComponentProps } from "react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
+import type { Code62Glyph } from "../../lib/board-characters";
 import { cn } from "../../lib/utils";
 import { Skeleton } from "../feedback/skeleton";
 import { Box } from "../layout/box";
@@ -156,6 +157,7 @@ export type TemplateEditorToolbarSlotProps = Omit<
   | "onAlignmentChange"
   | "onWrapToggle"
   | "deviceType"
+  | "code62Glyph"
   | "onSyncFromBoard"
   | "syncFromBoardPending"
   | "drawMode"
@@ -242,6 +244,17 @@ export interface TemplateEditorProps {
   boardLines?: number;
   onLineCountChange?: (lineCount: number) => void; // Reports current line count for validation
   deviceType?: DeviceType; // Device type for device-specific features
+  /**
+   * Which glyph the target board's code-62 flap draws. Forwarded to the
+   * toolbar, and from there to the colour and draw-character pickers.
+   *
+   * It is a property of the individual board, not of the device family:
+   * since 2026 some Flagships ship a heart flap in that slot, so nothing
+   * queryable distinguishes them and only the owner knows
+   * (FiestaBoard#1657, #1664). Unset means `"degree"` on Flagship hardware,
+   * which is how every Flagship behaved before the change.
+   */
+  code62Glyph?: Code62Glyph;
   onSyncFromBoard?: () => void; // Callback to populate template from current board display
   syncFromBoardPending?: boolean; // True while the sync mutation is in flight
   drawMode?: boolean; // True while draw mode is active (collapses the editor, keeps toolbar)
@@ -278,6 +291,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
     boardLines: boardLinesProp,
     onLineCountChange,
     deviceType,
+    code62Glyph,
     onSyncFromBoard,
     syncFromBoardPending = false,
     drawMode = false,
@@ -1389,6 +1403,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
           onAlignmentChange={handleAlignmentClick}
           onWrapToggle={handleWrapClick}
           deviceType={deviceType}
+          code62Glyph={code62Glyph}
           onSyncFromBoard={onSyncFromBoard}
           syncFromBoardPending={syncFromBoardPending}
           drawMode={drawMode}

@@ -5,6 +5,7 @@
 
 import { useRef, useState } from "react";
 
+import { type Code62Glyph, resolveCode62Glyph } from "../../lib/board-characters";
 import type { DeviceType } from "../../lib/board-dimensions";
 import { cn } from "../../lib/utils";
 import { Box } from "../layout/box";
@@ -25,15 +26,15 @@ import { DRAW_CHARS } from "./utils/draw-mode";
  * shows the user the glyph their board will show them.
  */
 const DEGREE_CHAR = "°";
-/** The glyph a Note draws for code 62 (lib/board-characters' EXTRA_CHARS entry). */
+/** The heart glyph a code-62 flap draws (lib/board-characters' EXTRA_CHARS entry). */
 const NOTE_HEART_CHAR = "♥";
 
 export interface DrawCharPickerLabels {
   /** Accessible name for the character grid. */
   characters: string;
-  /** Accessible name for the code-62 button on Flagship hardware. */
+  /** Accessible name for the code-62 button when the flap draws a degree sign. */
   degree: string;
-  /** Accessible name for the code-62 button on a Note, where it draws a heart. */
+  /** Accessible name for the code-62 button when the flap draws a heart. */
   heart: string;
 }
 
@@ -51,17 +52,34 @@ export interface DrawCharPickerContentProps {
    * the inserted character is the degree symbol either way.
    */
   deviceType?: DeviceType;
+  /**
+   * Which glyph the target board's code-62 flap draws. Same contract as
+   * {@link ColorPickerContent}: resolved with {@link resolveCode62Glyph},
+   * and unset means today's behaviour. Without it a 2026 heart-flap Flagship
+   * draws ° here while its board shows ♥, and announces "Degree" for a key
+   * that paints a heart — WCAG 1.1.1, and the same mismatch FiestaBoard#1657
+   * fixed in the colour picker.
+   */
+  code62Glyph?: Code62Glyph;
   labels?: Partial<DrawCharPickerLabels>;
 }
 
 const GRID_COLS = 8;
 
-export function DrawCharPickerContent({ current, onSelect, deviceType, labels }: DrawCharPickerContentProps) {
+export function DrawCharPickerContent({
+  current,
+  onSelect,
+  deviceType,
+  code62Glyph,
+  labels,
+}: DrawCharPickerContentProps) {
   const l = { ...DEFAULT_DRAW_CHAR_PICKER_LABELS, ...labels };
   // Note only, matching lib/board-characters: a note_array is Note hardware,
   // but the renderer does not substitute for it, and the picker must not
   // promise a glyph the board will not draw.
-  const isNote = deviceType === "note";
+  // Not `deviceType === "note"`: since 2026 some Flagships carry the heart
+  // flap too, so the glyph is a property of the board, not the device family.
+  const isHeart = resolveCode62Glyph(deviceType ?? "flagship", code62Glyph) === "heart";
   const selectedChar = current.kind === "char" ? current.char : null;
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   // Roving tabindex: exactly one button is in the tab order (the selected
@@ -117,7 +135,7 @@ export function DrawCharPickerContent({ current, onSelect, deviceType, labels }:
           // Code 62 is the one character whose drawn glyph depends on the
           // device; every other stamp draws as itself.
           const isDegree = char === DEGREE_CHAR;
-          const glyph = isDegree && isNote ? NOTE_HEART_CHAR : char;
+          const glyph = isDegree && isHeart ? NOTE_HEART_CHAR : char;
 
           return (
             <button
@@ -129,7 +147,7 @@ export function DrawCharPickerContent({ current, onSelect, deviceType, labels }:
               data-draw-char={char}
               tabIndex={index === focusedIndex ? 0 : -1}
               aria-pressed={selectedChar === char}
-              aria-label={isDegree ? (isNote ? l.heart : l.degree) : char}
+              aria-label={isDegree ? (isHeart ? l.heart : l.degree) : char}
               onClick={() => onSelect({ kind: "char", char })}
               onFocus={() => setFocusedIndex(index)}
               onKeyDown={(event) => handleKeyDown(event, index)}

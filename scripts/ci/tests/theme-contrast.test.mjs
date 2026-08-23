@@ -356,3 +356,148 @@ test("#238: ScrollArea draws its focus ring on the Root, not inside the clipped 
       "`--focus-ring-shadow` (#228 item 5) rather than re-spelling the three stops.",
   );
 });
+
+/* ------------------------------------------------------------------ *
+ * 4. #228 item 1 — the nav tokens, which had no gate at all
+ *
+ * `--nav-active-hover` is the last translucent token in chrome, and it was
+ * the only one the matrix above never reached. That gap let a MEASUREMENT
+ * error survive two majors in the file that argues hardest about ratios:
+ * the four ratios documented beside the token were computed by mixing
+ * LUMINANCES (a linear-space composite) rather than channel values.
+ *
+ * Browsers composite in gamma space. So does `composite()` above — its own
+ * comment says so. The two methods agree when ink and ground are close in
+ * luminance and diverge sharply when they are far apart, which is why only
+ * the DARK-surface figures were wrong, and why they were wrong in the
+ * flattering direction:
+ *
+ *     dark page   documented 3.36:1   actually 1.39:1
+ *     dark rail   documented 3.07:1   actually 1.53:1
+ *     light page  documented 1.15:1   actually 1.35:1
+ *     light rail  documented 1.15:1   actually 1.35:1
+ *
+ * These are characterization assertions, not a threshold: a hover tint is a
+ * supporting cue, and the state itself is carried by the opaque --nav-active
+ * pill asserted below. Their job is to stop the numbers drifting silently
+ * again, and to fail loudly if someone recomputes them the linear way.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Every mix percentage theme.css declares for --nav-active-hover, read from
+ * the stylesheet rather than restated here.
+ *
+ * A literal would make this block measure a number the package no longer
+ * ships: retuning the token would leave every assertion below green while
+ * the rendered tint moved. There are two tiers on purpose — the resting mix
+ * and the `prefers-contrast: more` lift — and both are measured, because the
+ * high-contrast tier is the one that has already shipped a regression once
+ * (see the active-pill test below).
+ */
+function declaredHoverMixes() {
+  const found = new Map();
+  for (const m of themeCss.matchAll(
+    /--nav-active-hover:\s*color-mix\(\s*in oklch\s*,\s*var\(\s*(--[\w-]+)\s*\)\s*([\d.]+)%/g,
+  )) {
+    const alpha = Number(m[2]) / 100;
+    if (!found.has(alpha)) found.set(alpha, new Set());
+    found.get(alpha).add(m[1]);
+  }
+  return found;
+}
+
+test("#228 item 1: --nav-active-hover ships exactly the two tiers this file measures", () => {
+  const mixes = declaredHoverMixes();
+  assert.deepEqual(
+    [...mixes.keys()].sort((a, b) => a - b),
+    [0.14, 0.24],
+    "the resting tint and its prefers-contrast lift are the two mixes measured below; if a third appears, or " +
+      "one of these is retuned, add or update its row in NAV_HOVER_CASES rather than letting it go unmeasured",
+  );
+  for (const [alpha, inks] of mixes) {
+    assert.deepEqual(
+      [...inks].sort(),
+      ["--foreground", "--sidebar-foreground"],
+      `the ${alpha * 100}% tier must be declared for BOTH the page and the rail — a custom property substitutes ` +
+        "var() on the element it is declared on, so a tier declared only at :root resolves against page ink and " +
+        "then inherits that already-resolved value onto the rail",
+    );
+  }
+});
+
+/*
+ * The rail RE-DECLARES the token from --sidebar-foreground in
+ * `.sidebar-gradient`, for the substitution reason above. So the rail rows
+ * name --sidebar-foreground / --sidebar; measuring them off :root would
+ * silently measure the page's mix twice and call it rail coverage.
+ *
+ * [label, tokens, ink, surface, ratio @14%, ratio @24%]
+ */
+const NAV_HOVER_CASES = [
+  ["dark page", () => darkTokens, "--foreground", "--background", 1.392, 1.97],
+  ["light page", () => lightTokens, "--foreground", "--background", 1.352, 1.715],
+  ["dark rail", () => darkTokens, "--sidebar-foreground", "--sidebar", 1.533, 2.161],
+  ["light rail", () => lightTokens, "--sidebar-foreground", "--sidebar", 1.346, 1.702],
+];
+
+test("#228 item 1: --nav-active-hover measures what theme.css says it measures", () => {
+  const drift = [];
+  for (const [label, getTokens, ink, surface, resting, lifted] of NAV_HOVER_CASES) {
+    const tokens = getTokens();
+    const bg = toRgb(resolve(surface, tokens));
+    const fg = toRgb(resolve(ink, tokens));
+    for (const [alpha, expected] of [
+      [0.14, resting],
+      [0.24, lifted],
+    ]) {
+      const actual = contrast(composite(fg, alpha, bg), bg);
+      if (Math.abs(actual - expected) > 0.02) {
+        drift.push(`${label} @${alpha * 100}%: documented ${expected}:1, measured ${actual.toFixed(3)}:1`);
+      }
+    }
+  }
+  assert.deepEqual(
+    drift,
+    [],
+    "The hover tint moved, or was recomputed the wrong way. Browsers composite alpha in GAMMA space — mix the " +
+      "channel values, not the luminances. Mixing luminances overstates the tint on dark surfaces by ~2.4x, " +
+      "which is exactly the error this test was added to catch. Update theme.css's comments and these " +
+      "expectations together, and only after re-measuring with composite() above.",
+  );
+});
+
+test("#228 item 1: mixing luminances is not the same as compositing, on a dark surface", () => {
+  // Guards the guard: if this ever stops holding, the two methods have
+  // converged and the test above has stopped discriminating between them.
+  const bg = toRgb(resolve("--background", darkTokens));
+  const ink = toRgb(resolve("--foreground", darkTokens));
+  const alpha = 0.14;
+  const gamma = contrast(composite(ink, alpha, bg), bg);
+
+  const mixedLuminance = alpha * luminance(ink) + (1 - alpha) * luminance(bg);
+  const linear = (mixedLuminance + 0.05) / (luminance(bg) + 0.05);
+
+  assert.ok(
+    linear > gamma * 2,
+    `the linear-composite model should still overstate the dark-page tint (gamma ${gamma.toFixed(3)}, ` +
+      `linear ${linear.toFixed(3)}) — if it no longer does, the pinned numbers above prove less than they claim`,
+  );
+});
+
+test("#228 item 1: the active nav pill clears AA in both themes", () => {
+  // Unlike the hover tint this one IS a threshold: --nav-active is an opaque
+  // fill and --nav-active-foreground is the label on it, so it is ordinary
+  // text contrast (SC 1.4.3). This is the pair the `prefers-contrast: more`
+  // retune inverted in 4.0.0 — it lifted the fill assuming board ink under
+  // it, which took the docs site's light-mode label to 1.40:1 for the users
+  // who had explicitly asked for MORE contrast.
+  const failures = [];
+  for (const [theme, tokens] of [
+    ["light", lightTokens],
+    ["dark", darkTokens],
+  ]) {
+    const ratio = contrast(toRgb(resolve("--nav-active-foreground", tokens)), toRgb(resolve("--nav-active", tokens)));
+    if (ratio < 4.5) failures.push(`${theme}: ${ratio.toFixed(2)}:1`);
+  }
+  assert.deepEqual(failures, [], "--nav-active-foreground on --nav-active must clear 4.5:1 (SC 1.4.3)");
+});
