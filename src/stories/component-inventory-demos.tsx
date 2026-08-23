@@ -75,6 +75,7 @@ import { PageHeader, PageIconGradientDefs } from "../components/chrome/page-head
 import { PageInset } from "../components/chrome/page-inset";
 import { PageLayout } from "../components/chrome/page-layout";
 import { PageToolbar } from "../components/chrome/page-toolbar";
+import { Pagination } from "../components/chrome/pagination";
 import { SkipToContent } from "../components/chrome/skip-to-content";
 import { ThemeToggle } from "../components/chrome/theme-toggle";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/containment/accordion";
@@ -186,6 +187,7 @@ import { PluginCategoryBadge } from "../components/plugin/plugin-category-badge"
 import { ScaledBoardTeaser } from "../components/plugin/scaled-board-teaser";
 import { Code } from "../components/typography/code";
 import { Heading } from "../components/typography/heading";
+import { Kbd } from "../components/typography/kbd";
 import { List, ListItem } from "../components/typography/list";
 import { Text } from "../components/typography/text";
 import { TextLink } from "../components/typography/text-link";
@@ -514,6 +516,20 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     <Text size="sm">
       Run <Code>npm run vrt:update</Code> to refresh baselines.
     </Text>
+  ),
+  Kbd: () => (
+    <Flex gap="3" wrap className="items-center">
+      {/*
+       * Pinned to `platform="apple"` rather than calling `useKbdPlatform()`:
+       * the inventory page is photographed by VRT, and a demo whose glyphs
+       * depend on the machine underneath would diff differently on a Linux
+       * runner than on a designer's Mac.
+       */}
+      <Kbd platform="apple" keys={["Mod", "K"]} />
+      <Kbd keys={["Ctrl", "K"]} />
+      <Kbd keys={["Shift", "Enter"]} />
+      <Kbd>Esc</Kbd>
+    </Flex>
   ),
   List: () => (
     <Flex gap="8" wrap>
@@ -1260,6 +1276,27 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </NavListSection>
       </NavList>
     </nav>
+  ),
+  Pagination: () => (
+    <Pagination
+      page={6}
+      totalPages={12}
+      labels={{
+        navigation: "Inventory example pages",
+        previous: "Previous page",
+        next: "Next page",
+        page: (page) => `Page ${page}`,
+        ellipsis: "More pages",
+      }}
+      // A plain <a> stands in for the router on this page; real consumers
+      // pass Docusaurus's <Link> or the app's ViewTransitionLink, which is
+      // the whole point of the prop.
+      renderLink={({ children, ...props }, item) => (
+        <a href={`#inv-pagination-${item.page}`} {...props}>
+          {children}
+        </a>
+      )}
+    />
   ),
   Sidebar: () => (
     <SeeItsOwnStory
