@@ -3,9 +3,10 @@
  */
 "use client";
 
-import { Heart } from "lucide-react";
+import { Heart, Thermometer } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { type Code62Glyph, resolveCode62Glyph } from "../../lib/board-characters";
 import { AVAILABLE_COLORS, type BoardColorName, COLOR_DISPLAY } from "../../lib/board-colors";
 import type { DeviceType } from "../../lib/board-dimensions";
 import { cn } from "../../lib/utils";
@@ -25,9 +26,18 @@ export interface ColorPickerLabels {
   colorNames: Record<BoardColorName, string>;
   /** Accessible name for one swatch, given its display name. */
   colorOptionLabel: (colorName: string) => string;
+  /**
+   * The code-62 button's wording, per glyph. Which of the two is used is
+   * decided by {@link resolveCode62Glyph}, not by the caller picking a
+   * string — a board that draws ♥ must never be offered a button captioned
+   * "degree", which is half of the bug FiestaBoard#1657 fixed.
+   */
   heartCharacterAriaLabel: string;
   heartLabel: string;
   insertHeartTooltip: string;
+  degreeCharacterAriaLabel: string;
+  degreeLabel: string;
+  insertDegreeTooltip: string;
 }
 
 export const DEFAULT_COLOR_PICKER_LABELS: ColorPickerLabels = {
@@ -45,13 +55,32 @@ export const DEFAULT_COLOR_PICKER_LABELS: ColorPickerLabels = {
   colorOptionLabel: (colorName) => `${colorName} color`,
   heartCharacterAriaLabel: "Heart character",
   heartLabel: "heart",
-  insertHeartTooltip: "Insert heart character (Note only)",
+  // No longer "(Note only)": a 2026 Flagship can carry the heart flap too,
+  // and the parenthetical was the caption asserting the thing #1657 fixed.
+  insertHeartTooltip: "Insert heart character",
+  degreeCharacterAriaLabel: "Degree character",
+  degreeLabel: "degree",
+  insertDegreeTooltip: "Insert degree character",
 };
 
 export interface ColorPickerContentProps {
   /** Receives a template color token, e.g. `{{red}}` — or `°` for the Note heart. */
   onInsert: (colorValue: string) => void;
   deviceType?: DeviceType;
+  /**
+   * Which glyph the target board's character-code-62 flap draws.
+   *
+   * Resolved with {@link resolveCode62Glyph}: Note hardware only ever
+   * shipped the heart flap so this is ignored there, and an unset Flagship
+   * resolves to `"degree"` — the glyph every Flagship carried before the
+   * 2026 hardware change. A caller that has not been taught about the new
+   * flap therefore keeps rendering exactly as it did.
+   *
+   * This cannot be derived from `deviceType`. Since 2026 some Flagships ship
+   * a heart flap in that slot, so the glyph is a property of the individual
+   * board and only its owner knows (FiestaBoard#1657, #1664).
+   */
+  code62Glyph?: Code62Glyph;
   labels?: Partial<ColorPickerLabels>;
 }
 
@@ -86,13 +115,18 @@ const SWATCH_TEXT_OVERRIDE: Partial<Record<BoardColorName, string>> = {
 /** Columns in the swatch grid — arrow-key row movement has to match it. */
 const GRID_COLS = 4;
 
-export function ColorPickerContent({ onInsert, deviceType, labels }: ColorPickerContentProps) {
+export function ColorPickerContent({ onInsert, deviceType, code62Glyph, labels }: ColorPickerContentProps) {
   const l = { ...DEFAULT_COLOR_PICKER_LABELS, ...labels };
   // Only the Note substitutes the degree glyph for a heart, matching
   // `applyDeviceSubstitution` in lib/board-characters — a note_array is a grid
   // of Notes, but the renderer does not substitute for it, and a picker that
   // promised a heart the board would not draw is worse than no button.
-  const isNote = deviceType === "note";
+  // The code-62 button is offered for EVERY board, not only a Note. Gating
+  // it on `isNote` is the bug FiestaBoard#1657 fixed: a Flagship owner could
+  // not insert code 62 from the picker at all. What varies by board is the
+  // wording, never whether the affordance exists.
+  const glyph = resolveCode62Glyph(deviceType ?? "flagship", code62Glyph);
+  const isHeart = glyph === "heart";
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -151,7 +185,7 @@ export function ColorPickerContent({ onInsert, deviceType, labels }: ColorPicker
   return (
     <TooltipProvider>
       <Box
-        className={cn("p-2", !isNote && "pb-1")}
+        className={cn("p-2")}
         tabIndex={0}
         role="listbox"
         aria-label={l.colorPickerAriaLabel}
@@ -196,34 +230,41 @@ export function ColorPickerContent({ onInsert, deviceType, labels }: ColorPicker
             );
           })}
         </Grid>
-        {isNote && (
-          <Box className="mt-2 pt-2 border-t border-border" role="presentation">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => onInsert("°")} // Degree symbol (°) renders as heart (❤) on Note device (code 62)
-                  className={cn(
-                    "w-full h-10 rounded-md text-sm font-medium transition-all hover:scale-[1.02] hover:shadow-md",
-                    "flex items-center justify-center gap-1.5 focus:outline-none",
-                    "bg-board-red/10 text-board-red border border-board-red/20 hover:bg-board-red/20",
-                  )}
-                  aria-label={l.heartCharacterAriaLabel}
-                  role="option"
-                  aria-selected={false}
-                >
+        <Box className="mt-2 pt-2 border-t border-border" role="presentation">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                // Always the "°" character: BOTH glyphs encode to code 62 on
+                // the wire. Which one the flap draws is display-only, so the
+                // inserted token does not change with the wording.
+                onClick={() => onInsert("°")}
+                className={cn(
+                  "w-full h-10 rounded-md text-sm font-medium transition-all hover:scale-[1.02] hover:shadow-md",
+                  "flex items-center justify-center gap-1.5 focus:outline-none",
+                  isHeart
+                    ? "bg-board-red/10 text-board-red border border-board-red/20 hover:bg-board-red/20"
+                    : "bg-muted text-foreground border border-input hover:bg-accent",
+                )}
+                aria-label={isHeart ? l.heartCharacterAriaLabel : l.degreeCharacterAriaLabel}
+                role="option"
+                aria-selected={false}
+              >
+                {isHeart ? (
                   <Heart className="w-4 h-4 fill-current" />
-                  <Text as="span" weight="medium" className="text-board-red">
-                    {l.heartLabel}
-                  </Text>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <Text>{l.insertHeartTooltip}</Text>
-              </TooltipContent>
-            </Tooltip>
-          </Box>
-        )}
+                ) : (
+                  <Thermometer className="w-4 h-4" aria-hidden="true" />
+                )}
+                <Text as="span" weight="medium" className={isHeart ? "text-board-red" : undefined}>
+                  {isHeart ? l.heartLabel : l.degreeLabel}
+                </Text>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <Text>{isHeart ? l.insertHeartTooltip : l.insertDegreeTooltip}</Text>
+            </TooltipContent>
+          </Tooltip>
+        </Box>
       </Box>
     </TooltipProvider>
   );
