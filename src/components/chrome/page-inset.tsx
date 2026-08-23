@@ -8,6 +8,12 @@ interface PageInsetProps {
 }
 
 /**
+ * @deprecated Use `PageSection` inside a `PageCard`. This component exists to
+ * put bare body content on the content column of a route that has no card to
+ * explain that column — and the route is now the card, so the column explains
+ * itself and the section draws the divider too. Kept working for consumers
+ * mid-migration; removed no earlier than the next major.
+ *
  * THE CONTENT COLUMN, FOR BODY CONTENT THAT IS NOT A CARD. Wraps its children
  * in the same `px-6` that `PageHeader` and `PageToolbar` carry, so a tab strip,
  * a byline or a bare paragraph lands on the vertical the page title and every
