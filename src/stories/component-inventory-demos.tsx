@@ -72,6 +72,7 @@ import {
   NavListSectionTrigger,
 } from "../components/chrome/nav-list";
 import { PageHeader, PageIconGradientDefs } from "../components/chrome/page-header";
+import { PageInset } from "../components/chrome/page-inset";
 import { PageLayout } from "../components/chrome/page-layout";
 import { PageToolbar } from "../components/chrome/page-toolbar";
 import { SkipToContent } from "../components/chrome/skip-to-content";
@@ -1128,6 +1129,25 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
           </>
         }
       />
+    </Frame>
+  ),
+  // An inset is invisible on its own — it is a relationship, not a look. So
+  // this pairs it with a Card, which owns both columns at once: the card's
+  // BORDER is the gutter, its TITLE is the content column, and the strip above
+  // lands on the second rather than the first.
+  PageInset: () => (
+    <Frame className="max-w-2xl">
+      <PageInset>
+        <Flex gap="2" className="mb-3">
+          <Badge>Flagship</Badge>
+          <Badge variant="secondary">Note</Badge>
+        </Flex>
+      </PageInset>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Aligned with this title, not with this border</CardTitle>
+        </CardHeader>
+      </Card>
     </Frame>
   ),
   PageLayout: () => (

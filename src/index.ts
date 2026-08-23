@@ -64,6 +64,7 @@ export * from "./components/chrome/language-selector";
 export * from "./components/chrome/main-content";
 export * from "./components/chrome/nav-list";
 export * from "./components/chrome/page-header";
+export * from "./components/chrome/page-inset";
 export * from "./components/chrome/page-layout";
 export * from "./components/chrome/page-toolbar";
 export * from "./components/chrome/sidebar";

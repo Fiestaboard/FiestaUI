@@ -171,6 +171,10 @@ export const INVENTORY = [
       { name: "ThemeToggle", summary: "Light/dark switch; the app owns the theme state." },
       { name: "PageHeader", summary: "Page title, gradient-stroked icon, description and an action slot." },
       { name: "PageToolbar", summary: "Left/right toolbar row that sits under a PageHeader." },
+      {
+        name: "PageInset",
+        summary: "Puts bare body content — a tab strip, a caption — on the same column as the page title.",
+      },
       { name: "PageLayout", summary: "Page container — max width, responsive padding, optional viewport pinning." },
       { name: "SkipToContent", summary: "Keyboard-only skip link; visible on focus." },
       {
