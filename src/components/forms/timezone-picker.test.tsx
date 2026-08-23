@@ -1,4 +1,4 @@
-import { render, screen, waitForElementToBeRemoved, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type * as React from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -195,9 +195,12 @@ describe("TimezonePicker", () => {
     await user.keyboard("{ArrowDown}{Escape}");
 
     // Base UI unmounts the popup once its exit animations settle, so the list
-    // outlives the keypress by a tick. `waitForElementToBeRemoved` still fails
-    // if it never goes away -- it only tolerates the delay.
-    await waitForElementToBeRemoved(() => screen.queryByRole("listbox"));
+    // MAY outlive the keypress by a tick -- or may already be gone by the time
+    // we look. Assert the end state rather than the transition: this still
+    // fails if the list never goes away, but unlike
+    // `waitForElementToBeRemoved` it does not throw when the removal already
+    // happened. That race made this suite pass only on slow machines.
+    await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument());
 
     expect(input).toHaveAttribute("aria-expanded", "false");
     expect(onValueChange).not.toHaveBeenCalled();
@@ -223,7 +226,9 @@ describe("TimezonePicker", () => {
     // That is the primitive's behaviour, not something this wrapper chooses.
     await user.click(screen.getByTestId("outside"));
 
-    await waitForElementToBeRemoved(() => screen.queryByRole("listbox"));
+    // Same reason as the Escape case above: assert the end state, not the
+    // transition, so an already-completed removal is a pass and not a throw.
+    await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument());
 
     expect(screen.getByRole("combobox", { name: "Time zone" })).toHaveAttribute("aria-expanded", "false");
   });
