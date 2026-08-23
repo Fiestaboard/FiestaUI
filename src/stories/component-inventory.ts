@@ -82,6 +82,10 @@ export const INVENTORY = [
         name: "Combobox",
         summary: "Filterable option list — a text field over an aria-activedescendant listbox.",
       },
+      {
+        name: "CopyButton",
+        summary: "Writes a value to the clipboard and confirms it — awaited, announced, and self-cleaning.",
+      },
       { name: "Input", summary: "Single-line text input across the HTML input types." },
       { name: "Label", summary: "Form label wired to its control by htmlFor." },
       { name: "SecretInput", summary: "Password input with a reveal toggle." },

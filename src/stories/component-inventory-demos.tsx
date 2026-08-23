@@ -107,6 +107,7 @@ import { StatusDot } from "../components/feedback/status-dot";
 import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
+import { CopyButton } from "../components/forms/copy-button";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
 import { SecretInput } from "../components/forms/secret-input";
@@ -648,6 +649,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Stack>
   ),
   Slider: SliderDemo,
+  CopyButton: () => <CopyButton value="sk-live-2f8c91a4" labels={{ announcement: "API token copied" }} />,
   Swatch: () => (
     <SwatchGroup aria-label="Board colour" defaultValue="black">
       <Swatch value="black" color="var(--color-board-surface-dark)" label="Black" />
