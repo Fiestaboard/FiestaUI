@@ -75,7 +75,14 @@ export const PageCard = memo(function PageCard({ children, className, fillHeight
   );
 });
 
-interface PageSectionProps {
+/**
+ * Standard div props come along so a section can take an `id` (the settings
+ * screens deep-link to one), an `aria-*`, a `style`. `title` is omitted
+ * because the HTML attribute of that name is a string tooltip and this one is
+ * a heading node — leaving both in scope would let a typo silently render a
+ * browser tooltip instead of a heading.
+ */
+interface PageSectionProps extends Omit<React.ComponentProps<"div">, "title"> {
   children: React.ReactNode;
   /** Renders a `CardTitle` at the settings-card scale (#274). */
   title?: React.ReactNode;
@@ -104,6 +111,17 @@ interface PageSectionProps {
    */
   scrollLabel?: string;
   className?: string;
+  /**
+   * Classes for the CONTENT region, below the heading.
+   *
+   * This exists because the collapse costs something: `Card` split its
+   * heading and its body into two components a consumer could class
+   * separately, and `PageSection` is one node doing both. Nearly every
+   * settings section it replaces carries a `space-y-*` that belongs to the
+   * body alone — put on the root it would also space the heading away from
+   * the body, on top of the heading's own margin.
+   */
+  contentClassName?: string;
 }
 
 /**
@@ -131,6 +149,8 @@ export const PageSection = memo(function PageSection({
   fill,
   scrollLabel,
   className,
+  contentClassName,
+  ...rest
 }: PageSectionProps) {
   const hasHeading = title != null || description != null || action != null;
   // `fill` makes this div a scroll port, and a scroll port that contains no
@@ -142,7 +162,11 @@ export const PageSection = memo(function PageSection({
   // being an unlabelled one a screen reader announces as nothing.
   const label = scrollLabel ?? (typeof title === "string" ? title : undefined);
   return (
-    <div data-slot="page-section" className={cn(fill && "flex min-h-0 flex-1 flex-col overflow-hidden", className)}>
+    <div
+      data-slot="page-section"
+      className={cn(fill && "flex min-h-0 flex-1 flex-col overflow-hidden", className)}
+      {...rest}
+    >
       {hasHeading && (
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -158,7 +182,7 @@ export const PageSection = memo(function PageSection({
       )}
       {fill ? (
         <div
-          className="min-h-0 flex-1 overflow-auto"
+          className={cn("min-h-0 flex-1 overflow-auto", contentClassName)}
           tabIndex={0}
           // Only a NAMED region is worth announcing as one. Without a label
           // the role would add a landmark a screen reader reads as bare
@@ -168,6 +192,9 @@ export const PageSection = memo(function PageSection({
         >
           {children}
         </div>
+      ) : contentClassName ? (
+        // Only wrap when asked to — an unstyled section stays one node.
+        <div className={contentClassName}>{children}</div>
       ) : (
         children
       )}
