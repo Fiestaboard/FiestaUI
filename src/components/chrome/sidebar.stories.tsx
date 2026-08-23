@@ -254,7 +254,10 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       description: "Start collapsed to the icon rail — the edge chevron stays clickable either way.",
       control: "boolean",
     },
-    showAi: { description: "Show the AI assistant entry as the last row of the nav list.", control: "boolean" },
+    showAi: {
+      description: "Show the AI assistant entry as the last row of the nav list, above the account row.",
+      control: "boolean",
+    },
     aiActive: { description: "Highlight the AI assistant entry as the active route.", control: "boolean" },
     boardCount: {
       description: "How many boards the install has — a single board hides the selector, matching the app.",

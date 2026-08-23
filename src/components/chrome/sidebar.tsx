@@ -85,9 +85,10 @@ export interface SidebarNavItem {
   onPrefetch?: () => void;
 }
 
-// One shared empty array rather than a fresh `[]` per render: these feed
-// .map() in the render path of a memo'd component, and a new identity each
-// time is exactly what the hoisting above this line exists to avoid.
+// The "no items" stand-in. Shared rather than a fresh `[]` per render purely
+// to skip the allocation — nothing downstream cares about its identity (memo
+// compares INCOMING props, and `[].map()` reconciles the same either way), so
+// this is tidiness, not a render optimisation like the class hoisting above.
 const EMPTY_ITEMS: SidebarNavItem[] = [];
 
 export interface SidebarLinkProps {
@@ -160,10 +161,10 @@ export interface SidebarProps {
    * mini-menu, and every hairline it added shrank the space the list had
    * before it needed to scroll.
    *
-   * With `items` it is the last row. With the deprecated primary/secondary
-   * pair it sits at the seam between them — where it rendered when those
-   * were two separate lists — so consumers migrating on their own schedule
-   * see the merge, not a reshuffle.
+   * With `items` it is the last row before `renderAccount`. With the
+   * deprecated primary/secondary pair it sits at the seam between them —
+   * where it rendered when those were two separate lists — so consumers
+   * migrating on their own schedule see the merge, not a reshuffle.
    */
   ai?: { active: boolean; onOpen: () => void };
   /** Board switcher slots (rendered only when provided). */
@@ -203,12 +204,21 @@ export const Sidebar = memo(function Sidebar({
   sidebarInset,
 }: SidebarProps) {
   // The nav list, split only by where the AI row goes. `items` is the whole
-  // list (AI last, nothing after it); the deprecated pair renders
+  // list (AI last, then the account row); the deprecated pair renders
   // primary -> AI -> secondary, preserving the AI row's old position. Two
   // nullish coalesces and no allocation — `items={[]}` is honoured as an
   // explicitly empty list rather than falling through to `primaryItems`.
   const itemsBeforeAi = items ?? primaryItems ?? EMPTY_ITEMS;
   const itemsAfterAi = items ? EMPTY_ITEMS : (secondaryItems ?? EMPTY_ITEMS);
+
+  // `items` wins outright over the deprecated pair, and it has to: appending
+  // them instead would render every row twice — with duplicate React keys —
+  // for anyone who COPIED a list into `items` rather than moving it. But
+  // dropping them is silent, and all three props are optional, so a
+  // half-finished migration that moves `primaryItems` across and forgets
+  // `secondaryItems` loses help, settings and sign-out off the rail with a
+  // clean typecheck and a clean build. Say so out loud instead.
+  const ignoringDeprecatedItems = Boolean(items && (primaryItems || secondaryItems));
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [appInset, setAppInset] = useState(0);
@@ -217,6 +227,14 @@ export const Sidebar = memo(function Sidebar({
   // The element that opened the menu (the hamburger button), captured at open
   // so focus can be restored to it when the menu closes (issue #59).
   const menuTriggerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!ignoringDeprecatedItems) return;
+    console.warn(
+      "[Sidebar] `items` was passed alongside `primaryItems`/`secondaryItems`. " +
+        "The deprecated props are being IGNORED — fold their entries into `items`, which is one flat list.",
+    );
+  }, [ignoringDeprecatedItems]);
 
   // The mobile header wraps on narrow viewports, so its height is dynamic.
   // Publish it as --mobile-header-height for the mobile menu and

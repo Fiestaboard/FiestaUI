@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FileText, HelpCircle, Home, Settings } from "lucide-react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { Sidebar, type SidebarLabels, type SidebarNavItem, type SidebarProps } from "./sidebar";
 
@@ -99,8 +99,30 @@ describe("Sidebar nav structure", () => {
   });
 
   it("honours an explicitly empty list instead of falling back to the deprecated props", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     renderSidebar({ items: [], primaryItems: DESTINATIONS, secondaryItems: UTILITIES });
     expect(rowsOf(desktopNav())).toEqual([]);
+  });
+
+  it("warns rather than silently dropping deprecated props passed alongside items", () => {
+    // The failure this guards is a half-finished migration: `primaryItems`
+    // moved into `items`, `secondaryItems` left behind, help and settings
+    // gone from the rail with a clean build and no type error.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderSidebar({ secondaryItems: UTILITIES });
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toMatch(/IGNORED/);
+    // …and the warning describes what actually rendered.
+    expect(rowsOf(desktopNav())).toEqual(["Home", "Pages", "Help & Docs", "Settings"]);
+  });
+
+  it("stays quiet when only one prop shape is used", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { unmount } = renderSidebar();
+    unmount();
+    renderSidebar({ items: undefined, primaryItems: DESTINATIONS, secondaryItems: UTILITIES });
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("renders one nav in the mobile menu too", async () => {
