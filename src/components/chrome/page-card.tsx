@@ -79,6 +79,16 @@ interface PageSectionProps {
   children: React.ReactNode;
   /** Renders a `CardTitle` at the settings-card scale (#274). */
   title?: React.ReactNode;
+  /**
+   * Leading glyph for the title, forwarded to `CardTitle`'s icon slot — so it
+   * is decorative and never announced, the title's text being the name.
+   *
+   * Exists because the settings screens this component replaces had already
+   * converged on it: 24 of FiestaBoard's section headers spell out
+   * `flex items-center gap-2 text-base` with an `h-4 w-4` glyph by hand, which
+   * is the exact pattern #274 added the slot for.
+   */
+  icon?: React.ReactNode;
   /** Sits under the title, in `CardDescription`'s tone. */
   description?: React.ReactNode;
   /** Right-aligned slot on the title row — a section-level action. */
@@ -115,6 +125,7 @@ interface PageSectionProps {
 export const PageSection = memo(function PageSection({
   children,
   title,
+  icon,
   description,
   action,
   fill,
@@ -135,7 +146,11 @@ export const PageSection = memo(function PageSection({
       {hasHeading && (
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
-            {title != null && <CardTitle size="base">{title}</CardTitle>}
+            {title != null && (
+              <CardTitle size="base" icon={icon}>
+                {title}
+              </CardTitle>
+            )}
             {description != null && <CardDescription className="mt-1.5">{description}</CardDescription>}
           </div>
           {action}
