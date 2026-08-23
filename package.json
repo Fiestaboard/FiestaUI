@@ -1,6 +1,6 @@
 {
   "name": "@fiestaboard/ui",
-  "version": "5.7.0",
+  "version": "5.8.0",
   "description": "FiestaUI — the FiestaBoard design system. React components on Base UI with Tailwind v4 design tokens.",
   "license": "MIT",
   "repository": {
