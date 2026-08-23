@@ -85,6 +85,12 @@ export interface SidebarNavItem {
   onPrefetch?: () => void;
 }
 
+// The "no items" stand-in. Shared rather than a fresh `[]` per render purely
+// to skip the allocation — nothing downstream cares about its identity (memo
+// compares INCOMING props, and `[].map()` reconciles the same either way), so
+// this is tidiness, not a render optimisation like the class hoisting above.
+const EMPTY_ITEMS: SidebarNavItem[] = [];
+
 export interface SidebarLinkProps {
   href: string;
   className?: string;
@@ -98,7 +104,11 @@ export interface SidebarLinkProps {
 export interface SidebarLabels {
   mainNavigation: string;
   primaryNavigation: string;
-  secondaryNavigation: string;
+  /**
+   * @deprecated No longer rendered. The rail has one nav landmark, named by
+   * `primaryNavigation`; there is no second list left to label.
+   */
+  secondaryNavigation?: string;
   navigationMenu: string;
   openMenu: string;
   closeMenu: string;
@@ -110,8 +120,21 @@ export interface SidebarLabels {
 
 export interface SidebarProps {
   labels: SidebarLabels;
-  primaryItems: SidebarNavItem[];
-  secondaryItems: SidebarNavItem[];
+  /**
+   * The nav list, top to bottom — one flat array rendered into one <nav>.
+   * Order is entirely the app's: put help, settings and sign-out at the end
+   * of it like any other destination.
+   */
+  items?: SidebarNavItem[];
+  /**
+   * @deprecated Use `items`. Renders as the head of the single nav list.
+   */
+  primaryItems?: SidebarNavItem[];
+  /**
+   * @deprecated Use `items`. Renders after `primaryItems` (and after the AI
+   * row, which keeps its old position at the seam) in the same single list.
+   */
+  secondaryItems?: SidebarNavItem[];
   /**
    * Renders internal navigation links — inject your router's Link here
    * (FiestaBoard passes its ViewTransitionLink). External items render a
@@ -131,18 +154,23 @@ export interface SidebarProps {
   /** Click handler for the logo. When present, the lockup renders as a button. */
   onLogoClick?: (e: React.MouseEvent) => void;
   /**
-   * AI assistant nav entry; omit to hide. Renders as the LAST ROW of the main
-   * nav list — visually identical to the items around it, scrolling with
-   * them. It used to be its own one-row section between two hairlines below
-   * the list; a single entry fenced off by dividers read as a stranded
+   * AI assistant nav entry; omit to hide. Renders as a row of the one nav
+   * list — visually identical to the items around it, scrolling with them.
+   * It used to be its own one-row section between two hairlines below the
+   * list; a single entry fenced off by dividers read as a stranded
    * mini-menu, and every hairline it added shrank the space the list had
    * before it needed to scroll.
+   *
+   * With `items` it is the last row before `renderAccount`. With the
+   * deprecated primary/secondary pair it sits at the seam between them —
+   * where it rendered when those were two separate lists — so consumers
+   * migrating on their own schedule see the merge, not a reshuffle.
    */
   ai?: { active: boolean; onOpen: () => void };
   /** Board switcher slots (rendered only when provided). */
   boardSelector?: React.ReactNode;
   mobileBoardSelector?: React.ReactNode;
-  /** Account row inside the secondary nav. */
+  /** Account row; renders as the last row of the nav list, scrolling with it. */
   renderAccount?: (ctx: { variant: "mobile" | "desktop"; collapsed: boolean }) => React.ReactNode;
   /** Version indicator in the footer row. */
   versionSlot?: React.ReactNode;
@@ -156,6 +184,7 @@ export interface SidebarProps {
 
 export const Sidebar = memo(function Sidebar({
   labels,
+  items,
   primaryItems,
   secondaryItems,
   renderLink,
@@ -174,6 +203,23 @@ export const Sidebar = memo(function Sidebar({
   maxWidth,
   sidebarInset,
 }: SidebarProps) {
+  // The nav list, split only by where the AI row goes. `items` is the whole
+  // list (AI last, then the account row); the deprecated pair renders
+  // primary -> AI -> secondary, preserving the AI row's old position. Two
+  // nullish coalesces and no allocation — `items={[]}` is honoured as an
+  // explicitly empty list rather than falling through to `primaryItems`.
+  const itemsBeforeAi = items ?? primaryItems ?? EMPTY_ITEMS;
+  const itemsAfterAi = items ? EMPTY_ITEMS : (secondaryItems ?? EMPTY_ITEMS);
+
+  // `items` wins outright over the deprecated pair, and it has to: appending
+  // them instead would render every row twice — with duplicate React keys —
+  // for anyone who COPIED a list into `items` rather than moving it. But
+  // dropping them is silent, and all three props are optional, so a
+  // half-finished migration that moves `primaryItems` across and forgets
+  // `secondaryItems` loses help, settings and sign-out off the rail with a
+  // clean typecheck and a clean build. Say so out loud instead.
+  const ignoringDeprecatedItems = Boolean(items && (primaryItems || secondaryItems));
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [appInset, setAppInset] = useState(0);
   const headerRef = useRef<HTMLElement>(null);
@@ -181,6 +227,14 @@ export const Sidebar = memo(function Sidebar({
   // The element that opened the menu (the hamburger button), captured at open
   // so focus can be restored to it when the menu closes (issue #59).
   const menuTriggerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!ignoringDeprecatedItems) return;
+    console.warn(
+      "[Sidebar] `items` was passed alongside `primaryItems`/`secondaryItems`. " +
+        "The deprecated props are being IGNORED — fold their entries into `items`, which is one flat list.",
+    );
+  }, [ignoringDeprecatedItems]);
 
   // The mobile header wraps on narrow viewports, so its height is dynamic.
   // Publish it as --mobile-header-height for the mobile menu and
@@ -495,8 +549,12 @@ export const Sidebar = memo(function Sidebar({
         onKeyDown={handleMobileMenuKeyDown}
         style={mobileMenuOpen ? MOBILE_MENU_STYLE_OPEN : MOBILE_MENU_STYLE_CLOSED}
       >
+        {/* One list and one hairline, mirroring the desktop rail: every
+            destination — help, settings, the AI row, the account row —
+            scrolls together in this nav, and the only thing pinned below it
+            is the version/theme footer. */}
         <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {primaryItems.map(renderMobileNavItem)}
+          {itemsBeforeAi.map(renderMobileNavItem)}
           {ai && (
             <button
               type="button"
@@ -510,17 +568,17 @@ export const Sidebar = memo(function Sidebar({
               {labels.aiAssistant}
             </button>
           )}
+          {itemsAfterAi.map(renderMobileNavItem)}
+          {renderAccount?.({ variant: "mobile", collapsed: false })}
         </nav>
         <div className="shrink-0 border-t border-sidebar-border mx-3" />
-        <div className="shrink-0 px-3 py-3 text-sidebar-foreground">
-          <nav aria-label={labels.secondaryNavigation} className="space-y-1">
-            {secondaryItems.map(renderMobileNavItem)}
-            {renderAccount?.({ variant: "mobile", collapsed: false })}
-          </nav>
-          <div className="mt-2 flex items-center justify-between gap-2 border-t border-sidebar-border/80 px-4 pt-3">
-            {versionSlot}
-            {themeToggleSlot}
-          </div>
+        {/* px-7 = the nav's px-3 plus a row's own px-4, putting the version
+            on the rows' content line — the same x as every icon above it,
+            which is exactly where it sat when a nested block supplied the
+            two paddings separately. */}
+        <div className="shrink-0 flex items-center justify-between gap-2 px-7 py-3 text-sidebar-foreground">
+          {versionSlot}
+          {themeToggleSlot}
         </div>
       </div>
 
@@ -564,14 +622,20 @@ export const Sidebar = memo(function Sidebar({
             <TooltipContent side="right">{collapsed ? labels.expandSidebar : labels.collapseSidebar}</TooltipContent>
           </Tooltip>
 
-          {/* Two regions, one hairline each — not five divider-fenced sections.
-              TOP is pinned context (logo, board switcher), then ONE nav list
-              that owns all remaining height and scrolls inside itself when it
-              outgrows it; BOTTOM is pinned meta (secondary links, account,
-              version/theme). The AI row lives inside the list like any other
-              destination — it used to sit alone between two extra hairlines
-              below the list, a one-item "section" that stole two rows of
-              height from the very list that had to scroll around it. */}
+          {/* ONE list. TOP is pinned context (logo, board switcher); then a
+              single nav that owns all remaining height and scrolls inside
+              itself; BOTTOM is the version/theme footer and nothing else.
+
+              This was two nav landmarks fenced by three hairlines — a
+              "primary" list, then a "secondary" one holding help, settings
+              and the account row. The split asked the reader to learn a
+              distinction that was never real: both halves were the same rows
+              in the same vocabulary, differing only in how far down the rail
+              they had drifted. It cost two props and two aria labels to
+              express one menu, and each hairline stole height from the one
+              list that actually had to scroll. Now help, settings, the AI row
+              and the account row are just the last destinations in the list,
+              and the app orders them via `items`. */}
           <div className="relative z-[1] flex h-full flex-col overflow-hidden">
             {/* Header — logo and the board context switcher are one pinned
                 block: the switcher scopes every destination below it, so it
@@ -585,7 +649,7 @@ export const Sidebar = memo(function Sidebar({
                 don't use; min-h-0 lets it actually shrink so overflow-y
                 scrolls the LIST, never the sidebar. */}
             <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto py-4 px-2">
-              {primaryItems.map(renderDesktopNavItem)}
+              {itemsBeforeAi.map(renderDesktopNavItem)}
               {ai &&
                 (collapsed ? (
                   <Tooltip>
@@ -616,20 +680,20 @@ export const Sidebar = memo(function Sidebar({
                     <span className={NAV_LABEL_EXPANDED}>{labels.aiAssistant}</span>
                   </button>
                 ))}
+              {itemsAfterAi.map(renderDesktopNavItem)}
+              {renderAccount?.({ variant: "desktop", collapsed })}
             </nav>
 
             <div className="mx-2 border-t border-sidebar-border" />
 
             <div className="shrink-0 px-2 pt-2 pb-3">
-              <nav aria-label={labels.secondaryNavigation} className="space-y-1">
-                {secondaryItems.map(renderDesktopNavItem)}
-                {renderAccount?.({ variant: "desktop", collapsed })}
-              </nav>
               {/* Footer: expanded = version | toggle side by side; collapsed =
-                  toggle stacked over a centered version on the rail line. */}
+                  toggle stacked over a centered version on the rail line. The
+                  hairline above is the block's own separator now, so this row
+                  no longer draws a second one of its own. */}
               <div
                 className={cn(
-                  "mt-2 border-t border-sidebar-border/80 py-2",
+                  "py-2",
                   collapsed
                     ? "flex flex-col items-center gap-1"
                     : "flex items-center justify-between gap-2 pl-[14px] pr-3",

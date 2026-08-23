@@ -20,7 +20,6 @@ import { ThemeToggle } from "./theme-toggle";
 const LABELS = {
   mainNavigation: "Main navigation",
   primaryNavigation: "Primary navigation",
-  secondaryNavigation: "Secondary navigation",
   navigationMenu: "Navigation menu",
   openMenu: "Open menu",
   closeMenu: "Close menu",
@@ -30,7 +29,13 @@ const LABELS = {
   logoButtonAriaLabel: "FiestaBoard home",
 };
 
-const PRIMARY: SidebarNavItem[] = [
+/*
+ * The sidebar takes ONE list. These two arrays are the *app's* grouping, not
+ * the component's — they exist so the stories can compose orderings
+ * readably (and so OverflowingNav can wedge filler between them). Nothing
+ * about the rendered rail distinguishes a DESTINATION from a UTILITY.
+ */
+const DESTINATIONS: SidebarNavItem[] = [
   { key: "home", href: "#", icon: Home, label: "Home", active: true },
   { key: "pages", href: "#pages", icon: FileText, label: "Pages" },
   { key: "collections", href: "#collections", icon: GalleryHorizontalEnd, label: "Collections" },
@@ -38,7 +43,7 @@ const PRIMARY: SidebarNavItem[] = [
   { key: "integrations", href: "#integrations", icon: Puzzle, label: "Integrations" },
 ];
 
-const SECONDARY: SidebarNavItem[] = [
+const UTILITIES: SidebarNavItem[] = [
   {
     key: "helpDocs",
     href: "https://fiestaboard.app/docs/intro",
@@ -48,6 +53,8 @@ const SECONDARY: SidebarNavItem[] = [
   },
   { key: "settings", href: "#settings", icon: Settings, label: "Settings" },
 ];
+
+const NAV_ITEMS: SidebarNavItem[] = [...DESTINATIONS, ...UTILITIES];
 
 const BOARD_NAMES = ["Living Room", "Kitchen", "Office", "Workshop", "Guest Room"];
 
@@ -60,7 +67,7 @@ function makeBoards(count: number) {
 
 const renderLink: SidebarProps["renderLink"] = ({ children, ...props }) => <a {...props}>{children}</a>;
 
-/** Placeholder account row styled like a nav item (the app injects its real account menu here). */
+/** Placeholder account row styled like a nav item — the last row of the list (the app injects its real account menu here). */
 function AccountRow({ collapsed }: { collapsed: boolean }) {
   return (
     <div className="flex items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium text-sidebar-foreground">
@@ -91,8 +98,7 @@ function DemoSidebar({
   return (
     <Sidebar
       labels={LABELS}
-      primaryItems={PRIMARY}
-      secondaryItems={SECONDARY}
+      items={NAV_ITEMS}
       renderLink={renderLink}
       collapsed={collapsed}
       onToggleCollapsed={() => setCollapsed(!collapsed)}
@@ -154,8 +160,10 @@ function PlaygroundSidebar(args: PlaygroundArgs) {
 
   const boards = makeBoards(args.boardCount);
 
-  const primary: SidebarNavItem[] = [
-    ...PRIMARY.map((item) => ({ ...item, active: item.key === args.activeItem })),
+  const withActive = (item: SidebarNavItem) => ({ ...item, active: item.key === args.activeItem });
+  // One array, composed in the order the app wants it read.
+  const items: SidebarNavItem[] = [
+    ...DESTINATIONS.map(withActive),
     ...(args.showTransitionsLab
       ? [
           {
@@ -167,14 +175,13 @@ function PlaygroundSidebar(args: PlaygroundArgs) {
           },
         ]
       : []),
+    ...UTILITIES.map(withActive),
   ];
-  const secondary = SECONDARY.map((item) => ({ ...item, active: item.key === args.activeItem }));
 
   return (
     <Sidebar
       labels={LABELS}
-      primaryItems={primary}
-      secondaryItems={secondary}
+      items={items}
       renderLink={renderLink}
       collapsed={collapsed}
       onToggleCollapsed={() => setCollapsed(!collapsed)}
@@ -247,13 +254,19 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       description: "Start collapsed to the icon rail — the edge chevron stays clickable either way.",
       control: "boolean",
     },
-    showAi: { description: "Show the AI assistant entry as the last row of the nav list.", control: "boolean" },
+    showAi: {
+      description: "Show the AI assistant entry as the last row of the nav list, above the account row.",
+      control: "boolean",
+    },
     aiActive: { description: "Highlight the AI assistant entry as the active route.", control: "boolean" },
     boardCount: {
       description: "How many boards the install has — a single board hides the selector, matching the app.",
       control: { type: "range", min: 1, max: 5, step: 1 },
     },
-    showAccount: { description: "Render a placeholder account row in the secondary nav slot.", control: "boolean" },
+    showAccount: {
+      description: "Render a placeholder account row as the last row of the nav list.",
+      control: "boolean",
+    },
     versionText: { description: "Version indicator text in the footer row.", control: "text" },
     activeItem: {
       description: "Which nav item renders in the active-route state.",
@@ -308,23 +321,25 @@ export const WithAccount: Story = {
 };
 
 /**
- * When the nav outgrows the rail, the LIST scrolls inside itself — the
- * header (logo + board switcher) and the bottom block (secondary links,
- * version/theme) stay pinned, and the AI row scrolls with the list it
- * belongs to. Twelve extra destinations guarantee overflow at the VRT
+ * When the nav outgrows the rail, the LIST scrolls inside itself — only the
+ * header (logo + board switcher) and the version/theme footer stay pinned.
+ * Everything else scrolls together, help and settings included: with one
+ * list there is no bottom block for them to hide in, which is the trade the
+ * flat rail makes. Twelve extra destinations guarantee overflow at the VRT
  * viewport heights (800px desktop, 844px mobile).
  */
 export const OverflowingNav: Story = {
   render: () => (
     <DemoSidebar
-      primaryItems={[
-        ...PRIMARY,
+      items={[
+        ...DESTINATIONS,
         ...Array.from({ length: 12 }, (_, i) => ({
           key: `extra-${i + 1}`,
           href: `#extra-${i + 1}`,
           icon: FileText,
           label: `Destination ${i + 1}`,
         })),
+        ...UTILITIES,
       ]}
       ai={{ active: false, onOpen: () => {} }}
     />
