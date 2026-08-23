@@ -240,7 +240,10 @@ export const INVENTORY = [
       { name: "TemplateEditorToolbar", summary: "The editor's toolbar, usable standalone above your own instance." },
       { name: "ToolbarDropdown", summary: "The popover shell the toolbar's pickers are mounted in." },
       { name: "VariablePickerContent", summary: "Plugin variables, grouped by plugin with previews." },
-      { name: "ColorPickerContent", summary: "The board's eight hardware tile colours." },
+      {
+        name: "ColorPickerContent",
+        summary: "The board's eight hardware tile colours, plus the code-62 flap character.",
+      },
       { name: "FormattingPickerContent", summary: "Layout tokens — centre, fill space." },
       { name: "FilterPickerContent", summary: "Filters applied to the selected variable node." },
       { name: "DrawCharPickerContent", summary: "Brush picker for draw mode — colours, characters and the eraser." },
