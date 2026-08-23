@@ -279,3 +279,110 @@ describe("Swatch", () => {
     expect(screen.getByRole("button", { name: "White" })).toHaveFocus();
   });
 });
+
+/*
+ * Glyph swatches (#261). The two hand-rolled code-62 pickers this replaces
+ * render `[{ value: "degree", glyph: "°" }, { value: "heart", glyph: "♥" }]`
+ * as raw `<button aria-pressed>` circles — two independent toggles standing
+ * in for one choice of two, with selection carried by border colour alone.
+ * So what matters here is that a glyph swatch is the SAME control as a
+ * colour one, not a lookalike: one radiogroup, one tab stop, a name that
+ * comes from `label` rather than from the character, and a check that
+ * survives.
+ */
+function Code62Picker(props: { defaultValue?: string; onValueChange?: (value: string) => void }) {
+  return (
+    <SwatchGroup size="sm" aria-label="Code 62 flap" {...props}>
+      <Swatch value="degree" label="Degrees">
+        °
+      </Swatch>
+      <Swatch value="heart" label="Heart">
+        ♥
+      </Swatch>
+    </SwatchGroup>
+  );
+}
+
+describe("Swatch with a glyph", () => {
+  it("is a radiogroup of radios, like every other swatch group", () => {
+    render(<Code62Picker defaultValue="degree" />);
+
+    const group = screen.getByRole("radiogroup", { name: "Code 62 flap" });
+    expect(within(group).getAllByRole("radio")).toHaveLength(2);
+  });
+
+  it("takes its name from `label`, never from the character", () => {
+    render(<Code62Picker defaultValue="degree" />);
+
+    // "°" announces as "degree sign"; the localized name is the contract.
+    expect(screen.getByRole("radio", { name: "Degrees" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Heart" })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "°" })).toBeNull();
+  });
+
+  it("renders the character inside the fill", () => {
+    render(<Code62Picker defaultValue="degree" />);
+
+    const glyphs = document.querySelectorAll('[data-slot="swatch-glyph"]');
+    expect(Array.from(glyphs).map((g) => g.textContent)).toEqual(["°", "♥"]);
+  });
+
+  it("does not let the character into the accessible name", () => {
+    render(<Code62Picker defaultValue="degree" />);
+
+    // `aria-label` on the button is what wins name computation here — it
+    // outranks contents — so the name holds even before the fill's
+    // aria-hidden is considered. That the fill is ALSO hidden is asserted
+    // by "defaults to md and stamps the family's data-slots" above, which
+    // is what actually fails if it is removed.
+    expect(screen.getByRole("radio", { name: "Degrees" })).toHaveAccessibleName("Degrees");
+  });
+
+  it("keeps the check disc, so selection is not carried by the ring alone", () => {
+    render(<Code62Picker defaultValue="heart" />);
+
+    // Dropping the disc for glyph swatches would reintroduce the SC 1.4.1
+    // defect these pickers have today.
+    const selected = screen.getByRole("radio", { name: "Heart" });
+    expect(selected).toHaveAttribute("aria-checked", "true");
+    expect(selected.querySelector('[data-slot="swatch-indicator"]')).not.toBeNull();
+  });
+
+  it("selects with the arrow keys through one tab stop", async () => {
+    const onValueChange = vi.fn();
+    const user = userEvent.setup();
+    render(<Code62Picker defaultValue="degree" onValueChange={onValueChange} />);
+
+    await user.tab();
+    expect(screen.getByRole("radio", { name: "Degrees" })).toHaveFocus();
+
+    await user.keyboard("{ArrowRight}");
+
+    expect(onValueChange).toHaveBeenCalledWith("heart");
+    expect(screen.getByRole("radio", { name: "Heart" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("lets a swatch carry both a colour and a glyph", () => {
+    render(
+      <SwatchGroup aria-label="Ground" defaultValue="dark">
+        <Swatch value="dark" color="#0d0d0d" label="Dark board">
+          ♥
+        </Swatch>
+      </SwatchGroup>,
+    );
+
+    const fill = document.querySelector('[data-slot="swatch-fill"]') as HTMLElement;
+    expect(fill.style.backgroundColor).not.toBe("");
+    expect(document.querySelector('[data-slot="swatch-glyph"]')?.textContent).toBe("♥");
+  });
+
+  it("renders no glyph element for a plain colour swatch", () => {
+    render(
+      <SwatchGroup aria-label="Board colour" defaultValue="black">
+        <Swatch value="black" color="#0d0d0d" label="Black" />
+      </SwatchGroup>,
+    );
+
+    expect(document.querySelector('[data-slot="swatch-glyph"]')).toBeNull();
+  });
+});
