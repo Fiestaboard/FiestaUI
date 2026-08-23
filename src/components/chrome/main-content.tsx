@@ -88,7 +88,12 @@ export const MainContent = memo(function MainContent({
         "min-h-dvh flex flex-col w-full mx-auto",
         !isAuthScreen && "pt-[calc(var(--mobile-header-height,56px)+16px)] lg:pt-0 content-root",
         !isAuthScreen && (collapsed ? "lg:pl-[76px]" : "lg:pl-[268px]"),
-        !isAuthScreen && (aiPanelOpen ? "lg:pr-[384px]" : "lg:pr-0"),
+        // 396 = the 384-wide AI panel plus the 12px inset it sits on, mirroring
+        // lg:pl-[268px] on the left (12px inset + a 256-wide rail). It was 384
+        // while the panel ran edge-to-edge; once the panel is inset like the
+        // rail, reserving only its width leaves the page card 12px short of
+        // the gutter on the right and flush against it on the left.
+        !isAuthScreen && (aiPanelOpen ? "lg:pr-[396px]" : "lg:pr-0"),
       )}
       style={{ maxWidth: isAuthScreen ? undefined : maxWidth }}
     >

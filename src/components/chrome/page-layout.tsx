@@ -33,15 +33,21 @@ export const PageLayout = memo(function PageLayout({
     >
       <div
         className={cn(
-          // lg:py-7, not lg:py-3. The old value aligned the top of the page
-          // content with the top EDGE of the inset sidebar rail — a real
-          // alignment, but to the wrong landmark, and it made desktop the
-          // tightest breakpoint in the ramp (12px, against 32px at md).
-          // It only read as acceptable while PageHeader drew a card whose own
-          // py-4 supplied the missing inset. With the header now bare type,
-          // 28px puts the page title on the same optical line as the wordmark
-          // in the rail beside it, which is the landmark a reader actually
-          // sees.
+          // lg:py-3, matching the rail's own `lg:top-3`/`lg:bottom-3`. This
+          // was 28px for exactly one release, chosen to put the page TITLE on
+          // the same optical line as the wordmark beside it — the best
+          // available landmark back when a route began with bare type and
+          // there was no edge on the page side to align to.
+          // `PageCard` gave the route an edge. A reader now sees two adjacent
+          // surfaces, the rail and the card, and their top borders are the
+          // landmark; 28 against the rail's 12 read as a 16px slip no amount
+          // of optical reasoning about the title could excuse. The title sits
+          // lower than the wordmark now because the card's own py-6 puts it
+          // there, which is the card's rhythm and not this element's business.
+          // Vertical only. The horizontal gutter below is unaffected: the
+          // rail is 12 + 256 wide and MainContent's lg:pl-[268px] lands the
+          // card's left border 24 inboard of it, which is the gap this px
+          // ramp is sized for.
           // px-4 at base, not px-3. This is now the gutter for the CARDS —
           // PageHeader carries its own px-6 so its type lands on the card's
           // content column rather than on this edge. 12px put a card's border
@@ -50,7 +56,7 @@ export const PageLayout = memo(function PageLayout({
           // beyond), so the content block read as outdented against the only
           // landmarks above it; 16px brings it into line. md+ steps to 24 for
           // the wider breathing room desktop can afford.
-          "container mx-auto px-4 md:px-6 py-4 sm:py-6 md:py-8 lg:py-7 max-w-full",
+          "container mx-auto px-4 md:px-6 py-4 sm:py-6 md:py-8 lg:py-3 max-w-full",
           // When pinned to the viewport (e.g. calendar mode), the inner content
           // owns the scrolling — trim mobile vertical padding so the child gets
           // back the pixels normally reserved for page breathing room.
