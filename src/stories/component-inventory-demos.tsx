@@ -110,6 +110,7 @@ import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
+import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
 import { SecretInput } from "../components/forms/secret-input";
@@ -588,6 +589,23 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         <Checkbox id="inv-check-3" disabled />
         <Label htmlFor="inv-check-3">Disabled</Label>
       </Flex>
+    </Stack>
+  ),
+  Field: () => (
+    <Stack gap="4" className="w-full max-w-[320px]">
+      {/* Ids are explicit and `inv-` prefixed like every other demo on this
+          page; Field would otherwise generate its own with useId(). */}
+      <Field id="inv-field-name" label="Board name" description="Shown in the device list." required>
+        <Input placeholder="Kitchen" />
+      </Field>
+      <Field
+        id="inv-field-interval"
+        label="Refresh interval"
+        description="Seconds between board updates."
+        error="Must be at least 10 seconds."
+      >
+        <Input type="number" defaultValue={5} />
+      </Field>
     </Stack>
   ),
   Input: () => (

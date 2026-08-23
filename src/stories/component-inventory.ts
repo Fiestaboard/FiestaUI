@@ -86,6 +86,10 @@ export const INVENTORY = [
         name: "CopyButton",
         summary: "Writes a value to the clipboard and confirms it — awaited, announced, and self-cleaning.",
       },
+      {
+        name: "Field",
+        summary: "Label, control, description and error — wired to each other, not just stacked.",
+      },
       { name: "Input", summary: "Single-line text input across the HTML input types." },
       { name: "Label", summary: "Form label wired to its control by htmlFor." },
       { name: "SecretInput", summary: "Password input with a reveal toggle." },
