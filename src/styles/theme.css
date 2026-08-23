@@ -638,18 +638,28 @@
   --nav-active: var(--foreground);
   --nav-active-foreground: var(--background);
   /* Surface-relative, not a white literal (#228). The old `oklch(1 0 0 / 14%)`
-     was tuned by eye on the DARK rail (3.16:1 there) and was invisible
+     was tuned by eye on the DARK rail (1.55:1 there) and was invisible
      everywhere else: 1.03:1 on the light rail, and 1.015:1 when the class
      reached the docs site's page surface in 4.0.0 — that site now hand-mixes
      its own hover to survive us. Mixing the LOCAL foreground instead makes the
      tint an emphasis of whatever ink the row already carries, so it
-     self-adapts to any surface: 3.36:1 on a dark page, 1.15:1 on a light one.
+     self-adapts to any surface: 1.39:1 on a dark page, 1.35:1 on a light one.
+     Those two figures were previously stated as 3.36 and 1.15, computed with
+     a LINEAR-space alpha composite. Browsers composite in gamma space, and so
+     does this package's own gate (theme-contrast.test.mjs `composite`), which
+     is why the numbers disagreed with the thing they described. See
+     the nav block in theme-contrast.test.mjs, which now pins all four.
      Custom properties substitute var() on the element they are DECLARED on,
      so this :root value is resolved against the PAGE ink before it ever
      inherits onto the rail — which is why .sidebar-gradient re-declares the
-     token from --sidebar-foreground (3.07:1 dark rail, within 0.1 of the
-     literal it replaces; 1.15:1 on the light rail, where hover previously
-     did not paint at all). */
+     token from --sidebar-foreground (1.53:1 dark rail, 1.35:1 light rail,
+     where hover previously did not paint at all).
+
+     Note which numbers moved when the method was corrected: only the ones on
+     DARK surfaces. Gamma and linear compositing converge when ink and ground
+     are close in luminance (the light rail reads 1.030 vs 1.032) and diverge
+     when they are far apart — so the linear method overstated exactly the
+     figures that were being used to argue the tint was strong enough. */
   --nav-active-hover: color-mix(in oklch, var(--foreground) 14%, transparent);
   /* Fiesta gradient palette — three board hues at ONE lightness (0.46),
      identical in both themes. Because that surface never changes luminance
@@ -1299,9 +1309,12 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   /* Re-declared, not inherited (#228): the :root value already resolved its
      var(--foreground) against the PAGE ink before inheriting here — rebinding
      --foreground above cannot reach inside an inherited color-mix. From the
-     rail ink: 3.07:1 on the dark rail (the white literal it replaces was
-     3.16:1) and 1.15:1 on the light rail, where the white-on-near-white
-     literal measured 1.03:1 — a hover that never painted. */
+     rail ink: 1.53:1 on the dark rail and 1.35:1 on the light rail, where the
+     white-on-near-white literal did not paint at all. (Both were previously
+     stated from a linear composite, as 3.07 and 1.15; the "within 0.1 of the
+     literal it replaces" argument that used to sit here was comparing two
+     numbers that were each measured the wrong way, so it has been dropped
+     rather than restated.) */
   --nav-active-hover: color-mix(in oklch, var(--sidebar-foreground) 14%, transparent);
 }
 
