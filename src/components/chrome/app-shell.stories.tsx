@@ -7,6 +7,7 @@ import { Badge } from "../feedback/badge";
 import { Button } from "../forms/button";
 import { BoardSelector } from "./board-selector";
 import { MainContent } from "./main-content";
+import { PageCard, PageSection } from "./page-card";
 import { PAGE_HUES, PageHeader } from "./page-header";
 import { PageLayout } from "./page-layout";
 import { PageToolbar } from "./page-toolbar";
@@ -80,37 +81,48 @@ function AppShellDemo({ initialCollapsed = false }: { initialCollapsed?: boolean
         }
       />
       <MainContent collapsed={collapsed} maxWidth={1680}>
+        {/* The route is a PageCard, because that is the shape that ships. This
+            story rendered the pre-card stack — bare header, bare toolbar,
+            free-floating cards — for one release after PageCard landed, and
+            that gap is why nothing here caught the rail and the card
+            disagreeing about where the top of the page is. The whole point of
+            an AppShell story is to put the rail and the route side by side;
+            it can only do that if the route is built the way routes are. */}
         <PageLayout>
-          {/* hue is ASSIGNED from nav order, not hashed: Home is the first
-              primary route, so it takes the first of the six board hues and
-              every other route takes the next. See PageHeader/EveryPage for
-              what a hash does with six routes instead. */}
-          <PageHeader icon={Home} title="Home" description="Your board at a glance." hue={PAGE_HUES[0]} />
-          {/* The count is `secondary`, not the default brand fill. A metadata
-              badge and the page's primary action are not peers, and rendering
-              both in the one brand pigment put two saturated orange objects at
-              opposite ends of an otherwise empty row with no hierarchy between
-              them. */}
-          <PageToolbar
-            left={<Badge variant="secondary">2 boards</Badge>}
-            right={<Button variant="brand">New page</Button>}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Active page</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Morning briefing — showing until 9:00.
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Up next</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">Transit times at 9:00.</CardContent>
-            </Card>
-          </div>
+          <PageCard>
+            {/* hue is ASSIGNED from nav order, not hashed: Home is the first
+                primary route, so it takes the first of the six board hues and
+                every other route takes the next. See PageHeader/EveryPage for
+                what a hash does with six routes instead. */}
+            <PageHeader icon={Home} title="Home" description="Your board at a glance." hue={PAGE_HUES[0]} />
+            {/* The count is `secondary`, not the default brand fill. A metadata
+                badge and the page's primary action are not peers, and rendering
+                both in the one brand pigment put two saturated orange objects at
+                opposite ends of an otherwise empty row with no hierarchy between
+                them. */}
+            <PageToolbar
+              left={<Badge variant="secondary">2 boards</Badge>}
+              right={<Button variant="brand">New page</Button>}
+            />
+            {/* Tiles keep their borders inside the card — a tile's border is
+                its click target. See PageCard's note on what flattens. */}
+            <PageSection contentClassName="grid gap-4 sm:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active page</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Morning briefing — showing until 9:00.
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Up next</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">Transit times at 9:00.</CardContent>
+              </Card>
+            </PageSection>
+          </PageCard>
         </PageLayout>
       </MainContent>
     </div>
