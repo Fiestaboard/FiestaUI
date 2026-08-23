@@ -140,6 +140,16 @@ const eslintConfig = [
     rules: { "jsx-a11y/anchor-has-content": "off" },
   },
   {
+    // ActionCard's `asChild` form takes the caller's element and REPLACES its
+    // children with the card's own content (medallion, title, description), so
+    // the documented call shape is a deliberately empty `<a href="…" />`. The
+    // rule reads the literal JSX and cannot see the content injected at render
+    // time; action-card.test.tsx asserts the rendered anchor really is named
+    // and really is announced as a link.
+    files: ["src/components/containment/action-card.stories.tsx", "src/components/containment/action-card.test.tsx"],
+    rules: { "jsx-a11y/anchor-has-content": "off" },
+  },
+  {
     // scripts/ holds CLI tools whose job is to write to stdout — the CI
     // classifier and release gate emit `key=value` lines for $GITHUB_OUTPUT.
     // Routing that through console.error would put it in the log instead of

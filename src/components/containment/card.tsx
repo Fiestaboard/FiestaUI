@@ -2,12 +2,37 @@ import * as React from "react";
 
 import { cn } from "../../lib/utils";
 
+/**
+ * The Card SURFACE, with none of Card's layout: ground, ink, radius,
+ * boundary, elevation. Nothing about how the contents stack.
+ *
+ * It is split out and exported because a card whose whole surface is
+ * pressable is a different ELEMENT (`<button>`, `<a>`) with the same skin,
+ * and the two must be indistinguishable when they sit side by side. Both
+ * FiestaBoard sites that hand-rolled a pressable card copied the radius and
+ * the border and dropped `shadow-card` and the transition, so a pressable
+ * card and a static one in the same dialog did not match. {@link ActionCard}
+ * composes this string instead of restating it, which is what makes that
+ * drift impossible rather than merely discouraged.
+ *
+ * Layout stays out on purpose: `flex flex-col gap-6 py-6` is what a Card's
+ * header/content/footer stack needs and is exactly wrong for a one-row
+ * icon-plus-text button.
+ *
+ * The transition is also NOT here. Card animates `box-shadow,border-color`;
+ * ActionCard additionally moves its background and ink on hover, so the
+ * property lists genuinely differ. What they share is the `duration-base`
+ * token, so a retune of the motion scale still moves both together.
+ */
+const cardSurfaceClassName = "bg-card text-card-foreground rounded-xl border shadow-card";
+
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-card transition-[box-shadow,border-color] duration-base",
+        cardSurfaceClassName,
+        "flex flex-col gap-6 py-6 transition-[box-shadow,border-color] duration-base",
         className,
       )}
       {...props}
@@ -136,4 +161,4 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-export { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle };
+export { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, cardSurfaceClassName, CardTitle };
