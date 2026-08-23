@@ -72,6 +72,43 @@ describe("PageSection", () => {
     expect(screen.queryByRole("heading")).toBeNull();
   });
 
+  /*
+   * `fill` makes a scroll port. Caught by the a11y suite on the FillHeight
+   * story (axe `scrollable-region-focusable`) rather than by review: a scroll
+   * port with no focusable descendant cannot be scrolled from the keyboard at
+   * all. The schedule's calendar hides this because it is full of buttons; a
+   * long read-only list does not. Asserted here so the tab stop cannot be
+   * dropped without a unit test failing first.
+   */
+  it("makes the fill scroll port keyboard reachable", () => {
+    render(
+      <PageSection fill scrollLabel="Schedule entries">
+        <span>long list</span>
+      </PageSection>,
+    );
+    const region = screen.getByRole("region", { name: "Schedule entries" });
+    expect(region).toHaveAttribute("tabindex", "0");
+  });
+
+  it("names the scroll port after the title when no scrollLabel is given", () => {
+    render(
+      <PageSection fill title="Entries">
+        <span>long list</span>
+      </PageSection>,
+    );
+    expect(screen.getByRole("region", { name: "Entries" })).toBeInTheDocument();
+  });
+
+  it("leaves the scroll port unnamed rather than announcing a bare region", () => {
+    render(
+      <PageSection fill>
+        <span>long list</span>
+      </PageSection>,
+    );
+    expect(screen.queryByRole("region")).toBeNull();
+    expect(document.querySelector('[data-slot="page-section"] > [tabindex="0"]')).not.toBeNull();
+  });
+
   it("renders the description and the action alongside the title", () => {
     render(
       <PageSection title="Language" description="Interface language and region." action={<button>Reset</button>}>

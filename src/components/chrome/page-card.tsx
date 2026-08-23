@@ -88,6 +88,11 @@ interface PageSectionProps {
    * section per card should take it.
    */
   fill?: boolean;
+  /**
+   * Accessible name for the scroll region `fill` creates. Only read when
+   * `fill` is set. Defaults to the section's `title` when that is a string.
+   */
+  scrollLabel?: string;
   className?: string;
 }
 
@@ -113,9 +118,18 @@ export const PageSection = memo(function PageSection({
   description,
   action,
   fill,
+  scrollLabel,
   className,
 }: PageSectionProps) {
   const hasHeading = title != null || description != null || action != null;
+  // `fill` makes this div a scroll port, and a scroll port that contains no
+  // focusable element is unreachable by keyboard — axe's
+  // `scrollable-region-focusable`, and a real one: the schedule's calendar
+  // happens to be full of buttons, but a long read-only list would strand a
+  // keyboard user with no way to scroll it. `tabIndex={0}` is axe's own
+  // remedy. The region role plus a name is what stops that tab stop from
+  // being an unlabelled one a screen reader announces as nothing.
+  const label = scrollLabel ?? (typeof title === "string" ? title : undefined);
   return (
     <div data-slot="page-section" className={cn(fill && "flex min-h-0 flex-1 flex-col overflow-hidden", className)}>
       {hasHeading && (
@@ -127,7 +141,21 @@ export const PageSection = memo(function PageSection({
           {action}
         </div>
       )}
-      {fill ? <div className="min-h-0 flex-1 overflow-auto">{children}</div> : children}
+      {fill ? (
+        <div
+          className="min-h-0 flex-1 overflow-auto"
+          tabIndex={0}
+          // Only a NAMED region is worth announcing as one. Without a label
+          // the role would add a landmark a screen reader reads as bare
+          // "region", which is noise; the tab stop is the part that matters.
+          role={label ? "region" : undefined}
+          aria-label={label}
+        >
+          {children}
+        </div>
+      ) : (
+        children
+      )}
     </div>
   );
 });

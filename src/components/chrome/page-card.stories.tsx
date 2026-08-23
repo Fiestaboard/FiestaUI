@@ -265,7 +265,7 @@ export const FillHeight: Story = {
       <PageCard fillHeight>
         <PageHeader icon={Settings} title="Schedule" description="The header stays; the list below scrolls." />
         <PageToolbar right={<Button size="sm">New entry</Button>} />
-        <PageSection fill>
+        <PageSection fill scrollLabel="Schedule entries">
           <div className="space-y-3">
             {Array.from({ length: 40 }, (_, i) => (
               <div key={i} className="border-border rounded-lg border p-3 text-sm">
