@@ -7,6 +7,7 @@
  *   @source "../node_modules/@fiestaboard/ui/dist";
  */
 export * from "./components/containment/accordion";
+export * from "./components/containment/action-card";
 export * from "./components/containment/card";
 export * from "./components/containment/collapsible";
 export * from "./components/containment/icon-tile";
@@ -20,6 +21,7 @@ export * from "./components/forms/button";
 export * from "./components/forms/checkbox";
 export * from "./components/forms/combobox";
 export * from "./components/forms/copy-button";
+export * from "./components/forms/field";
 export * from "./components/forms/input";
 export * from "./components/forms/label";
 export * from "./components/forms/secret-input";
@@ -74,6 +76,7 @@ export * from "./components/chrome/pagination";
 export * from "./components/chrome/sidebar";
 export * from "./components/chrome/skip-to-content";
 export * from "./components/chrome/theme-toggle";
+export * from "./components/chrome/top-nav";
 export * from "./components/wizard/wizard-progress";
 export * from "./components/wizard/wizard-shell";
 export { cn } from "./lib/utils";

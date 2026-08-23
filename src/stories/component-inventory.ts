@@ -90,6 +90,10 @@ export const INVENTORY = [
         name: "CopyButton",
         summary: "Writes a value to the clipboard and confirms it — awaited, announced, and self-cleaning.",
       },
+      {
+        name: "Field",
+        summary: "Label, control, description and error — wired to each other, not just stacked.",
+      },
       { name: "Input", summary: "Single-line text input across the HTML input types." },
       { name: "Label", summary: "Form label wired to its control by htmlFor." },
       { name: "SecretInput", summary: "Password input with a reveal toggle." },
@@ -139,6 +143,10 @@ export const INVENTORY = [
     description: "Components that hold and organise other content.",
     entries: [
       { name: "Accordion", summary: "Vertically stacked disclosure sections." },
+      {
+        name: "ActionCard",
+        summary: "Card's surface as one pressable target — medallion, title, description; button or link.",
+      },
       { name: "Card", summary: "Surface with header, content, footer and action slots." },
       { name: "Collapsible", summary: "Single show/hide region driven by its own trigger." },
       {
@@ -196,6 +204,10 @@ export const INVENTORY = [
       {
         name: "NavList",
         summary: "Vertical nav list — aria-current rows and collapsible sections, for a rail, a menu or a TOC.",
+      },
+      {
+        name: "TopNav",
+        summary: "Horizontal navbar — brand, active link row, DropdownMenu section and a trailing action group.",
       },
       {
         name: "Pagination",

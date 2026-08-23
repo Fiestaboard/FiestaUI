@@ -26,9 +26,11 @@ import {
   Bold,
   Calendar,
   CheckCircle2,
+  ChevronRight,
   ChevronsUpDown,
   Clock,
   Cloud,
+  ExternalLink,
   Inbox,
   Info,
   Italic,
@@ -78,7 +80,17 @@ import { PageToolbar } from "../components/chrome/page-toolbar";
 import { Pagination } from "../components/chrome/pagination";
 import { SkipToContent } from "../components/chrome/skip-to-content";
 import { ThemeToggle } from "../components/chrome/theme-toggle";
+import {
+  TopNav,
+  TopNavActions,
+  TopNavBrand,
+  TopNavItem,
+  TopNavLink,
+  TopNavList,
+  TopNavMenuTrigger,
+} from "../components/chrome/top-nav";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/containment/accordion";
+import { ActionCard } from "../components/containment/action-card";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { IconTile } from "../components/containment/icon-tile";
@@ -109,6 +121,7 @@ import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
+import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
 import { SecretInput } from "../components/forms/secret-input";
@@ -604,6 +617,23 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </Flex>
     </Stack>
   ),
+  Field: () => (
+    <Stack gap="4" className="w-full max-w-[320px]">
+      {/* Ids are explicit and `inv-` prefixed like every other demo on this
+          page; Field would otherwise generate its own with useId(). */}
+      <Field id="inv-field-name" label="Board name" description="Shown in the device list." required>
+        <Input placeholder="Kitchen" />
+      </Field>
+      <Field
+        id="inv-field-interval"
+        label="Refresh interval"
+        description="Seconds between board updates."
+        error="Must be at least 10 seconds."
+      >
+        <Input type="number" defaultValue={5} />
+      </Field>
+    </Stack>
+  ),
   Input: () => (
     <Grid cols="1" sm="2" gap="3" className="w-full max-w-lg">
       <Stack gap="1.5">
@@ -850,6 +880,23 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         <AccordionContent>Whichever interval the page is scheduled at.</AccordionContent>
       </AccordionItem>
     </Accordion>
+  ),
+  ActionCard: () => (
+    <Stack gap="3" className="w-full max-w-md">
+      <ActionCard
+        tone="primary"
+        icon={<Settings2 />}
+        title="Override temporarily"
+        description="Show something else until the next scheduled page."
+        meta={<ChevronRight />}
+      />
+      <ActionCard
+        icon={<Calendar />}
+        title="Turn off schedule"
+        description="Stops the schedule for this board."
+        loading
+      />
+    </Stack>
   ),
   Card: () => (
     <Grid cols="1" sm="2" gap="4" className="w-full max-w-3xl">
@@ -1276,6 +1323,48 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </NavListSection>
       </NavList>
     </nav>
+  ),
+  // The bar's parts in one row: brand, the active pill, a DropdownMenu section
+  // (closed — an open popover would photograph over its neighbours) and a
+  // trailing action group. It renders no landmark of its own, so nothing here
+  // competes with the page's, and it owns no positioning, so it stays in this
+  // cell instead of pinning itself over the inventory.
+  TopNav: () => (
+    <Frame className="max-w-xl">
+      <TopNav>
+        <TopNavBrand href="#inv-top-nav-home">
+          <FiestaLogo size="sm" />
+        </TopNavBrand>
+        <TopNavList>
+          <TopNavItem>
+            <TopNavLink href="#inv-top-nav-docs" active>
+              Docs
+            </TopNavLink>
+          </TopNavItem>
+          <TopNavItem>
+            <TopNavLink href="#inv-top-nav-blog">Blog</TopNavLink>
+          </TopNavItem>
+          <TopNavItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <TopNavMenuTrigger>Versions</TopNavMenuTrigger>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem render={<a href="#inv-top-nav-v5">5.8.0</a>} />
+                <DropdownMenuItem render={<a href="#inv-top-nav-v4">4.0.0</a>} />
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TopNavItem>
+        </TopNavList>
+        <TopNavActions>
+          <Button variant="ghost" size="icon" asChild>
+            <a href="#inv-top-nav-repo" aria-label="Repository">
+              <ExternalLink />
+            </a>
+          </Button>
+        </TopNavActions>
+      </TopNav>
+    </Frame>
   ),
   Pagination: () => (
     <Pagination
