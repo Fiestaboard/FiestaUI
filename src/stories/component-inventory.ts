@@ -67,6 +67,10 @@ export const INVENTORY = [
       { name: "Heading", summary: "Semantic h2–h4 with an independent visual size and tone." },
       { name: "Text", summary: "Body copy — size, tone (incl. status tones) and weight variants." },
       { name: "Code", summary: "Inline monospace for identifiers, commands and literals." },
+      {
+        name: "Kbd",
+        summary: "Keycap for a shortcut hint — chords nest, and the modifiers follow the reader's platform.",
+      },
       { name: "List", summary: "Ordered/unordered list with marker and gap variants." },
       { name: "TextLink", summary: "Anchor styled for inline prose, with a focus ring." },
     ],
@@ -204,6 +208,10 @@ export const INVENTORY = [
       {
         name: "TopNav",
         summary: "Horizontal navbar — brand, active link row, DropdownMenu section and a trailing action group.",
+      },
+      {
+        name: "Pagination",
+        summary: "Numbered pager with prev/next and an elided middle; links come from the consumer's router.",
       },
       { name: "Sidebar", summary: "Primary navigation rail — fixed-positioned, so shown in its own story." },
       { name: "MainContent", summary: "The <main> landmark and its sidebar-aware offset — shown in its own story." },
