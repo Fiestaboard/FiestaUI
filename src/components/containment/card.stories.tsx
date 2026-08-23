@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { Settings2 } from "lucide-react";
+import { Globe, Info, Settings2, ShieldOff, Sparkles } from "lucide-react";
 
 import { Badge } from "../feedback/badge";
 import { Button } from "../forms/button";
@@ -222,5 +222,60 @@ export const AllLayouts = () => (
         </CardContent>
       </Card>
     </div>
+  </div>
+);
+
+/**
+ * The settings-card header (#274). `size="base"` plus `icon` replaces the
+ * `className="flex items-center gap-2 text-base"` + hand-sized glyph that
+ * FiestaBoard typed 19 times.
+ *
+ * The default glyph tone is `text-muted-foreground` — decoration beside a
+ * semibold title. The last two cards show the two tones that stay reachable
+ * by putting a class on the icon element itself, which is also how a call
+ * site overrides the 16px default size.
+ */
+export const TitleWithIcon = () => (
+  <div className="flex w-full max-w-md flex-col gap-4">
+    <Card>
+      <CardHeader>
+        <CardTitle size="base" icon={<Info />}>
+          About
+        </CardTitle>
+        <CardDescription>Default tone — muted, 16px.</CardDescription>
+      </CardHeader>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle icon={<Globe />}>Language</CardTitle>
+        <CardDescription>The lg scale, which is the untouched default.</CardDescription>
+      </CardHeader>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle size="base" icon={<ShieldOff className="text-destructive" />}>
+          Disable protection
+        </CardTitle>
+        <CardDescription>A tone the call site chose, overriding the muted default.</CardDescription>
+      </CardHeader>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle size="base" icon={<Sparkles className="size-5 text-brand" />}>
+          Animations
+        </CardTitle>
+        <CardDescription>A 20px glyph — the consumer's `size-5` beats the default.</CardDescription>
+      </CardHeader>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle size="base">No icon</CardTitle>
+        <CardDescription>Unchanged: no flex row, no wrapper element.</CardDescription>
+      </CardHeader>
+    </Card>
   </div>
 );

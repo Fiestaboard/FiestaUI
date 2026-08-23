@@ -247,3 +247,56 @@ function SwatchFilters() {
  * exclusivity and arrow-key navigation that do not exist.
  */
 export const MultiSelectIsNotAGroup = () => <SwatchFilters />;
+
+/**
+ * A swatch may carry a CHARACTER instead of a fill (#261) — the Flagship
+ * code-62 flap picker, whose two choices are `°` and `♥`.
+ *
+ * FiestaBoard hand-rolls this twice today (`display-settings`,
+ * `wizard/step-board-setup`) as raw `<button aria-pressed>` circles: two
+ * independent toggles standing in for one choice of two, with selection
+ * carried by border colour alone. The board-colour pickers directly above
+ * them in both files already moved to `SwatchGroup`, so those screens each
+ * had two visually identical circle rows with different roles and different
+ * selected treatments.
+ *
+ * The check disc is kept and corner-anchored rather than dropped: it is the
+ * non-colour cue (SC 1.4.1), and it would otherwise sit on top of the
+ * character it is confirming.
+ */
+export const GlyphSwatches = () => {
+  const [glyph, setGlyph] = React.useState("degree");
+
+  return (
+    <div className="flex flex-col gap-6">
+      {(["sm", "md", "lg"] as const).map((size) => (
+        <div key={size} className="flex items-center gap-3">
+          <span className="w-8 text-xs text-muted-foreground">{size}</span>
+          <SwatchGroup size={size} value={glyph} onValueChange={setGlyph} aria-label={`Code 62 flap (${size})`}>
+            <Swatch value="degree" label="Degrees">
+              °
+            </Swatch>
+            <Swatch value="heart" label="Heart">
+              ♥
+            </Swatch>
+          </SwatchGroup>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/**
+ * A glyph over a colour fill — both may be given. The character takes the
+ * ordinary ink, so pair it with a fill light enough to carry it.
+ */
+export const GlyphOverColour = () => (
+  <SwatchGroup aria-label="Board ground" defaultValue="white">
+    <Swatch value="white" color="#fafafa" label="White board">
+      °
+    </Swatch>
+    <Swatch value="orange" color="#f5a623" label="Orange board">
+      ♥
+    </Swatch>
+  </SwatchGroup>
+);

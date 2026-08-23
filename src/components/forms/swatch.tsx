@@ -94,6 +94,27 @@ import {
  * REJECTED: a `ring` size/width prop to reconcile the three copies'
  * `ring-1` vs `ring-2`. That divergence is the bug, not an API — one ring
  * weight, chosen once.
+ *
+ * GLYPH SWATCHES (#261). A swatch may carry a CHARACTER instead of a fill —
+ * the Flagship code-62 flap picker, whose two choices are `°` and `♥`. That
+ * is the same control in every respect that this file argues about: same
+ * circle, same diameters, same one-of-N semantics, same radiogroup
+ * machinery, same ring-plus-check selected treatment. Only the fill's
+ * content differs.
+ *
+ * So it is a WIDENED `Swatch`, not a `GlyphSwatch`. The reason this file
+ * gives for not extending ToggleCard is a STRUCTURAL difference — selection
+ * there recolours the payload, which a swatch cannot survive. Between a
+ * colour swatch and a glyph swatch there is no such difference, and a
+ * separate export would duplicate the whole selection contract to change
+ * one child element.
+ *
+ * The check disc STAYS. It is what stops selection resting on "which one
+ * has a ring" (SC 1.4.1), and selection by border colour alone is exactly
+ * the defect in the two hand-rolled code-62 pickers this replaces. Because
+ * the glyph is the payload the disc would otherwise cover, it corner-anchors
+ * when a glyph is present and stays centred when it is not — so no existing
+ * colour swatch moves by a pixel.
  * ------------------------------------------------------------------ */
 
 const swatchGroupVariants = cva(
@@ -148,7 +169,9 @@ const swatchVariants = cva(
 
 const swatchFillVariants = cva(
   [
-    "pointer-events-none flex items-center justify-center rounded-full",
+    // `relative` so a glyph swatch can corner-anchor its check disc; a
+    // colour swatch never positions anything, so this costs it nothing.
+    "pointer-events-none relative flex items-center justify-center rounded-full",
     // Permanent control boundary — see the header note; a white swatch on a
     // light card has no other edge.
     "border border-input",
@@ -170,6 +193,26 @@ const swatchFillVariants = cva(
     },
   },
 );
+
+/**
+ * The glyph a content swatch carries, sized to its fill (#261).
+ *
+ * `leading-none` and the flex centring above are what keep a character with
+ * a descender or an unusual metric box — `°` sits high, `♥` sits low —
+ * optically centred in the circle rather than sitting on a text baseline.
+ */
+const swatchGlyphVariants = cva("select-none leading-none", {
+  variants: {
+    size: {
+      sm: "text-xs",
+      md: "text-sm",
+      lg: "text-base",
+    },
+  },
+  defaultVariants: {
+    size: "md",
+  },
+});
 
 const swatchIndicatorVariants = cva(
   [
@@ -243,16 +286,8 @@ function SwatchGroup({ className, size, wrap, children, ...props }: SwatchGroupP
   );
 }
 
-export type SwatchProps = Omit<React.ComponentProps<"button">, "aria-label" | "children" | "color" | "value"> &
+type SwatchBaseProps = Omit<React.ComponentProps<"button">, "aria-label" | "children" | "color" | "value"> &
   VariantProps<typeof swatchVariants> & {
-    /**
-     * The colour being picked, as ANY CSS colour — a board-surface token
-     * (`var(--color-board-surface-dark)`), a plugin colour-rule hue, or a
-     * raw hex. It is applied as an inline `background-color`, which is the
-     * only way an arbitrary runtime value can reach the DOM; Tailwind cannot
-     * compile a class for a value it never sees.
-     */
-    color: string;
     /**
      * Localized accessible name — e.g. "Black", "Board white". REQUIRED: the
      * swatch renders no text, so this is its only name. Name the colour, not
@@ -271,6 +306,38 @@ export type SwatchProps = Omit<React.ComponentProps<"button">, "aria-label" | "c
   };
 
 /**
+ * A swatch carries EITHER a colour or a glyph, and must carry one of them —
+ * an empty circle is not an option a user can pick. The union is what makes
+ * that a type error rather than a blank render.
+ */
+export type SwatchProps = SwatchBaseProps &
+  (
+    | {
+        /**
+         * The colour being picked, as ANY CSS colour — a board-surface token
+         * (`var(--color-board-surface-dark)`), a plugin colour-rule hue, or a
+         * raw hex. It is applied as an inline `background-color`, which is the
+         * only way an arbitrary runtime value can reach the DOM; Tailwind cannot
+         * compile a class for a value it never sees.
+         */
+        color: string;
+        /** Optional glyph drawn over the fill. */
+        children?: React.ReactNode;
+      }
+    | {
+        /** Omitted for a glyph swatch: the character is the payload. */
+        color?: string;
+        /**
+         * The character this swatch offers, e.g. `"°"` or `"♥"` (#261).
+         * Decorative — the fill is `aria-hidden` and `label` remains the
+         * swatch's only accessible name, because a glyph is no more
+         * self-naming than a hex value is.
+         */
+        children: React.ReactNode;
+      }
+  );
+
+/**
  * One colour circle. Inside a {@link SwatchGroup} it is a `radio`
  * (`aria-checked`, roving tabindex, arrow keys). On its own with `pressed`
  * it is an `aria-pressed` toggle button.
@@ -281,9 +348,10 @@ export type SwatchProps = Omit<React.ComponentProps<"button">, "aria-label" | "c
  * `--primary` check disc over it — never as a change to the fill, which is
  * the thing being picked.
  */
-function Swatch({ className, size, value, color, label, pressed, onPressedChange, ...props }: SwatchProps) {
+function Swatch({ className, size, value, color, label, pressed, onPressedChange, children, ...props }: SwatchProps) {
   const group = React.useContext(SwatchGroupContext);
   const resolvedSize = size ?? group?.size ?? "md";
+  const hasGlyph = children !== undefined && children !== null && children !== false;
 
   return (
     <SelectableItemRoot
@@ -300,12 +368,41 @@ function Swatch({ className, size, value, color, label, pressed, onPressedChange
       <span
         data-slot="swatch-fill"
         // Decorative: the button's aria-label is the whole name, and neither
-        // the fill nor the check adds anything a screen reader should hear.
+        // the fill, the glyph nor the check adds anything a screen reader
+        // should hear. A glyph is no more self-naming than a hex value is —
+        // "°" announces as "degree sign", not as "Degrees".
         aria-hidden="true"
-        style={{ backgroundColor: color }}
-        className={swatchFillVariants({ size: resolvedSize })}
+        style={color ? { backgroundColor: color } : undefined}
+        className={cn(
+          swatchFillVariants({ size: resolvedSize }),
+          // A glyph swatch has no fill to carry it, so it takes the card
+          // ground and the ordinary ink. --foreground on --card is the
+          // page's own body pair, so the character clears SC 1.4.3 without
+          // this file having to measure anything new.
+          hasGlyph && !color && "bg-card text-foreground",
+        )}
       >
-        <span data-slot="swatch-indicator" className={swatchIndicatorVariants({ size: resolvedSize })}>
+        {hasGlyph ? (
+          <span data-slot="swatch-glyph" className={swatchGlyphVariants({ size: resolvedSize })}>
+            {children}
+          </span>
+        ) : null}
+        <span
+          data-slot="swatch-indicator"
+          className={cn(
+            swatchIndicatorVariants({ size: resolvedSize }),
+            // Centred over a colour fill, because there is nothing under it
+            // to hide. Over a glyph the payload IS what the disc would
+            // cover, so it moves to the corner and both stay legible.
+            //
+            // The disc does NOT get dropped for glyph swatches. It is the
+            // non-colour cue that stops selection resting on "which one has
+            // a ring" (SC 1.4.1) — and selection carried by border colour
+            // alone is precisely the defect in the two hand-rolled code-62
+            // pickers this replaces.
+            hasGlyph && "absolute -end-0.5 -bottom-0.5",
+          )}
+        >
           <Check />
         </span>
       </span>
@@ -313,4 +410,12 @@ function Swatch({ className, size, value, color, label, pressed, onPressedChange
   );
 }
 
-export { Swatch, swatchFillVariants, SwatchGroup, swatchGroupVariants, swatchIndicatorVariants, swatchVariants };
+export {
+  Swatch,
+  swatchFillVariants,
+  swatchGlyphVariants,
+  SwatchGroup,
+  swatchGroupVariants,
+  swatchIndicatorVariants,
+  swatchVariants,
+};
