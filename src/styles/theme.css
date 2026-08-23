@@ -9,14 +9,55 @@
  *   @import "@fiestaboard/ui/theme.css";      skip fonts.css if you self-host
  *   @source "../node_modules/@fiestaboard/ui/dist";
  *
- * Dark mode is class-based: toggle the `dark` class on <html>.
+ * Dark mode is signalled two ways, and they are equivalent: the `dark` CLASS
+ * or a `data-theme="dark"` ATTRIBUTE, on <html> or on any ancestor of the
+ * subtree you want themed. Toggle whichever your host already toggles.
+ *
  * Values are copied verbatim from FiestaBoard app/globals.css — visual
  * parity with the app is the contract; do not reformat or "improve"
  * token values here without a parity check on the consumer side.
  */
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* ============================================================
+ * DARK MODE HAS TWO SPELLINGS (#228 item 6).
+ *
+ * `.dark` is what a Tailwind/shadcn host stamps; `[data-theme="dark"]` is
+ * what Docusaurus, Astro, Nuxt Color Mode and several static-site themes
+ * stamp natively. Matching both means a host that already has a theme
+ * switcher needs no adapter — no class to mirror, no JS to sync.
+ *
+ * fiestaboard.github.io is the consumer that forced this. It could not stamp
+ * `.dark` (Docusaurus owns the attribute and re-stamps it pre-paint), so its
+ * `scripts/build-fiestaui-css.mjs` regex-rewrote every compiled `.dark`
+ * selector in this file into the attribute form after Tailwind ran — a
+ * rewrite that has to track how Tailwind chooses to compile us. 4.0.0 already
+ * broke it once: `color-mix()` token values made Tailwind hoist part of the
+ * block below into an `@supports` fragment, and a rewrite that assumed one
+ * block left `--brand-hover` silently stuck on its fallback.
+ *
+ * THE PAIRING IS ALL-OR-NOTHING. A half-applied change is worse than none: a
+ * consumer's rewrite would then be transforming one half of this file and
+ * leaving the other half alone, which reads as working right up until the
+ * unpaired half is the one that matters. `dark-selector-pairing.test.mjs`
+ * asserts that every dark-scoped selector here carries both spellings.
+ *
+ * Two things this deliberately does NOT do:
+ *
+ *   - It does not qualify with `html`. `.dark`/`[data-theme="dark"]` are
+ *     0-1-0, the same as `:root`, so source order decides — which is correct
+ *     for a scoped subtree (a dark card on a light page) and is the reason
+ *     the pair is written unqualified. A consumer whose pipeline APPENDS
+ *     `:root` blocks after this file (Docusaurus's wide-gamut P3 pass does
+ *     exactly that) still has to raise specificity itself. Matching the
+ *     attribute shrinks that consumer's rewrite; it does not delete it.
+ *   - It does not make the selector configurable. CSS has no parameter to
+ *     configure, so "configurable" would mean a build step and a config file
+ *     for what is otherwise a `cp`. Matching both spellings covers the hosts
+ *     that exist at zero cost to every consumer; a third spelling can join
+ *     this list the day something needs it.
+ * ============================================================ */
+@custom-variant dark (&:is(.dark *, [data-theme="dark"] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -465,10 +506,10 @@
    * pins the "New" badge to hexes with `!important`, which is a hex fork of
    * a token pair and a real maintenance defect — a fork stops tracking a
    * retune here — but it is theme-AWARE (`.newBadge` plus a
-   * `[data-theme="dark"] .newBadge`, and their build widens every compiled
-   * `.dark` selector to that attribute), so the light pigment never lands on
-   * a dark fill. Both halves clear AA on their own fills: 6.49:1 light,
-   * 7.52:1 dark. It is redundant, not broken. Dropping it downstream is a
+   * `[data-theme="dark"] .newBadge`, an attribute this file now matches
+   * directly — see the @custom-variant note at the top), so the light pigment
+   * never lands on a dark fill. Both halves clear AA on their own fills:
+   * 6.49:1 light, 7.52:1 dark. It is redundant, not broken. Dropping it downstream is a
    * cleanup, not a fix, and it does not close #231.
    *
    * Opaque fills (mixing the tint into --background instead of compositing
@@ -817,7 +858,9 @@
   --z-confetti: 9999;
 }
 
-.dark {
+/* Both dark spellings — see the @custom-variant note at the top (#228). */
+.dark,
+[data-theme="dark"] {
   color-scheme: dark; /* see the note in :root (#160) */
   /* Hue lock applies here too: same six hues, same hue angles as :root.
      Only lightness moves. Surfaces carry the same warm cast at hue 73, and
@@ -1337,7 +1380,8 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   --accent-foreground: var(--sidebar-foreground);
   --border: color-mix(in oklch, var(--sidebar-foreground) 16%, transparent);
 }
-.dark .sidebar-gradient-horizontal {
+.dark .sidebar-gradient-horizontal,
+[data-theme="dark"] .sidebar-gradient-horizontal {
   color: oklch(1 0 0);
   --foreground: oklch(1 0 0);
   --sidebar-accent: oklch(1 0 0 / 24%);
@@ -1496,7 +1540,8 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
    The hover keeps the same recipe as its resting form, lifted 14% -> 24%
    (4.54:1 dark rail, 5.05:1 dark page, 1.29:1 light page). */
 @media (prefers-contrast: more) {
-  .dark {
+  .dark,
+  [data-theme="dark"] {
     --nav-active: oklch(0.86 0.115 73);
   }
   :root {

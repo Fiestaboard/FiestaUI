@@ -26,6 +26,7 @@ import {
   Bold,
   Calendar,
   CheckCircle2,
+  ChevronRight,
   ChevronsUpDown,
   Clock,
   Cloud,
@@ -88,6 +89,7 @@ import {
   TopNavMenuTrigger,
 } from "../components/chrome/top-nav";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/containment/accordion";
+import { ActionCard } from "../components/containment/action-card";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { IconTile } from "../components/containment/icon-tile";
@@ -118,6 +120,7 @@ import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
+import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
 import { SecretInput } from "../components/forms/secret-input";
@@ -598,6 +601,23 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </Flex>
     </Stack>
   ),
+  Field: () => (
+    <Stack gap="4" className="w-full max-w-[320px]">
+      {/* Ids are explicit and `inv-` prefixed like every other demo on this
+          page; Field would otherwise generate its own with useId(). */}
+      <Field id="inv-field-name" label="Board name" description="Shown in the device list." required>
+        <Input placeholder="Kitchen" />
+      </Field>
+      <Field
+        id="inv-field-interval"
+        label="Refresh interval"
+        description="Seconds between board updates."
+        error="Must be at least 10 seconds."
+      >
+        <Input type="number" defaultValue={5} />
+      </Field>
+    </Stack>
+  ),
   Input: () => (
     <Grid cols="1" sm="2" gap="3" className="w-full max-w-lg">
       <Stack gap="1.5">
@@ -844,6 +864,23 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         <AccordionContent>Whichever interval the page is scheduled at.</AccordionContent>
       </AccordionItem>
     </Accordion>
+  ),
+  ActionCard: () => (
+    <Stack gap="3" className="w-full max-w-md">
+      <ActionCard
+        tone="primary"
+        icon={<Settings2 />}
+        title="Override temporarily"
+        description="Show something else until the next scheduled page."
+        meta={<ChevronRight />}
+      />
+      <ActionCard
+        icon={<Calendar />}
+        title="Turn off schedule"
+        description="Stops the schedule for this board."
+        loading
+      />
+    </Stack>
   ),
   Card: () => (
     <Grid cols="1" sm="2" gap="4" className="w-full max-w-3xl">
