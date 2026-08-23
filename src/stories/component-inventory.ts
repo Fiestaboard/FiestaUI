@@ -190,6 +190,11 @@ export const INVENTORY = [
       { name: "LanguageSelector", summary: "Locale picker." },
       { name: "ThemeToggle", summary: "Light/dark switch; the app owns the theme state." },
       { name: "PageHeader", summary: "Page title, gradient-stroked icon, description and an action slot." },
+      {
+        name: "PageCard",
+        summary: "The whole route in one card — heading, toolbar and content as divider-separated blocks.",
+      },
+      { name: "PageSection", summary: "A titled block inside a PageCard; what a content Card becomes." },
       { name: "PageToolbar", summary: "Left/right toolbar row that sits under a PageHeader." },
       {
         name: "PageInset",

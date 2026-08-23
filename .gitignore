@@ -19,3 +19,6 @@ __pycache__/
 .design-sync/node_modules
 .ds-sync/
 ds-bundle/
+
+# Playwright MCP scratch output (page snapshots, console logs)
+.playwright-mcp/

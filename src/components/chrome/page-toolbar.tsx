@@ -40,7 +40,7 @@ interface PageToolbarProps {
  */
 export const PageToolbar = memo(function PageToolbar({ left, right, children, className }: PageToolbarProps) {
   return (
-    <div className={cn("mb-4 px-6 animate-card-fade-in", className)} style={TOOLBAR_STYLE}>
+    <div data-slot="page-toolbar" className={cn("mb-4 px-6 animate-card-fade-in", className)} style={TOOLBAR_STYLE}>
       {children ?? (
         <div
           className={cn(
