@@ -201,6 +201,10 @@ export const INVENTORY = [
         name: "NavList",
         summary: "Vertical nav list — aria-current rows and collapsible sections, for a rail, a menu or a TOC.",
       },
+      {
+        name: "TopNav",
+        summary: "Horizontal navbar — brand, active link row, DropdownMenu section and a trailing action group.",
+      },
       { name: "Sidebar", summary: "Primary navigation rail — fixed-positioned, so shown in its own story." },
       { name: "MainContent", summary: "The <main> landmark and its sidebar-aware offset — shown in its own story." },
     ],

@@ -30,6 +30,7 @@ import {
   ChevronsUpDown,
   Clock,
   Cloud,
+  ExternalLink,
   Inbox,
   Info,
   Italic,
@@ -78,6 +79,15 @@ import { PageLayout } from "../components/chrome/page-layout";
 import { PageToolbar } from "../components/chrome/page-toolbar";
 import { SkipToContent } from "../components/chrome/skip-to-content";
 import { ThemeToggle } from "../components/chrome/theme-toggle";
+import {
+  TopNav,
+  TopNavActions,
+  TopNavBrand,
+  TopNavItem,
+  TopNavLink,
+  TopNavList,
+  TopNavMenuTrigger,
+} from "../components/chrome/top-nav";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/containment/accordion";
 import { ActionCard } from "../components/containment/action-card";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
@@ -1297,6 +1307,48 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </NavListSection>
       </NavList>
     </nav>
+  ),
+  // The bar's parts in one row: brand, the active pill, a DropdownMenu section
+  // (closed — an open popover would photograph over its neighbours) and a
+  // trailing action group. It renders no landmark of its own, so nothing here
+  // competes with the page's, and it owns no positioning, so it stays in this
+  // cell instead of pinning itself over the inventory.
+  TopNav: () => (
+    <Frame className="max-w-xl">
+      <TopNav>
+        <TopNavBrand href="#inv-top-nav-home">
+          <FiestaLogo size="sm" />
+        </TopNavBrand>
+        <TopNavList>
+          <TopNavItem>
+            <TopNavLink href="#inv-top-nav-docs" active>
+              Docs
+            </TopNavLink>
+          </TopNavItem>
+          <TopNavItem>
+            <TopNavLink href="#inv-top-nav-blog">Blog</TopNavLink>
+          </TopNavItem>
+          <TopNavItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <TopNavMenuTrigger>Versions</TopNavMenuTrigger>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem render={<a href="#inv-top-nav-v5">5.8.0</a>} />
+                <DropdownMenuItem render={<a href="#inv-top-nav-v4">4.0.0</a>} />
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TopNavItem>
+        </TopNavList>
+        <TopNavActions>
+          <Button variant="ghost" size="icon" asChild>
+            <a href="#inv-top-nav-repo" aria-label="Repository">
+              <ExternalLink />
+            </a>
+          </Button>
+        </TopNavActions>
+      </TopNav>
+    </Frame>
   ),
   Sidebar: () => (
     <SeeItsOwnStory
