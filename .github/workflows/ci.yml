@@ -385,30 +385,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --no-audit
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-a11y-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Build Storybook
-        run: npm run build-storybook -- --quiet
-
-      - name: Start Storybook static server
-        run: |
-          npx http-server storybook-static --port 6006 --silent &
-          sleep 5
+      - uses: ./.github/actions/storybook-browser
 
       # `--shard` is the test runner's own flag (it is Jest underneath), so a11y
       # needs no harness code of its own — unlike VRT, whose runner we wrote.
@@ -447,30 +424,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --no-audit
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-a11y-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Build Storybook
-        run: npm run build-storybook -- --quiet
-
-      - name: Start Storybook static server
-        run: |
-          npx http-server storybook-static --port 6006 --silent &
-          sleep 5
+      # Shared with vrt-update.yml's `shoot`, so the environment that records a
+      # baseline and the environment that checks it are the same by construction.
+      - uses: ./.github/actions/storybook-browser
 
       # Shard 1 additionally owns the whole-suite inventory checks (new, stale
       # and stray baselines) so they are reported once per run rather than once
