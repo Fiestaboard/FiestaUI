@@ -688,26 +688,22 @@ export const Sidebar = memo(function Sidebar({
 
             <div className="shrink-0 px-2 pt-2 pb-3">
               {/* Footer: expanded = version | toggle side by side; collapsed =
-                  toggle stacked over a centered version on the rail line. The
+                  the toggle alone. The 64px rail cannot fit a version string,
+                  and the old centered-with-truncate treatment did not degrade
+                  to an ellipsis — the slot's own flex layout clipped it
+                  mid-glyph, so "v8.32.10 (dev)" read as the plausible-but-wrong
+                  "v8.32.1". A number that can only render wrongly is better
+                  dropped; the expanded rail and the mobile menu keep it. The
                   hairline above is the block's own separator now, so this row
                   no longer draws a second one of its own. */}
               <div
                 className={cn(
                   "py-2",
-                  collapsed
-                    ? "flex flex-col items-center gap-1"
-                    : "flex items-center justify-between gap-2 pl-[14px] pr-3",
+                  collapsed ? "flex justify-center" : "flex items-center justify-between gap-2 pl-[14px] pr-3",
                 )}
               >
-                <div
-                  className={cn(
-                    "min-w-0 overflow-hidden whitespace-nowrap",
-                    collapsed ? "order-2 w-full truncate text-center" : "order-1",
-                  )}
-                >
-                  {versionSlot}
-                </div>
-                <div className={cn("flex-shrink-0", collapsed ? "order-1" : "order-2")}>{themeToggleSlot}</div>
+                {!collapsed && <div className="min-w-0 overflow-hidden whitespace-nowrap">{versionSlot}</div>}
+                <div className="flex-shrink-0">{themeToggleSlot}</div>
               </div>
             </div>
           </div>
