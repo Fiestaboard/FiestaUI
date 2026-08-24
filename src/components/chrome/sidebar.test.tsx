@@ -180,3 +180,23 @@ describe("Sidebar deprecated primaryItems/secondaryItems", () => {
     expect(rowsOf(desktopNav())).toEqual([]);
   });
 });
+
+describe("Sidebar footer version slot", () => {
+  // The 64px rail cannot fit a version string, and the old truncate-center
+  // treatment did not degrade to an ellipsis — the slot's own layout clipped
+  // it mid-glyph, so "v8.32.10 (dev)" rendered as the plausible-but-wrong
+  // "v8.32.1". A number that can only render wrongly must not render at all.
+  // Scoped to the desktop rail: the mobile menu renders the same slot and
+  // (breakpoints not running in jsdom) is always in the DOM alongside it.
+  const desktopRail = () => screen.getByRole("complementary", { name: LABELS.mainNavigation });
+
+  it("shows the version on the expanded rail", () => {
+    renderSidebar({ collapsed: false, versionSlot: <span data-testid="version">v8.32.10 (dev)</span> });
+    expect(within(desktopRail()).getByTestId("version")).toBeInTheDocument();
+  });
+
+  it("drops the version from the collapsed rail instead of clipping it", () => {
+    renderSidebar({ collapsed: true, versionSlot: <span data-testid="version">v8.32.10 (dev)</span> });
+    expect(within(desktopRail()).queryByTestId("version")).not.toBeInTheDocument();
+  });
+});
