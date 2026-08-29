@@ -210,7 +210,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # The version commit and tag go straight onto `main`. The rulesets
+      # The version commit and tag are pushed straight to `main` — no PR — in
+      # the common case where `main` is still on the released sha. The rulesets
       # targeting `main` still require a PR with a green `CI Success` for every
       # human change; the Claude bot app is a bypass actor on each of them, and
       # the checkout above holds its token, which is what makes this push legal.
@@ -228,55 +229,45 @@ jobs:
       # published-and-tagged version whose commit never landed, plus an orphaned
       # PR that went permanently CONFLICTING once the next release landed.
       # Removing the gate beats racing it.
-      - name: Land version commit and tag on main
+      #
+      # The mechanics live in scripts/release/land.mjs — unit-tested in CI's
+      # `automation` job against a real git remote, because the rule they
+      # enforce is the one this step used to get wrong. It re-checked-out
+      # `main`'s *current* tip and replayed the bump there, so whenever `main`
+      # had moved since the gate ran, the tag landed over commits no bump had
+      # ever inspected. That is v5.12.3: a breaking `fix(feedback)!` merged
+      # while the previous merge was releasing, got tagged over, was missing
+      # from the tarball the notes described, and was then stranded — the tag
+      # sat above it, so every later gate saw an empty range.
+      #
+      # Now the version commit is always built on the sha that was gated and
+      # published (`needs.gate.outputs.sha`). If `main` is still on that sha the
+      # commit and tag fast-forward onto it exactly as before; if it has moved,
+      # only the tag is pushed and `main` keeps its tip. Leaving those newer
+      # commits untagged is what keeps them releasable: the next green CI gates
+      # `<this tag>..main`, sees them, and ships them at their own bump.
+      - name: Land version commit and tag
+        id: land
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          # The sha the gate reasoned over and the build above published — the
+          # only commit this tag may describe.
+          RELEASE_SHA: ${{ needs.gate.outputs.sha }}
         run: |
-          # Replay the bump on main's *current* tip rather than pushing the
-          # detached gate sha: main can have moved since CI verified that sha,
-          # and this push must stay a fast-forward. Retry the whole
-          # read-modify-push cycle if main moves underneath us.
-          for attempt in 1 2 3 4 5; do
-            git fetch origin main --no-tags
-            # -f discards the publish-time package.json edit; it has already
-            # shipped in the tarball and `npm version` below recreates it.
-            git checkout -f -B version-bump origin/main
-            git tag -d "v${VERSION}" 2>/dev/null || true
-            npm version "$VERSION" -m "chore: release v%s"
-            # --atomic: without it a rejected branch ref still leaves the tag
-            # pushed, so v$VERSION ends up on a commit that never reached main
-            # and the next attempt's `git tag -d` cannot take it back. The
-            # v3.0.0 release stranded its tag exactly that way. Both refs land
-            # together or neither does.
-            # Output goes to a file rather than through `| tee`: the exit
-            # status of a pipeline is its *last* command, so piping the push
-            # into tee would report success on every rejection.
-            if git push --atomic origin "version-bump:refs/heads/main" --follow-tags \
-                 >"${RUNNER_TEMP}/push.log" 2>&1; then
-              cat "${RUNNER_TEMP}/push.log"
-              echo "Landed v${VERSION} on main (attempt ${attempt})."
-              exit 0
-            fi
-            cat "${RUNNER_TEMP}/push.log"
-            # Only a race is worth retrying. A ruleset refusal is a standing
-            # config problem: five attempts cannot talk it round, and calling
-            # it "main moved under us" buries the real cause under a wall of
-            # identical rejections.
-            if grep -q 'GH013\|repository rule violations' "${RUNNER_TEMP}/push.log"; then
-              echo "::error::Push to main was refused by a branch ruleset, not a race. \
-          The Claude bot app must be a bypass actor on every ruleset targeting main; \
-          check the rules URL in the push output above."
-              exit 1
-            fi
-            echo "main moved under us — retrying (attempt ${attempt})."
-            sleep $((attempt * 5))
-          done
-          echo "::error::Could not land the v${VERSION} version commit on main"
-          exit 1
+          set -euo pipefail
+          node scripts/release/land.mjs --version="$VERSION" --sha="$RELEASE_SHA" \
+            > "${RUNNER_TEMP}/land.out"
+          cat "${RUNNER_TEMP}/land.out" >> "$GITHUB_OUTPUT"
+          sed -n 's/^summary=//p' "${RUNNER_TEMP}/land.out" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create GitHub Release
         run: |
+          # --verify-tag: the notes are generated from the tag's range, so they
+          # only describe the published tree if the tag is the one the landing
+          # step pushed. Without it a missing tag is created here, at the
+          # default branch's tip — notes for code that was never built.
           gh release create "v${{ steps.version.outputs.version }}" \
+            --verify-tag \
             --title "v${{ steps.version.outputs.version }}" \
             --generate-notes
         env:
