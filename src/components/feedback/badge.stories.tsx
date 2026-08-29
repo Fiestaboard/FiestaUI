@@ -29,6 +29,16 @@ const meta = {
       control: false,
       description: "Render the badge styles onto a single child element (e.g. an anchor)",
     },
+    onDismiss: {
+      control: false,
+      description:
+        "Renders a trailing dismiss button the badge owns. Type-paired with dismissLabel — one without the other is a compile error (#299).",
+    },
+    dismissLabel: {
+      control: false,
+      description:
+        "Localized accessible name for the dismiss button. Required with onDismiss: the X glyph is aria-hidden, so this is the button's only name.",
+    },
   },
 } satisfies Meta<typeof Badge>;
 
@@ -161,6 +171,12 @@ export const StatusList = () => (
  * The badge stays content and is not itself interactive; it nests exactly one
  * control, so the call site nests none. Clipping moves from the root to the
  * label, so long tag text still stays inside the pill.
+ *
+ * `dismissLabel` is not optional here (#299). The X glyph is `aria-hidden`, so
+ * the label is the button's ONLY accessible name — without it a row of these
+ * announces as "button, button, button" with nothing to say which one removes
+ * Weather. The props type pairs the two, so the nameless call no longer
+ * compiles rather than merely being discouraged in a docstring.
  *
  * Tab to a badge below and check the focus ring is drawn in full.
  */
