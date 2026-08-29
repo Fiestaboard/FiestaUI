@@ -57,8 +57,68 @@ const alertVariants = cva(
   },
 );
 
-function Alert({ className, variant, ...props }: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
-  return <div data-slot="alert" role="alert" className={cn(alertVariants({ variant }), className)} {...props} />;
+type AlertVariant = NonNullable<VariantProps<typeof alertVariants>["variant"]>;
+
+/**
+ * How loudly a variant is allowed to speak.
+ *
+ * `role="alert"` implies `aria-live="assertive"`, and assertive means the
+ * screen reader ABANDONS the sentence it is currently reading to deliver this
+ * one. Every variant used to be `role="alert"` (#298), so a success toast
+ * ("Your changes have been saved") interrupted a form being read field by
+ * field, and an info banner cut off a menu announcement. Delivered at the
+ * same pitch as an error, the urgency signal stops meaning anything.
+ *
+ * The split follows the ARIA Authoring Practices: assertive is reserved for
+ * errors and time-sensitive cautions, everything advisory queues politely
+ * behind the current utterance.
+ *
+ *   * `destructive` — an error. The user's next action depends on hearing it.
+ *   * `warning` — board yellow is this system's time-sensitive caution
+ *     ("Weak signal", "about to reach its usage limit"). Waiting out a
+ *     paragraph to hear it defeats the point of saying it now.
+ *
+ * `default`, `info` and `success` are advisory and get `role="status"`
+ * (polite, and `aria-atomic` like `alert`, so the alert is still read whole).
+ */
+const ASSERTIVE_VARIANTS: readonly AlertVariant[] = ["destructive", "warning"];
+
+export type AlertProps = React.ComponentProps<"div"> &
+  VariantProps<typeof alertVariants> & {
+    /**
+     * Override the announcement urgency the variant would otherwise pick.
+     *
+     * The default is derived from `variant` (see {@link ASSERTIVE_VARIANTS}),
+     * which is right for the overwhelming majority of call sites — reach for
+     * this only when the message's urgency genuinely disagrees with its
+     * colour. A `destructive`-tinted alert that has been on the page since
+     * load is `politeness="polite"`; a `default`-tinted alert announcing that
+     * a save just failed is `politeness="assertive"`.
+     *
+     * Named for the ARIA term rather than spelled as a role so the two
+     * spellings cannot drift: this picks `alert` vs `status`, and no
+     * `aria-live` is set alongside, because the role already implies it (the
+     * same rule `EmptyState` follows).
+     */
+    politeness?: "assertive" | "polite";
+  };
+
+function Alert({ className, variant, politeness, ...props }: AlertProps) {
+  const urgency = politeness ?? (variant && ASSERTIVE_VARIANTS.includes(variant) ? "assertive" : "polite");
+
+  return (
+    <div
+      data-slot="alert"
+      role={urgency === "assertive" ? "alert" : "status"}
+      className={cn(alertVariants({ variant }), className)}
+      // Spread last, deliberately: a caller who needs semantics this prop
+      // cannot express — `role="alertdialog"` on an actionable error, or
+      // `aria-live="off"` on an alert that is page furniture — passes the
+      // attribute directly and it wins. `politeness` is the ergonomic path,
+      // not a wall around the DOM.
+      {...props}
+    />
+  );
 }
 
 // `leading-tight`, not `leading-none`: at line-height 1 a title that wraps to

@@ -17,6 +17,12 @@ const meta = {
       options: ["default", "destructive", "info", "success", "warning"],
       description: "Visual style variant",
     },
+    politeness: {
+      control: "inline-radio",
+      options: ["assertive", "polite"],
+      description:
+        "Announcement urgency. Defaults from the variant — destructive/warning are assertive (role=alert), everything else polite (role=status). Set it only when the message's urgency disagrees with its colour.",
+    },
     className: {
       control: "text",
       description: "Additional CSS classes for the alert container",
@@ -187,6 +193,21 @@ export const WrappedTitle = () => (
   </Alert>
 );
 
+/**
+ * An actionable error — and the one shape on this page that `Alert` alone does
+ * not fully model (#298).
+ *
+ * The container is a live region, and interactive controls inside one are an
+ * anti-pattern: the buttons are read as part of the announcement, and nothing
+ * takes the user to them. An error the user is expected to ACT on is
+ * `AlertDialog` — `role="alertdialog"` plus focus management — not an alert
+ * with buttons in it. This story stays as-is because it is the shape
+ * FiestaBoard ships today, and moving it is the consumer's change, not this
+ * component's.
+ *
+ * The escape hatch is a prop spread away if the actions have to live here:
+ * `<Alert role="alertdialog" aria-label={…}>` and focus the alert on mount.
+ */
 export const ConnectionLost = () => (
   <Alert variant="destructive" className="w-full sm:w-[450px]">
     <WifiOff className="h-4 w-4" />
