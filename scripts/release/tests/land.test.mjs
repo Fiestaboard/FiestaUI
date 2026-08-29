@@ -251,3 +251,23 @@ test("a merge that lands inside the push window is retried into the safe shape",
   assert.equal(git(["rev-parse", "refs/heads/main"], repo.origin), repo.sha301);
   assert.equal(contains(runner, repo.sha301, result.commit), false);
 });
+
+test("a tag that already exists on the remote fails fast, not as a race", async (t) => {
+  const repo = fixture(t);
+  repo.pushMain(repo.sha301);
+  // A previous run of this version already put the tag on the remote.
+  git(["tag", "-a", "v5.12.3", "-m", "chore: release v5.12.3", repo.sha301], repo.dev);
+  git(["push", "origin", "refs/tags/v5.12.3"], repo.dev);
+
+  const runner = repo.checkout(repo.sha300);
+  repo.setVersion(runner, "5.12.3");
+
+  // Retrying cannot help: the same version cannot be landed twice, and npm
+  // refuses a republish anyway. Five attempts reported as "main moved under us"
+  // would bury the real cause, which is the mistake the ruleset branch above
+  // already exists to avoid.
+  await assert.rejects(
+    () => land({ version: "5.12.3", sha: repo.sha300, cwd: runner, ...silent }),
+    /already exists on origin/,
+  );
+});

@@ -49,7 +49,7 @@
 //
 //   node scripts/release/land.mjs --version=5.12.3 --sha=<gated sha>
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 
 /** `main` is still on the gated sha: commit + tag fast-forward onto it. */
 export const FAST_FORWARD = "fast-forward";
@@ -117,13 +117,20 @@ const MAX_BUFFER = 32 * 1024 * 1024;
 const capture = (cmd, args, cwd) => execFileSync(cmd, args, { cwd, encoding: "utf8", maxBuffer: MAX_BUFFER });
 const git = (args, cwd) => capture("git", args, cwd).trim();
 
-/** Run a command without throwing, keeping stdout and stderr together. */
+/**
+ * Run a command without throwing, keeping stdout and stderr together.
+ *
+ * spawnSync rather than execFileSync because git says everything worth reading
+ * on stderr: the rejection text the callers below classify, and the "new tag"
+ * confirmation worth logging. execFileSync forwards that stream to the job log
+ * itself and only hands it back on failure, so a successful push would log
+ * nothing here and a failed one would appear twice.
+ */
 function tryRun(cmd, args, cwd) {
-  try {
-    return { ok: true, output: execFileSync(cmd, args, { cwd, encoding: "utf8", maxBuffer: MAX_BUFFER }) };
-  } catch (error) {
-    return { ok: false, output: `${error.stdout ?? ""}${error.stderr ?? ""}` || String(error) };
-  }
+  const result = spawnSync(cmd, args, { cwd, encoding: "utf8", maxBuffer: MAX_BUFFER });
+  const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+  if (result.error) return { ok: false, output: `${output}${result.error.message}` };
+  return { ok: result.status === 0, output };
 }
 
 /**
