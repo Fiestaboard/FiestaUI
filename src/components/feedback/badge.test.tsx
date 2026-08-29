@@ -22,6 +22,14 @@ import { Badge } from "./badge";
  * exists for, and the thing it unclips — a focus ring — is only painted
  * while focused, so a static screenshot diff is a poor guard for it.
  * Everything else about the geometry (py-1 for 26px) stays VRT's job.
+ *
+ * The last block is a COMPILE-time suite (#299). `dismissLabel` is the
+ * dismiss button's only accessible name, and while it was optional the
+ * unnamed call type-checked. Those cases cannot be asserted at runtime —
+ * the point is that they never reach a runtime — so they are asserted with
+ * `@ts-expect-error`, which `npm run typecheck` fails on if the error ever
+ * stops being raised. Loosening the type back to two optional props breaks
+ * the build, which is the whole objective.
  */
 
 function badge(): HTMLElement {
@@ -145,5 +153,58 @@ describe("Badge", () => {
     // And it must not take the dismissible geometry either: there is no
     // button in it, so widening the pill for one would just be wrong.
     expect(screen.getByRole("link").className).not.toContain("overflow-visible");
+  });
+
+  it('never renders a dismiss button that a screen reader hears as bare "button"', () => {
+    // The runtime half of #299. The type is what makes the nameless call
+    // impossible, but this pins the invariant the type exists to protect, so
+    // it survives a refactor that moves the name somewhere else.
+    render(
+      <Badge onDismiss={vi.fn()} dismissLabel="Remove Weather">
+        Weather
+      </Badge>,
+    );
+
+    // The full name computation, not a role query: what matters is that the
+    // button's name is the LABEL and nothing else has leaked into it. The X
+    // contributes nothing (it is aria-hidden), and the badge's own text is
+    // outside the button, so `dismissLabel` really is the whole name — which
+    // is why the type may not let it be absent.
+    expect(screen.getByRole("button")).toHaveAccessibleName("Remove Weather");
+  });
+});
+
+/*
+ * The type contract (#299). Nothing here runs — `tsc --noEmit` is the
+ * assertion, and every `@ts-expect-error` below fails the build if the error
+ * it expects stops being reported.
+ */
+describe("Badge props type", () => {
+  it("makes the unnamed dismiss button unrepresentable", () => {
+    const valid = (
+      <>
+        {/* Both, or neither. Those are the only two shapes. */}
+        <Badge onDismiss={vi.fn()} dismissLabel="Remove Weather">
+          Weather
+        </Badge>
+        <Badge>Weather</Badge>
+      </>
+    );
+
+    const invalid = (
+      <>
+        {/* @ts-expect-error dismissLabel is required alongside onDismiss (#299) */}
+        <Badge onDismiss={vi.fn()}>Weather</Badge>
+        {/* @ts-expect-error a label with no button to name is a typo, not a no-op (#299) */}
+        <Badge dismissLabel="Remove Weather">Weather</Badge>
+        {/* @ts-expect-error an explicit undefined is a nameless button spelled differently */}
+        <Badge onDismiss={vi.fn()} dismissLabel={undefined}>
+          Weather
+        </Badge>
+      </>
+    );
+
+    expect(valid).toBeTruthy();
+    expect(invalid).toBeTruthy();
   });
 });

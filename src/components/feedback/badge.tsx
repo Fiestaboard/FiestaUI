@@ -34,29 +34,69 @@ const badgeVariants = cva(
   },
 );
 
+/**
+ * The dismiss pair, as a union rather than two optional props (#299).
+ *
+ * The dismiss button's entire visible content is an `aria-hidden` X glyph, so
+ * `dismissLabel` is not a nicety — it is the button's ONLY accessible name.
+ * While both props were independently optional, `<Badge onDismiss={fn}>Weather
+ * </Badge>` type-checked, `aria-label={undefined}` was dropped at runtime, and
+ * the badge shipped a control a screen reader announces as bare "button". In a
+ * row of filter chips that is "button, button, button" with no way to tell
+ * which one removes Weather and which removes Traffic (SC 4.1.2, and 2.5.3
+ * once the X is the only thing a sighted user has to go on).
+ *
+ * The JSDoc had said REQUIRED since #249. Prose is not a compiler. This makes
+ * the unnamed case unrepresentable instead — the same move `SelectionGroup`
+ * already makes for the `aria-label`/`aria-labelledby` pair, and the same
+ * principle `card.tsx` names as "what makes that drift impossible rather than
+ * merely discouraged".
+ *
+ * A DEFAULT label was the other option and is not available to this package:
+ * `IconTile` already settled that a component needing a name needs a
+ * *localized* name, and this library ships no copy of its own (§8). "Dismiss"
+ * hardcoded in English is a worse bug than no name at all, because it looks
+ * fixed.
+ *
+ * The negative arm spells both keys as `?: never` so the props stay
+ * destructurable and a stray `dismissLabel` with no `onDismiss` is caught too
+ * — a label on a button that does not exist is a typo, not a no-op.
+ *
+ * Exported because a union cannot be built up prop by prop. A call site whose
+ * dismissibility is conditional has to hold the whole pair as one value —
+ * `const dismiss: BadgeDismissProps = enabled ? { onDismiss, dismissLabel } :
+ * {}` and then `<Badge {...dismiss}>` — and without this export it would have
+ * to re-declare the union to say that.
+ */
+export type BadgeDismissProps =
+  | {
+      /**
+       * Renders a trailing dismiss button that the badge owns (#249).
+       *
+       * The badge itself stays non-interactive — it is content — so this
+       * nests exactly one control inside it and the call site nests none.
+       * That is the point: the three FiestaBoard sites this replaces each put
+       * their own `X` button inside a `Badge`, which is what #240 catalogued
+       * and what the overflow note below is about.
+       *
+       * Incompatible with `asChild`, which hands the rendered element to the
+       * caller and leaves nowhere to put the button.
+       */
+      onDismiss: () => void;
+      /**
+       * Localized accessible name for the dismiss button, e.g. "Remove
+       * Weather". Required alongside `onDismiss` and enforced by the type: an
+       * X glyph names nothing, and per the package's i18n rule this ships no
+       * copy of its own.
+       */
+      dismissLabel: string;
+    }
+  | { onDismiss?: never; dismissLabel?: never };
+
 export type BadgeProps = React.ComponentProps<"span"> &
   VariantProps<typeof badgeVariants> & {
     asChild?: boolean;
-    /**
-     * Renders a trailing dismiss button that the badge owns (#249).
-     *
-     * The badge itself stays non-interactive — it is content — so this
-     * nests exactly one control inside it and the call site nests none.
-     * That is the point: the three FiestaBoard sites this replaces each put
-     * their own `X` button inside a `Badge`, which is what #240 catalogued
-     * and what the overflow note below is about.
-     *
-     * Incompatible with `asChild`, which hands the rendered element to the
-     * caller and leaves nowhere to put the button.
-     */
-    onDismiss?: () => void;
-    /**
-     * Localized accessible name for the dismiss button, e.g. "Remove Weather".
-     * REQUIRED with `onDismiss`: an X glyph names nothing, and per the
-     * package's i18n rule this ships no copy of its own.
-     */
-    dismissLabel?: string;
-  };
+  } & BadgeDismissProps;
 
 function Badge({ className, variant, asChild = false, children, onDismiss, dismissLabel, ref, ...props }: BadgeProps) {
   const dismissible = onDismiss !== undefined && !asChild;
