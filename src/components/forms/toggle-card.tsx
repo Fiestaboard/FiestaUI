@@ -386,7 +386,17 @@ const segmentedControlItemVariants = cva(
     // Selected pills carry a little more fill than a ToggleCard (primary/10 vs
     // primary/5): the tinted area is a tenth the size, so the lighter wash
     // reads as "no fill at all" at pill scale.
-    "data-[checked]:border-primary data-[checked]:bg-primary/10 data-[checked]:text-primary",
+    //
+    // The LABEL is --brand, not --primary, and the difference is not cosmetic
+    // (#304). --primary is the literal #f5a623 tile: theme.css calls it "legal
+    // as a field, illegal as a link", and over this tint it composited to
+    // 1.72:1 on a light page against SC 1.4.3's 4.5:1 (axe measures the same
+    // pixels at 1.71). --brand is the same hue at the ink plateau, so the pill
+    // looks the same and reads at 4.78:1 light / 8.39:1 dark. The border and
+    // the fill stay --primary — a boundary and a field are graphics, and 1.4.3
+    // does not reach them. Measured in both themes by
+    // scripts/ci/tests/theme-contrast.test.mjs section 5.
+    "data-[checked]:border-primary data-[checked]:bg-primary/10 data-[checked]:text-brand",
     "disabled:pointer-events-none disabled:opacity-50",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   ],

@@ -83,10 +83,10 @@ const KNOWN_OFFENDERS = new Map([
   ],
   [
     "src/components/forms/toggle-card.tsx",
-    "Paired control recipe, plus `data-[checked]:text-primary` on the SegmentedControl label and " +
-      "`group-data-[checked]:text-primary` on the ToggleCard icon (the icon is a GRAPHIC and legal at 3:1; the " +
-      "label is not). This file is the source of truth for the #217/#240/#241/#245 selection-control PRs and is " +
-      "being edited on four other branches — retouching it here would be a guaranteed conflict.",
+    "Paired control recipe, plus `group-data-[checked]:text-primary` on the ToggleCard icon — a GRAPHIC, so " +
+      "SC 1.4.11's 3:1 applies and 1.4.3 does not. The SegmentedControl LABEL that used to share this entry is " +
+      "gone (#304): a file-level allowlist cannot tell a legal icon from an illegal label one line away, which " +
+      "is why the checked pair is now measured directly in section 5 rather than excused here.",
   ],
   [
     "src/components/containment/media-frame.tsx",
@@ -523,4 +523,125 @@ test("#228 item 1: the active nav pill clears AA in both themes", () => {
     if (ratio < 4.5) failures.push(`${theme}: ${ratio.toFixed(2)}:1`);
   }
   assert.deepEqual(failures, [], "--nav-active-foreground on --nav-active must clear 4.5:1 (SC 1.4.3)");
+});
+
+/* ------------------------------------------------------------------ *
+ * 5. #304 — the SegmentedControl's checked label, measured not asserted
+ *
+ * `SegmentedControlItem` shipped its selected label as
+ * `data-[checked]:text-primary` over a `data-[checked]:bg-primary/10` fill.
+ * `--primary` is the literal #f5a623 tile, and theme.css says in as many
+ * words that it is "legal as a field, illegal as a link": on a light page
+ * that label composited to 1.72:1, against SC 1.4.3's 4.5:1.
+ *
+ * Section 1 above could not catch it. Its check is FILE-level — toggle-card.tsx
+ * is on the KNOWN_OFFENDERS allowlist because the ToggleCard ICON is legitimately
+ * `--primary` (a graphic, 3:1) — so the allowlist entry that excused the icon
+ * also excused the label sitting one line away.
+ *
+ * Storybook's axe run could not catch it either, for a reason worth knowing:
+ * axe DOES flag it (1.71:1, `color-contrast`) — but only in LIGHT, because in
+ * dark the same pair measures 8.51:1, the tile being the light end of a dark
+ * page. ci.yml's a11y matrix has a light leg for exactly this, and it selects
+ * the theme with `--url "http://localhost:6006?globals=theme:light"` — which
+ * @storybook/test-runner resolves as `new URL("iframe.html", TARGET_URL)`,
+ * and that DROPS the query string. Both legs have been visiting
+ * `/iframe.html` with default globals, i.e. dark, twice.
+ *
+ * So this measures the pair the component actually ships, in BOTH themes,
+ * reading the tokens out of the class string rather than restating them —
+ * a future swap back to `text-primary` re-runs the arithmetic and fails here.
+ * ------------------------------------------------------------------ */
+
+/** Returns the balanced-paren body of `const <name> = cva( … )`. */
+function cvaBlock(source, name) {
+  const start = source.indexOf(`const ${name} = cva(`);
+  if (start === -1) return null;
+  let depth = 0;
+  for (let i = source.indexOf("(", start); i < source.length; i += 1) {
+    if (source[i] === "(") depth += 1;
+    else if (source[i] === ")") {
+      depth -= 1;
+      if (depth === 0) return source.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+/**
+ * Tailwind colour utilities name a token WITHOUT the `--` and without the
+ * `--color-` bridge prefix theme.css uses to publish it, so `text-brand` is
+ * `--brand`. Only the tokens this pair can legitimately reach are mapped:
+ * an unrecognised one must fail loudly rather than resolve to something.
+ */
+const SEGMENTED_TOKENS = new Map([
+  ["primary", "--primary"],
+  ["brand", "--brand"],
+  ["foreground", "--foreground"],
+  ["brand-hover", "--brand-hover"],
+]);
+
+/**
+ * The opaque surfaces a SegmentedControl mounts on: the page, a settings card,
+ * and a popover/dialog body. Deliberately NARROWER than the Badge matrix in
+ * section 2 — a Badge is inline content that lands anywhere, a segmented
+ * control is a form control that lands in a form.
+ *
+ * The boundary is real and worth stating: because the checked fill is a
+ * TRANSLUCENT tint, the label's ratio is a function of whatever is underneath,
+ * and the tint darkens a light surface. On the low-lightness neutrals
+ * (--muted, --sidebar, --secondary) the same brand label measures
+ * 4.40 / 4.34 / 4.28:1 — under 4.5:1 by a hair, and under it for ANY tint
+ * strength, since `--brand` is only 4.51:1 on bare light `--secondary` before
+ * a tint is added at all. A segmented control on one of those surfaces needs
+ * an opaque checked fill, not a different ink.
+ */
+const SEGMENTED_SURFACES = ["--background", "--card", "--popover"];
+
+const toggleCardSource = sources.get("src/components/forms/toggle-card.tsx");
+const segmentedBlock = toggleCardSource && cvaBlock(toggleCardSource, "segmentedControlItemVariants");
+const checkedInk = segmentedBlock?.match(/data-\[checked\]:text-([\w-]+)/)?.[1];
+const checkedFill = segmentedBlock?.match(/data-\[checked\]:bg-([\w-]+)\/(\d+)(?![\w/])/);
+
+test("#304: the SegmentedControl's checked pair is readable out of the component", () => {
+  // Guards the guard. Every assertion below is vacuous if the cva block was
+  // renamed, moved, or restructured — this fails instead of quietly passing.
+  assert.ok(toggleCardSource, "toggle-card.tsx moved — repoint this section");
+  assert.ok(segmentedBlock, "segmentedControlItemVariants is no longer a `const … = cva(` in toggle-card.tsx");
+  assert.ok(checkedInk, "the checked pill declares no `data-[checked]:text-*` label colour");
+  assert.ok(checkedFill, "the checked pill declares no translucent `data-[checked]:bg-*/<alpha>` fill");
+  assert.ok(
+    SEGMENTED_TOKENS.has(checkedInk),
+    `unmapped label token \`text-${checkedInk}\` — add it to SEGMENTED_TOKENS`,
+  );
+  assert.ok(
+    SEGMENTED_TOKENS.has(checkedFill[1]),
+    `unmapped fill token \`bg-${checkedFill[1]}\` — add it to SEGMENTED_TOKENS`,
+  );
+});
+
+test("#304: the SegmentedControl's checked label clears AA on every surface it ships on, in both themes", () => {
+  const alpha = Number(checkedFill[2]) / 100;
+  const failures = [];
+  for (const [theme, tokens] of [
+    ["light", lightTokens],
+    ["dark", darkTokens],
+  ]) {
+    const ink = toRgb(resolve(SEGMENTED_TOKENS.get(checkedInk), tokens));
+    const tint = toRgb(resolve(SEGMENTED_TOKENS.get(checkedFill[1]), tokens));
+    for (const surface of SEGMENTED_SURFACES) {
+      const fill = composite(tint, alpha, toRgb(resolve(surface, tokens)));
+      const ratio = contrast(ink, fill);
+      if (ratio < 4.5) failures.push(`${theme} text-${checkedInk} on ${surface}: ${ratio.toFixed(2)}:1`);
+    }
+  }
+  assert.deepEqual(
+    failures,
+    [],
+    "The selected pill's label is ordinary text (SC 1.4.3, 4.5:1) — the pill is not large text at any of the " +
+      "three sizes (12/14/14px). `--primary` is the #f5a623 tile and measures ~1.7-1.9:1 on a light page, which " +
+      "theme.css itself calls illegal as text; `--brand` is the same hue at the ink plateau and is the TEXT step. " +
+      "Note this fails in LIGHT only — the tile is the light end of a dark page — and Storybook's axe run is " +
+      "dark-by-default, so nothing downstream of this file will tell you.",
+  );
 });
