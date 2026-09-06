@@ -10,11 +10,14 @@
 //
 // The count is DERIVED, not hardcoded, so the job count tracks the suite: add
 // 200 stories and VRT earns more shards on the next run with no workflow edit.
-// The signal is the committed baseline tree, which is exact (every baseline is
-// one comparison) and free to read — no `npm ci`, no Storybook build, so the
-// planner job costs seconds and never meaningfully gates anything.
+// The signal is the story exports under src/ — baselines now live as build
+// artifacts (see docs/VISUAL_REGRESSION.md), so there is no committed tree to
+// count. Story exports predict the workload almost exactly: every CSF export
+// is one story, and every story is shot THEMES x VIEWPORTS times (610 exports
+// x 4 = 2,440 predicted vs 2,436 actual shots at migration time). Free to
+// read — no `npm ci`, no Storybook build, so the planner job costs seconds.
 //
-// Dependency-free ESM so ci.yml and vrt-update.yml can run it with bare `node`.
+// Dependency-free ESM so ci.yml can run it with bare `node`.
 //
 // Run directly to plan from the real tree and write $GITHUB_OUTPUT keys:
 //   node scripts/ci/plan-shards.mjs [--profile ci|update]
@@ -25,7 +28,16 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const BASELINES_DIR = path.join(ROOT, "vrt", "baselines");
+const SRC_DIR = path.join(ROOT, "src");
+
+/**
+ * Shots per story: THEMES x VIEWPORTS in scripts/vrt/vrt.mjs (2 x 2). Kept
+ * here as a plain number because the planner must stay dependency-free and
+ * cheap — importing vrt.mjs would drag in playwright at module scope. If the
+ * theme or viewport axes change there, change this with it; the cost of drift
+ * is shard sizing, not correctness.
+ */
+export const SHOTS_PER_STORY = 4;
 
 /**
  * Target workload per shard, and the ceiling on how many shards to ask for.
@@ -56,36 +68,14 @@ export const VRT_LIMITS = { target: 150, max: 16 };
 export const A11Y_LIMITS = { target: 150, max: 6 };
 
 /**
- * VRT's limits for the `shoot` fan-out in vrt-update.yml, as opposed to the
- * `compare` fan-out in ci.yml above.
- *
- * SAME `target` — deliberately derived rather than retyped, because the sizing
- * rule does not change: a shard should spend at least as long shooting as it
- * spends getting ready, and both fan-outs shoot at the same ~0.22s/shot behind
- * the same setup. Two independently-tuned targets would just drift.
- *
- * LOWER `max`, because the slot budget does change. A rebaseline is dispatched
- * on a branch you just pushed, so it overlaps that branch's CI run essentially
- * every time — and ci.yml on its own peaks at ~28 legs (16 VRT + 12 a11y)
- * against the org's 20 shared slots. Asking for 16 more on top guarantees the
- * shoot matrix arrives in waves: run 32664950563 spread its 16 shard starts
- * over 2m37s to save shards that only shoot for 33s each.
- *
- * The marginal runner is also worth much less than it looks. Setup is fixed at
- * ~33s, so doubling 8 shards to 16 halves shooting (65s -> 33s) but cuts total
- * shard time only 99s -> 66s. That 33s of theoretical gain was already being
- * lost four times over to the stagger it caused.
- */
-export const VRT_UPDATE_LIMITS = { target: VRT_LIMITS.target, max: 8 };
-
-/**
  * Named limit sets, so a workflow selects a policy by name instead of encoding
- * one in its own YAML. `ci` is the default and is what ci.yml plans with;
- * `update` is vrt-update.yml's.
+ * one in its own YAML. `ci` is the only profile today; it survived its sibling
+ * (`update`, retired with vrt-update.yml when baselines moved to build
+ * artifacts) because the name-not-numbers contract is what kept that
+ * retirement a one-line change.
  */
 export const PROFILES = {
   ci: { vrt: VRT_LIMITS, a11y: A11Y_LIMITS },
-  update: { vrt: VRT_UPDATE_LIMITS, a11y: A11Y_LIMITS },
 };
 
 /**
@@ -140,29 +130,30 @@ export function shardList(count) {
 }
 
 /**
- * Every baseline PNG is exactly one comparison a VRT shard performs, so the
- * file count is the shot count — not an estimate of it.
+ * Count CSF story exports in one story file's source.
  *
- * @param {string[]} relativePaths `<viewport>/<theme>/<id>.png` paths
+ * `export const Name` at line start is the CSF contract Storybook itself
+ * indexes on, so this regex tracks the real story count without executing
+ * anything. Non-story exports sneaking in (a helper exported from a stories
+ * file) would inflate the estimate by one shard at worst — sizing, not
+ * correctness.
+ *
+ * @param {string} source
  * @returns {number}
  */
-export function countVrtShots(relativePaths) {
-  return relativePaths.length;
+export function countStoryExports(source) {
+  return (source.match(/^export const [A-Za-z_$][\w$]*/gm) ?? []).length;
 }
 
 /**
- * Distinct story ids across the tree.
+ * Predicted shot count for a story total: every story renders once per
+ * theme/viewport combination.
  *
- * Counted as a set over basenames rather than by reading one `<viewport>/
- * <theme>/` directory, so a half-written or mid-migration tree still reports
- * the true story count instead of collapsing to zero and quietly dropping a11y
- * to a single shard.
- *
- * @param {string[]} relativePaths `<viewport>/<theme>/<id>.png` paths
+ * @param {number} stories
  * @returns {number}
  */
-export function countStories(relativePaths) {
-  return new Set(relativePaths.map((p) => path.posix.basename(p))).size;
+export function countVrtShots(stories) {
+  return stories * SHOTS_PER_STORY;
 }
 
 /**
@@ -188,21 +179,21 @@ export function planShards({ shots, stories }, limits = PROFILES.ci) {
 }
 
 /**
- * Inventory vrt/baselines/ as `<viewport>/<theme>/<id>.png` relative paths.
+ * Story files under src/, by the same naming convention Storybook's config
+ * globs on.
  *
- * A missing tree is not an error: baselines are seeded by a separate workflow,
- * and `vrt.mjs compare` already warns-and-passes when they are absent. This
- * returns [] so the planner degrades to one shard of each rather than failing
- * the run before the suite gets a chance to explain itself.
+ * A missing src/ is not an error — it returns [] so the planner degrades to
+ * one shard of each rather than failing the run before the suite gets a
+ * chance to explain itself.
  *
- * @returns {Promise<string[]>}
+ * @returns {Promise<string[]>} absolute paths
  */
-export async function listBaselines(dir = BASELINES_DIR) {
+export async function listStoryFiles(dir = SRC_DIR) {
   try {
     const entries = await readdir(dir, { recursive: true, withFileTypes: true });
     return entries
-      .filter((e) => e.isFile() && e.name.endsWith(".png"))
-      .map((e) => path.relative(dir, path.join(e.parentPath ?? e.path, e.name)));
+      .filter((e) => e.isFile() && /\.stories\.[cm]?[jt]sx?$/.test(e.name))
+      .map((e) => path.join(e.parentPath ?? e.path, e.name));
   } catch (err) {
     if (err.code === "ENOENT") return [];
     throw err;
@@ -223,13 +214,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(2);
   }
 
-  const files = await listBaselines();
-  const shots = countVrtShots(files);
-  const stories = countStories(files);
+  const { readFile } = await import("node:fs/promises");
+  const files = await listStoryFiles();
+  let stories = 0;
+  for (const file of files) stories += countStoryExports(await readFile(file, "utf8"));
+  const shots = countVrtShots(stories);
   const plan = planShards({ shots, stories }, limits);
 
   console.error(`Profile: ${profileName}.`);
-  console.error(`Baselines: ${shots} shot(s) across ${stories} story/stories.`);
+  console.error(`Stories: ${stories} across ${files.length} file(s) — ~${shots} predicted shot(s).`);
   console.error(
     `VRT: ${plan.vrt.count} shard(s) at ~${Math.ceil(shots / plan.vrt.count)} shots each ` +
       `(target ${limits.vrt.target}, cap ${limits.vrt.max}).`,
@@ -239,7 +232,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       `~${Math.ceil(stories / plan.a11y.count)} stories each (target ${limits.a11y.target}, cap ${limits.a11y.max}).`,
   );
   if (shots === 0) {
-    console.error("No baselines found — planning one shard each. Seed baselines to unlock sharding.");
+    console.error("No story files found — planning one shard each.");
   }
 
   console.log(`vrt_shards=${JSON.stringify(plan.vrt.list)}`);

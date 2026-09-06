@@ -1,69 +1,42 @@
 #!/usr/bin/env node
 /**
- * FiestaUI visual regression testing (VRT) harness.
+ * FiestaUI visual regression capture harness.
  *
- * Self-contained: Playwright (chromium) + pixelmatch + pngjs. No cloud services.
+ * Self-contained: Playwright (chromium). No cloud services.
  *
- * Modes (all assume a served storybook-static build, default http://localhost:6006):
+ * This harness only CAPTURES screenshots. Comparison, baselines, reports and
+ * approvals are handled by fiestaboard/visual-regression-action, which stores
+ * baselines as build artifacts from `main` — nothing is committed to git.
+ * See docs/VISUAL_REGRESSION.md for the full workflow.
+ *
+ * Usage (assumes a served storybook-static build, default http://localhost:6006):
  *
  *   node scripts/vrt/vrt.mjs shoot --out <dir> [--url <base>] [--shard i/N]
  *     Screenshot every story (desktop + mobile viewports x dark + light themes)
  *     into <dir>/<viewport>/<theme>/<id>.png. With --shard, writes only this
  *     shard's slice plus a manifest-<i>-of-<N>.json describing what the whole
- *     run should produce and what this shard produced — see `adopt`.
- *
- *   node scripts/vrt/vrt.mjs compare [--url <base>] [--shard i/N]
- *     Shoot to a temp dir, compare against committed baselines in vrt/baselines/.
- *     Failing stories get a diff image in vrt/diffs/. Exits nonzero on drift,
- *     missing baselines (new stories), or stale baselines (deleted stories,
- *     retired viewports/themes, or a leftover pre-viewport baseline layout).
- *     If vrt/baselines/ is absent or empty, warns and exits 0 (not yet seeded).
- *     With --shard, pixel-compares only this shard's slice; the whole-suite
- *     inventory checks (new/stale/stray baselines) are owned by shard 1 so they
- *     are reported exactly once per run rather than once per shard.
- *
- *   node scripts/vrt/vrt.mjs update [--url <base>]
- *     Regenerate vrt/baselines/ wholesale (stale ids are deleted).
- *
- *   node scripts/vrt/vrt.mjs adopt --from <dir>
- *     Replace vrt/baselines/ with a tree merged from sharded `shoot` runs,
- *     but ONLY after every shard's manifest proves the merge is complete.
- *     This is the sharded counterpart to `update`; see scripts/vrt/shard.mjs
- *     for why a partial tree must never be adopted silently.
+ *     run should produce and what this shard produced — the collect job uses
+ *     the manifests to prove the merged tree is complete before comparing.
  *
  * Stories listed in vrt/skip.json (exact ids or "prefix*" globs) are excluded;
  * an entry may narrow the skip to specific viewports with "viewports": [...].
- * See docs/VISUAL_REGRESSION.md for the full workflow.
  */
 
-import { cp, mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-import pixelmatch from "pixelmatch";
 import { chromium } from "playwright";
-import { PNG } from "pngjs";
 
-import {
-  buildManifest,
-  fileNameFor,
-  isInventoryOwner,
-  parseShard,
-  selectShard,
-  taskKey,
-  verifyManifests,
-} from "./shard.mjs";
+import { buildManifest, fileNameFor, parseShard, selectShard, taskKey } from "./shard.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const BASELINES_DIR = path.join(ROOT, "vrt", "baselines");
-const DIFFS_DIR = path.join(ROOT, "vrt", "diffs");
 const SKIP_FILE = path.join(ROOT, "vrt", "skip.json");
 
 const THEMES = ["dark", "light"];
 // Baselines are keyed by viewport, so these names are part of the on-disk
-// layout: vrt/baselines/<viewport>/<theme>/<story-id>.png. Renaming, adding or
+// layout: <viewport>/<theme>/<story-id>.png in the shot tree. Renaming, adding or
 // removing one invalidates that viewport's baselines and requires an update run.
 const VIEWPORTS = {
   desktop: { width: 1200, height: 800 },
@@ -75,22 +48,19 @@ const SETTLE_MS = 350;
 const POST_FREEZE_MS = 100;
 const NAV_TIMEOUT_MS = 30_000;
 
-// Per-pixel color threshold for pixelmatch (0..1, smaller = stricter).
-const PIXEL_THRESHOLD = 0.1;
-// A story fails when diffPixels > max(MIN_DIFF_PIXELS, DIFF_RATIO * totalPixels).
-const MIN_DIFF_PIXELS = 50;
-const DIFF_RATIO = 0.0005; // 0.05%
+// Comparison tolerances live in ci.yml as inputs to
+// fiestaboard/visual-regression-action (threshold / diff-ratio), which took
+// over from this harness's old in-repo compare. Keep them in sync there.
 
 const FREEZE_CSS = `*,*::before,*::after{animation-play-state:paused!important;animation-delay:0s!important;transition:none!important;caret-color:transparent!important}`;
 
 const log = (msg) => process.stdout.write(`${msg}\n`);
 
 function parseArgs(argv) {
-  const args = { mode: argv[2], url: "http://localhost:6006", out: null, from: null, shard: null };
+  const args = { mode: argv[2], url: "http://localhost:6006", out: null, shard: null };
   for (let i = 3; i < argv.length; i++) {
     if (argv[i] === "--url") args.url = argv[++i];
     else if (argv[i] === "--out") args.out = argv[++i];
-    else if (argv[i] === "--from") args.from = argv[++i];
     else if (argv[i] === "--shard") args.shard = argv[++i];
     else {
       console.error(`Unknown argument: ${argv[i]}`);
@@ -293,300 +263,16 @@ async function shoot(baseUrl, outDir, shard = null) {
   return { idsByViewport, tasks };
 }
 
-function padTo(png, width, height) {
-  if (png.width === width && png.height === height) return png;
-  const out = new PNG({ width, height });
-  PNG.bitblt(png, out, 0, 0, png.width, png.height, 0, 0);
-  return out;
-}
-
-function comparePair(expectedBuf, actualBuf) {
-  const expected = PNG.sync.read(expectedBuf);
-  const actual = PNG.sync.read(actualBuf);
-  const width = Math.max(expected.width, actual.width);
-  const height = Math.max(expected.height, actual.height);
-  const sizeMismatch = expected.width !== actual.width || expected.height !== actual.height;
-  const a = padTo(expected, width, height);
-  const b = padTo(actual, width, height);
-  const diff = new PNG({ width, height });
-  const diffPixels = pixelmatch(a.data, b.data, diff.data, width, height, { threshold: PIXEL_THRESHOLD });
-  const budget = Math.max(MIN_DIFF_PIXELS, Math.round(width * height * DIFF_RATIO));
-  return { diffPixels, budget, sizeMismatch, diffPng: diff, failed: sizeMismatch || diffPixels > budget };
-}
-
-async function readdirSafe(dir) {
-  try {
-    return await readdir(dir, { withFileTypes: true });
-  } catch (err) {
-    if (err.code === "ENOENT") return [];
-    throw err;
-  }
-}
-
-/**
- * Inventory vrt/baselines/ under the <viewport>/<theme>/<id>.png layout.
- *
- * Also reports anything on disk that the layout does not account for — a
- * retired viewport or theme directory, or the pre-viewport layout where the
- * theme dirs sat at the top level. Those surface as stale-baseline failures so
- * a half-migrated baseline tree can never quietly pass.
- */
-async function listBaselineFiles() {
-  const files = {};
-  const strays = [];
-  for (const viewport of VIEWPORT_NAMES) {
-    files[viewport] = {};
-    for (const theme of THEMES) {
-      files[viewport][theme] = (await readdirSafe(path.join(BASELINES_DIR, viewport, theme)))
-        .filter((e) => e.isFile() && e.name.endsWith(".png"))
-        .map((e) => e.name);
-    }
-    for (const entry of await readdirSafe(path.join(BASELINES_DIR, viewport))) {
-      if (!(entry.isDirectory() && THEMES.includes(entry.name))) strays.push(`${viewport}/${entry.name}`);
-    }
-  }
-  for (const entry of await readdirSafe(BASELINES_DIR)) {
-    if (!(entry.isDirectory() && VIEWPORT_NAMES.includes(entry.name))) strays.push(entry.name);
-  }
-  const total = VIEWPORT_NAMES.reduce((n, v) => n + THEMES.reduce((m, t) => m + files[v][t].length, 0), 0);
-  return { files, strays, total };
-}
-
-async function compare(baseUrl, shard = null) {
-  const { files: baselineFiles, strays, total } = await listBaselineFiles();
-  if (total === 0 && strays.length === 0) {
-    console.warn(
-      "vrt: no baselines seeded yet — run the 'VRT Update Baselines' workflow (or `npm run vrt:update`) to seed vrt/baselines/. Skipping comparison.",
-    );
-    return;
-  }
-  if (total === 0 && strays.length > 0) {
-    // Every expected <viewport>/<theme> dir is empty yet vrt/baselines/ is not:
-    // the tree predates the viewport layout (or names a viewport we no longer
-    // shoot). Fail loudly instead of falling through to the "not seeded" warning.
-    console.error(
-      `vrt: vrt/baselines/ does not match the expected <viewport>/<theme>/ layout ` +
-        `(viewports: ${VIEWPORT_NAMES.join(", ")}; themes: ${THEMES.join(", ")}).\n` +
-        `  Unrecognized entries: ${strays.join(", ")}\n` +
-        `  Run the VRT update workflow to regenerate baselines under the current layout.`,
-    );
-    process.exit(1);
-  }
-
-  const tempDir = await mkdtemp(path.join(os.tmpdir(), "fiestaui-vrt-"));
-  const failures = [];
-  try {
-    const { idsByViewport, tasks } = await shoot(baseUrl, tempDir, shard);
-    await rm(DIFFS_DIR, { recursive: true, force: true });
-
-    const present = Object.fromEntries(
-      VIEWPORT_NAMES.map((v) => [v, Object.fromEntries(THEMES.map((t) => [t, new Set(baselineFiles[v][t])]))]),
-    );
-
-    // Whole-suite inventory: which baselines SHOULD exist versus which do.
-    // This needs every story, not this shard's slice, and every shard has that
-    // list — so exactly one shard runs it. All of them running would print each
-    // failure once per shard; none running would silently drop the check that
-    // catches a story deleted without a rebaseline.
-    if (isInventoryOwner(shard)) {
-      for (const stray of strays) {
-        failures.push(
-          `[${stray}]: stale baseline path — not a <viewport>/<theme>/ directory. Run the VRT update workflow.`,
-        );
-      }
-      for (const viewport of VIEWPORT_NAMES) {
-        for (const theme of THEMES) {
-          const scope = `${viewport}/${theme}`;
-          const orphans = new Set(present[viewport][theme]);
-          for (const id of idsByViewport[viewport]) {
-            const name = fileNameFor(id);
-            if (orphans.delete(name)) continue;
-            failures.push(`[${scope}] ${id}: new story — no baseline. Run the VRT update workflow.`);
-          }
-          for (const orphan of orphans) {
-            failures.push(
-              `[${scope}] ${orphan}: stale baseline — story no longer exists. Run the VRT update workflow.`,
-            );
-          }
-        }
-      }
-    }
-
-    // This shard's pixel comparisons. A story with no baseline is skipped
-    // rather than reported here — the inventory owner above already named it,
-    // and re-reporting it from whichever shard happened to draw it would
-    // duplicate the failure for shard 1 and only shard 1.
-    for (const { id, theme, viewport } of tasks) {
-      const scope = `${viewport}/${theme}`;
-      const name = fileNameFor(id);
-      if (!present[viewport][theme].has(name)) continue;
-      const baselinePath = path.join(BASELINES_DIR, viewport, theme, name);
-      const actualPath = path.join(tempDir, viewport, theme, name);
-      const result = comparePair(await readFile(baselinePath), await readFile(actualPath));
-      if (result.failed) {
-        const diffDir = path.join(DIFFS_DIR, viewport, theme);
-        await mkdir(diffDir, { recursive: true });
-        const stem = name.replace(/\.png$/, "");
-        await writeFile(path.join(diffDir, `${stem}.diff.png`), PNG.sync.write(result.diffPng));
-        await writeFile(path.join(diffDir, `${stem}.actual.png`), await readFile(actualPath));
-        await writeFile(path.join(diffDir, `${stem}.expected.png`), await readFile(baselinePath));
-        const why = result.sizeMismatch
-          ? "size mismatch"
-          : `${result.diffPixels} pixels differ (budget ${result.budget})`;
-        failures.push(`[${scope}] ${id}: ${why}`);
-      }
-    }
-  } finally {
-    await rm(tempDir, { recursive: true, force: true });
-  }
-
-  const label = shard ? `shard ${shard.index}/${shard.total}` : "all stories";
-  if (failures.length > 0) {
-    console.error(`\nvrt (${label}): ${failures.length} failure(s):`);
-    for (const f of failures) console.error(`  ${f}`);
-    console.error("\nDiff images written to vrt/diffs/. If the change is intentional, run the VRT update workflow.");
-    process.exit(1);
-  }
-  log(`vrt: ${label} match baselines`);
-}
-
-async function update(baseUrl) {
-  // Shoot to a temp dir first so a mid-run crash never destroys the old baselines.
-  const tempDir = await mkdtemp(path.join(os.tmpdir(), "fiestaui-vrt-update-"));
-  try {
-    await shoot(baseUrl, tempDir);
-    await rm(BASELINES_DIR, { recursive: true, force: true });
-    await mkdir(path.dirname(BASELINES_DIR), { recursive: true });
-    await rename(tempDir, BASELINES_DIR).catch(async (err) => {
-      // Cross-device rename fallback (temp dir on a different filesystem).
-      if (err.code !== "EXDEV") throw err;
-      const { cp } = await import("node:fs/promises");
-      await cp(tempDir, BASELINES_DIR, { recursive: true });
-    });
-    // The rm above is what purges stale ids — and, on a layout change, any
-    // directory that is no longer a <viewport>/<theme> pair. Regeneration is
-    // always wholesale, so the tree can never be left half-migrated.
-    log(`vrt: baselines updated in ${path.relative(ROOT, BASELINES_DIR)}/<viewport>/<theme>/`);
-  } finally {
-    await rm(tempDir, { recursive: true, force: true });
-  }
-}
-
-/** Every `<viewport>/<theme>/<file>.png` under `dir`, as taskKey-shaped paths. */
-async function listShotFiles(dir) {
-  const found = new Set();
-  for (const viewport of await readdirSafe(dir)) {
-    if (!viewport.isDirectory()) continue;
-    for (const theme of await readdirSafe(path.join(dir, viewport.name))) {
-      if (!theme.isDirectory()) continue;
-      for (const file of await readdirSafe(path.join(dir, viewport.name, theme.name))) {
-        if (file.isFile() && file.name.endsWith(".png")) found.add(`${viewport.name}/${theme.name}/${file.name}`);
-      }
-    }
-  }
-  return found;
-}
-
-/**
- * Replace vrt/baselines/ with a tree merged from sharded `shoot` runs — the
- * sharded counterpart to `update`.
- *
- * Adoption is all-or-nothing, and the verification in front of it is the whole
- * reason this mode exists rather than a plain `mv`. Baselines are regenerated
- * wholesale, so a shard whose artifact silently failed to upload would commit
- * a tree with holes — and the next `compare` reads a hole as "new story, no
- * baseline", which looks exactly like a story someone just added. Nobody would
- * connect that to a seeding run three days earlier.
- *
- * So: the manifests must account for every shard, agree with each other, and
- * their union must equal the expected set — and every file they promise must
- * actually be on disk.
- */
-async function adopt(fromDir) {
-  const entries = await readdirSafe(fromDir);
-  const manifestNames = entries.filter((e) => e.isFile() && /^manifest-\d+-of-\d+\.json$/.test(e.name));
-  const manifests = [];
-  for (const entry of manifestNames) {
-    manifests.push(JSON.parse(await readFile(path.join(fromDir, entry.name), "utf8")));
-  }
-
-  const { total, expected, errors } = verifyManifests(manifests);
-
-  // The manifests agreeing among themselves is not enough — they describe what
-  // each shard *believed* it wrote. Cross-check against the bytes that arrived.
-  const onDisk = await listShotFiles(fromDir);
-  for (const key of expected) {
-    if (!onDisk.has(key)) errors.push(`Manifest promises ${key} but no such file arrived.`);
-  }
-  for (const key of onDisk) {
-    if (!expected.includes(key)) errors.push(`Merged tree contains ${key}, which no shard expected.`);
-  }
-
-  if (errors.length > 0) {
-    // Capped: one missing shard means every file it owned is missing, which is
-    // hundreds of lines saying the same thing. The structural errors (missing
-    // manifests, disagreeing shards) are pushed first and are the ones worth
-    // reading, so truncating the tail costs nothing diagnostically.
-    const SHOWN = 20;
-    console.error(`vrt: refusing to adopt an incomplete baseline tree — ${errors.length} problem(s):`);
-    for (const e of errors.slice(0, SHOWN)) console.error(`  ${e}`);
-    if (errors.length > SHOWN) console.error(`  ...and ${errors.length - SHOWN} more.`);
-    console.error(
-      `\nFound ${manifests.length} manifest(s) and ${onDisk.size} image(s) in ${fromDir}.\n` +
-        "Re-run the seeding workflow; do NOT hand-merge, a partial tree is indistinguishable from new stories later.",
-    );
-    process.exit(1);
-  }
-
-  // Staged into a temp dir and swapped, so a crash mid-copy cannot leave
-  // vrt/baselines/ half-written — same guarantee `update` gives.
-  const staged = await mkdtemp(path.join(os.tmpdir(), "fiestaui-vrt-adopt-"));
-  try {
-    // Copies exactly the verified set, which is also what drops the
-    // manifest-*.json files: they are build bookkeeping, not baselines, and
-    // committing them would make every seeding run diff-noisy.
-    for (const key of expected) {
-      const dest = path.join(staged, key);
-      await mkdir(path.dirname(dest), { recursive: true });
-      await cp(path.join(fromDir, key), dest);
-    }
-    await rm(BASELINES_DIR, { recursive: true, force: true });
-    await mkdir(path.dirname(BASELINES_DIR), { recursive: true });
-    await rename(staged, BASELINES_DIR).catch(async (err) => {
-      if (err.code !== "EXDEV") throw err;
-      await cp(staged, BASELINES_DIR, { recursive: true });
-    });
-    log(
-      `vrt: adopted ${expected.length} baseline(s) from ${total} shard(s) into ${path.relative(ROOT, BASELINES_DIR)}/`,
-    );
-  } finally {
-    await rm(staged, { recursive: true, force: true });
-  }
-}
-
 async function main() {
-  const { mode, url, out, from, shard } = parseArgs(process.argv);
+  const { mode, url, out, shard } = parseArgs(process.argv);
   if (mode === "shoot") {
     if (!out) {
       console.error("shoot requires --out <dir>");
       process.exit(2);
     }
     await shoot(url, path.resolve(out), shard);
-  } else if (mode === "compare") {
-    await compare(url, shard);
-  } else if (mode === "update") {
-    await update(url);
-  } else if (mode === "adopt") {
-    if (!from) {
-      console.error("adopt requires --from <dir>");
-      process.exit(2);
-    }
-    await adopt(path.resolve(from));
   } else {
-    console.error(
-      "Usage: node scripts/vrt/vrt.mjs <shoot --out <dir>|compare|update|adopt --from <dir>> " +
-        "[--url <base>] [--shard <i/N>]",
-    );
+    console.error("Usage: node scripts/vrt/vrt.mjs shoot --out <dir> [--url <base>] [--shard <i/N>]");
     process.exit(2);
   }
 }

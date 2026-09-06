@@ -1,8 +1,8 @@
 # Visual Regression Testing
 
-Every Storybook story has a screenshot baseline at **two viewports** (desktop and mobile) in **both themes** (dark and light) — four shots per story. CI re-screenshots every story on each PR and fails when a story's rendering drifts from its committed baseline. Intentional changes are absorbed by regenerating the baselines.
+Every Storybook story is screenshotted at **two viewports** (desktop and mobile) in **both themes** (dark and light) — four shots per story. CI re-screenshots every story on each PR and compares against a **baseline published by `main`'s latest build**, failing when a story's rendering drifts. Intentional changes are accepted from the PR itself — a checkbox or a `/vrt approve` comment — and merging publishes the new baseline automatically.
 
-The harness is fully self-contained — Playwright (chromium) + [pixelmatch](https://github.com/mapbox/pixelmatch) + pngjs. No cloud services.
+Capture is our own harness — Playwright (chromium), self-contained, no cloud services. Comparison, reporting, and approvals are [`fiestaboard/visual-regression-action`](https://github.com/Fiestaboard/visual-regression-action), which stores baselines as **build artifacts, not files in git**. The repo carries no screenshots; `vrt/` holds only `skip.json`.
 
 ## Viewports
 
@@ -11,43 +11,48 @@ The harness is fully self-contained — Playwright (chromium) + [pixelmatch](htt
 | `desktop` | 1200×800 | The original single viewport; matches the app's primary layout      |
 | `mobile`  | 390×844  | iPhone 12/13/14-class logical size — the width FiestaBoard ships to |
 
-Both are declared in one place, `VIEWPORTS` in `scripts/vrt/vrt.mjs`, and mirrored into the Storybook viewport toolbar (`.storybook/preview.tsx`) under the same names, so what you eyeball in the toolbar is the geometry CI diffs against. **The viewport keys are part of the on-disk baseline layout** — renaming, adding, or removing one invalidates that viewport's baselines and requires an update run.
+Both are declared in one place, `VIEWPORTS` in `scripts/vrt/vrt.mjs`, and mirrored into the Storybook viewport toolbar (`.storybook/preview.tsx`) under the same names, so what you eyeball in the toolbar is the geometry CI diffs against. The viewport keys are part of the screenshot tree layout (`<viewport>/<theme>/<id>.png`), so renaming one shows up as every shot under it being removed+added.
 
 ## How it works
 
-- Baselines live in `vrt/baselines/<viewport>/<theme>/<story-id>.png`, committed to the repo — e.g. `vrt/baselines/mobile/dark/ui-alert--default.png`.
-- The `Visual Regression` CI jobs build Storybook, serve `storybook-static`, then each run `npm run vrt -- --shard <i>/<N>`:
-  1. Reads `index.json` from the served build and screenshots **every** story (docs pages excluded) at every viewport in dark and light via `iframe.html?globals=theme:<theme>&id=<id>`.
-  2. Compares each shot against its baseline with pixelmatch (per-pixel threshold `0.1`; a story fails when more than `max(50, 0.05% of pixels)` differ, or on size mismatch).
-  3. Failures write `<id>.diff.png` (plus `.actual.png` / `.expected.png`) into `vrt/diffs/<viewport>/<theme>/`, uploaded as the `vrt-diffs-<shard>` CI artifact (one per shard — download them all with `gh run download -p 'vrt-diffs-*'`).
-- Failure lines are scoped `[<viewport>/<theme>] <story-id>: …`, so a mobile-only regression is obvious from the log.
-- A story with **no baseline** fails as "new story — run update". A baseline with **no matching story** fails as "stale baseline". A directory under `vrt/baselines/` that isn't a known `<viewport>/<theme>` pair — including the pre-viewport layout, where the theme dirs sat at the top level — fails as "stale baseline path", so a half-migrated baseline tree can never quietly pass.
-- If `vrt/baselines/` doesn't exist or is empty, `compare` warns and exits 0, so CI stays green until baselines are first seeded.
+- On every push to `main`, CI shoots all stories and publishes the tree as a `vrt-baseline` artifact (14-day retention; see "Recovering baselines" for what happens when it lapses).
+- On every PR, CI shoots the same tree and hands it to the action's compare mode, which:
+  1. Downloads the newest `vrt-baseline` artifact from a `main` run.
+  2. Diffs per shot with pixelmatch — per-pixel threshold `0.1`, and a shot counts as changed when more than `0.05%` of its pixels differ (the same tolerances the old in-repo compare shipped with, now set as `threshold` / `diff-ratio` inputs in `ci.yml`).
+  3. Posts/updates a sticky PR comment — counts, per-shot table, pre-typed approval commands, an **Approve all** checkbox — writes the run's step summary, and uploads a single-file HTML **report artifact** (`vrt-report`) with side-by-side, swipe, overlay, and blink views plus a keyboard-driven review mode.
+  4. Fails the `Visual Regression` job when any shot changed or went missing **and hasn't been approved**.
+- Added stories never fail (there is nothing to compare against); removed shots do, because a disappearing screenshot is indistinguishable from a broken capture until a human says otherwise.
+- If no baseline artifact exists (first run, or retention lapsed), the compare reports everything as new and passes; the next `main` build reseeds.
+
+### Accepting an intentional change
+
+Everything happens on the PR:
+
+1. The red check's comment lists what changed, with a **Download the visual report** link for reviewing (swipe/overlay/blink each change; the report assembles a precise `/vrt approve` command as you approve/reject).
+2. Accept with any of:
+   - **The checkbox** in the comment (approve everything at the current commit) — one click; only write-access users can tick it.
+   - `/vrt approve all` as a comment (valid until the next push).
+   - The per-shot command the report generated (commit-pinned, e.g. `/vrt approve ui-alert--default.png@ab12cd3 …`).
+3. The `VRT approvals` workflow reruns the failed check automatically (👀 on your comment, then a receipt comment that updates with the outcome). Approvals pin the commit, so pushing again invalidates them.
+4. Merge. `main` rebuilds and publishes the new baseline — no rebaseline workflow, no `chore(vrt)` commits, no baseline diffs in review.
 
 ### Sharding
 
 Both VRT and the Storybook a11y run are split across parallel CI jobs, and the job count is **derived, not configured** — add stories and the suites widen on the next run with no workflow edit.
 
-- `plan-shards` (a few seconds, no `npm ci`) counts `vrt/baselines/**/*.png` and divides by a per-shard target. The rule and its constants live in `scripts/ci/plan-shards.mjs`; the baseline count is exact for VRT, since every baseline is precisely one comparison.
+- `plan-shards` (a few seconds, no `npm ci`) counts CSF story exports under `src/**/*.stories.*` and multiplies by the theme×viewport fan-out (`SHOTS_PER_STORY`). The rule and its constants live in `scripts/ci/plan-shards.mjs`. The count is an estimate rather than the exact tree the old committed-baseline signal gave — good to within a shard, and drift costs sizing, not correctness.
 - VRT shards slice the shot list by **stride** (`i % N`), not contiguous chunks. The list is grouped viewport-then-theme, so contiguous slices would hand one shard every desktop shot and another every mobile shot — different costs, and the suite is only as fast as its slowest shard.
-- **Shard 1 owns the whole-suite inventory checks** (new, stale, and stray baselines). Those need the full story list rather than one slice, and every shard has it — so exactly one must run them. All of them reporting would print each failure N times; none reporting would silently drop the check that catches a story deleted without a rebaseline. A shard that draws a story with no baseline skips it rather than re-reporting it.
-- A11y uses the test runner's own `--shard` flag (it is Jest underneath), so it needs no harness code. Its matrix is `theme x shard`, because the theme is a Storybook global baked into the URL rather than a test filter.
+- The shoot matrix is `fail-fast: true`: shards produce screenshots for **one** `vrt-report` job rather than verdicts of their own, and that job requires every slice. Each shard writes a `manifest-<i>-of-<N>.json`; `vrt-report` runs `scripts/vrt/verify-shots.mjs` and refuses a merged tree the manifests don't fully account for — a missing shard would otherwise read as "these stories were removed".
+- A11y uses the test runner's own `--shard` flag (it is Jest underneath), so it needs no harness code. Its matrix is `theme x shard`, and it keeps `fail-fast: false` because each of its shards reports real findings of its own.
 - The shard count is **capped** (see `VRT_LIMITS` / `A11Y_LIMITS`). The org is on GitHub Free — 20 concurrent jobs shared across every repo — so past the cap shards get larger rather than more numerous. Coverage never changes; only wall clock does.
-- All three Playwright jobs — `visual-regression`, `a11y-tests`, and vrt-update.yml's `shoot` — get their environment from one composite action, [`.github/actions/storybook-browser`](../.github/actions/storybook-browser/action.yml). Sharing it is not only DRY: a baseline is only useful if the run that _checks_ it renders in the same environment as the run that _recorded_ it, and one definition makes that true by construction rather than by three files agreeing.
-
-Because shard sizing reads the committed baselines, seeding a repo with none yet plans a single shard and runs unsharded. That is correct rather than unfortunate — there is no workload to measure — and it self-corrects on the next run.
-
-#### Why the fan-outs are not the same width
-
-`compare` (ci.yml) plans with the `ci` profile; `shoot` (vrt-update.yml) plans with `--profile update`. Same per-shard sizing rule, smaller slot budget — `node scripts/ci/plan-shards.mjs --profile update` prints what either would pick.
-
-The reason is that **setup is paid by every shard, not amortised across them**. A shard spends ~33s getting ready (checkout, `npm ci`, cached Chromium, Storybook build, serve) and ~0.22s per shot, so the fan-out can never beat 33s no matter how wide it goes. Once a shard shoots for about as long as it prepares, more runners buy seconds — while competing for those 20 shared slots against the CI run a rebaseline always overlaps, because you dispatch it on a branch you just pushed. Measured on run `32664950563`: 16 shards took 2m37s just to _start_, to save shards that shoot for 33s each.
-
-So `update` caps at 8. Shards get larger, never fewer shots — the same property the `ci` cap relies on.
+- Both Playwright jobs — `visual-regression` (shoot) and `a11y-tests` — get their environment from one composite action, [`.github/actions/storybook-browser`](../.github/actions/storybook-browser/action.yml). Sharing it is not only DRY: a baseline is only useful if the run that _checks_ it renders in the same environment as the run that _recorded_ it, and one definition makes that true by construction.
+- The merge queue **skips** the visual jobs: the gate is enforced on the PR, where the report comment and approvals live. A queue entry has no PR context to read approvals from, so replaying the gate there could only fail on capture noise a reviewer already cleared.
 
 ### Determinism measures
 
 Screenshots use one Playwright context per viewport at `deviceScaleFactor: 1`, wait for fonts + network idle + a settle delay, emulate `prefers-reduced-motion: reduce`, and then inject CSS that pauses all animations/transitions and hides the caret before capturing the `#storybook-root` element.
+
+Byte-level determinism across runs is **not** assumed anywhere: approvals pin commits rather than image bytes, and the comparison tolerances absorb sub-pixel rasterization jitter between runners.
 
 ### Writing stories that survive the mobile viewport
 
@@ -55,38 +60,23 @@ Screenshots use one Playwright context per viewport at `deviceScaleFactor: 1`, w
 
 Size demo wrappers `w-full sm:w-[Npx]` instead. Below the `sm` breakpoint the box is fluid and the story reflows to the phone; at and above it the declaration is literally `width: Npx`, so desktop rendering — and its baseline — is untouched.
 
-## Updating baselines (canonical: the workflow)
+## Recovering baselines
 
-**Baselines are generated on Linux CI runners.** Local macOS/Windows screenshots differ in font rasterization and antialiasing, so shots taken on your machine will never match CI's baselines. Do **not** commit baselines generated locally.
-
-When a PR intentionally changes how something renders:
-
-1. Push the branch.
-2. Run the **VRT Update Baselines** workflow (Actions → VRT Update Baselines → Run workflow → pick your branch), or: `gh workflow run vrt-update.yml --ref <branch>`.
-3. The workflow fans out (`plan` -> `shoot` matrix -> `adopt`), regenerates `vrt/baselines/` wholesale (stale ids deleted), and pushes a `chore(vrt): update visual baselines` commit to your branch.
-
-   `adopt` will not write anything unless every shard's `manifest-<i>-of-<N>.json` accounts for every shot. This matters because regeneration is wholesale: a shard whose artifact never arrived would otherwise commit a tree with holes, and the next `compare` reads a hole as "new story, no baseline" — indistinguishable from a story someone just added, days after the seeding run that caused it.
-
-4. CI re-runs on that commit and should now be green.
-
-The same workflow seeds baselines for the first time (run it on `main`).
+Baseline artifacts expire with retention (14 days, refreshed by every `main` build). If `main` has been quiet long enough for the baseline to lapse, PRs report everything as "new" and pass — nothing breaks, but the visual gate is napping. To reseed on demand: **Actions → CI → Run workflow on `main`** (or `gh workflow run ci.yml --ref main`). A manual run publishes a fresh baseline instead of comparing.
 
 ## Running locally
 
-Local runs prove mechanics and let you eyeball diffs, but (per above) are not baseline-parity — expect widespread small font diffs against CI-generated baselines on macOS.
+Local runs prove mechanics and let you eyeball rendering, but macOS/Windows font rasterization differs from the Linux runners, so local shots are not comparable to CI baselines. Comparison itself only happens in CI, where both sides render in the same environment.
 
 ```sh
 npm run build-storybook
 npm run vrt:serve          # serves storybook-static on :6007 (leave :6006 to the dev server)
-npm run vrt -- --url http://localhost:6007          # compare against committed baselines
-npm run vrt:update -- --url http://localhost:6007   # regenerate baselines locally (don't commit)
-node scripts/vrt/vrt.mjs shoot --out /tmp/shots --url http://localhost:6007   # raw screenshots
+npm run vrt:shoot -- --out /tmp/shots --url http://localhost:6007   # raw screenshots
 
 # One shard's slice — the same thing a single CI job does. Handy for iterating
 # on a subset: a high N keeps the run short.
-npm run vrt -- --url http://localhost:6007 --shard 1/40
-node scripts/ci/plan-shards.mjs                    # what CI's `compare` would pick for the current tree
-node scripts/ci/plan-shards.mjs --profile update   # what the update workflow's `shoot` would pick
+npm run vrt:shoot -- --out /tmp/shots --url http://localhost:6007 --shard 1/40
+node scripts/ci/plan-shards.mjs   # what CI would plan for the current story count
 ```
 
 ## Skipping flaky stories: `vrt/skip.json`
@@ -109,15 +99,13 @@ Values must be viewport keys from the table above; an unknown key is a hard erro
 
 ## Failure triage cheat sheet
 
-Every failure line is prefixed `[<viewport>/<theme>]`. If a story fails at `mobile/*` but not `desktop/*`, the regression is responsive — the story or component does not reflow — not a rendering drift.
+The report groups shots as `<viewport>/<theme>/<story-id>.png`. If a story fails at `mobile/*` but not `desktop/*`, the regression is responsive — the story or component does not reflow — not a rendering drift.
 
-| CI message                             | Meaning                                               | Fix                                                                                        |
-| -------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `N pixels differ`                      | Rendering drifted                                     | Unintended → fix the code. Intended → run the update workflow                              |
-| `new story — no baseline`              | Story added without a baseline                        | Run the update workflow on your branch                                                     |
-| `stale baseline`                       | Story removed/renamed                                 | Run the update workflow on your branch                                                     |
-| `stale baseline path`                  | `vrt/baselines/` holds a non-`<viewport>/<theme>` dir | Baselines predate the current viewport layout — run the update workflow to regenerate them |
-| `size mismatch`                        | Story's rendered box resized                          | Same as pixel drift — fix or update                                                        |
-| `size mismatch` at `mobile/*` only     | Story sets a hard pixel width and cannot reflow       | Re-author the wrapper as `w-full sm:w-[Npx]` (see above); desktop is unaffected            |
-| `no baselines seeded yet`              | `vrt/baselines/` empty (warn)                         | Run the update workflow on `main` to seed                                                  |
-| `does not match the expected … layout` | Only unrecognized dirs under `vrt/baselines/`         | Same — the tree predates the viewport layout; run the update workflow                      |
+| Report says                          | Meaning                                          | Fix                                                                             |
+| ------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Changed (N%)                         | Rendering drifted                                | Unintended → fix the code. Intended → approve from the PR comment or report     |
+| Added                                | New story (or renamed) — no baseline yet         | Nothing to do; the merge publishes its baseline                                 |
+| Removed                              | Story deleted/renamed, or its capture broke      | Expected → approve it. Unexpected → find out why the story stopped rendering    |
+| Changed at `mobile/*` only           | Story sets a hard pixel width and cannot reflow  | Re-author the wrapper as `w-full sm:w-[Npx]` (see above); desktop is unaffected |
+| "No baseline found — everything new" | Baseline artifact expired or never seeded (warn) | Run the CI workflow manually on `main` to reseed                                |
+| `Verify every shard delivered` red   | A shoot shard's artifact never arrived           | Re-run the failed jobs; the report never compares a partial tree                |

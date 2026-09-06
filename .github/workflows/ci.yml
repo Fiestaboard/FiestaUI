@@ -12,16 +12,17 @@ on:
   #
   # Testing that commit is the entire point. release.yml's header already names
   # the hazard this closes: the PR check tests the PR head, not the merge
-  # result, so two independently green PRs can combine into a red `main`. This
-  # repo is unusually exposed to it because `vrt/baselines/` is committed —
-  # PR A changing a token silently invalidates PR B's baselines, and neither
-  # PR is red on its own.
+  # result, so two independently green PRs can combine into a red `main`.
+  # (The visual suite sits this out — see visual-regression's `if` — its gate
+  # lives on the PR, where the report comment and approvals are.)
   merge_group:
-  # Manual runs of the full suite. The baseline-seeding input that used to live
-  # here is gone: it existed only because vrt-update.yml could not be dispatched
-  # until it reached the default branch, which it has. Seeding and rebaselining
-  # are vrt-update.yml's job, and duplicating them here would mean maintaining
-  # two sharded fan-outs that rewrite the same tree.
+  # Manual runs of the full suite — which doubles as the visual-baseline
+  # recovery lever: on a manual run, vrt-report publishes a fresh vrt-baseline
+  # artifact instead of comparing (the action treats workflow_dispatch as
+  # baseline mode). Baselines expire with artifact retention, so if main has
+  # been quiet too long, "Run workflow" on main reseeds them. This replaced
+  # vrt-update.yml, which existed to regenerate the committed baseline tree —
+  # there is no committed tree anymore.
   workflow_dispatch:
 
 jobs:
@@ -406,48 +407,92 @@ jobs:
           npm run test-storybook:ci -- --url "$URL" --shard "${SHARD}/${SHARD_TOTAL}"
 
   visual-regression:
-    name: Visual Regression (${{ matrix.shard }}/${{ needs.plan-shards.outputs.vrt_shard_count }})
+    name: VRT Shoot (${{ matrix.shard }}/${{ needs.plan-shards.outputs.vrt_shard_count }})
     runs-on: ubuntu-latest
-    # Was 35 for one job shooting all ~2,100 shots. A shard shoots ~1/N of them
-    # behind the same ~65s of setup, and the planner caps N so a shard never
-    # carries more than ~150 shots (~40s of shooting) unless the cap binds.
     timeout-minutes: 15
     needs: [changes, plan-shards]
-    if: needs.changes.outputs.code == 'true'
+    # Capture only — comparison, baselines, the report and approvals are
+    # fiestaboard/visual-regression-action's job (see vrt-report below).
+    #
+    # Skipped in the merge queue: the visual gate is enforced on the PR, where
+    # the report comment and /vrt approvals live. A queue entry has no PR
+    # context to read approvals from, so replaying the gate there could only
+    # fail on capture noise a reviewer already cleared — while costing the
+    # whole shoot fan-out per queued entry.
+    if: needs.changes.outputs.code == 'true' && github.event_name != 'merge_group'
     strategy:
-      # Independent slices: one shard finding drift says nothing about whether
-      # the others would, and cancelling them would hide the rest of the drift
-      # behind whichever shard happened to fail first.
-      fail-fast: false
+      # Unlike the old in-shard compare, shards here feed ONE report job that
+      # needs every slice (vrt-report verifies completeness from the shard
+      # manifests). One dead shard already forfeits the report, so letting the
+      # rest of the fan-out finish only burns runners.
+      fail-fast: true
       matrix:
         shard: ${{ fromJSON(needs.plan-shards.outputs.vrt_shards) }}
     steps:
       - uses: actions/checkout@v7
 
-      # Shared with vrt-update.yml's `shoot`, so the environment that records a
-      # baseline and the environment that checks it are the same by construction.
+      # Shared with a11y-tests and vrt-baseline.yml's shoot, so the environment
+      # that records a baseline and the environment that checks it are the same
+      # by construction.
       - uses: ./.github/actions/storybook-browser
 
-      # Shard 1 additionally owns the whole-suite inventory checks (new, stale
-      # and stray baselines) so they are reported once per run rather than once
-      # per shard — see scripts/vrt/shard.mjs.
-      - name: Run visual regression
+      - name: Shoot screenshots
         timeout-minutes: 10
         env:
           SHARD: ${{ matrix.shard }}
           SHARD_TOTAL: ${{ needs.plan-shards.outputs.vrt_shard_count }}
-        run: npm run vrt -- --shard "${SHARD}/${SHARD_TOTAL}"
+        run: node scripts/vrt/vrt.mjs shoot --out "${RUNNER_TEMP}/shots" --shard "${SHARD}/${SHARD_TOTAL}"
 
-      # Artifact names must be unique within a run, so the shard index is part
-      # of the name; without it the matrix legs collide and only one upload
-      # survives. Download them all at once with the `vrt-diffs-*` pattern.
-      - name: Upload diff images
-        if: failure()
+      - name: Upload shard
         uses: actions/upload-artifact@v5
         with:
-          name: vrt-diffs-${{ matrix.shard }}
-          path: vrt/diffs/
-          if-no-files-found: ignore
+          name: vrt-shot-${{ matrix.shard }}
+          path: ${{ runner.temp }}/shots/
+          if-no-files-found: error
+          retention-days: 1
+
+  # Merges every shard's screenshots and hands them to the visual-regression
+  # action: on pull requests it downloads the latest vrt-baseline artifact
+  # from main, diffs, uploads the HTML report, and maintains the PR comment
+  # (with one-click and /vrt approvals); on pushes to main it publishes the
+  # new vrt-baseline artifact. Nothing is committed to git.
+  vrt-report:
+    name: Visual Regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [changes, plan-shards, visual-regression]
+    # `success` (not `always`) so a failed or skipped shoot skips this job:
+    # comparing a partial tree would report missing shards as removed stories.
+    if: needs.visual-regression.result == 'success'
+    permissions:
+      contents: read
+      actions: read        # find/download baseline artifacts across runs
+      pull-requests: write # sticky report comment + approval status
+    steps:
+      # For scripts/vrt/verify-shots.mjs only — no npm ci, no build.
+      - uses: actions/checkout@v7
+
+      - name: Download shards
+        uses: actions/download-artifact@v5
+        with:
+          pattern: vrt-shot-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/shots
+
+      # A missing shard artifact would read as "stories removed" downstream;
+      # the shard manifests prove the merged tree is complete first.
+      - name: Verify every shard delivered
+        run: node scripts/vrt/verify-shots.mjs "${RUNNER_TEMP}/shots"
+
+      - name: Compare against main's baseline
+        uses: fiestaboard/visual-regression-action@v1
+        with:
+          screenshots-dir: ${{ runner.temp }}/shots
+          # The tolerances the old in-repo compare shipped with: pixelmatch
+          # per-pixel threshold, and the same 0.05% changed-pixel ratio.
+          threshold: '0.1'
+          diff-ratio: '0.0005'
+          retention-days: '14'
 
   # The single required status check on `main`. `if: always()` is what makes it
   # report rather than inherit a skip — a job that skipped because `changes`
@@ -460,12 +505,15 @@ jobs:
   # a pass. Depending on the planner directly makes that failure red instead.
   #
   # A matrix job contributes one entry to `needs.*.result` per leg, so a single
-  # red shard out of fifteen fails the gate — which is what `fail-fast: false`
-  # buys: every shard reports its own drift before the gate closes.
+  # red a11y shard fails the gate — which is what its `fail-fast: false` buys:
+  # every shard reports its own findings before the gate closes. The VRT shoot
+  # matrix is the opposite (`fail-fast: true`): its shards produce screenshots
+  # for one report job rather than verdicts of their own, and vrt-report is
+  # what turns red on visual drift.
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [changes, plan-shards, lint, unit-tests, build, a11y-tests, automation, visual-regression]
+    needs: [changes, plan-shards, lint, unit-tests, build, a11y-tests, automation, visual-regression, vrt-report]
     if: always()
     steps:
       - name: Check all jobs

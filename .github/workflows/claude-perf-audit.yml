@@ -208,8 +208,9 @@ jobs:
 
             A performance change that alters even one pixel of rendered output
             is NOT a performance change — it is an unreviewed design change,
-            and it will be closed. The repo's visual regression baselines
-            (`vrt/baselines/`) are the referee.
+            and it will be closed. The repo's visual regression suite (CI's
+            `Visual Regression` check, baselines published from `main` as
+            build artifacts) is the referee.
 
             This means, without exception:
 

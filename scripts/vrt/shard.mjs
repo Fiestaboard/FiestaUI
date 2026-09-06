@@ -12,7 +12,7 @@
 //   * Verifying that N partial trees reassemble into a WHOLE one (`adopt`).
 //
 // The second matters more than it looks. `update`/`adopt` rewrite
-// vrt/baselines/ wholesale, so a shard whose artifact went missing would
+// the screenshot tree wholesale, so a shard whose artifact went missing would
 // commit a baseline tree with holes — and the next `compare` reads a hole as
 // "new story, no baseline", which is indistinguishable from a story someone
 // just added. The manifest is what makes that failure loud.

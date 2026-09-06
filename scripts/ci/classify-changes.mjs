@@ -92,7 +92,7 @@ const NON_SHIPPING_MATCHERS = [
   // the one before it: the empty release the CI-infrastructure matcher above
   // already exists to prevent.
   { label: "VRT harness", test: (p) => p === "scripts/vrt" || p.startsWith("scripts/vrt/") },
-  { label: "VRT baselines", test: (p) => p === "vrt" || p.startsWith("vrt/") },
+  { label: "VRT config", test: (p) => p === "vrt" || p.startsWith("vrt/") },
   { label: "Storybook config", test: (p) => p === ".storybook" || p.startsWith(".storybook/") },
   // Colocated unit tests. These are the one thing under src/ that is not a
   // build input: tsconfig.build.json excludes them from the declaration emit
