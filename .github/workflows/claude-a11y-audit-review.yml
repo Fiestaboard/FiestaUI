@@ -58,10 +58,9 @@ jobs:
   review:
     name: Claude reviews the accessibility impact
     runs-on: ubuntu-latest
-    # 20 not 15: a vrt/baselines refresh makes the PR diff ~2,800 files; the
-    # perf twin of this review timed out twice at 15 on such a PR (#213).
-    # The name-only fast path below is the real fix; the extra 5 minutes is
-    # headroom for large source diffs.
+    # 20 not 15: reviews timed out at 15 on very large diffs back when
+    # baseline refreshes put ~2,800 PNGs in a PR — baselines are build
+    # artifacts now, but the headroom stays cheap.
     timeout-minutes: 20
     permissions:
       contents: read
@@ -216,12 +215,8 @@ jobs:
 
             ## How to access PR content
 
-            Start with `gh pr diff ${{ steps.pr.outputs.number }} --name-only`.
-            If more than ~200 files change (typical of a `vrt/baselines/**`
-            refresh — every re-baseline touches ~2,800 PNGs), do NOT fetch the
-            full diff: it will not fit your time budget. Review only the
-            non-baseline files, fetching each one's diff via
-            `gh api repos/${{ github.repository }}/pulls/${{ steps.pr.outputs.number }}/files --paginate --jq '.[] | select(.filename | startswith("vrt/baselines/") | not)'`.
+            Start with `gh pr diff ${{ steps.pr.outputs.number }} --name-only`,
+            then `gh pr diff ${{ steps.pr.outputs.number }}` for the diff.
             Otherwise use `gh pr diff ${{ steps.pr.outputs.number }}` for the diff.
             Use `gh api repos/${{ github.repository }}/contents/<path>?ref=${{ steps.pr.outputs.head_sha }}`
             for full file contents. Never `git checkout` the PR head.

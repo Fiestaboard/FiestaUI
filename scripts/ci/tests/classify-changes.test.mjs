@@ -75,12 +75,11 @@ test("an empty list is treated as code", () => {
 test("CI-only infrastructure is code but does not ship", () => {
   for (const p of [
     ".github/workflows/ci.yml",
-    ".github/workflows/vrt-update.yml",
+    ".github/workflows/vrt-approvals.yml",
     ".github/workflows/claude-perf-audit.yml",
     ".github/workflows/deploy-storybook.yml",
     "scripts/ci/classify-changes.mjs",
     "scripts/ci/tests/main-push-app-token.test.mjs",
-    "vrt/baselines/light/chrome-sidebar--default.png",
     "vrt/skip.json",
     ".storybook/preview.ts",
   ]) {

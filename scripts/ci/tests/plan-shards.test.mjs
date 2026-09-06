@@ -3,15 +3,15 @@ import { test } from "node:test";
 
 import {
   A11Y_LIMITS,
-  countStories,
+  countStoryExports,
   countVrtShots,
   planShards,
   PROFILES,
   resolveProfile,
   shardCount,
   shardList,
+  SHOTS_PER_STORY,
   VRT_LIMITS,
-  VRT_UPDATE_LIMITS,
 } from "../plan-shards.mjs";
 
 test("shard count divides the workload by the target, rounding up", () => {
@@ -38,7 +38,7 @@ test("shard count is capped, and the cap makes shards larger rather than more nu
 });
 
 test("an unseeded or unreadable workload degrades to a single shard, never zero", () => {
-  // A zero count reaches here when vrt/baselines/ is absent (not yet seeded).
+  // A zero count reaches here when src/ holds no story files yet.
   // Zero shards would render an empty matrix, which GitHub treats as a skipped
   // job — the VRT gate would silently stop running instead of failing loudly.
   for (const limits of [VRT_LIMITS, A11Y_LIMITS]) {
@@ -59,35 +59,26 @@ test("shard indices are exactly the range the harness validates against", () => 
   assert.equal(new Set(list).size, list.length);
 });
 
-test("counts derive from the committed baseline tree", () => {
-  const files = [
-    "desktop/dark/a.png",
-    "desktop/dark/b.png",
-    "desktop/light/a.png",
-    "desktop/light/b.png",
-    "mobile/dark/a.png",
-    "mobile/dark/b.png",
-    "mobile/light/a.png",
-    "mobile/light/b.png",
-  ];
-  // Every shot is one comparison, so the shot count IS the baseline count.
-  assert.equal(countVrtShots(files), 8);
-  // A11y visits each story once per theme, and the theme axis is already a
-  // separate matrix dimension — so its unit is stories, not shots.
-  assert.equal(countStories(files), 2);
+test("story exports are counted by the CSF contract: export const at line start", () => {
+  const source = [
+    "export const Default: Story = {};",
+    "export const WithForm = () => (<div />);",
+    "const helper = 1;",
+    "  export const Indented = {};", // not at line start — not counted
+    "export function notAStoryHelper() {}", // not a const export
+  ].join("\n");
+  assert.equal(countStoryExports(source), 2);
 });
 
-test("story count ignores viewport and theme fan-out", () => {
-  const files = ["desktop/dark/only.png", "desktop/light/only.png", "mobile/dark/only.png", "mobile/light/only.png"];
-  assert.equal(countVrtShots(files), 4);
-  assert.equal(countStories(files), 1);
+test("an empty or storyless file counts zero", () => {
+  assert.equal(countStoryExports(""), 0);
+  assert.equal(countStoryExports("const x = 1;\nexport default meta;"), 0);
 });
 
-test("story count survives a baseline tree that is mid-migration", () => {
-  // Only desktop/dark has been written yet. The story count must not collapse
-  // to zero (which would silently drop a11y to one shard) just because the
-  // other viewport/theme dirs are not populated.
-  assert.equal(countStories(["desktop/dark/a.png", "desktop/dark/b.png", "desktop/dark/c.png"]), 3);
+test("predicted shots are stories times the theme/viewport fan-out", () => {
+  // Every story renders once per THEMES x VIEWPORTS combination.
+  assert.equal(countVrtShots(2), 2 * SHOTS_PER_STORY);
+  assert.equal(countVrtShots(0), 0);
 });
 
 test("a plan emits both a matrix array and the scalar the --shard flag needs", () => {
@@ -111,56 +102,6 @@ test("the plan is serialisable as GitHub Actions matrix input", () => {
   // quotes parses as a string and silently produces a one-leg matrix.
   assert.deepEqual(JSON.parse(JSON.stringify(plan.vrt.list)), plan.vrt.list);
   assert.equal(JSON.stringify(plan.a11y.list), "[1,2,3,4]");
-});
-
-// --- Profiles -------------------------------------------------------------
-//
-// ci.yml plans `compare`; vrt-update.yml plans `shoot`. Same sizing rule, two
-// slot budgets — see VRT_UPDATE_LIMITS for the measurements behind the split.
-
-test("the update profile applies the same per-shard sizing rule as ci", () => {
-  // Not merely equal today: derived, so retuning one cannot silently leave the
-  // other behind. Shard SIZE is a property of setup cost against per-shot cost,
-  // and both fan-outs pay the same of each.
-  assert.equal(VRT_UPDATE_LIMITS.target, VRT_LIMITS.target);
-});
-
-test("the update profile asks for fewer runner slots than ci's", () => {
-  // The whole point of the profile. A rebaseline overlaps the CI run on the
-  // branch it was dispatched from, and ci.yml alone peaks at ~28 legs against
-  // the org's 20 shared slots.
-  assert.ok(
-    VRT_UPDATE_LIMITS.max < VRT_LIMITS.max,
-    `update cap (${VRT_UPDATE_LIMITS.max}) must be below ci's (${VRT_LIMITS.max})`,
-  );
-});
-
-test("the update profile plans a narrower VRT fan-out for the same tree", () => {
-  const workload = { shots: 2360, stories: 590 }; // the tree as of this commit
-  const ci = planShards(workload, PROFILES.ci);
-  const update = planShards(workload, PROFILES.update);
-
-  assert.equal(ci.vrt.count, 16);
-  assert.equal(update.vrt.count, 8);
-  assert.equal(update.vrt.list.length, 8);
-});
-
-test("narrowing the fan-out changes shard size, never coverage", () => {
-  // The cap makes shards LARGER rather than dropping work — the same property
-  // VRT_LIMITS.max relies on. Every shot must still be owned by some shard.
-  const shots = 2360;
-  const update = planShards({ shots, stories: 590 }, PROFILES.update);
-  assert.ok(
-    update.vrt.count * Math.ceil(shots / update.vrt.count) >= shots,
-    "the planned shards must between them cover every shot",
-  );
-});
-
-test("a11y sizing is identical across profiles", () => {
-  // Only VRT's slot budget differs; a11y is not dispatched by vrt-update.yml
-  // at all, and giving it a second set of numbers would invite drift.
-  const workload = { shots: 2360, stories: 590 };
-  assert.deepEqual(planShards(workload, PROFILES.ci).a11y, planShards(workload, PROFILES.update).a11y);
 });
 
 test("planShards defaults to the ci profile", () => {

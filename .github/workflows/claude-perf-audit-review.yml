@@ -57,10 +57,10 @@ jobs:
   review:
     name: Claude reviews the perf impact
     runs-on: ubuntu-latest
-    # 20 not 15: a vrt/baselines refresh makes the PR diff ~2,800 files, and
-    # the review timed out twice at 15 on such a PR (#213) even before the
-    # name-only fast path below existed. The fast path is the real fix; the
-    # extra 5 minutes is headroom for large source diffs.
+    # 20 not 15: reviews timed out twice at 15 on very large diffs (#213,
+    # back when baseline refreshes put ~2,800 PNGs in a PR — baselines are
+    # build artifacts now, but the headroom stays cheap and large source
+    # diffs still happen).
     timeout-minutes: 20
     permissions:
       contents: read
@@ -177,12 +177,14 @@ jobs:
 
             ## Visual parity
 
-            This repo guards rendered output with visual regression baselines
-            in `vrt/`. If the PR changes `vrt/baselines/**` while claiming to
-            be a performance change, call that out — a perf fix should not
-            move a single pixel. (A PR that is openly a design change and
-            updates baselines deliberately is fine; use your judgement from
-            the title and body.)
+            This repo guards rendered output with visual regression testing:
+            CI screenshots every story and diffs against baselines published
+            as build artifacts from `main` (nothing is committed to git). A
+            perf fix should not move a single pixel — if the PR's `Visual
+            Regression` check is red or its VRT comment shows changed
+            screenshots, call that out. (A PR that is openly a design change
+            and approves its visual diffs deliberately is fine; use your
+            judgement from the title and body.)
 
             **The guard has holes, and you should know where.** Read
             `vrt/skip.json` — it lists stories excluded from visual
@@ -201,14 +203,9 @@ jobs:
             ## How to access PR content
 
             Start with `gh pr diff ${{ steps.pr.outputs.number }} --name-only`.
-            If more than ~200 files change (typical of a `vrt/baselines/**`
-            refresh — every re-baseline touches ~2,800 PNGs), do NOT fetch the
-            full diff: it will not fit your time budget. Note whether
-            `vrt/baselines/**` or `vrt/skip.json` changed for the visual-parity
-            section, then review only the non-baseline files, fetching each
-            one's diff via
-            `gh api repos/${{ github.repository }}/pulls/${{ steps.pr.outputs.number }}/files --paginate --jq '.[] | select(.filename | startswith("vrt/baselines/") | not)'`.
-            Otherwise use `gh pr diff ${{ steps.pr.outputs.number }}` for the diff.
+            Note whether `vrt/skip.json` changed for the visual-parity
+            section, then use `gh pr diff ${{ steps.pr.outputs.number }}` for
+            the diff.
             Use `gh api repos/${{ github.repository }}/contents/<path>?ref=${{ steps.pr.outputs.head_sha }}`
             for full file contents. Never `git checkout` the PR head.
 
