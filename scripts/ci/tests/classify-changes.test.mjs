@@ -80,7 +80,7 @@ test("CI-only infrastructure is code but does not ship", () => {
     ".github/workflows/deploy-storybook.yml",
     "scripts/ci/classify-changes.mjs",
     "scripts/ci/tests/main-push-app-token.test.mjs",
-        "vrt/skip.json",
+    "vrt/skip.json",
     ".storybook/preview.ts",
   ]) {
     assert.equal(isCodeFile(p), true, `${p} should still run the full suite`);

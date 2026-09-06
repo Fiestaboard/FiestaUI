@@ -61,11 +61,11 @@ test("shard indices are exactly the range the harness validates against", () => 
 
 test("story exports are counted by the CSF contract: export const at line start", () => {
   const source = [
-    'export const Default: Story = {};',
-    'export const WithForm = () => (<div />);',
-    'const helper = 1;',
-    '  export const Indented = {};', // not at line start — not counted
-    'export function notAStoryHelper() {}', // not a const export
+    "export const Default: Story = {};",
+    "export const WithForm = () => (<div />);",
+    "const helper = 1;",
+    "  export const Indented = {};", // not at line start — not counted
+    "export function notAStoryHelper() {}", // not a const export
   ].join("\n");
   assert.equal(countStoryExports(source), 2);
 });
