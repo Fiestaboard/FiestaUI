@@ -466,7 +466,7 @@ jobs:
     if: needs.visual-regression.result == 'success'
     permissions:
       contents: read
-      actions: read        # find/download baseline artifacts across runs
+      actions: read # find/download baseline artifacts across runs
       pull-requests: write # sticky report comment + approval status
     steps:
       # For scripts/vrt/verify-shots.mjs only — no npm ci, no build.
@@ -490,9 +490,9 @@ jobs:
           screenshots-dir: ${{ runner.temp }}/shots
           # The tolerances the old in-repo compare shipped with: pixelmatch
           # per-pixel threshold, and the same 0.05% changed-pixel ratio.
-          threshold: '0.1'
-          diff-ratio: '0.0005'
-          retention-days: '14'
+          threshold: "0.1"
+          diff-ratio: "0.0005"
+          retention-days: "14"
 
   # The single required status check on `main`. `if: always()` is what makes it
   # report rather than inherit a skip — a job that skipped because `changes`
