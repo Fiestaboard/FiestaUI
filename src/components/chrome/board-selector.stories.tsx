@@ -10,7 +10,19 @@ const BOARDS = [
   { id: "office", name: "" },
 ];
 
-const LABELS = { boardSelector: "Select board", selectBoard: "Select a board", unnamedBoard: "Unnamed board" };
+const LABELS = {
+  boardSelector: "Select board",
+  selectBoard: "Select a board",
+  unnamedBoard: "Unnamed board",
+  boardError: "Unavailable",
+};
+
+/** One board whose client failed to initialize — badged with a status dot. */
+const BOARDS_WITH_STATUS = [
+  { id: "living-room", name: "Living Room" },
+  { id: "kitchen", name: "Kitchen", status: "error" as const },
+  { id: "office", name: "" },
+];
 
 const meta = {
   title: "App/Chrome/BoardSelector",
@@ -96,5 +108,23 @@ export const MobileHeader: Story = {
     onChange: () => {},
     labels: LABELS,
     variant: "mobileHeader",
+  },
+};
+
+/**
+ * A board with `status: "error"` shows a destructive dot beside its name in
+ * the list — and in the trigger when it is the selected board — so an
+ * unavailable board is flagged on the surface that enumerates the fleet.
+ */
+export const WithStatus: Story = {
+  args: {
+    boards: BOARDS_WITH_STATUS,
+    value: "kitchen",
+    onChange: () => {},
+    labels: LABELS,
+    variant: "sidebar",
+  },
+  render: function Render(args) {
+    return <ControlledBoardSelector key={args.value} {...args} />;
   },
 };

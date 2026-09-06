@@ -3,6 +3,7 @@
 import { memo, useMemo } from "react";
 
 import { cn } from "../../lib/utils";
+import { StatusDot } from "../feedback/status-dot";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../forms/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../overlays/tooltip";
 import { BoardIcon } from "./board-icon";
@@ -10,6 +11,14 @@ import { BoardIcon } from "./board-icon";
 export interface BoardOption {
   id: string;
   name?: string;
+  /**
+   * Per-board health, surfaced as a small status dot beside the name (and in
+   * the trigger when this board is the selected one). Presentational only —
+   * the wiring side decides what "error" means (e.g. a board whose client
+   * failed to initialize) and passes the accessible text via
+   * `BoardSelectorLabels.boardError`. Omit for a healthy board.
+   */
+  status?: "error";
 }
 
 export interface BoardSelectorLabels {
@@ -19,6 +28,13 @@ export interface BoardSelectorLabels {
   selectBoard: string;
   /** Fallback display name for unnamed boards. */
   unnamedBoard: string;
+  /**
+   * Accessible text for the `status: "error"` dot, e.g. "Unavailable". Read to
+   * assistive tech so the state is not carried by colour alone (WCAG 1.4.1).
+   * Only consulted when at least one board sets `status`; provide it whenever
+   * you do.
+   */
+  boardError?: string;
 }
 
 interface BoardSelectorProps {
@@ -51,12 +67,27 @@ export const BoardSelector = memo(function BoardSelector({
   // re-rendering the items) instead of rebuilding one SelectItem per board.
   const items = useMemo(
     () =>
-      boards.map((board) => (
-        <SelectItem key={board.id} value={board.id}>
-          {board.name || labels.unnamedBoard}
-        </SelectItem>
-      )),
-    [boards, labels.unnamedBoard],
+      boards.map((board) => {
+        const name = board.name || labels.unnamedBoard;
+        return (
+          <SelectItem key={board.id} value={board.id}>
+            {board.status === "error" ? (
+              // The dot is DECORATIVE beside its label — the state's meaning is
+              // the caller's `boardError` string, given to StatusDot so the
+              // colour is never the only signal. `role="img"` (not the default
+              // live region) because a board list is static, not a status feed.
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="min-w-0 flex-1 truncate">{name}</span>
+                <StatusDot status="danger" size="sm" role="img" label={labels.boardError} />
+              </span>
+            ) : (
+              // Plain string keeps the common, healthy path identical to before.
+              name
+            )}
+          </SelectItem>
+        );
+      }),
+    [boards, labels.unnamedBoard, labels.boardError],
   );
 
   const trigger = (
