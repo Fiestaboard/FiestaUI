@@ -283,6 +283,53 @@ export const INVENTORY = [
     ],
   },
   {
+    id: "ai",
+    title: "AI",
+    description:
+      "The chat/agent surfaces: transcript, composer, tool cards, the observed step timeline, suggestion chips, and the spotlight parts an app uses to show the assistant working on a screen. Follows the shadcn AI Elements vocabulary; owns no transport, markdown or positioning.",
+    entries: [
+      {
+        name: "Conversation",
+        summary: "The scrolling transcript: a polite log region that sticks to the bottom until the user scrolls up.",
+      },
+      { name: "Message", summary: "One turn — a user bubble or an assistant block — with an optional avatar glyph." },
+      {
+        name: "PromptInput",
+        summary: "The composer: growing textarea, Enter-to-send, a submit that becomes Stop while streaming.",
+      },
+      {
+        name: "Tool",
+        summary: "A collapsible tool-call card with seven states, from streaming input to awaiting approval.",
+      },
+      { name: "Task", summary: "The observed step timeline: a status glyph and label per step." },
+      { name: "Suggestion", summary: "One-click prompt or answer chips in a sideways-scrolling row." },
+      { name: "Action", summary: "Icon-only affordances under a reply — copy, retry, undo — with a required label." },
+      {
+        name: "Loader",
+        summary: "The assistant is working, with optional text; static under reduced motion.",
+        animated: true,
+      },
+      {
+        name: "Shimmer",
+        summary: "A status line with a light sweep; plain muted text under reduced motion.",
+        animated: true,
+      },
+      {
+        name: "SpotlightRing",
+        summary: "A ring around a target the assistant is acting on — driving, landed or error.",
+        animated: true,
+      },
+      {
+        name: "SpotlightCaption",
+        summary: "The bubble beside a spotlight saying what is happening, with a slot for Stop / Approve.",
+      },
+      {
+        name: "GhostValue",
+        summary: "A value being typed into a control the app must not mutate, or a badge beside one with no text box.",
+      },
+    ],
+  },
+  {
     id: "wizard",
     title: "Setup wizard",
     description:

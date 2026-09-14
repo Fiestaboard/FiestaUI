@@ -1691,6 +1691,99 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 }
 
 /* ============================================================
+ * AI family — shimmer, spotlight pulse, ghost caret
+ *
+ * Owned by src/components/ai/. Each has its own reduced-motion pose rather
+ * than relying on the 1ms backstop below: a shimmer frozen mid-sweep leaves
+ * half the text at 30% opacity, a pulse frozen at its widest reads as a
+ * second border, a caret frozen invisible reads as nothing being typed.
+ * ============================================================ */
+@keyframes ai-shimmer {
+  from {
+    background-position: 200% center;
+  }
+  to {
+    background-position: -200% center;
+  }
+}
+
+.ai-shimmer {
+  color: transparent;
+  background-image: linear-gradient(
+    90deg,
+    var(--muted-foreground) 0%,
+    var(--foreground) 50%,
+    var(--muted-foreground) 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: ai-shimmer 2s linear infinite;
+}
+
+@keyframes ai-spotlight-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--brand) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in oklch, var(--brand) 0%, transparent);
+  }
+}
+
+.ai-spotlight-pulse {
+  animation: ai-spotlight-pulse 1.6s ease-out infinite;
+}
+
+@keyframes ai-caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.ai-caret {
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.15em;
+  background-color: var(--brand);
+  animation: ai-caret-blink 1s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-shimmer {
+    animation: none;
+    color: var(--muted-foreground);
+    background-image: none;
+  }
+
+  .ai-spotlight-pulse {
+    animation: none;
+  }
+
+  .ai-caret {
+    animation: none;
+  }
+}
+
+.reduce-motion .ai-shimmer {
+  animation: none;
+  color: var(--muted-foreground);
+  background-image: none;
+}
+
+.reduce-motion .ai-spotlight-pulse,
+.reduce-motion .ai-caret {
+  animation: none;
+}
+
+/* ============================================================
  * Reduced-motion backstop (issue #180)
  *
  * The blocks above gate the animations this file OWNS. Three sources of

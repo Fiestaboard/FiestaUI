@@ -56,6 +56,8 @@ const preview: Preview = {
           "Containment",
           // Reserved for the TipTap rich content editor port.
           "Editor",
+          // Chat/agent surfaces — src/components/ai/.
+          "AI",
           "Effects",
           "App",
           ["Board", "Chrome", "Plugin"],

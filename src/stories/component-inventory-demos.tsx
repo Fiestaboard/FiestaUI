@@ -30,6 +30,7 @@ import {
   ChevronsUpDown,
   Clock,
   Cloud,
+  Copy,
   ExternalLink,
   Inbox,
   Info,
@@ -38,7 +39,9 @@ import {
   Monitor,
   Palette,
   Plus,
+  RotateCcw,
   Settings2,
+  Sparkles,
   StickyNote,
   Trash2,
   TrendingUp,
@@ -46,6 +49,22 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { Action, Actions } from "../components/ai/actions";
+import { Conversation, ConversationContent } from "../components/ai/conversation";
+import { Loader } from "../components/ai/loader";
+import { Message, MessageAvatar, MessageContent } from "../components/ai/message";
+import {
+  PromptInput,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputToolbar,
+  PromptInputTools,
+} from "../components/ai/prompt-input";
+import { Shimmer } from "../components/ai/shimmer";
+import { GhostValue, SpotlightCaption, SpotlightRing } from "../components/ai/spotlight";
+import { Suggestion, Suggestions } from "../components/ai/suggestion";
+import { Task, TaskContent, TaskItem, TaskTrigger } from "../components/ai/task";
+import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "../components/ai/tool";
 import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
 import { BoardTeaser } from "../components/board/board-teaser";
@@ -810,6 +829,128 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <Badge variant="success">success</Badge>
       <Badge variant="formula">formula</Badge>
     </Flex>
+  ),
+  Conversation: () => (
+    <Frame>
+      <Conversation className="h-40 rounded-lg border">
+        <ConversationContent>
+          <Message from="user">
+            <MessageContent>Make a morning page with the weather.</MessageContent>
+          </Message>
+          <Message from="assistant">
+            <MessageAvatar>
+              <Sparkles />
+            </MessageAvatar>
+            <MessageContent>On it — creating a page called Morning.</MessageContent>
+          </Message>
+        </ConversationContent>
+      </Conversation>
+    </Frame>
+  ),
+  Message: () => (
+    <Frame className="flex flex-col gap-2">
+      <Message from="user">
+        <MessageContent>Show the temperature on line 2.</MessageContent>
+      </Message>
+      <Message from="assistant">
+        <MessageAvatar name="FiestaBot" />
+        <MessageContent>Done — line 2 now reads the weather plugin&apos;s temperature.</MessageContent>
+      </Message>
+    </Frame>
+  ),
+  PromptInput: () => (
+    <Frame>
+      <PromptInput status="ready" onSubmit={(event) => event.preventDefault()}>
+        <PromptInputTextarea id="inv-prompt-input" aria-label="Message" placeholder="Ask FiestaBot…" />
+        <PromptInputToolbar>
+          <PromptInputTools>
+            <span className="px-1 text-xs text-muted-foreground">gpt-4.1</span>
+          </PromptInputTools>
+          <PromptInputSubmit />
+        </PromptInputToolbar>
+      </PromptInput>
+    </Frame>
+  ),
+  Tool: () => (
+    <Frame className="flex flex-col gap-2">
+      <Tool state="output-available" defaultOpen>
+        <ToolHeader title="Create page" detail="Morning" />
+        <ToolContent>
+          <ToolInput input={{ name: "Morning", template_lines: ["GOOD MORNING", "{{weather.temperature}}"] }} />
+          <ToolOutput output="Page created." />
+        </ToolContent>
+      </Tool>
+      <Tool state="approval-requested">
+        <ToolHeader title="Delete page" detail="Old dashboard" />
+        <ToolContent>
+          <ToolInput input={{ page_id: "p1" }} />
+        </ToolContent>
+      </Tool>
+    </Frame>
+  ),
+  Task: () => (
+    <Frame>
+      <Task>
+        <TaskTrigger title="2 of 3 steps" />
+        <TaskContent>
+          <TaskItem status="done">Listed your pages</TaskItem>
+          <TaskItem status="running">Creating page “Morning”</TaskItem>
+          <TaskItem status="pending">Scheduling it for weekdays</TaskItem>
+        </TaskContent>
+      </Task>
+    </Frame>
+  ),
+  Suggestion: () => (
+    <Frame>
+      <Suggestions>
+        <Suggestion suggestion="Make a weather page" />
+        <Suggestion suggestion="Show transit times" />
+        <Suggestion suggestion="Schedule my mornings" />
+      </Suggestions>
+    </Frame>
+  ),
+  Action: () => (
+    <Actions>
+      <Action label="Copy">
+        <Copy />
+      </Action>
+      <Action label="Retry">
+        <RotateCcw />
+      </Action>
+    </Actions>
+  ),
+  Loader: () => <Loader>Thinking…</Loader>,
+  Shimmer: () => <Shimmer>Running create_page…</Shimmer>,
+  SpotlightRing: () => (
+    <div className="relative h-16 w-full max-w-xs">
+      <div className="absolute left-6 top-4 h-8 w-40 rounded-md border bg-card" />
+      <SpotlightRing tone="driving" style={{ left: 24, top: 16, width: 160, height: 32 }} />
+    </div>
+  ),
+  SpotlightCaption: () => (
+    <div className="relative h-12 w-full max-w-xs">
+      <SpotlightCaption
+        tone="driving"
+        style={{ left: 0, top: 0 }}
+        controls={
+          <Button size="sm" variant="outline">
+            Stop
+          </Button>
+        }
+      >
+        Typing the page name…
+      </SpotlightCaption>
+    </div>
+  ),
+  GhostValue: () => (
+    <div className="flex flex-col gap-3">
+      <div className="relative h-9 w-56 rounded-md border bg-background px-3 py-2 text-sm">
+        <GhostValue value="Morning brief" progress={0.5} style={{ left: 12, top: 8 }} />
+      </div>
+      <div className="relative h-9 w-56">
+        <GhostValue variant="badge" value="on" style={{ left: 0, top: 4 }} />
+      </div>
+    </div>
   ),
   Chip: () => (
     <Flex gap="2" wrap>
