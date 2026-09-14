@@ -141,3 +141,15 @@ export * from "./components/editor/utils/insertion";
 export * from "./components/editor/utils/length-calculator";
 export * from "./components/editor/utils/serialization";
 export * from "./components/editor/utils/stroke-transaction";
+// AI — chat/agent surfaces (src/components/ai/CONVENTIONS.md). The
+// vocabulary follows shadcn "AI Elements"; the implementation is ours.
+export * from "./components/ai/actions";
+export * from "./components/ai/conversation";
+export * from "./components/ai/loader";
+export * from "./components/ai/message";
+export * from "./components/ai/prompt-input";
+export * from "./components/ai/shimmer";
+export * from "./components/ai/spotlight";
+export * from "./components/ai/suggestion";
+export * from "./components/ai/task";
+export * from "./components/ai/tool";
