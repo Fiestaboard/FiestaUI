@@ -57,6 +57,15 @@ function footerChipClass(active: boolean, fill: boolean) {
   return active ? FOOTER_CHIP_ACTIVE : FOOTER_CHIP_INACTIVE;
 }
 
+// Desktop rail rhythm (see the <aside> below for the full ledger):
+//   16  rail edge -> first / last content (logo row top, footer bottom)
+//   12  either side of a hairline
+//    8  rail edge -> pill / hairline / selector edge   (px-2 on every block)
+//    4  between rows                                   (space-y-1)
+//   14  pill edge -> icon: (64px collapsed rail − 2×8 inset − 20px icon) / 2,
+//       so the icon column sits on the rail's centre line (x = 32) in BOTH
+//       states and never moves during the width transition. Not a scale
+//       step on purpose — it is derived from the rail, not chosen.
 const DESKTOP_LINK_BASE =
   "flex items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium transition-colors";
 const DESKTOP_LINK_ACTIVE = cn(DESKTOP_LINK_BASE, NAV_ITEM_ACTIVE);
@@ -678,7 +687,14 @@ export const Sidebar = memo(function Sidebar({
           // wraps the board selector to a second row instead of clipping
           // the wordmark under it.
           "flex items-center gap-3 flex-1 ml-2"
-        : "flex items-center gap-2 overflow-hidden px-4 py-4";
+        : // px-4 puts the 32px mark's centre on x = 32 — the same line the
+          // 20px nav icons (8 inset + 14 pad + 10) and the collapsed rail
+          // centre on — and gap-2 lands the wordmark two px shy of the
+          // label column (68 vs 66 from the page edge), the closest a
+          // 32px mark gets to a 20px icon's text line without an
+          // off-scale gap. pt-4 is the rail-edge margin; pb-3 is the
+          // hairline margin, whether the selector or the hairline is next.
+          "flex items-center gap-2 overflow-hidden px-4 pt-4 pb-3";
 
     if (onLogoClick) {
       return (
@@ -835,7 +851,13 @@ export const Sidebar = memo(function Sidebar({
                 // chevron on it in light mode. The toggle is a knob on the
                 // rail, so it uses --sidebar/--sidebar-foreground and reads
                 // identically in both themes.
-                className="absolute -right-3.5 top-[51px] z-[var(--z-sidebar-toggle)] flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-md transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                //
+                // top-4.5 (18px) centres the 28px knob on the logo mark's
+                // midline (16px rail margin + half of 32). It used to sit
+                // at 51px — the seam between the logo row and the board
+                // selector — where it half-covered the selector's corner
+                // in both states and read as clutter rather than a handle.
+                className="absolute -right-3.5 top-4.5 z-[var(--z-sidebar-toggle)] flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-md transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               >
                 {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
               </button>
@@ -869,7 +891,7 @@ export const Sidebar = memo(function Sidebar({
             {/* The nav list — flex-1 gives it every pixel the pinned blocks
                 don't use; min-h-0 lets it actually shrink so overflow-y
                 scrolls the LIST, never the sidebar. */}
-            <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto py-4 px-2">
+            <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto py-3 px-2">
               {navItems.map(renderDesktopNavItem)}
             </nav>
 
@@ -882,10 +904,16 @@ export const Sidebar = memo(function Sidebar({
                 slot's flex layout clipped "v8.32.10 (dev)" mid-glyph into
                 the plausible-but-wrong "v8.32.1"). Both facts moved inside
                 the menu, where there is room to be right. */}
-            {/* py-3: the same 12px above the strip as below it. At pt-2 the
-                controls sat visibly closer to the hairline than to the
-                rail's bottom edge. */}
-            <div className="shrink-0 px-2 py-3">{footerBlock("desktop", collapsed)}</div>
+            {/* pt-3 is the hairline margin and pb-4 the rail-edge margin,
+                mirroring the logo row at the top (pt-4 / pb-3): the strip is
+                one box whose padding IS the rail's bottom margin, nothing
+                nested inside it adds its own. It used to be py-3, 12 to the
+                hairline and 12 to the rail's edge — and before that pt-2,
+                where the controls sat visibly closer to the hairline than to
+                the edge. The account trigger and the chips are 36px tall, the
+                nav pill's height, so the trigger's avatar (ps-3 + 24px) and
+                the chips' glyphs land on the icon column above them. */}
+            <div className="shrink-0 px-2 pt-3 pb-4">{footerBlock("desktop", collapsed)}</div>
           </div>
         </aside>
       </TooltipProvider>
