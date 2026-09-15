@@ -200,3 +200,27 @@ describe("Sidebar footer version slot", () => {
     expect(within(desktopRail()).queryByTestId("version")).not.toBeInTheDocument();
   });
 });
+
+describe("Sidebar footer box", () => {
+  // The version line and the theme toggle share ONE footer box under the
+  // nav's hairline — the rail's bottom margin and the hairline margin are
+  // that box's padding, nothing else's. They used to sit in a padded row
+  // nested inside another padded block, which is how the footer ended up
+  // 16px above and 20px below while every other seam on the rail was 12.
+  // Geometry is VRT's job; the shape (one box, both slots, outside the
+  // scrolling list) is what jsdom can hold onto.
+  it("pins the version and theme slots together in one box outside the nav", () => {
+    renderSidebar({
+      versionSlot: <span data-testid="version">v9.0.0</span>,
+      themeToggleSlot: <button type="button" data-testid="theme" />,
+    });
+    const rail = screen.getByRole("complementary", { name: LABELS.mainNavigation });
+    const version = within(rail).getByTestId("version");
+    const theme = within(rail).getByTestId("theme");
+    const row = version.parentElement?.parentElement;
+
+    expect(row).toBe(theme.parentElement?.parentElement);
+    expect(row?.parentElement?.contains(desktopNav())).toBe(false);
+    expect(row?.parentElement?.className).toBe("shrink-0 px-2 pt-3 pb-4");
+  });
+});

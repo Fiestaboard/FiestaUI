@@ -1,14 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
+  Award,
   Calendar,
   FileText,
   FlaskConical,
   GalleryHorizontalEnd,
   HelpCircle,
   Home,
+  LogOut,
+  Package,
   Puzzle,
   Settings,
-  User,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -44,6 +46,7 @@ const DESTINATIONS: SidebarNavItem[] = [
 ];
 
 const UTILITIES: SidebarNavItem[] = [
+  { key: "picks", href: "#picks", icon: Award, label: "Picks" },
   {
     key: "helpDocs",
     href: "https://fiestaboard.app/docs/intro",
@@ -67,20 +70,39 @@ function makeBoards(count: number) {
 
 const renderLink: SidebarProps["renderLink"] = ({ children, ...props }) => <a {...props}>{children}</a>;
 
-/** Placeholder account row styled like a nav item — the last row of the list (the app injects its real account menu here). */
+/**
+ * Stand-in for the app's account row — FiestaBoard renders a sign-out button
+ * here, styled as a peer of the nav rows (same pill geometry: py-2,
+ * pl-[14px], pr-3, gap-3). Keep these classes in step with
+ * `DESKTOP_LINK_BASE` in sidebar.tsx; the app copies them too.
+ */
 function AccountRow({ collapsed }: { collapsed: boolean }) {
   return (
-    <div className="flex items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium text-sidebar-foreground">
-      <User className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+    <button
+      type="button"
+      aria-label="Sign out"
+      className="flex w-full items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium text-sidebar-foreground nav-active-hover transition-colors"
+    >
+      <LogOut className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
       <span
         className={cn(
           "whitespace-nowrap overflow-hidden transition-opacity duration-fast",
           collapsed ? "opacity-0 max-w-0" : "opacity-100 max-w-48 delay-150",
         )}
       >
-        casa@example.com
+        Sign out
       </span>
-    </div>
+    </button>
+  );
+}
+
+/** Mirrors the app's VersionDisplay: package glyph + version, both muted. */
+function VersionLine({ text }: { text: string }) {
+  return (
+    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+      <Package className="h-3 w-3" aria-hidden="true" />
+      {text}
+    </span>
   );
 }
 
@@ -128,7 +150,7 @@ function DemoSidebar({
           />
         ) : undefined
       }
-      versionSlot={<span className="text-xs text-sidebar-foreground/70">v9.0.0</span>}
+      versionSlot={<VersionLine text="v9.0.0" />}
       themeToggleSlot={
         <ThemeToggle
           theme={theme}
@@ -211,7 +233,7 @@ function PlaygroundSidebar(args: PlaygroundArgs) {
         ) : undefined
       }
       renderAccount={args.showAccount ? ({ collapsed: c }) => <AccountRow collapsed={c} /> : undefined}
-      versionSlot={<span className="text-xs text-sidebar-foreground/70">{args.versionText}</span>}
+      versionSlot={<VersionLine text={args.versionText} />}
       themeToggleSlot={
         <ThemeToggle
           theme={theme}
@@ -271,7 +293,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     activeItem: {
       description: "Which nav item renders in the active-route state.",
       control: "select",
-      options: ["home", "pages", "collections", "schedule", "integrations", "transitions", "settings"],
+      options: ["home", "pages", "collections", "schedule", "integrations", "transitions", "picks", "settings"],
     },
     showTransitionsLab: {
       description: "Append the beta Transitions Lab entry, mirroring the app's feature flag.",
@@ -285,12 +307,28 @@ export const Playground: StoryObj<PlaygroundArgs> = {
   },
 };
 
+/**
+ * The rail as FiestaBoard actually assembles it: destinations, the AI
+ * assistant row, the utilities, and the account row — one list — over a
+ * board switcher, with the version line and theme toggle pinned below.
+ */
 export const Default: Story = {
-  render: () => <DemoSidebar />,
+  render: () => (
+    <DemoSidebar
+      ai={{ active: false, onOpen: () => {} }}
+      renderAccount={({ collapsed }) => <AccountRow collapsed={collapsed} />}
+    />
+  ),
 };
 
 export const Collapsed: Story = {
-  render: () => <DemoSidebar initialCollapsed />,
+  render: () => (
+    <DemoSidebar
+      initialCollapsed
+      ai={{ active: false, onOpen: () => {} }}
+      renderAccount={({ collapsed }) => <AccountRow collapsed={collapsed} />}
+    />
+  ),
 };
 
 export const MultiBoard: Story = {

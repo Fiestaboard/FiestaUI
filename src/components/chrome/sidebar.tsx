@@ -29,6 +29,15 @@ const MOBILE_AI_BASE = "flex w-full items-center gap-3 rounded-lg px-4 py-3 text
 const MOBILE_AI_ACTIVE = cn(MOBILE_AI_BASE, NAV_ITEM_ACTIVE);
 const MOBILE_AI_INACTIVE = cn(MOBILE_AI_BASE, NAV_ITEM_INACTIVE);
 
+// Desktop rail rhythm (see the <aside> below for the full ledger):
+//   16  rail edge -> first / last content (logo row top, footer bottom)
+//   12  either side of a hairline
+//    8  rail edge -> pill / hairline / selector edge   (px-2 on every block)
+//    4  between rows                                   (space-y-1)
+//   14  pill edge -> icon: (64px collapsed rail − 2×8 inset − 20px icon) / 2,
+//       so the icon column sits on the rail's centre line (x = 32) in BOTH
+//       states and never moves during the width transition. Not a scale
+//       step on purpose — it is derived from the rail, not chosen.
 const DESKTOP_LINK_BASE =
   "flex items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium transition-colors";
 const DESKTOP_LINK_ACTIVE = cn(DESKTOP_LINK_BASE, NAV_ITEM_ACTIVE);
@@ -469,7 +478,14 @@ export const Sidebar = memo(function Sidebar({
           // wraps the board selector to a second row instead of clipping
           // the wordmark under it.
           "flex items-center gap-3 flex-1 ml-2"
-        : "flex items-center gap-2 overflow-hidden px-4 py-4";
+        : // px-4 puts the 32px mark's centre on x = 32 — the same line the
+          // 20px nav icons (8 inset + 14 pad + 10) and the collapsed rail
+          // centre on — and gap-2 lands the wordmark two px shy of the
+          // label column (68 vs 66 from the page edge), the closest a
+          // 32px mark gets to a 20px icon's text line without an
+          // off-scale gap. pt-4 is the rail-edge margin; pb-3 is the
+          // hairline margin, whether the selector or the hairline is next.
+          "flex items-center gap-2 overflow-hidden px-4 pt-4 pb-3";
 
     if (onLogoClick) {
       return (
@@ -614,7 +630,13 @@ export const Sidebar = memo(function Sidebar({
                 // chevron on it in light mode. The toggle is a knob on the
                 // rail, so it uses --sidebar/--sidebar-foreground and reads
                 // identically in both themes.
-                className="absolute -right-3.5 top-[51px] z-[var(--z-sidebar-toggle)] flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-md transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                //
+                // top-4.5 (18px) centres the 28px knob on the logo mark's
+                // midline (16px rail margin + half of 32). It used to sit
+                // at 51px — the seam between the logo row and the board
+                // selector — where it half-covered the selector's corner
+                // in both states and read as clutter rather than a handle.
+                className="absolute -right-3.5 top-4.5 z-[var(--z-sidebar-toggle)] flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-md transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               >
                 {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
               </button>
@@ -648,7 +670,7 @@ export const Sidebar = memo(function Sidebar({
             {/* The nav list — flex-1 gives it every pixel the pinned blocks
                 don't use; min-h-0 lets it actually shrink so overflow-y
                 scrolls the LIST, never the sidebar. */}
-            <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto py-4 px-2">
+            <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto py-3 px-2">
               {itemsBeforeAi.map(renderDesktopNavItem)}
               {ai &&
                 (collapsed ? (
@@ -686,21 +708,26 @@ export const Sidebar = memo(function Sidebar({
 
             <div className="mx-2 border-t border-sidebar-border" />
 
-            <div className="shrink-0 px-2 pt-2 pb-3">
-              {/* Footer: expanded = version | toggle side by side; collapsed =
-                  the toggle alone. The 64px rail cannot fit a version string,
-                  and the old centered-with-truncate treatment did not degrade
-                  to an ellipsis — the slot's own flex layout clipped it
-                  mid-glyph, so "v8.32.10 (dev)" read as the plausible-but-wrong
-                  "v8.32.1". A number that can only render wrongly is better
-                  dropped; the expanded rail and the mobile menu keep it. The
-                  hairline above is the block's own separator now, so this row
-                  no longer draws a second one of its own. */}
+            {/* Footer: expanded = version | toggle side by side; collapsed =
+                the toggle alone. The 64px rail cannot fit a version string,
+                and the old centered-with-truncate treatment did not degrade
+                to an ellipsis — the slot's own flex layout clipped it
+                mid-glyph, so "v8.32.10 (dev)" read as the plausible-but-wrong
+                "v8.32.1". A number that can only render wrongly is better
+                dropped; the expanded rail and the mobile menu keep it. The
+                hairline above is the block's own separator now, so this row
+                no longer draws a second one of its own.
+
+                One box, not two: pt-3 is the hairline margin and pb-4 the
+                rail-edge margin, mirroring the logo row at the top (pt-4 /
+                pb-3). The row itself is a nav pill minus the vertical pad —
+                the 36px theme button IS the row height — so the version
+                lands on the icon column and the button on the pills' right
+                pad. It used to be px-2 pt-2 pb-3 around a py-2 row: 16 above,
+                20 below, neither on the rhythm. */}
+            <div className="shrink-0 px-2 pt-3 pb-4">
               <div
-                className={cn(
-                  "py-2",
-                  collapsed ? "flex justify-center" : "flex items-center justify-between gap-2 pl-[14px] pr-3",
-                )}
+                className={collapsed ? "flex justify-center" : "flex items-center justify-between gap-2 pl-[14px] pr-3"}
               >
                 {!collapsed && <div className="min-w-0 overflow-hidden whitespace-nowrap">{versionSlot}</div>}
                 <div className="flex-shrink-0">{themeToggleSlot}</div>

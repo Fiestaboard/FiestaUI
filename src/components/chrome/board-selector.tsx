@@ -77,7 +77,16 @@ export const BoardSelector = memo(function BoardSelector({
               // ChevronDown in a span, so an svg selector never matched it;
               // it only *looked* hidden because gaps flex-squished it to 0.
               "h-9 w-full justify-center gap-0 px-0 [&>span:last-child]:hidden"
-            : "h-10 w-full"),
+            : // Expanded: a nav pill's geometry, so the board icon sits on
+              // the icon column and the board name on the label column.
+              // A pill pads 14px to its icon; the trigger draws a 1px border
+              // inside that box, so 13px of padding lands the icon on the
+              // same x. gap-3 matches the pill's icon-to-label gap (the
+              // default gap-2 put the name 5px left of the labels below).
+              // h-9 (36px) is the pill height too, and the collapsed
+              // trigger's — so the hairline under the header no longer
+              // moves 4px when the rail collapses.
+              "h-9 w-full gap-3 pl-[13px]"),
       )}
     >
       <BoardIcon className="h-5 w-5 flex-shrink-0 text-sidebar-foreground/70" />
