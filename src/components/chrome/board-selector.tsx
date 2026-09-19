@@ -1,8 +1,9 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useId, useMemo } from "react";
 
 import { cn } from "../../lib/utils";
+import { StatusDot } from "../feedback/status-dot";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../forms/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../overlays/tooltip";
 import { BoardIcon } from "./board-icon";
@@ -10,6 +11,15 @@ import { BoardIcon } from "./board-icon";
 export interface BoardOption {
   id: string;
   name?: string;
+  /**
+   * Per-board health, surfaced as a small destructive dot beside the name —
+   * and in the trigger while this board is the selected one. Presentational
+   * only: the wiring side decides what "error" means (a board whose client
+   * failed to initialize, say) and supplies the words for it as
+   * `BoardSelectorLabels.boardError`, which the option and the trigger are
+   * then DESCRIBED by (`aria-describedby`). Omit for a healthy board.
+   */
+  status?: "error";
 }
 
 export interface BoardSelectorLabels {
@@ -19,6 +29,17 @@ export interface BoardSelectorLabels {
   selectBoard: string;
   /** Fallback display name for unnamed boards. */
   unnamedBoard: string;
+  /**
+   * What `status: "error"` means, in words — e.g. "Unavailable". Rendered
+   * once as an sr-only description that every errored option, and the
+   * trigger while an errored board is selected, points at with
+   * `aria-describedby`; the dot itself stays decorative. That is what keeps
+   * the state off colour alone (WCAG 1.4.1) without folding the word into
+   * the option's NAME, so "Kitchen" is still announced as "Kitchen", then
+   * described. Only consulted when at least one board sets `status`, but
+   * provide it whenever you do: without it the dot is the only signal.
+   */
+  boardError?: string;
 }
 
 interface BoardSelectorProps {
@@ -46,22 +67,49 @@ export const BoardSelector = memo(function BoardSelector({
   collapsed = false,
   variant = "sidebar",
 }: BoardSelectorProps) {
+  // ONE description element for every errored board, rendered outside the
+  // option list and referenced by id. It cannot live inside the option: the
+  // Select mirrors each item's children into the trigger, so an id in there
+  // would be in the document twice, and any text in there — even sr-only —
+  // becomes part of the option's accessible NAME ("Kitchen Unavailable").
+  // A description referenced from outside is announced after the name, once.
+  const statusDescriptionId = useId();
+  const describedBy =
+    labels.boardError && boards.some((board) => board.status === "error") ? statusDescriptionId : undefined;
+  const selectedBoard = boards.find((board) => board.id === value);
+
   // Boards change rarely while the shell re-renders often; memoize the option
   // list so those re-renders reuse the same element refs (React can then skip
   // re-rendering the items) instead of rebuilding one SelectItem per board.
   const items = useMemo(
     () =>
-      boards.map((board) => (
-        <SelectItem key={board.id} value={board.id}>
-          {board.name || labels.unnamedBoard}
-        </SelectItem>
-      )),
-    [boards, labels.unnamedBoard],
+      boards.map((board) => {
+        const name = board.name || labels.unnamedBoard;
+        const errored = board.status === "error";
+        return (
+          <SelectItem key={board.id} value={board.id} aria-describedby={errored ? describedBy : undefined}>
+            {errored ? (
+              // The dot is DECORATIVE (StatusDot's default, aria-hidden): the
+              // meaning is carried by the description above, so the colour is
+              // never the only signal and the name stays the board name.
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="min-w-0 flex-1 truncate">{name}</span>
+                <StatusDot status="danger" size="sm" />
+              </span>
+            ) : (
+              // Plain string keeps the common, healthy path identical to before.
+              name
+            )}
+          </SelectItem>
+        );
+      }),
+    [boards, labels.unnamedBoard, describedBy],
   );
 
   const trigger = (
     <SelectTrigger
       aria-label={labels.boardSelector}
+      aria-describedby={selectedBoard?.status === "error" ? describedBy : undefined}
       className={cn(
         "gap-2 border-sidebar-border/70 bg-sidebar-accent/40 font-medium text-sidebar-foreground shadow-none transition-[width,padding] duration-fast hover:bg-sidebar-accent/70",
         // Below 480px no board name fits beside the full wordmark, so the
@@ -101,12 +149,17 @@ export const BoardSelector = memo(function BoardSelector({
         <Tooltip>
           <TooltipTrigger asChild>{trigger}</TooltipTrigger>
           <TooltipContent side="right" className="font-medium">
-            {boards.find((b) => b.id === value)?.name || labels.unnamedBoard}
+            {selectedBoard?.name || labels.unnamedBoard}
           </TooltipContent>
         </Tooltip>
       ) : (
         trigger
       )}
+      {describedBy ? (
+        <span id={describedBy} className="sr-only">
+          {labels.boardError}
+        </span>
+      ) : null}
       <SelectContent>{items}</SelectContent>
     </Select>
   );
