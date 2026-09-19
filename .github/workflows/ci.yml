@@ -377,9 +377,10 @@ jobs:
     strategy:
       fail-fast: false
       # Two dimensions, and they are not interchangeable. `theme` is a
-      # Storybook global baked into the URL, so it must be a separate axis —
-      # each leg re-visits every story it owns under one theme. `shard` splits
-      # the story list within a theme. Legs = themes x shards.
+      # Storybook global the runner sets for the whole page (from `THEME`, see
+      # .storybook/test-runner.ts), so it must be a separate axis — each leg
+      # re-visits every story it owns under one theme. `shard` splits the
+      # story list within a theme. Legs = themes x shards.
       matrix:
         theme: [dark, light]
         shard: ${{ fromJSON(needs.plan-shards.outputs.a11y_shards) }}
@@ -388,23 +389,25 @@ jobs:
 
       - uses: ./.github/actions/storybook-browser
 
-      # `--shard` is the test runner's own flag (it is Jest underneath), so a11y
-      # needs no harness code of its own — unlike VRT, whose runner we wrote.
-      # The shard TOTAL comes from the planner rather than `strategy.job-total`,
+      # `--shard` is the test runner's own flag (it is Jest underneath). The
+      # shard TOTAL comes from the planner rather than `strategy.job-total`,
       # which counts every leg: with the theme axis that is 2N, and each job
       # would claim to be shard i of 2N while only N slices exist.
+      #
+      # The theme travels as THEME, never as a `?globals=` query on --url. The
+      # runner resolves `new URL("iframe.html", <url>)`, which keeps a base's
+      # path and drops its query — so the old `--url "…?globals=theme:light"`
+      # rendered dark on both legs and the light palette went unchecked (#306).
+      # .storybook/test-runner.ts reads THEME, puts the global on the iframe's
+      # own query, and fails any story whose <html> disagrees with it.
+      # scripts/ci/tests/a11y-theme-leg.test.mjs pins both halves.
       - name: Run Storybook a11y tests
         timeout-minutes: 8
         env:
           THEME: ${{ matrix.theme }}
           SHARD: ${{ matrix.shard }}
           SHARD_TOTAL: ${{ needs.plan-shards.outputs.a11y_shard_count }}
-        run: |
-          URL="http://localhost:6006"
-          if [ "$THEME" = "light" ]; then
-            URL="${URL}?globals=theme:light"
-          fi
-          npm run test-storybook:ci -- --url "$URL" --shard "${SHARD}/${SHARD_TOTAL}"
+        run: npm run test-storybook:ci -- --url http://localhost:6006 --shard "${SHARD}/${SHARD_TOTAL}"
 
   visual-regression:
     name: VRT Shoot (${{ matrix.shard }}/${{ needs.plan-shards.outputs.vrt_shard_count }})
