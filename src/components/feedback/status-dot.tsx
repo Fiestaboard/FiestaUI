@@ -101,8 +101,10 @@ export interface StatusDotProps
  * `role="status"` is a polite live region: the label is announced when it
  * changes, which is the right behaviour for a dot tracking a connection. For
  * a dot describing something static (a legend swatch, a row that never
- * updates in place) pass `role="img"` — props spread over the computed
- * attributes, so the override lands.
+ * updates in place) pass `role="img"`. That role makes the dot's children
+ * presentational, so the label then goes out as `aria-label` instead of the
+ * sr-only span — an sr-only child inside `role="img"` is not a name, and axe
+ * fails it as `role-img-alt`.
  */
 function StatusDot({
   className,
@@ -112,16 +114,22 @@ function StatusDot({
   glow = false,
   label = null,
   style,
+  role,
   ...props
 }: StatusDotProps) {
   const decorative = label == null;
+  const resolvedRole = role ?? (decorative ? undefined : "status");
+  // `img` children are presentational (WAI-ARIA), so the sr-only span below
+  // would not name the dot; only an attribute can.
+  const namedByAttribute = !decorative && resolvedRole === "img";
   return (
     <span
       data-slot="status-dot"
       data-status={status}
       data-size={size}
-      role={decorative ? undefined : "status"}
+      role={resolvedRole}
       aria-hidden={decorative || undefined}
+      aria-label={namedByAttribute ? label : undefined}
       className={cn(statusDotVariants({ status, size, pulse }), className)}
       // Caller styles win over the glow rather than being dropped by it.
       style={glow ? { ...GLOW_STYLE, ...style } : style}
@@ -134,7 +142,7 @@ function StatusDot({
         an aria-label-only dot would go silent at exactly the moment it had
         news. Real text also stays selectable/translatable by page translators.
       */}
-      {decorative ? null : <span className="sr-only">{label}</span>}
+      {decorative || namedByAttribute ? null : <span className="sr-only">{label}</span>}
     </span>
   );
 }
