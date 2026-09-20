@@ -37,7 +37,6 @@ export const SidebarSettingsTrigger = React.forwardRef<HTMLButtonElement, Sideba
       <button
         ref={ref}
         type="button"
-        data-slot="sidebar-settings-trigger"
         aria-label={collapsed ? label : undefined}
         className={cn(
           "flex h-9 items-center rounded-lg border border-sidebar-border text-sm font-medium text-sidebar-foreground transition-colors",
@@ -50,6 +49,11 @@ export const SidebarSettingsTrigger = React.forwardRef<HTMLButtonElement, Sideba
           className,
         )}
         {...props}
+        // After the spread, deliberately. Base UI's Trigger stamps its own
+        // `data-slot` through `render`, and whichever lands last wins — this
+        // marker has to survive being used as one, because it is how the
+        // rail's own footer control is found in the app's tests and e2e.
+        data-slot="sidebar-settings-trigger"
       >
         <Settings className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
         {!collapsed && (
