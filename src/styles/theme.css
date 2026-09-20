@@ -902,7 +902,6 @@
    * Z-index layer scale (B3) — the app's stacking story, bottom to
    * top. Values are exactly the pre-token numbers (parity contract).
    *
-   *   --z-popover          50  dropdown-menu popovers (see gotcha below)
    *   --z-sidebar          50  desktop sidebar rail
    *   --z-sidebar-toggle   51  edge collapse button — LOCAL value: the
    *                            fixed z-50 aside is its own stacking
@@ -924,24 +923,30 @@
    *   --z-modal           130  dialog + alert-dialog (and backdrops) —
    *                            above sheets, so dialogs can launch from
    *                            them
+   *   --z-popover         135  dropdown-menu / popover popups — ABOVE
+   *                            modals, so a menu opened inside a dialog,
+   *                            a sheet, or the mobile drawer is visible
+   *                            and clickable. See the note below.
    *   --z-tooltip         140  tooltip — topmost overlay, readable over
-   *                            modals
+   *                            modals and menus
    *   --z-skip-link       200  skip-to-content link when focused
    *   --z-confetti       9999  season burst particles — above everything
    *
-   * Popover gotcha: --z-popover (50) ties with the desktop sidebar.
-   * Dropdowns still stack above it because Base UI portals append to
-   * <body> AFTER the sidebar — DOM order breaks the tie. A dropdown
-   * opened FROM the mobile header (100) would lose; nothing does that
-   * today (the header's board selector is a Select at 120). Don't put
-   * DropdownMenus in mobile chrome without revisiting this.
+   * Popover was 50 until 7.0.0 — below the mobile menu, the mobile
+   * header, sheets and modals, and tied with the sidebar. The old note
+   * here said that was safe only while no menu opened from any of them.
+   * The rail's settings menu lives in the mobile drawer now, and the
+   * drawer painted over its own menu and ate the taps. Above modals
+   * rather than merely above the drawer, because each of those layers
+   * can host a trigger and a menu is always dismissed before whatever
+   * opened it goes anywhere. Tooltips (140) still win: a tooltip
+   * describes the item under the cursor.
    *
    * Not on the scale (local stacking / one-offs): select scroll
    * buttons z-10 (sticky inside the popup), sidebar/header content
    * z-[1] (above the rail surface), board-switch view-transition
    * groups 0/1 (::view-transition pseudo-tree only).
    * ============================================================ */
-  --z-popover: 50;
   --z-sidebar: 50;
   --z-sidebar-toggle: 51;
   --z-mobile-backdrop: 90;
@@ -950,6 +955,7 @@
   --z-sheet: 110;
   --z-select: 120;
   --z-modal: 130;
+  --z-popover: 135;
   --z-tooltip: 140;
   --z-skip-link: 200;
   --z-confetti: 9999;
