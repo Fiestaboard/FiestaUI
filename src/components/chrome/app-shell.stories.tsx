@@ -12,8 +12,8 @@ import { PAGE_HUES, PageHeader } from "./page-header";
 import { PageLayout } from "./page-layout";
 import { PageToolbar } from "./page-toolbar";
 import { Sidebar, type SidebarNavItem, type SidebarProps } from "./sidebar";
+import { SidebarSettingsTrigger } from "./sidebar-settings-trigger";
 import { SkipToContent } from "./skip-to-content";
-import { ThemeToggle } from "./theme-toggle";
 
 const LABELS = {
   mainNavigation: "Main navigation",
@@ -35,7 +35,6 @@ const renderLink: SidebarProps["renderLink"] = ({ children, ...props }) => <a {.
  */
 function AppShellDemo({ initialCollapsed = false }: { initialCollapsed?: boolean }) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [board, setBoard] = useState("board-1");
 
   const boards = [
@@ -71,14 +70,10 @@ function AppShellDemo({ initialCollapsed = false }: { initialCollapsed?: boolean
         sidebarInset={12}
         boardSelector={<BoardSelector {...boardSelectorProps} collapsed={collapsed} />}
         mobileBoardSelector={<BoardSelector {...boardSelectorProps} variant="mobileHeader" />}
-        versionSlot={<span className="text-xs text-sidebar-foreground/70">v9.0.0</span>}
-        themeToggleSlot={
-          <ThemeToggle
-            theme={theme}
-            onToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
-            label="Toggle theme"
-          />
-        }
+        ai={{ active: false, onOpen: () => {} }}
+        renderSettingsMenu={({ collapsed: isCollapsed }) => (
+          <SidebarSettingsTrigger label="casa" collapsed={isCollapsed} />
+        )}
       />
       <MainContent collapsed={collapsed} maxWidth={1680}>
         {/* The route is a PageCard, because that is the shape that ships. This

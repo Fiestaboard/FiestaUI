@@ -21,23 +21,21 @@ const MOBILE_ITEM_BASE = "flex items-center gap-3 rounded-lg px-4 py-3 text-base
 const MOBILE_ITEM_ACTIVE = cn(MOBILE_ITEM_BASE, NAV_ITEM_ACTIVE);
 const MOBILE_ITEM_INACTIVE = cn(MOBILE_ITEM_BASE, NAV_ITEM_INACTIVE);
 
-// The AI row is a <button> in a column of <a>s: links fill the column as
-// flex items, a button shrinks to fit, so its base carries the one class the
-// link base doesn't need — w-full. Everything else matches the item classes
-// exactly: the row reads as just another destination, which is the point.
-const MOBILE_AI_BASE = "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-base font-medium min-h-[48px]";
-const MOBILE_AI_ACTIVE = cn(MOBILE_AI_BASE, NAV_ITEM_ACTIVE);
-const MOBILE_AI_INACTIVE = cn(MOBILE_AI_BASE, NAV_ITEM_INACTIVE);
+// The assistant is a footer ACTION, not a destination, so it deliberately
+// does not borrow the nav row's shape: it is a square icon chip that sits
+// beside the settings trigger (rail footer) or beside the board selector
+// (mobile header). It keeps `nav-active` for its on state because "the
+// assistant is open" is the same kind of fact as "this route is current" —
+// and now it is the only thing on the rail that can be saying it.
+const AI_ACTION_BASE =
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring";
+const AI_ACTION_ACTIVE = cn(AI_ACTION_BASE, NAV_ITEM_ACTIVE);
+const AI_ACTION_INACTIVE = cn(AI_ACTION_BASE, NAV_ITEM_INACTIVE);
 
 const DESKTOP_LINK_BASE =
   "flex items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium transition-colors";
 const DESKTOP_LINK_ACTIVE = cn(DESKTOP_LINK_BASE, NAV_ITEM_ACTIVE);
 const DESKTOP_LINK_INACTIVE = cn(DESKTOP_LINK_BASE, NAV_ITEM_INACTIVE);
-
-const DESKTOP_AI_BASE =
-  "flex w-full items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium transition-colors";
-const DESKTOP_AI_ACTIVE = cn(DESKTOP_AI_BASE, NAV_ITEM_ACTIVE);
-const DESKTOP_AI_INACTIVE = cn(DESKTOP_AI_BASE, NAV_ITEM_INACTIVE);
 
 const NAV_LABEL_BASE = "whitespace-nowrap overflow-hidden transition-opacity duration-fast";
 const NAV_LABEL_COLLAPSED = cn(NAV_LABEL_BASE, "opacity-0 max-w-0");
@@ -154,28 +152,37 @@ export interface SidebarProps {
   /** Click handler for the logo. When present, the lockup renders as a button. */
   onLogoClick?: (e: React.MouseEvent) => void;
   /**
-   * AI assistant nav entry; omit to hide. Renders as a row of the one nav
-   * list — visually identical to the items around it, scrolling with them.
-   * It used to be its own one-row section between two hairlines below the
-   * list; a single entry fenced off by dividers read as a stranded
-   * mini-menu, and every hairline it added shrank the space the list had
-   * before it needed to scroll.
+   * AI assistant entry; omit to hide (an install with no provider
+   * configured). It renders as an icon action in the rail footer and in the
+   * mobile header — NOT as a row of the nav list.
    *
-   * With `items` it is the last row before `renderAccount`. With the
-   * deprecated primary/secondary pair it sits at the seam between them —
-   * where it rendered when those were two separate lists — so consumers
-   * migrating on their own schedule see the merge, not a reshuffle.
+   * It used to be a nav row, and that is the bug this shape fixes: the list
+   * shows which ROUTE you are on, so opening the drawer over /pages lit two
+   * rows at once, Pages and AI Assistant, and neither was wrong. A panel is
+   * not a destination. Moved out of the list, its on state is the only
+   * highlight the drawer can produce, and the route highlight stays true.
    */
   ai?: { active: boolean; onOpen: () => void };
   /** Board switcher slots (rendered only when provided). */
   boardSelector?: React.ReactNode;
   mobileBoardSelector?: React.ReactNode;
-  /** Account row; renders as the last row of the nav list, scrolling with it. */
-  renderAccount?: (ctx: { variant: "mobile" | "desktop"; collapsed: boolean }) => React.ReactNode;
-  /** Version indicator in the footer row. */
-  versionSlot?: React.ReactNode;
-  /** Theme toggle in the footer row. */
-  themeToggleSlot?: React.ReactNode;
+  /**
+   * The settings menu that anchors the footer: expanded it fills the width
+   * the assistant does not take, collapsed it is an icon above the
+   * assistant, and in the mobile menu it is the whole footer row.
+   *
+   * A render function rather than a node because the trigger has two
+   * shapes — a name-and-chevron button at 256px, a bare gear at 64px — and
+   * only the app can build either: the menu's CONTENTS are auth, router,
+   * theme and i18n, none of which the design system knows about. FiestaUI
+   * owns where the trigger sits and how much room it gets; the app owns
+   * what is inside it.
+   *
+   * Replaces `versionSlot` and `themeToggleSlot` (7.0.0). Both were footer
+   * nodes that only ever held one control each; the version now lives in
+   * the app's About dialog and the theme is a checked group in the menu.
+   */
+  renderSettingsMenu?: (ctx: { variant: "mobile" | "desktop"; collapsed: boolean }) => React.ReactNode;
   /** App max width in px — the sidebar centers itself against it. */
   maxWidth: number;
   /** Gap between the app edge and the sidebar in px. */
@@ -197,19 +204,19 @@ export const Sidebar = memo(function Sidebar({
   ai,
   boardSelector,
   mobileBoardSelector,
-  renderAccount,
-  versionSlot,
-  themeToggleSlot,
+  renderSettingsMenu,
   maxWidth,
   sidebarInset,
 }: SidebarProps) {
-  // The nav list, split only by where the AI row goes. `items` is the whole
-  // list (AI last, then the account row); the deprecated pair renders
-  // primary -> AI -> secondary, preserving the AI row's old position. Two
-  // nullish coalesces and no allocation — `items={[]}` is honoured as an
-  // explicitly empty list rather than falling through to `primaryItems`.
-  const itemsBeforeAi = items ?? primaryItems ?? EMPTY_ITEMS;
-  const itemsAfterAi = items ? EMPTY_ITEMS : (secondaryItems ?? EMPTY_ITEMS);
+  // One list, no seam. The deprecated pair used to be spliced around the AI
+  // row; the assistant left the list in 7.0.0, so primary+secondary is now
+  // a plain concatenation. `items={[]}` is honoured as an explicitly empty
+  // list rather than falling through to `primaryItems`.
+  const navItems =
+    items ??
+    (primaryItems || secondaryItems
+      ? [...(primaryItems ?? EMPTY_ITEMS), ...(secondaryItems ?? EMPTY_ITEMS)]
+      : EMPTY_ITEMS);
 
   // `items` wins outright over the deprecated pair, and it has to: appending
   // them instead would render every row twice — with duplicate React keys —
@@ -450,6 +457,69 @@ export const Sidebar = memo(function Sidebar({
     );
   }
 
+  /**
+   * The assistant as an icon chip. Same control in both places it appears —
+   * the rail footer and the mobile header — so its name, its on state and
+   * its hit area are defined once, here, rather than twice at each site.
+   *
+   * `aria-pressed` rather than `aria-current`: it toggles a panel open and
+   * shut, it does not mark a location. That distinction is the whole point
+   * of moving it off the nav list.
+   */
+  const aiAction = () =>
+    ai ? (
+      <button
+        type="button"
+        onClick={ai.onOpen}
+        aria-label={labels.aiAssistant}
+        aria-pressed={ai.active}
+        data-slot="sidebar-ai"
+        className={ai.active ? AI_ACTION_ACTIVE : AI_ACTION_INACTIVE}
+      >
+        <Sparkles className="h-5 w-5" aria-hidden="true" />
+      </button>
+    ) : null;
+
+  /**
+   * The footer strip: the app's settings menu taking every pixel the
+   * assistant does not, and the assistant pinned beside it. Collapsed, the
+   * 64px rail has no width to share, so the pair stacks — settings above,
+   * assistant below — which is also the order they read in expanded.
+   *
+   * `data-orientation` is the contract the unit tests hold; the pixels are
+   * VRT's job.
+   */
+  const footerBlock = (variant: "mobile" | "desktop", isCollapsed: boolean) => {
+    const menu = renderSettingsMenu?.({ variant, collapsed: isCollapsed });
+    const assistant = variant === "desktop" ? aiAction() : null;
+    if (!menu && !assistant) return null;
+
+    return (
+      <div
+        data-slot="sidebar-footer"
+        data-orientation={isCollapsed ? "vertical" : "horizontal"}
+        className={cn("flex gap-2", isCollapsed ? "flex-col items-center" : "items-center")}
+      >
+        {menu && (
+          <div data-slot="sidebar-settings-menu" className={isCollapsed ? "shrink-0" : "min-w-0 flex-1"}>
+            {menu}
+          </div>
+        )}
+        {/* The chip is icon-only in both states, so unlike the nav rows it
+            always earns its tooltip. It points right off the collapsed rail
+            and up out of the expanded footer — the directions with room. */}
+        {assistant && (
+          <Tooltip>
+            <TooltipTrigger asChild>{assistant}</TooltipTrigger>
+            <TooltipContent side={isCollapsed ? "right" : "top"} className="font-medium">
+              {labels.aiAssistant}
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+    );
+  };
+
   const logoBlock = (variant: "mobile" | "desktop") => {
     const logo =
       variant === "mobile" ? (
@@ -522,7 +592,16 @@ export const Sidebar = memo(function Sidebar({
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>
           {logoBlock("mobile")}
-          {mobileBoardSelector && <div className="ml-auto pl-2 flex-shrink-0">{mobileBoardSelector}</div>}
+          {/* Board selector then assistant, both pinned right. The assistant
+              is here rather than in the hamburger menu because it is the one
+              thing on a phone you reach for mid-task — two taps behind a
+              menu that also has to close itself again is two too many. */}
+          {(mobileBoardSelector || ai) && (
+            <div className="ml-auto flex flex-shrink-0 items-center gap-1 pl-2">
+              {mobileBoardSelector}
+              {aiAction()}
+            </div>
+          )}
         </div>
       </header>
 
@@ -550,36 +629,17 @@ export const Sidebar = memo(function Sidebar({
         style={mobileMenuOpen ? MOBILE_MENU_STYLE_OPEN : MOBILE_MENU_STYLE_CLOSED}
       >
         {/* One list and one hairline, mirroring the desktop rail: every
-            destination — help, settings, the AI row, the account row —
-            scrolls together in this nav, and the only thing pinned below it
-            is the version/theme footer. */}
+            destination scrolls together in this nav, and the only thing
+            pinned below it is the settings menu. The assistant is not here
+            at all — it lives in the header bar above, always reachable. */}
         <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {itemsBeforeAi.map(renderMobileNavItem)}
-          {ai && (
-            <button
-              type="button"
-              onClick={() => {
-                ai.onOpen();
-                setMobileMenuOpen(false);
-              }}
-              className={ai.active ? MOBILE_AI_ACTIVE : MOBILE_AI_INACTIVE}
-            >
-              <Sparkles className="h-5 w-5" />
-              {labels.aiAssistant}
-            </button>
-          )}
-          {itemsAfterAi.map(renderMobileNavItem)}
-          {renderAccount?.({ variant: "mobile", collapsed: false })}
+          {navItems.map(renderMobileNavItem)}
         </nav>
         <div className="shrink-0 border-t border-sidebar-border mx-3" />
-        {/* px-7 = the nav's px-3 plus a row's own px-4, putting the version
-            on the rows' content line — the same x as every icon above it,
-            which is exactly where it sat when a nested block supplied the
-            two paddings separately. */}
-        <div className="shrink-0 flex items-center justify-between gap-2 px-7 py-3 text-sidebar-foreground">
-          {versionSlot}
-          {themeToggleSlot}
-        </div>
+        {/* px-3 matches the nav's own gutter, so the trigger's left edge
+            lands under the rows' rounded hit areas rather than under their
+            glyphs — it is a control the width of the menu, not a row. */}
+        <div className="shrink-0 px-3 py-3 text-sidebar-foreground">{footerBlock("mobile", false)}</div>
       </div>
 
       {/* Desktop Sidebar */}
@@ -649,63 +709,19 @@ export const Sidebar = memo(function Sidebar({
                 don't use; min-h-0 lets it actually shrink so overflow-y
                 scrolls the LIST, never the sidebar. */}
             <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto py-4 px-2">
-              {itemsBeforeAi.map(renderDesktopNavItem)}
-              {ai &&
-                (collapsed ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={ai.onOpen}
-                        aria-label={labels.aiAssistant}
-                        className={ai.active ? DESKTOP_AI_ACTIVE : DESKTOP_AI_INACTIVE}
-                      >
-                        <Sparkles className="h-5 w-5 flex-shrink-0" />
-                        <span className={NAV_LABEL_COLLAPSED}>{labels.aiAssistant}</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="font-medium">
-                      {labels.aiAssistant}
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  // Expanded rows pay no tooltip machinery — same reasoning as
-                  // renderDesktopNavItem above.
-                  <button
-                    type="button"
-                    onClick={ai.onOpen}
-                    className={ai.active ? DESKTOP_AI_ACTIVE : DESKTOP_AI_INACTIVE}
-                  >
-                    <Sparkles className="h-5 w-5 flex-shrink-0" />
-                    <span className={NAV_LABEL_EXPANDED}>{labels.aiAssistant}</span>
-                  </button>
-                ))}
-              {itemsAfterAi.map(renderDesktopNavItem)}
-              {renderAccount?.({ variant: "desktop", collapsed })}
+              {navItems.map(renderDesktopNavItem)}
             </nav>
 
             <div className="mx-2 border-t border-sidebar-border" />
 
-            <div className="shrink-0 px-2 pt-2 pb-3">
-              {/* Footer: expanded = version | toggle side by side; collapsed =
-                  the toggle alone. The 64px rail cannot fit a version string,
-                  and the old centered-with-truncate treatment did not degrade
-                  to an ellipsis — the slot's own flex layout clipped it
-                  mid-glyph, so "v8.32.10 (dev)" read as the plausible-but-wrong
-                  "v8.32.1". A number that can only render wrongly is better
-                  dropped; the expanded rail and the mobile menu keep it. The
-                  hairline above is the block's own separator now, so this row
-                  no longer draws a second one of its own. */}
-              <div
-                className={cn(
-                  "py-2",
-                  collapsed ? "flex justify-center" : "flex items-center justify-between gap-2 pl-[14px] pr-3",
-                )}
-              >
-                {!collapsed && <div className="min-w-0 overflow-hidden whitespace-nowrap">{versionSlot}</div>}
-                <div className="flex-shrink-0">{themeToggleSlot}</div>
-              </div>
-            </div>
+            {/* Footer: the settings menu and the assistant, and nothing else.
+                It used to be the version string beside a theme toggle — two
+                controls that between them said less than one menu does, and
+                the version could only render wrongly at 64px anyway (the
+                slot's flex layout clipped "v8.32.10 (dev)" mid-glyph into
+                the plausible-but-wrong "v8.32.1"). Both facts moved inside
+                the menu, where there is room to be right. */}
+            <div className="shrink-0 px-2 pb-3 pt-2">{footerBlock("desktop", collapsed)}</div>
           </div>
         </aside>
       </TooltipProvider>

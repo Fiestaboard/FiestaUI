@@ -6,16 +6,30 @@ import {
   GalleryHorizontalEnd,
   HelpCircle,
   Home,
+  Info,
+  LogOut,
+  Monitor,
+  Moon,
   Puzzle,
   Settings,
-  User,
+  Sun,
 } from "lucide-react";
 import { useState } from "react";
 
-import { cn } from "../../lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../overlays/dropdown-menu";
 import { BoardSelector } from "./board-selector";
 import { Sidebar, type SidebarNavItem, type SidebarProps } from "./sidebar";
-import { ThemeToggle } from "./theme-toggle";
+import { SidebarSettingsTrigger } from "./sidebar-settings-trigger";
 
 const LABELS = {
   mainNavigation: "Main navigation",
@@ -30,10 +44,15 @@ const LABELS = {
 };
 
 /*
- * The sidebar takes ONE list. These two arrays are the *app's* grouping, not
- * the component's — they exist so the stories can compose orderings
- * readably (and so OverflowingNav can wedge filler between them). Nothing
- * about the rendered rail distinguishes a DESTINATION from a UTILITY.
+ * The sidebar takes ONE list of DESTINATIONS. These two arrays are the
+ * *app's* grouping, not the component's — they exist so the stories can
+ * compose orderings readably (and so OverflowingNav can wedge filler between
+ * them). Nothing about the rendered rail distinguishes them.
+ *
+ * Note what is NOT here: settings, the assistant, sign-out. Settings is
+ * reachable from the footer menu, the assistant is a footer action, and
+ * sign-out is a menu item — none of them is a place you can be, so none of
+ * them is a row that can light up.
  */
 const DESTINATIONS: SidebarNavItem[] = [
   { key: "home", href: "#", icon: Home, label: "Home", active: true },
@@ -51,7 +70,6 @@ const UTILITIES: SidebarNavItem[] = [
     label: "Help & Docs",
     external: true,
   },
-  { key: "settings", href: "#settings", icon: Settings, label: "Settings" },
 ];
 
 const NAV_ITEMS: SidebarNavItem[] = [...DESTINATIONS, ...UTILITIES];
@@ -67,30 +85,75 @@ function makeBoards(count: number) {
 
 const renderLink: SidebarProps["renderLink"] = ({ children, ...props }) => <a {...props}>{children}</a>;
 
-/** Placeholder account row styled like a nav item — the last row of the list (the app injects its real account menu here). */
-function AccountRow({ collapsed }: { collapsed: boolean }) {
+/**
+ * A stand-in for the app's real settings menu, built from the same
+ * primitives it uses. The Sidebar owns where this sits and how wide it gets;
+ * everything inside it — the name, the routes, the theme, the version — is
+ * app knowledge, which is why the real one is assembled in FiestaBoard.
+ */
+function DemoSettingsMenu({
+  collapsed,
+  username = "casa",
+  theme,
+  onThemeChange,
+}: {
+  collapsed: boolean;
+  username?: string;
+  theme: string;
+  onThemeChange: (theme: string) => void;
+}) {
   return (
-    <div className="flex items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium text-sidebar-foreground">
-      <User className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-      <span
-        className={cn(
-          "whitespace-nowrap overflow-hidden transition-opacity duration-fast",
-          collapsed ? "opacity-0 max-w-0" : "opacity-100 max-w-48 delay-150",
-        )}
-      >
-        casa@example.com
-      </span>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <SidebarSettingsTrigger label={username} collapsed={collapsed} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56">
+        <DropdownMenuLabel>{username}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <Settings className="h-4 w-4" aria-hidden="true" />
+          Settings
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={theme} onValueChange={(v) => onThemeChange(String(v))}>
+            <DropdownMenuRadioItem value="light">
+              <Sun className="h-4 w-4" aria-hidden="true" />
+              Light
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="dark">
+              <Moon className="h-4 w-4" aria-hidden="true" />
+              Dark
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="system">
+              <Monitor className="h-4 w-4" aria-hidden="true" />
+              System
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <Info className="h-4 w-4" aria-hidden="true" />
+          About FiestaBoard
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
 function DemoSidebar({
   initialCollapsed = false,
   boardCount = 2,
+  username,
   ...overrides
-}: Partial<SidebarProps> & { initialCollapsed?: boolean; boardCount?: number }) {
+}: Partial<SidebarProps> & { initialCollapsed?: boolean; boardCount?: number; username?: string }) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState("dark");
   const [board, setBoard] = useState("board-1");
 
   const boards = makeBoards(boardCount);
@@ -104,6 +167,7 @@ function DemoSidebar({
       onToggleCollapsed={() => setCollapsed(!collapsed)}
       maxWidth={1680}
       sidebarInset={12}
+      ai={{ active: false, onOpen: () => {} }}
       boardSelector={
         // A single board hides the switcher — matching app behavior.
         boards.length > 1 ? (
@@ -128,14 +192,9 @@ function DemoSidebar({
           />
         ) : undefined
       }
-      versionSlot={<span className="text-xs text-sidebar-foreground/70">v9.0.0</span>}
-      themeToggleSlot={
-        <ThemeToggle
-          theme={theme}
-          onToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
-          label="Toggle theme"
-        />
-      }
+      renderSettingsMenu={({ collapsed: isCollapsed }) => (
+        <DemoSettingsMenu collapsed={isCollapsed} username={username} theme={theme} onThemeChange={setTheme} />
+      )}
       {...overrides}
     />
   );
@@ -147,15 +206,14 @@ interface PlaygroundArgs {
   showAi: boolean;
   aiActive: boolean;
   boardCount: number;
-  showAccount: boolean;
-  versionText: string;
+  username: string;
   activeItem: string;
   showTransitionsLab: boolean;
 }
 
 function PlaygroundSidebar(args: PlaygroundArgs) {
   const [collapsed, setCollapsed] = useState(args.collapsed);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState("dark");
   const [board, setBoard] = useState("board-1");
 
   const boards = makeBoards(args.boardCount);
@@ -210,15 +268,9 @@ function PlaygroundSidebar(args: PlaygroundArgs) {
           />
         ) : undefined
       }
-      renderAccount={args.showAccount ? ({ collapsed: c }) => <AccountRow collapsed={c} /> : undefined}
-      versionSlot={<span className="text-xs text-sidebar-foreground/70">{args.versionText}</span>}
-      themeToggleSlot={
-        <ThemeToggle
-          theme={theme}
-          onToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
-          label="Toggle theme"
-        />
-      }
+      renderSettingsMenu={({ collapsed: isCollapsed }) => (
+        <DemoSettingsMenu collapsed={isCollapsed} username={args.username} theme={theme} onThemeChange={setTheme} />
+      )}
     />
   );
 }
@@ -244,8 +296,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     showAi: true,
     aiActive: false,
     boardCount: 2,
-    showAccount: true,
-    versionText: "v9.0.0",
+    username: "casa",
     activeItem: "home",
     showTransitionsLab: false,
   },
@@ -255,23 +306,25 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       control: "boolean",
     },
     showAi: {
-      description: "Show the AI assistant entry as the last row of the nav list, above the account row.",
+      description: "Show the assistant. It is a footer action and a mobile-header action — never a nav row.",
       control: "boolean",
     },
-    aiActive: { description: "Highlight the AI assistant entry as the active route.", control: "boolean" },
+    aiActive: {
+      description: "Highlight the assistant as open. Note that no nav row changes: that is the point.",
+      control: "boolean",
+    },
     boardCount: {
       description: "How many boards the install has — a single board hides the selector, matching the app.",
       control: { type: "range", min: 1, max: 5, step: 1 },
     },
-    showAccount: {
-      description: "Render a placeholder account row as the last row of the nav list.",
-      control: "boolean",
+    username: {
+      description: "Name on the settings trigger — the app falls back to its word for Settings.",
+      control: "text",
     },
-    versionText: { description: "Version indicator text in the footer row.", control: "text" },
     activeItem: {
       description: "Which nav item renders in the active-route state.",
       control: "select",
-      options: ["home", "pages", "collections", "schedule", "integrations", "transitions", "settings"],
+      options: ["home", "pages", "collections", "schedule", "integrations", "transitions"],
     },
     showTransitionsLab: {
       description: "Append the beta Transitions Lab entry, mirroring the app's feature flag.",
@@ -289,6 +342,11 @@ export const Default: Story = {
   render: () => <DemoSidebar />,
 };
 
+/**
+ * The footer at 64px: settings above, assistant below, both 36px squares on
+ * the rail's centre line. There is no room to share a row, so the pair
+ * stacks in the order it reads expanded.
+ */
 export const Collapsed: Story = {
   render: () => <DemoSidebar initialCollapsed />,
 };
@@ -308,25 +366,46 @@ export const SingleBoard: Story = {
   render: () => <DemoSidebar boardCount={1} />,
 };
 
-export const WithAiAssistant: Story = {
-  render: () => <DemoSidebar ai={{ active: false, onOpen: () => {} }} />,
-};
-
+/**
+ * The drawer is open. Exactly one thing on the rail is highlighted — the
+ * assistant chip — and Home stays the current route, because the route
+ * never stopped being current. As a nav row the assistant produced two
+ * highlights at once and no way to tell which one answered "where am I".
+ */
 export const AiActive: Story = {
   render: () => <DemoSidebar ai={{ active: true, onOpen: () => {} }} />,
 };
 
-export const WithAccount: Story = {
-  render: () => <DemoSidebar renderAccount={({ collapsed }) => <AccountRow collapsed={collapsed} />} />,
+/**
+ * No AI provider configured: the chip is absent and the settings menu takes
+ * the whole footer width. The app hides the assistant this way rather than
+ * disabling it — there is nothing to open.
+ */
+export const WithoutAssistant: Story = {
+  render: () => <DemoSidebar ai={undefined} />,
+};
+
+/**
+ * Auth is off, or nobody is signed in, so the app passes its translated
+ * word for Settings instead of a name. The trigger is the same object.
+ */
+export const NoUsername: Story = {
+  render: () => <DemoSidebar username="Settings" />,
+};
+
+/**
+ * A username with nowhere to go truncates rather than pushing the chevron
+ * off the rail — the footer's width belongs to the rail, not to the name.
+ */
+export const LongUsername: Story = {
+  render: () => <DemoSidebar username="bartholomew.featherstonehaugh" />,
 };
 
 /**
  * When the nav outgrows the rail, the LIST scrolls inside itself — only the
- * header (logo + board switcher) and the version/theme footer stay pinned.
- * Everything else scrolls together, help and settings included: with one
- * list there is no bottom block for them to hide in, which is the trade the
- * flat rail makes. Twelve extra destinations guarantee overflow at the VRT
- * viewport heights (800px desktop, 844px mobile).
+ * header (logo + board switcher) and the settings/assistant footer stay
+ * pinned. Twelve extra destinations guarantee overflow at the VRT viewport
+ * heights (800px desktop, 844px mobile).
  */
 export const OverflowingNav: Story = {
   render: () => (
@@ -341,15 +420,15 @@ export const OverflowingNav: Story = {
         })),
         ...UTILITIES,
       ]}
-      ai={{ active: false, onOpen: () => {} }}
     />
   ),
 };
 
 /**
  * Below the `lg` breakpoint the sidebar swaps to a fixed top bar with a
- * hamburger-driven dialog menu. Resize the canvas (or use the viewport
- * toolbar) under 1024px to see it; tap the hamburger to open the menu.
+ * hamburger-driven dialog menu. The assistant rides in that top bar, right
+ * of the board selector, so it stays one tap away; the settings menu is the
+ * pinned footer of the drawer.
  */
 export const Mobile: Story = {
   globals: {
