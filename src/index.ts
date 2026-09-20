@@ -75,6 +75,7 @@ export * from "./components/chrome/page-layout";
 export * from "./components/chrome/page-toolbar";
 export * from "./components/chrome/pagination";
 export * from "./components/chrome/sidebar";
+export * from "./components/chrome/sidebar-settings-trigger";
 export * from "./components/chrome/skip-to-content";
 export * from "./components/chrome/theme-toggle";
 export * from "./components/chrome/top-nav";
