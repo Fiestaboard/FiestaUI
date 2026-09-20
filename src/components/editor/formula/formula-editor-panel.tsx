@@ -154,26 +154,39 @@ const formulaStreamLang = StreamLanguage.define({
  * Syntax colours are read from custom properties rather than baked in as the
  * literal hexes the app used, for two reasons:
  *
- *  1. The two themes need two ramps. The app's values (violet-500/green-600/
- *     orange-600/sky-600) never cleared the 4.5:1 this package holds body
- *     text to on EITHER surface: 3.8/3.0/3.2/3.7:1 on the light `--background`
- *     (measured by axe once the light a11y leg actually ran light, #306), and
- *     sky-600 near 3:1 on the dark one. Light now uses the 700-weight shades
- *     (violet 6.5, green 6.5, orange 4.7, sky 5.4:1) and the `.dark &` block
- *     below re-points the same four roles at the 400-weight shades.
- *  2. A host that wants its own formula palette can override the four
+ *  1. A host that wants its own formula palette can override the four
  *     properties from its own CSS instead of forking this file.
+ *  2. The roles are named, so what each colour MEANS survives a retune of what
+ *     each colour IS.
  *
- * These are deliberately NOT the package's semantic tokens: `--success` etc.
- * mean "this operation worked", not "this token is a string literal", and
- * FiestaUI does not (yet) ship a designed syntax ramp — see the #173 note in
- * theme.css about not shipping a palette the design system has not designed.
+ * WHAT THE PROPERTIES RESOLVE TO CHANGED (PR #315), and the argument that used
+ * to sit here is why it had to.
+ *
+ * It read: "These are deliberately NOT the package's semantic tokens:
+ * `--success` etc. mean 'this operation worked', not 'this token is a string
+ * literal', and FiestaUI does not (yet) ship a designed syntax ramp." The first
+ * half of that is still exactly right and is still obeyed — none of the four
+ * roles below points at `--success`, `--info` or `--destructive`. The second
+ * half stopped being true. `--hue-*` IS a designed ramp: six brand hues held
+ * at one ink lightness, argued and measured in theme.css, existing precisely
+ * for "a surface that wants one of the brand's colours and is not a board".
+ * That is this surface. Reaching for it is what the #173 note asks for, not a
+ * breach of it — #173 bans shipping an UNDESIGNED palette, and the eight
+ * hardcoded hexes this replaced were exactly that.
+ *
+ * The hexes also failed on their own terms. They were Tailwind's
+ * violet-700/green-800/orange-700/sky-700 plus a 400-weight dark set, four
+ * hues off the six-hue lock, and nothing measured them against the surface
+ * they land on. `number` sat at 4.68:1 on the light page — 0.18 above AA — so
+ * the moment the page itself was retuned it fell to 4.41:1 and the light a11y
+ * leg went red. A hardcoded hex cannot track a palette; that is the whole
+ * reason this package has tokens.
  */
 const formulaHighlighter = HighlightStyle.define([
   { tag: tags.keyword, color: "var(--fiesta-formula-function)", fontWeight: "600" }, // functions — violet
   { tag: tags.string, color: "var(--fiesta-formula-string)" }, // strings   — green
   { tag: tags.number, color: "var(--fiesta-formula-number)" }, // numbers   — orange
-  { tag: tags.variableName, color: "var(--fiesta-formula-variable)" }, // variables — sky
+  { tag: tags.variableName, color: "var(--fiesta-formula-variable)" }, // variables — blue
   { tag: tags.operator, color: "var(--muted-foreground)" },
   { tag: tags.punctuation, color: "var(--muted-foreground)" },
 ]);
@@ -192,19 +205,34 @@ const formulaBaseTheme = EditorView.theme({
     fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace)",
     background: "var(--background)",
     height: "100%",
-    "--fiesta-formula-function": "#6d28d9",
-    "--fiesta-formula-string": "#166534",
-    "--fiesta-formula-number": "#c2410c",
-    "--fiesta-formula-variable": "#0369a1",
-  },
-  // FiestaUI's dark mode is class-based (`@custom-variant dark (&:is(.dark *))`),
-  // so this mirrors it rather than using `prefers-color-scheme` — a page pinned
-  // to dark by class must recolour even when the OS is in light mode.
-  ".dark &": {
-    "--fiesta-formula-function": "#a78bfa",
-    "--fiesta-formula-string": "#4ade80",
-    "--fiesta-formula-number": "#fb923c",
-    "--fiesta-formula-variable": "#38bdf8",
+    // The four syntax colours are the PALETTE's ink plateau, not a fork of it.
+    //
+    // They used to be eight hardcoded hexes — Tailwind's violet-700,
+    // green-800, orange-700 and sky-700, plus a dark set — which is the exact
+    // "a consumer forks the pair into hexes it then has to maintain by hand"
+    // failure theme.css warns about, sitting inside our own package. It carried
+    // two costs. Four of those hues are not among the six the hue lock allows,
+    // so the one surface in the product where a user reads coloured text was
+    // also the one place off the brand's hue wheel. And nothing measured them
+    // against the surface they land on: `number` sat at 4.68:1 on the light
+    // page — 0.18 above AA — so the light-mode paper retune (PR #315) pushed it
+    // to 4.41:1 and axe caught it. A hardcoded hex cannot track a palette.
+    //
+    // --hue-* is the token family that exists for precisely this: the six hues
+    // at a lightness proven legal for text on --background and --card, in both
+    // themes. On the light page they measure violet 5.55, blue 5.10, orange
+    // 5.21 and green 4.85; in dark, 9.27 to 10.39. The mapping keeps every
+    // colour's meaning — functions violet, strings green, numbers orange,
+    // variables blue.
+    //
+    // The `.dark &` block that used to follow is GONE, not moved: --hue-* is
+    // already themed, so the editor follows a theme toggle without a second
+    // set of values to keep in sync. That block existed only because hexes
+    // cannot do that.
+    "--fiesta-formula-function": "var(--hue-violet)",
+    "--fiesta-formula-string": "var(--hue-green)",
+    "--fiesta-formula-number": "var(--hue-orange)",
+    "--fiesta-formula-variable": "var(--hue-blue)",
   },
   ".cm-scroller": { overflow: "auto" },
   ".cm-content": {

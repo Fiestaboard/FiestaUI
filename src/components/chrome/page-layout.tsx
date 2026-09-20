@@ -20,7 +20,15 @@ export const PageLayout = memo(function PageLayout({
   return (
     <div
       className={cn(
-        "bg-background overflow-x-hidden",
+        // `surface-grain` because THIS is the page ground, not <body>. The base
+        // layer grains `body`, which is correct for a host that lets the page
+        // surface reach the canvas — but this component paints `bg-background`
+        // itself, so it covers the grained body with a flat fill and the page
+        // loses its tooth for every consumer using the system's own page
+        // component. The rail solves the same problem the same way (see
+        // `.sidebar-gradient` in theme.css): the element that paints the
+        // surface is the element that carries its texture.
+        "bg-background surface-grain overflow-x-hidden",
         // fillHeight pins the page to the viewport so inner content (e.g. the
         // calendar grid) can scroll independently. On phones we drop the
         // pinning — viewport-internal scroll on a 24-hour grid is fiddly to
