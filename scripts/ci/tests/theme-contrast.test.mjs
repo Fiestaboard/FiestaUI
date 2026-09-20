@@ -54,7 +54,7 @@ const ALPHA_RING = /(?<![\w-])ring-ring\/\d+/g;
 
 /**
  * `text-primary`, but not `text-primary-foreground`. `--primary` is the
- * literal tile at 1.83:1 on a light page: legal as a field or an icon,
+ * literal tile at 1.72:1 on a light page: legal as a field or an icon,
  * illegal as text. `--brand` is the same hue at the ink plateau.
  */
 const PRIMARY_AS_TEXT = /(?<![\w-])text-primary(?!-|\w)/g;
@@ -134,8 +134,8 @@ test("#238: no banned focus ring or --primary-as-text outside the pinned allowli
     [],
     "`ring-ring/<alpha>` composites to ~1.36:1 on a light page now that --ring is the #f5a623 tile, and it is " +
       "paired with `outline-none`, so the UA outline is suppressed and its replacement is invisible (SC 2.4.11). " +
-      "Add the `focus-ring` class instead. `text-primary` is the tile at 1.83:1 — use `text-brand` for text and " +
-      "links (5.09:1 light / 9.63:1 dark).",
+      "Add the `focus-ring` class instead. `text-primary` is the tile at 1.72:1 — use `text-brand` for text and " +
+      "links (5.21:1 light / 9.63:1 dark).",
   );
 });
 
@@ -282,13 +282,20 @@ test("#231: every tag Badge pair clears AA (4.5:1) on every surface, in both the
 
 test("#231: the arithmetic is calibrated against theme.css's own published ratios", () => {
   // If this drifts, every number above is fiction. --brand on --background is
-  // documented as 5.08-5.09:1 light and 9.63:1 dark; --primary as 1.83:1 light.
+  // documented as 5.21:1 light and 9.63:1 dark; --primary as 1.72:1 light.
+  //
+  // The light pair moved with the paper retune: the page went from L 0.965 to
+  // L 0.945 and the ink plateau followed it from 0.52 to 0.50, which RAISED
+  // --brand (5.09 -> 5.21) and lowered the --primary tile's ratio against the
+  // page (1.83 -> 1.72). The tile is a field, never text, so that second
+  // number moving down is not a regression — it is the same pigment measured
+  // against a page that is no longer nearly white. Dark is untouched.
   const near = (actual, expected) => Math.abs(actual - expected) < 0.02;
   const lightBg = toRgb(resolve("--background", lightTokens));
   const darkBg = toRgb(resolve("--background", darkTokens));
-  assert.ok(near(contrast(toRgb(resolve("--brand", lightTokens)), lightBg), 5.09), "--brand light");
+  assert.ok(near(contrast(toRgb(resolve("--brand", lightTokens)), lightBg), 5.21), "--brand light");
   assert.ok(near(contrast(toRgb(resolve("--brand", darkTokens)), darkBg), 9.63), "--brand dark");
-  assert.ok(near(contrast(toRgb(resolve("--primary", lightTokens)), lightBg), 1.83), "--primary light");
+  assert.ok(near(contrast(toRgb(resolve("--primary", lightTokens)), lightBg), 1.72), "--primary light");
 });
 
 /* ------------------------------------------------------------------ *

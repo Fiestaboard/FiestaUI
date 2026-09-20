@@ -255,6 +255,12 @@ export const NON_COLOR_TOKEN_CATEGORIES: ReadonlyArray<{
   // `.focus-ring` and CSS-only consumers share (#228 item 5).
   { id: "focus", label: "Focus ring recipe", matches: (n) => n.startsWith("--focus-ring") },
   { id: "board", label: "Board rendering", matches: (n) => n.startsWith("--board-") },
+  // --texture-grain is a tiled noise `url()` and --texture-grain-blend a
+  // blend-mode keyword. Neither is a colour, and a swatch for either would be
+  // a lie: the grain's whole design property is that it contributes NO mean
+  // colour (see the texture block in theme.css), so a chip of it renders as
+  // the surface it was drawn on.
+  { id: "texture", label: "Surface texture", matches: (n) => n.startsWith("--texture-") },
 ];
 
 /* ------------------------------------------------------------------ *
