@@ -154,11 +154,13 @@ const formulaStreamLang = StreamLanguage.define({
  * Syntax colours are read from custom properties rather than baked in as the
  * literal hexes the app used, for two reasons:
  *
- *  1. The app's values (violet-500/green-600/orange-600/sky-600) were picked
- *     against a light editor surface. FiestaUI ships a real dark theme where
- *     sky-600 on `--background` (oklch .13) lands near 3:1 — under the 4.5:1
- *     this package holds body text to. The `.dark &` block below re-points the
- *     same four roles at the 400-weight shades, which clear it.
+ *  1. The two themes need two ramps. The app's values (violet-500/green-600/
+ *     orange-600/sky-600) never cleared the 4.5:1 this package holds body
+ *     text to on EITHER surface: 3.8/3.0/3.2/3.7:1 on the light `--background`
+ *     (measured by axe once the light a11y leg actually ran light, #306), and
+ *     sky-600 near 3:1 on the dark one. Light now uses the 700-weight shades
+ *     (violet 6.5, green 6.5, orange 4.7, sky 5.4:1) and the `.dark &` block
+ *     below re-points the same four roles at the 400-weight shades.
  *  2. A host that wants its own formula palette can override the four
  *     properties from its own CSS instead of forking this file.
  *
@@ -190,10 +192,10 @@ const formulaBaseTheme = EditorView.theme({
     fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace)",
     background: "var(--background)",
     height: "100%",
-    "--fiesta-formula-function": "#8b5cf6",
-    "--fiesta-formula-string": "#16a34a",
-    "--fiesta-formula-number": "#ea580c",
-    "--fiesta-formula-variable": "#0284c7",
+    "--fiesta-formula-function": "#6d28d9",
+    "--fiesta-formula-string": "#166534",
+    "--fiesta-formula-number": "#c2410c",
+    "--fiesta-formula-variable": "#0369a1",
   },
   // FiestaUI's dark mode is class-based (`@custom-variant dark (&:is(.dark *))`),
   // so this mirrors it rather than using `prefers-color-scheme` — a page pinned
@@ -231,11 +233,15 @@ const formulaBaseTheme = EditorView.theme({
 const CATEGORY_ORDER = ["logic", "math", "text", "convert", "color"];
 
 const CATEGORY_META: Record<string, { icon: LucideIcon; text: string; border: string }> = {
-  logic: { icon: GitBranch, text: "text-violet-400", border: "border-l-violet-400/60" },
-  math: { icon: Hash, text: "text-emerald-400", border: "border-l-emerald-400/60" },
-  text: { icon: TypeIcon, text: "text-sky-400", border: "border-l-sky-400/60" },
-  convert: { icon: ArrowLeftRight, text: "text-amber-400", border: "border-l-amber-400/60" },
-  color: { icon: Palette, text: "text-pink-400", border: "border-l-pink-400/60" },
+  // Two weights per hue for the same reason the highlighter carries two ramps:
+  // the 400s are the dark-page shades, and as 11px text on a light card they
+  // measure 1.6-2.6:1. The light shades are the 700s — 800 for amber, whose
+  // 700 sits at ~4.4:1 — so every chip clears 4.5:1 on both surfaces.
+  logic: { icon: GitBranch, text: "text-violet-700 dark:text-violet-400", border: "border-l-violet-400/60" },
+  math: { icon: Hash, text: "text-emerald-700 dark:text-emerald-400", border: "border-l-emerald-400/60" },
+  text: { icon: TypeIcon, text: "text-sky-700 dark:text-sky-400", border: "border-l-sky-400/60" },
+  convert: { icon: ArrowLeftRight, text: "text-amber-800 dark:text-amber-400", border: "border-l-amber-400/60" },
+  color: { icon: Palette, text: "text-pink-700 dark:text-pink-400", border: "border-l-pink-400/60" },
 };
 
 /**

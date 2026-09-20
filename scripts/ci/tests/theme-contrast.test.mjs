@@ -542,11 +542,14 @@ test("#228 item 1: the active nav pill clears AA in both themes", () => {
  * Storybook's axe run could not catch it either, for a reason worth knowing:
  * axe DOES flag it (1.71:1, `color-contrast`) — but only in LIGHT, because in
  * dark the same pair measures 8.51:1, the tile being the light end of a dark
- * page. ci.yml's a11y matrix has a light leg for exactly this, and it selects
- * the theme with `--url "http://localhost:6006?globals=theme:light"` — which
- * @storybook/test-runner resolves as `new URL("iframe.html", TARGET_URL)`,
- * and that DROPS the query string. Both legs have been visiting
- * `/iframe.html` with default globals, i.e. dark, twice.
+ * page. ci.yml's a11y matrix has a light leg for exactly this, and at the
+ * time it selected the theme with `--url "http://localhost:6006?globals=
+ * theme:light"` — which @storybook/test-runner resolves as
+ * `new URL("iframe.html", TARGET_URL)`, and that DROPS the query string. Both
+ * legs had been visiting `/iframe.html` with default globals, i.e. dark,
+ * twice. #306 moved the theme into `THEME`, read by .storybook/test-runner.ts
+ * (see a11y-theme-leg.test.mjs), so the light leg now renders light — but
+ * this measurement stays: it runs on every PR without a browser.
  *
  * So this measures the pair the component actually ships, in BOTH themes,
  * reading the tokens out of the class string rather than restating them —

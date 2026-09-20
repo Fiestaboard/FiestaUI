@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containm
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
 import { Skeleton } from "../components/feedback/skeleton";
+import { StatusDot } from "../components/feedback/status-dot";
 import { Button } from "../components/forms/button";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
@@ -252,7 +253,11 @@ function contrastGrade(ratio: number, basis: ColorToken["contrastBasis"]) {
   }
   if (ratio >= 7) return { label: "AAA", className: "text-success" };
   if (ratio >= 4.5) return { label: "AA", className: "text-success" };
-  if (ratio >= 3) return { label: "AA large", className: "text-warning" };
+  // `--warning` is a fill/icon/border colour and never a text colour — theme.css
+  // says so in as many words, and as 12px text on this table it measures
+  // 3.25:1 in light (the first thing the light a11y leg caught once it ran
+  // light, #306). The yellow goes on a dot; the word stays ink.
+  if (ratio >= 3) return { label: "AA large", className: "inline-flex items-center gap-1.5", dot: "warning" as const };
   return { label: "below AA", className: "text-destructive" };
 }
 
@@ -312,7 +317,10 @@ const TokenTable = ({
                 ) : (
                   <>
                     <span className="font-mono">{measurement.ratio.toFixed(2)}:1</span>{" "}
-                    <span className={grade?.className}>{grade?.label}</span>{" "}
+                    <span className={grade?.className}>
+                      {grade?.dot ? <StatusDot status={grade.dot} size="sm" /> : null}
+                      {grade?.label}
+                    </span>{" "}
                     <span className="font-mono text-muted-foreground">{token.pairedWith}</span>
                   </>
                 )}

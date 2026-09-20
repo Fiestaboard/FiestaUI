@@ -242,8 +242,13 @@ export function ColorPickerContent({ onInsert, deviceType, code62Glyph, labels }
                 className={cn(
                   "w-full h-10 rounded-md text-sm font-medium transition-all hover:scale-[1.02] hover:shadow-md",
                   "flex items-center justify-center gap-1.5 focus:outline-none",
+                  // Board red is hardware ink, not a text colour: as the 14px
+                  // label on its own 10% tint it measures 3.13:1 in light. The
+                  // label is ink there and the heart glyph (a graphic, 3:1)
+                  // keeps the red; on the dark page the same red is 5:1+ and
+                  // stays on both.
                   isHeart
-                    ? "bg-board-red/10 text-board-red border border-board-red/20 hover:bg-board-red/20"
+                    ? "bg-board-red/10 text-foreground dark:text-board-red border border-board-red/20 hover:bg-board-red/20"
                     : "bg-muted text-foreground border border-input hover:bg-accent",
                 )}
                 aria-label={isHeart ? l.heartCharacterAriaLabel : l.degreeCharacterAriaLabel}
@@ -251,11 +256,11 @@ export function ColorPickerContent({ onInsert, deviceType, code62Glyph, labels }
                 aria-selected={false}
               >
                 {isHeart ? (
-                  <Heart className="w-4 h-4 fill-current" />
+                  <Heart className="w-4 h-4 fill-current text-board-red" />
                 ) : (
                   <Thermometer className="w-4 h-4" aria-hidden="true" />
                 )}
-                <Text as="span" weight="medium" className={isHeart ? "text-board-red" : undefined}>
+                <Text as="span" weight="medium">
                   {isHeart ? l.heartLabel : l.degreeLabel}
                 </Text>
               </button>
