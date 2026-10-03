@@ -1220,6 +1220,12 @@ export interface BoardDisplayProps {
   notesWide?: number;
   /** Notes tall (for note_array device; ignored otherwise). */
   notesTall?: number;
+  /** Explicit grid size; only used when deviceType is "panel". Rows of
+   *  characters, clamped to [MIN_GRID_ROWS, MAX_GRID_ROWS]. */
+  gridRows?: number;
+  /** Explicit grid size; only used when deviceType is "panel". Columns of
+   *  characters, clamped to [MIN_GRID_COLS, MAX_GRID_COLS]. */
+  gridCols?: number;
   /** Emit data-row / data-col / data-cell-value on every tile wrapper.
    *  Only the page editor's draw mode consumes these (DrawableBoardPreview
    *  hit-tests strokes via data-row/data-col and tests read data-cell-value),
@@ -1276,6 +1282,8 @@ export const BoardDisplay = memo(
     isStatic = false,
     notesWide = 1,
     notesTall = 1,
+    gridRows,
+    gridCols,
     emitCellMetadata = false,
     animationsEnabled = true,
     flapSpeed = "standard",
@@ -1320,7 +1328,9 @@ export const BoardDisplay = memo(
     const flapStepMs = resolveFlapSpeed(flapSpeed);
 
     // Get dimensions for the device type
-    const dims = resolveDimensions(deviceType, notesWide, notesTall);
+    const dims = resolveDimensions(deviceType, notesWide, notesTall, gridRows, gridCols);
+    // Seams mark physical Note boundaries, so only a note_array has them — a
+    // panel is one seamless surface even where it crosses a 3×15 boundary.
     const showSeams = isNoteArray(deviceType);
     // Seam gap: additional left/top margin applied at Note physical boundaries
     const seamGap = size === "sm" ? "6px" : size === "md" ? "8px" : "10px";
@@ -1504,6 +1514,8 @@ export const BoardDisplay = memo(
       prevProps.code62Glyph === nextProps.code62Glyph &&
       prevProps.notesWide === nextProps.notesWide &&
       prevProps.notesTall === nextProps.notesTall &&
+      prevProps.gridRows === nextProps.gridRows &&
+      prevProps.gridCols === nextProps.gridCols &&
       prevProps.isStatic === nextProps.isStatic &&
       prevProps.emitCellMetadata === nextProps.emitCellMetadata &&
       prevProps.animationsEnabled === nextProps.animationsEnabled &&

@@ -8,7 +8,7 @@
  * none. See FiestaBoard's docs/development/PLUGIN_DEVELOPMENT.md.
  */
 
-import type { DeviceType } from "./board-dimensions";
+import { type DeviceType, resolveDimensions } from "./board-dimensions";
 
 /** One literal board, at one shape. */
 export interface BoardPreviewEntry {
@@ -19,25 +19,41 @@ export interface BoardPreviewEntry {
   notes_wide?: number;
   /** Notes tall (note_array only). */
   notes_tall?: number;
+  /** Rows of characters (panel only). */
+  grid_rows?: number;
+  /** Columns of characters (panel only). */
+  grid_cols?: number;
   rows: string[];
 }
 
-/** Localized shape names. `noteArray` may contain `{w}` and `{h}` placeholders. */
+/**
+ * Localized shape names. `noteArray` may contain `{w}` and `{h}` placeholders;
+ * `panel` may contain `{rows}` and `{cols}`.
+ */
 export interface PreviewShapeLabels {
   flagship: string;
   note: string;
   noteArray: string;
+  /** Optional so label sets written before panels existed still type-check;
+   *  when absent, the English default is used. */
+  panel?: string;
 }
 
-export const DEFAULT_SHAPE_LABELS: PreviewShapeLabels = {
+export const DEFAULT_SHAPE_LABELS: Required<PreviewShapeLabels> = {
   flagship: "Flagship",
   note: "Note",
   noteArray: "Note Array {w}×{h}",
+  panel: "Panel {rows}×{cols}",
 };
 
 /** Tab label for a preview: its declared label, or one derived from the shape. */
 export function previewLabel(preview: BoardPreviewEntry, labels: PreviewShapeLabels = DEFAULT_SHAPE_LABELS): string {
   if (preview.label) return preview.label;
+  if (preview.device_type === "panel") {
+    // Name the size the board is actually drawn at, after clamping.
+    const { rows, cols } = resolveDimensions("panel", 1, 1, preview.grid_rows, preview.grid_cols);
+    return (labels.panel ?? DEFAULT_SHAPE_LABELS.panel).replace("{rows}", String(rows)).replace("{cols}", String(cols));
+  }
   if (preview.device_type === "note_array") {
     return labels.noteArray
       .replace("{w}", String(preview.notes_wide ?? 1))

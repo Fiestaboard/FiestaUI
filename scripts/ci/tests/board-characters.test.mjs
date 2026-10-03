@@ -224,6 +224,11 @@ test("resolveCode62Glyph: note hardware is always a heart", () => {
   assert.equal(resolveCode62Glyph("note_array", "degree"), "heart");
 });
 
+test("resolveCode62Glyph: a panel imitates Note hardware and always draws a heart", () => {
+  assert.equal(resolveCode62Glyph("panel"), "heart");
+  assert.equal(resolveCode62Glyph("panel", "degree"), "heart");
+});
+
 // --- messageToGrid / messageToText agreement --------------------------------
 
 test("the grid and the accessible text never disagree about code 62", () => {

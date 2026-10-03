@@ -32,6 +32,12 @@ export interface StaticBoardDisplayProps {
   notesWide?: number;
   /** Notes tall (for note_array device; ignored otherwise). */
   notesTall?: number;
+  /** Explicit grid size; only used when deviceType is "panel". Rows of
+   *  characters, clamped to [MIN_GRID_ROWS, MAX_GRID_ROWS]. */
+  gridRows?: number;
+  /** Explicit grid size; only used when deviceType is "panel". Columns of
+   *  characters, clamped to [MIN_GRID_COLS, MAX_GRID_COLS]. */
+  gridCols?: number;
   /** Fixed accessible label for a shown message. Overrides `messageLabel`, so
    *  pass it only when a hand-written description beats the board's own text
    *  (BoardShowcase's curated previews do). Note that it makes every board it
@@ -62,11 +68,15 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   className = "",
   notesWide = 1,
   notesTall = 1,
+  gridRows,
+  gridCols,
   previewLabel,
   messageLabel = defaultMessageLabel,
   emptyLabel = "Empty board display",
 }: StaticBoardDisplayProps) {
-  const dims = resolveDimensions(deviceType, notesWide, notesTall);
+  const dims = resolveDimensions(deviceType, notesWide, notesTall, gridRows, gridCols);
+  // Seams mark physical Note boundaries, so only a note_array has them — a
+  // panel is one seamless surface even where it crosses a 3×15 boundary.
   const showSeams = isNoteArray(deviceType);
   const isWhiteBoard = boardType === "white";
   const tileBg = isWhiteBoard ? "var(--color-board-surface-light)" : "var(--color-board-surface-dark)";
