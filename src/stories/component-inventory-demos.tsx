@@ -111,6 +111,7 @@ import {
 } from "../components/chrome/top-nav";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/containment/accordion";
 import { ActionCard } from "../components/containment/action-card";
+import { Avatar } from "../components/containment/avatar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { IconTile } from "../components/containment/icon-tile";
@@ -1039,6 +1040,14 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         loading
       />
     </Stack>
+  ),
+  Avatar: () => (
+    <div className="flex items-end gap-3">
+      <Avatar size="sm" name="casa" />
+      <Avatar size="md" name="ada.lovelace" />
+      <Avatar size="lg" tone="brand" name="Grace Hopper" />
+      <Avatar size="md" />
+    </div>
   ),
   Card: () => (
     <Grid cols="1" sm="2" gap="4" className="w-full max-w-3xl">

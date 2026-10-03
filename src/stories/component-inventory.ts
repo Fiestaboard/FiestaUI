@@ -147,6 +147,10 @@ export const INVENTORY = [
         name: "ActionCard",
         summary: "Card's surface as one pressable target — medallion, title, description; button or link.",
       },
+      {
+        name: "Avatar",
+        summary: "Round mark for a person — initials from a name, or a glyph; three sizes, neutral or brand.",
+      },
       { name: "Card", summary: "Surface with header, content, footer and action slots." },
       { name: "Collapsible", summary: "Single show/hide region driven by its own trigger." },
       {
