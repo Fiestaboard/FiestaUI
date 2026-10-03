@@ -71,3 +71,27 @@ export const Localized: Story = {
     },
   },
 };
+
+/**
+ * An LED character set with colour spans and icons: a text-colour row (the
+ * host wraps the selection as `{{red:…}}`) and an icon grid (`{{icon:sun}}`).
+ * A split-flap set never shows either row.
+ */
+export const LedCharset: Story = {
+  args: {
+    onInsert: (value) => console.log("insert", value),
+    charset: "led_5x7",
+    onInsertTextColor: (color) => console.log("text colour", color),
+    onInsertIcon: (icon) => console.log("icon", icon),
+  },
+};
+
+/** The 3×5 set offers only the icons its face can draw. */
+export const SmallLedCharset: Story = {
+  args: {
+    onInsert: (value) => console.log("insert", value),
+    charset: "led_3x5",
+    onInsertTextColor: (color) => console.log("text colour", color),
+    onInsertIcon: (icon) => console.log("icon", icon),
+  },
+};

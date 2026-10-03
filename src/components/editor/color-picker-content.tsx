@@ -3,13 +3,15 @@
  */
 "use client";
 
-import { Heart, Thermometer } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { type Code62Glyph, resolveCode62Glyph } from "../../lib/board-characters";
 import { AVAILABLE_COLORS, type BoardColorName, COLOR_DISPLAY } from "../../lib/board-colors";
 import type { DeviceType } from "../../lib/board-dimensions";
+import { BOARD_ICONS, type BoardIconName } from "../../lib/board-icons";
+import { type CharacterSet, type CharacterSetId, iconsInSet, resolveCharacterSet } from "../../lib/character-sets";
 import { cn } from "../../lib/utils";
+import { CharacterGlyph } from "../board/character-glyph";
 import { Box } from "../layout/box";
 import { Grid } from "../layout/grid";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
@@ -38,6 +40,16 @@ export interface ColorPickerLabels {
   degreeCharacterAriaLabel: string;
   degreeLabel: string;
   insertDegreeTooltip: string;
+  /** Heading for the text-colour row a set with colour spans gets. */
+  textColors: string;
+  /** Accessible name for one text-colour swatch, given its display name. */
+  textColorOptionLabel: (colorName: string) => string;
+  /** The black text colour: letters an LED leaves unlit. Kept on purpose. */
+  unlitTextColor: string;
+  /** Heading for the icon grid a set with icons gets. */
+  icons: string;
+  /** Accessible name for one icon button, given the icon's label. */
+  iconOptionLabel: (iconLabel: string) => string;
 }
 
 export const DEFAULT_COLOR_PICKER_LABELS: ColorPickerLabels = {
@@ -61,6 +73,11 @@ export const DEFAULT_COLOR_PICKER_LABELS: ColorPickerLabels = {
   degreeCharacterAriaLabel: "Degree character",
   degreeLabel: "degree",
   insertDegreeTooltip: "Insert degree character",
+  textColors: "Text colour",
+  textColorOptionLabel: (colorName) => `${colorName} text`,
+  unlitTextColor: "Black (unlit on LEDs)",
+  icons: "Icons",
+  iconOptionLabel: (iconLabel) => `${iconLabel} icon`,
 };
 
 export interface ColorPickerContentProps {
@@ -81,6 +98,22 @@ export interface ColorPickerContentProps {
    * board and only its owner knows (FiestaBoard#1657, #1664).
    */
   code62Glyph?: Code62Glyph;
+  /**
+   * The character set the target device draws (../../lib/character-sets).
+   * A set with colour spans adds a text-colour row (when `onInsertTextColor`
+   * is given), and a set with icons adds an icon grid (when `onInsertIcon`
+   * is given). Unset: the split-flap set — tiles and code 62 only, today's
+   * picker exactly. A set that fixes code 62 also decides its glyph.
+   */
+  charset?: CharacterSetId | CharacterSet;
+  /**
+   * Receives a text colour token name (`red`, `violet`…) for a colour span.
+   * The host wraps the selection: `{{red:` + text + `}}`. Only offered when
+   * the set has colour spans; a split-flap set never shows the row.
+   */
+  onInsertTextColor?: (colorName: BoardColorName) => void;
+  /** Receives an icon name for `{{icon:sun}}`. Only offered when the set has icons. */
+  onInsertIcon?: (icon: BoardIconName) => void;
   labels?: Partial<ColorPickerLabels>;
 }
 
@@ -115,8 +148,21 @@ const SWATCH_TEXT_OVERRIDE: Partial<Record<BoardColorName, string>> = {
 /** Columns in the swatch grid — arrow-key row movement has to match it. */
 const GRID_COLS = 4;
 
-export function ColorPickerContent({ onInsert, deviceType, code62Glyph, labels }: ColorPickerContentProps) {
+export function ColorPickerContent({
+  onInsert,
+  deviceType,
+  code62Glyph,
+  charset,
+  onInsertTextColor,
+  onInsertIcon,
+  labels,
+}: ColorPickerContentProps) {
   const l = { ...DEFAULT_COLOR_PICKER_LABELS, ...labels };
+  const set = charset ? resolveCharacterSet(charset) : null;
+  // Black is offered too: `{black:TEXT}` draws unlit letters on an LED, and
+  // the owner keeps it as a form of expression.
+  const textColors = set?.colorSpans && onInsertTextColor ? COLORS : [];
+  const icons = set && onInsertIcon ? iconsInSet(set) : [];
   // Only the Note substitutes the degree glyph for a heart, matching
   // `applyDeviceSubstitution` in lib/board-characters — a note_array is a grid
   // of Notes, but the renderer does not substitute for it, and a picker that
@@ -125,7 +171,7 @@ export function ColorPickerContent({ onInsert, deviceType, code62Glyph, labels }
   // it on `isNote` is the bug FiestaBoard#1657 fixed: a Flagship owner could
   // not insert code 62 from the picker at all. What varies by board is the
   // wording, never whether the affordance exists.
-  const glyph = resolveCode62Glyph(deviceType ?? "flagship", code62Glyph);
+  const glyph = set?.code62Glyph ?? resolveCode62Glyph(deviceType ?? "flagship", code62Glyph);
   const isHeart = glyph === "heart";
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -145,6 +191,13 @@ export function ColorPickerContent({ onInsert, deviceType, code62Glyph, labels }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    // Only the swatch grid is the roving listbox. A key pressed on any other
+    // descendant — the code-62 button, a text colour, an icon — is that
+    // button's own business; without this guard Enter on an icon inserted
+    // the highlighted tile.
+    const target = event.target as HTMLElement;
+    const isSwatch = target === event.currentTarget || buttonRefs.current.includes(target as HTMLButtonElement);
+    if (!isSwatch) return;
     switch (event.key) {
       case "ArrowRight":
         event.preventDefault();
@@ -189,6 +242,7 @@ export function ColorPickerContent({ onInsert, deviceType, code62Glyph, labels }
         tabIndex={0}
         role="listbox"
         aria-label={l.colorPickerAriaLabel}
+        data-charset={set?.id}
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
       >
@@ -255,11 +309,15 @@ export function ColorPickerContent({ onInsert, deviceType, code62Glyph, labels }
                 role="option"
                 aria-selected={false}
               >
-                {isHeart ? (
-                  <Heart className="w-4 h-4 fill-current text-board-red" />
-                ) : (
-                  <Thermometer className="w-4 h-4" aria-hidden="true" />
-                )}
+                {/* The glyph the board will draw for code 62, drawn by its set. */}
+                <CharacterGlyph
+                  token="°"
+                  charset={set ?? (isHeart ? "vestaboard_v2" : "vestaboard_v1")}
+                  code62Glyph={glyph}
+                  size="sm"
+                  height={22}
+                  decorative
+                />
                 <Text as="span" weight="medium">
                   {isHeart ? l.heartLabel : l.degreeLabel}
                 </Text>
@@ -271,6 +329,74 @@ export function ColorPickerContent({ onInsert, deviceType, code62Glyph, labels }
           </Tooltip>
         </Box>
       </Box>
+      {/* Text colours and icons are their own groups of plain buttons, outside
+          the swatch listbox: each is its own tab stop, Enter/Space is the
+          button's own, and the listbox's arrow keys never reach them. A text
+          colour shows an "A" drawn by the set in that colour — what the
+          selected text will become — via CharacterGlyph. */}
+      {textColors.length > 0 && set && (
+        <Box
+          className="mt-2 pt-2 border-t border-border px-2"
+          role="group"
+          aria-label={l.textColors}
+          data-section="text-colors"
+        >
+          <Text as="span" className="mb-1 block text-xs text-muted-foreground">
+            {l.textColors}
+          </Text>
+          <Grid cols="4" gap="2" className="w-64" role="presentation">
+            {textColors.map((colorName) => (
+              <Tooltip key={colorName}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={
+                      colorName === "black" ? l.unlitTextColor : l.textColorOptionLabel(l.colorNames[colorName])
+                    }
+                    data-text-color={colorName}
+                    onClick={() => onInsertTextColor?.(colorName)}
+                    className="flex h-10 items-center justify-center rounded-md border hover:bg-muted/50 focus-ring"
+                  >
+                    <CharacterGlyph token={`{${colorName}:A}`} charset={set} height={30} decorative />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <Text>
+                    {colorName === "black" ? l.unlitTextColor : l.textColorOptionLabel(l.colorNames[colorName])}
+                  </Text>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </Grid>
+        </Box>
+      )}
+      {icons.length > 0 && set && (
+        <Box className="mt-2 pt-2 border-t border-border px-2" role="group" aria-label={l.icons} data-section="icons">
+          <Text as="span" className="mb-1 block text-xs text-muted-foreground">
+            {l.icons}
+          </Text>
+          <Grid cols="5" gap="1" className="w-64" role="presentation">
+            {icons.map((name) => (
+              <Tooltip key={name}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={l.iconOptionLabel(BOARD_ICONS[name].label)}
+                    data-icon={name}
+                    onClick={() => onInsertIcon?.(name)}
+                    className="flex h-10 items-center justify-center rounded-md border hover:bg-muted/50 focus-ring"
+                  >
+                    <CharacterGlyph token={`{icon:${name}}`} charset={set} height={30} decorative />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <Text>{BOARD_ICONS[name].label}</Text>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </Grid>
+        </Box>
+      )}
     </TooltipProvider>
   );
 }

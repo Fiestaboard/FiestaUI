@@ -237,6 +237,24 @@ export const INVENTORY = [
       { name: "BoardDisplay", summary: "The animated display, with flap cascade and a live region." },
       { name: "BoardBackdrop", summary: "A field of split-flap rows used as a page backdrop." },
       { name: "BoardTeaser", summary: "One-line teaser strip for cards and lists." },
+      {
+        name: "CharacterGlyph",
+        summary:
+          "One token from a character set on its own — LED dots or a flap tile, with the set's fallback when unsupported.",
+      },
+      {
+        name: "LedTransitionPicker",
+        summary: "The transition menu for an LED board — None and every kind — with what the chosen device can run.",
+      },
+      {
+        name: "CharacterSetSpecimen",
+        summary:
+          "A specimen of one character set — every glyph, tile and icon — marking what it adds or lacks against another.",
+      },
+      {
+        name: "LedMatrixDisplay",
+        summary: "An LED matrix (AWTRIX, HUB75, Pixoo…) — the same message set in a bitmap font, painted on a canvas.",
+      },
     ],
   },
   {

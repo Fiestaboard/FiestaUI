@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fiestaboard.app/schemas/device-model.schema.json",
+  "title": "DeviceModel",
+  "description": "A display device model: technology → family (the protocol an adapter speaks) → model. FiestaUI's src/lib/devices.ts is the source of truth (validateDeviceModel mirrors this schema); a FiestaBoard output plugin declares one in its manifest and owns the transport.",
+  "type": "object",
+  "required": ["id", "label", "technology", "family", "geometry", "color", "charset", "animation"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "label": { "type": "string", "minLength": 1 },
+    "technology": { "enum": ["split_flap", "led_matrix"] },
+    "family": { "type": "string", "minLength": 1 },
+    "geometry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "rows", "cols"],
+          "properties": {
+            "kind": { "const": "cells" },
+            "rows": { "type": "integer", "minimum": 1 },
+            "cols": { "type": "integer", "minimum": 1 }
+          }
+        },
+        { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "note_array" } } },
+        { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "panel" } } },
+        {
+          "type": "object",
+          "required": ["kind", "width", "height"],
+          "properties": {
+            "kind": { "const": "pixels" },
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "color": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "bitDepth"],
+          "properties": { "kind": { "const": "rgb" }, "bitDepth": { "const": 24 } }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "color", "bitDepth"],
+          "properties": {
+            "kind": { "const": "monochrome" },
+            "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+            "bitDepth": { "enum": [1, 8] }
+          }
+        },
+        { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "tiles" } } }
+      ]
+    },
+    "charset": {
+      "oneOf": [
+        { "enum": ["vestaboard_v1", "vestaboard_v2", "led_5x7", "led_3x5"] },
+        { "$ref": "character-set.schema.json" }
+      ]
+    },
+    "charsetByCode62": { "type": "object", "properties": { "degree": {}, "heart": {} } },
+    "animation": {
+      "type": "object",
+      "required": ["delivery", "maxFps", "notes", "sources"],
+      "properties": {
+        "delivery": { "enum": ["stream", "sequence", "none"] },
+        "maxFps": { "type": "number", "minimum": 0 },
+        "maxFrames": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Hard budget for a sequence player: a transition is compressed into at most this many frames, first to final inclusive."
+        },
+        "minFrameMs": { "type": "number", "exclusiveMinimum": 0 },
+        "notes": { "type": "string" },
+        "sources": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "font": { "enum": ["3x5", "5x7"] },
+    "pixelShape": { "enum": ["round", "square"] },
+    "legacy": {
+      "type": "object",
+      "properties": {
+        "deviceType": { "enum": ["flagship", "note", "note_array", "panel"] },
+        "preset": { "type": "string" }
+      }
+    }
+  }
+}

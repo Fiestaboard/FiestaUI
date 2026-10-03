@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fiestaboard.app/schemas/character-set.schema.json",
+  "title": "CharacterSet",
+  "description": "A character set a board can draw. FiestaUI's src/lib/character-sets.ts is the source of truth (validateCharacterSet mirrors this schema); a FiestaBoard output plugin declares one of these in its manifest, optionally partial over `extends`, and FiestaUI materialises it.",
+  "type": "object",
+  "required": ["id", "label", "version", "chars", "tiles", "icons", "mixedCase", "colorSpans", "blockSpans"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "label": { "type": "string", "minLength": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "extends": {
+      "type": "string",
+      "description": "A built-in set id or another declared set; missing fields are inherited from it."
+    },
+    "chars": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 2 },
+      "description": "Every printable character the set draws (single characters; blank is implicit)."
+    },
+    "tiles": { "type": "boolean" },
+    "icons": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "sun",
+          "cloud",
+          "rain",
+          "snow",
+          "bolt",
+          "check",
+          "cross",
+          "up",
+          "down",
+          "star",
+          "bus",
+          "train",
+          "music",
+          "bell",
+          "fog",
+          "partly"
+        ]
+      }
+    },
+    "mixedCase": { "type": "boolean" },
+    "colorSpans": { "type": "boolean" },
+    "blockSpans": { "type": "boolean" },
+    "code62Glyph": { "enum": ["degree", "heart"] },
+    "font": { "enum": ["3x5", "5x7"] },
+    "glyphs": {
+      "type": "object",
+      "description": "Bitmaps for characters in `chars` the face does not carry: glyphHeight rows of glyphWidth '#'/'.' characters.",
+      "additionalProperties": { "type": "array", "items": { "type": "string", "pattern": "^[#.]+$" } }
+    }
+  }
+}

@@ -190,6 +190,13 @@ function joinScale(pick: (step: TileStep) => string): Record<BoardSize, string> 
 /** Tile width + height. */
 export const sizeClasses: Record<BoardSize, string> = joinScale((step) => step.size);
 
+/** Tile height in px at the base (phone) breakpoint for each size — the one authored number per scale. */
+export const TILE_BASE_HEIGHT: Record<BoardSize, number> = {
+  sm: TILE_SCALE.sm.base!.h,
+  md: TILE_SCALE.md.base!.h,
+  lg: TILE_SCALE.lg.base!.h,
+};
+
 /** Glyph font-size. */
 export const textSizeClasses: Record<BoardSize, string> = joinScale((step) => step.text);
 

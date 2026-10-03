@@ -254,3 +254,103 @@ test("tokensEqual: structural equality across token kinds", () => {
   assert.equal(tokensEqual(color("63"), color("64")), false);
   assert.equal(tokensEqual(char("63"), color("63")), false);
 });
+
+// --- colour spans and icons (extended markup, behind a flag) ----------------
+
+const EXT = { extendedMarkup: true };
+
+test("parseLine: without extendedMarkup the new markers are literal text, as the Python renderer draws them", () => {
+  assert.deepEqual(parseLine("{red:HO}"), "{RED:HO}".split("").map(char));
+  assert.deepEqual(parseLine("{icon:sun}"), "{ICON:SUN}".split("").map(char));
+  assert.equal(messageToText("{red:HOT}"), "{RED:HOT}");
+});
+
+test("parseLine: a colour span colours its letters and a flap board still gets the letters", () => {
+  const red = (value) => ({ type: "char", value, color: "red" });
+  assert.deepEqual(parseLine("{red:HOT}!", Infinity, EXT), [red("H"), red("O"), red("T"), char("!")]);
+  // Numeric and hex colours; names are case-insensitive and normalised.
+  assert.deepEqual(parseLine("{63:A}", Infinity, EXT), [{ type: "char", value: "A", color: "63" }]);
+  assert.deepEqual(parseLine("{#FF8800:a}", Infinity, EXT), [{ type: "char", value: "A", color: "#ff8800" }]);
+  assert.deepEqual(parseLine("{Red:a}", Infinity, EXT), [red("A")]);
+  // Braces nest: a tile inside a span is still a tile, and the span ends at
+  // the brace that balances its own.
+  assert.deepEqual(parseLine("{red:A{66}B}C", Infinity, EXT), [red("A"), color("66"), red("B"), char("C")]);
+  // Not a colour before the colon → literal text, like any unknown marker.
+  assert.deepEqual(parseLine("{foo:x}", Infinity, EXT), "{FOO:X}".split("").map(char));
+  // Unbalanced → literal, as an unclosed marker always was.
+  assert.deepEqual(
+    parseLine("{red:A{66}", Infinity, EXT),
+    "{RED:A"
+      .split("")
+      .map(char)
+      .concat([color("66")]),
+  );
+  // The existing tile-then-text form is untouched.
+  assert.deepEqual(parseLine("{red}HOT{/red}", Infinity, EXT), [color("red"), char("H"), char("O"), char("T")]);
+});
+
+test("parseLine: a block span carries both colours; a flap board still gets the letters", () => {
+  const inv = (value) => ({ type: "char", value, color: "black", background: "white" });
+  assert.deepEqual(parseLine("{black/white:ON}", Infinity, EXT), [inv("O"), inv("N")]);
+  assert.deepEqual(parseLine("{#ffffff/63:a}", Infinity, EXT), [
+    { type: "char", value: "A", color: "#ffffff", background: "63" },
+  ]);
+  // Half a head is not a block span: literal, like any unknown marker.
+  assert.deepEqual(parseLine("{red/:A}", Infinity, EXT), "{RED/:A}".split("").map(char));
+  // `{/…}` is an end tag whatever follows the slash, and an end tag renders
+  // nothing — so a block span always names both colours.
+  assert.deepEqual(parseLine("{/white:A}", Infinity, EXT), []);
+  // Without the flag: literal, as the Python renderer draws it.
+  assert.deepEqual(parseLine("{black/white:ON}"), "{BLACK/WHITE:ON}".split("").map(char));
+  // An icon inside a block span keeps the span's colours.
+  assert.deepEqual(parseLine("{black/white:{icon:up}}", Infinity, EXT), [
+    { type: "char", value: "+", icon: "up", color: "black", background: "white" },
+  ]);
+});
+
+test("parseLine: an icon is one cell, parsed to its split-flap fallback", () => {
+  assert.deepEqual(parseLine("{icon:sun}", Infinity, EXT), [{ type: "color", code: "65", icon: "sun" }]);
+  assert.deepEqual(parseLine("{icon:UP}", Infinity, EXT), [{ type: "char", value: "+", icon: "up" }]);
+  assert.deepEqual(parseLine("{icon:bus}", Infinity, EXT), [{ type: "char", value: " ", icon: "bus" }]);
+  assert.deepEqual(parseLine("{icon:nope}", Infinity, EXT), "{ICON:NOPE}".split("").map(char));
+  assert.deepEqual(parseLine("{icon:constructor}", Infinity, EXT), "{ICON:CONSTRUCTOR}".split("").map(char));
+  // Fallback text draws as text on a flap board, and is what messageToText says.
+  assert.equal(messageToText("AQI {icon:up} 3 {icon:sun}", "flagship", undefined, EXT), "AQI + 3");
+});
+
+test("parseLine: icon aliases from FiestaBoard's legacy shortcuts, and {icon:heart} is the heart character", () => {
+  assert.deepEqual(parseLine("{icon:storm}", Infinity, EXT), [{ type: "color", code: "64", icon: "bolt" }]);
+  assert.deepEqual(parseLine("{icon:x}", Infinity, EXT), [{ type: "color", code: "63", icon: "cross" }]);
+  assert.deepEqual(parseLine("{icon:heart}", Infinity, EXT), [char("♥")]);
+  assert.deepEqual(parseLine("{red:{icon:heart}}", Infinity, EXT), [{ type: "char", value: "♥", color: "red" }]);
+  assert.deepEqual(parseLine("{icon:fog}", Infinity, EXT), [{ type: "char", value: "-", icon: "fog" }]);
+  assert.deepEqual(parseLine("{icon:partly}", Infinity, EXT), [{ type: "color", code: "69", icon: "partly" }]);
+});
+
+test("parseLine: preserveCase keeps the message's case; the default uppercases", () => {
+  assert.deepEqual(parseLine("Hi", Infinity, { preserveCase: true }), [char("H"), char("i")]);
+  assert.deepEqual(parseLine("Hi"), [char("H"), char("I")]);
+  assert.deepEqual(messageToGrid("ab", 1, 3, "flagship", undefined, { preserveCase: true })[0], [
+    char("a"),
+    char("b"),
+    char(" "),
+  ]);
+});
+
+test("parseLine: maxTokens equals full-parse-then-slice across spans and icons too", () => {
+  const lines = ["{red:HOT {66} TODAY} and {icon:sun}{icon:bus} more text", "x{blue:" + "y".repeat(30) + "}z"];
+  for (const line of lines) {
+    for (const cap of [0, 1, 3, 7, 22, 100]) {
+      assert.deepEqual(
+        parseLine(line, cap, EXT),
+        parseLine(line, Infinity, EXT).slice(0, cap),
+        `line "${line}" cap ${cap}`,
+      );
+    }
+  }
+});
+
+test("applyCode62Glyph: keeps a span's colour on the heart it substitutes", () => {
+  const grid = messageToGrid("{red:°}", 1, 1, "note", undefined, EXT);
+  assert.deepEqual(grid[0][0], { type: "char", value: "♥", color: "red" });
+});

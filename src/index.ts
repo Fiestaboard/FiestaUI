@@ -88,12 +88,159 @@ export { cn } from "./lib/utils";
 export * from "./components/board/board-backdrop";
 export * from "./components/board/board-display";
 export * from "./components/board/board-teaser";
+export {
+  CharacterGlyph,
+  type CharacterGlyphLabels,
+  characterGlyphName,
+  type CharacterGlyphProps,
+  characterGlyphRenderer,
+  type CharacterGlyphSize,
+  characterGlyphToken,
+  DEFAULT_CHARACTER_GLYPH_LABELS,
+} from "./components/board/character-glyph";
+export {
+  CharacterSetSpecimen,
+  type CharacterSetSpecimenLabels,
+  type CharacterSetSpecimenProps,
+  DEFAULT_CHARACTER_SET_SPECIMEN_LABELS,
+} from "./components/board/character-set-specimen";
+export {
+  LedMatrixDisplay,
+  type LedMatrixDisplayProps,
+  type LedPixelShape,
+} from "./components/board/led-matrix-display";
+export {
+  DEFAULT_LED_TRANSITION_PICKER_LABELS,
+  LedTransitionPicker,
+  type LedTransitionPickerLabels,
+  type LedTransitionPickerProps,
+} from "./components/board/led-transition-picker";
 export * from "./components/board/scaled-board-display";
 export * from "./components/board/static-board-display";
 export * from "./lib/board-characters";
 export * from "./lib/board-colors";
 export * from "./lib/board-dimensions";
+export {
+  BOARD_ICON_ALIASES,
+  BOARD_ICON_NAMES,
+  BOARD_ICONS,
+  type BoardIconName,
+  type BoardIconSpec,
+  isBoardIconName,
+  resolveBoardIconName,
+} from "./lib/board-icons";
 export * from "./lib/board-previews";
+export {
+  CHARACTER_SET_IDS,
+  CHARACTER_SETS,
+  type CharacterSet,
+  characterSetForDevice,
+  type CharacterSetId,
+  type CharacterSetInput,
+  type CharsetDiff,
+  charsetDiff,
+  charsetFallback,
+  charsetHasChar,
+  charsetHasIcon,
+  type CharsetIssue,
+  charsetIssue,
+  charsetLineage,
+  charsetSupports,
+  type CharsetValidation,
+  type CharsetValidationIssue,
+  charsInSet,
+  iconsInSet,
+  isCharacterSetId,
+  LOWERCASE_CHARS,
+  materializeCharacterSet,
+  resolveCharacterSet,
+  tryResolveCharacterSet,
+  validateCharacterSet,
+  validateMessage,
+  type ValidationResult,
+} from "./lib/character-sets";
+export {
+  characterSetForModel,
+  DEVICE_FAMILIES,
+  DEVICE_MODEL_IDS,
+  DEVICE_MODELS,
+  type DeviceAnimation,
+  type DeviceColor,
+  type DeviceFamily,
+  type DeviceFamilyId,
+  type DeviceGeometry,
+  type DeviceModel,
+  deviceModelForDeviceType,
+  deviceModelForPreset,
+  type DeviceModelId,
+  type DeviceModelRef,
+  type DisplayTechnology,
+  isDeviceModelId,
+  ledSpecForModel,
+  modelsByTechnology,
+  resolveDeviceModel,
+  tryResolveDeviceModel,
+  validateDeviceModel,
+} from "./lib/devices";
+export { LED_FONTS, type LedFont, type LedFontId } from "./lib/led-fonts";
+// The LED surface is deliberately narrow: layout → raster → frame, the
+// presets, and the frame helpers an adapter needs. The glyph table and the
+// cell-level drawing functions are renderer plumbing (`@internal`) and are
+// not exported.
+export {
+  DEFAULT_LED_TEXT_COLOR,
+  frameToAscii,
+  frameToBits,
+  layoutLedMessage,
+  LED_MATRIX_PRESETS,
+  LED_MONO_COLORS,
+  ledBackgroundMask,
+  type LedCell,
+  type LedDrawOp,
+  type LedFrame,
+  type LedGridLayout,
+  ledGridLayout,
+  type LedLayout,
+  type LedLayoutOptions,
+  type LedLetterCase,
+  type LedMatrixPreset,
+  type LedMatrixPresetId,
+  type LedMatrixSpec,
+  type LedMonoColorName,
+  MAX_MATRIX_SIZE,
+  MIN_MATRIX_SIZE,
+  parseHexColor,
+  rasterizeLedLayout,
+  renderLedFrame,
+  renderLedGlyph,
+} from "./lib/led-matrix";
+export {
+  defaultTransitionIdForModel,
+  isLedTransitionId,
+  LED_TRANSITION_IDS,
+  LED_TRANSITIONS,
+  type LedTransitionAvailability,
+  type LedTransitionEntry,
+  type LedTransitionId,
+  type ResolvedLedTransition,
+  resolveLedTransition,
+  transitionsForModel,
+  transitionSpecForDevice,
+} from "./lib/led-transition-registry";
+export {
+  DEFAULT_LED_FLIP_STAGGER,
+  DEFAULT_LED_FLIP_STEP_MS,
+  DEFAULT_LED_SCRAMBLE_STEPS,
+  DEFAULT_LED_TRANSITION_MS,
+  LED_TRANSITION_KINDS,
+  ledScramblePool,
+  type LedTransition,
+  ledTransitionFrames,
+  type LedTransitionKind,
+  type LedTransitionSpec,
+  MIN_CASCADE_SLOT_MS,
+  planLedTransition,
+} from "./lib/led-transitions";
 // Data display — derived metrics rendered for reading, not editing (#229).
 export * from "./components/data/bar-list";
 export * from "./components/data/stat-strip";

@@ -59,3 +59,24 @@ export const NoteDegreeDrawsHeart: Story = {
     deviceType: "note",
   },
 };
+
+/**
+ * An LED character set: the same stamps, plus a lowercase row because the
+ * set has mixed case. The board decides what it can draw; the picker offers
+ * only that.
+ */
+export const LedCharset: Story = {
+  args: {
+    current: { kind: "char", char: "a" },
+    charset: "led_5x7",
+  },
+};
+
+/** A heart-flap Vestaboard set decides the code-62 glyph itself. */
+export const HeartFlapCharset: Story = {
+  args: {
+    current: { kind: "eraser" },
+    deviceType: "flagship",
+    charset: "vestaboard_v2",
+  },
+};
