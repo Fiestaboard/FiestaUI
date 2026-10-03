@@ -29,7 +29,7 @@ import {
 } from "../overlays/dropdown-menu";
 import { BoardSelector } from "./board-selector";
 import { Sidebar, type SidebarNavItem, type SidebarProps } from "./sidebar";
-import { SidebarSettingsTrigger } from "./sidebar-settings-trigger";
+import { SidebarAccountTrigger } from "./sidebar-account-trigger";
 
 const LABELS = {
   mainNavigation: "Main navigation",
@@ -49,10 +49,10 @@ const LABELS = {
  * compose orderings readably (and so OverflowingNav can wedge filler between
  * them). Nothing about the rendered rail distinguishes them.
  *
- * Note what is NOT here: settings, the assistant, sign-out. Settings is
- * reachable from the footer menu, the assistant is a footer action, and
- * sign-out is a menu item — none of them is a place you can be, so none of
- * them is a row that can light up.
+ * Note what is NOT here: settings, the assistant, sign-out. Settings is a
+ * gear chip in the footer (and an item of the account menu), the assistant
+ * is a footer action, and sign-out is a menu item — the list is for the
+ * places the app is ABOUT, and none of these is one.
  */
 const DESTINATIONS: SidebarNavItem[] = [
   { key: "home", href: "#", icon: Home, label: "Home", active: true },
@@ -85,11 +85,19 @@ function makeBoards(count: number) {
 
 const renderLink: SidebarProps["renderLink"] = ({ children, ...props }) => <a {...props}>{children}</a>;
 
+/** What the app calls the menu when there is nobody signed in to name it after. */
+const ANONYMOUS_LABEL = "More";
+
+const SETTINGS: NonNullable<SidebarProps["settings"]> = { href: "#settings", label: "Settings" };
+
 /**
- * A stand-in for the app's real settings menu, built from the same
+ * A stand-in for the app's real account menu, built from the same
  * primitives it uses. The Sidebar owns where this sits and how wide it gets;
  * everything inside it — the name, the routes, the theme, the version — is
  * app knowledge, which is why the real one is assembled in FiestaBoard.
+ *
+ * An empty `username` is the auth-off install: the trigger turns anonymous
+ * and the menu loses its identity header.
  */
 function DemoSettingsMenu({
   collapsed,
@@ -102,14 +110,27 @@ function DemoSettingsMenu({
   theme: string;
   onThemeChange: (theme: string) => void;
 }) {
+  const anonymous = username === "";
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <SidebarSettingsTrigger label={username} collapsed={collapsed} />
+        <SidebarAccountTrigger
+          label={anonymous ? ANONYMOUS_LABEL : username}
+          anonymous={anonymous}
+          collapsed={collapsed}
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56">
-        <DropdownMenuLabel>{username}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
+        {!anonymous && (
+          <>
+            {/* Text only. The avatar is on the trigger this menu hangs off;
+                a second one here adds nothing but a fourth left edge. The
+                header earns its place as the one spot a truncated name, or
+                the collapsed rail's bare avatar, is spelled out in full. */}
+            <DropdownMenuLabel className="truncate">{username}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem>
           <Settings className="h-4 w-4" aria-hidden="true" />
           Settings
@@ -137,10 +158,13 @@ function DemoSettingsMenu({
           <Info className="h-4 w-4" aria-hidden="true" />
           About FiestaBoard
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <LogOut className="h-4 w-4" aria-hidden="true" />
-          Sign out
-        </DropdownMenuItem>
+        {/* Nobody signed in means nobody to sign out. */}
+        {!anonymous && (
+          <DropdownMenuItem>
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            Sign out
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -168,6 +192,7 @@ function DemoSidebar({
       maxWidth={1680}
       sidebarInset={12}
       ai={{ active: false, onOpen: () => {} }}
+      settings={SETTINGS}
       boardSelector={
         // A single board hides the switcher — matching app behavior.
         boards.length > 1 ? (
@@ -206,6 +231,7 @@ interface PlaygroundArgs {
   showAi: boolean;
   aiActive: boolean;
   boardCount: number;
+  showSettings: boolean;
   username: string;
   activeItem: string;
   showTransitionsLab: boolean;
@@ -246,6 +272,7 @@ function PlaygroundSidebar(args: PlaygroundArgs) {
       maxWidth={1680}
       sidebarInset={12}
       ai={args.showAi ? { active: args.aiActive, onOpen: () => {} } : undefined}
+      settings={args.showSettings ? { ...SETTINGS, active: args.activeItem === "settings" } : undefined}
       boardSelector={
         boards.length > 1 ? (
           <BoardSelector
@@ -296,6 +323,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     showAi: true,
     aiActive: false,
     boardCount: 2,
+    showSettings: true,
     username: "casa",
     activeItem: "home",
     showTransitionsLab: false,
@@ -317,14 +345,19 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       description: "How many boards the install has — a single board hides the selector, matching the app.",
       control: { type: "range", min: 1, max: 5, step: 1 },
     },
+    showSettings: {
+      description: "Show the settings gear in the footer, left of the assistant. Desktop rail only.",
+      control: "boolean",
+    },
     username: {
-      description: "Name on the settings trigger — the app falls back to its word for Settings.",
+      description:
+        'Name on the account trigger. Empty is the auth-off install: an ellipsis and the app\'s word for "More".',
       control: "text",
     },
     activeItem: {
-      description: "Which nav item renders in the active-route state.",
+      description: "Which destination is the current route. `settings` lights the footer gear, not a nav row.",
       control: "select",
-      options: ["home", "pages", "collections", "schedule", "integrations", "transitions"],
+      options: ["home", "pages", "collections", "schedule", "integrations", "transitions", "settings"],
     },
     showTransitionsLab: {
       description: "Append the beta Transitions Lab entry, mirroring the app's feature flag.",
@@ -343,9 +376,9 @@ export const Default: Story = {
 };
 
 /**
- * The footer at 64px: settings above, assistant below, both 36px squares on
- * the rail's centre line. There is no room to share a row, so the pair
- * stacks in the order it reads expanded.
+ * The footer at 64px: avatar, gear, assistant, all 36px squares on the
+ * rail's centre line. There is no room to share a row, so the three stack
+ * in the order they read expanded.
  */
 export const Collapsed: Story = {
   render: () => <DemoSidebar initialCollapsed />,
@@ -377,25 +410,76 @@ export const AiActive: Story = {
 };
 
 /**
- * No AI provider configured: the chip is absent and the settings menu takes
- * the whole footer width. The app hides the assistant this way rather than
- * disabling it — there is nothing to open.
+ * No AI provider configured: the assistant chip is absent, the gear holds
+ * the right edge alone, and the account menu takes the width that frees up.
+ * The app hides the assistant this way rather than disabling it — there is
+ * nothing to open.
  */
 export const WithoutAssistant: Story = {
   render: () => <DemoSidebar ai={undefined} />,
 };
 
 /**
- * Auth is off, or nobody is signed in, so the app passes its translated
- * word for Settings instead of a name. The trigger is the same object.
+ * /settings is the current route. Settings has no row in the list, so the
+ * gear is the only thing on the rail that can say so — and no nav row is
+ * lit, because none of them is where you are.
  */
-export const NoUsername: Story = {
-  render: () => <DemoSidebar username="Settings" />,
+export const SettingsActive: Story = {
+  render: () => (
+    <DemoSidebar
+      items={NAV_ITEMS.map((item) => ({ ...item, active: false }))}
+      settings={{ ...SETTINGS, active: true }}
+    />
+  ),
+};
+
+/** The same route on the 64px rail: the lit chip is the middle of the stack. */
+export const SettingsActiveCollapsed: Story = {
+  render: () => (
+    <DemoSidebar
+      initialCollapsed
+      items={NAV_ITEMS.map((item) => ({ ...item, active: false }))}
+      settings={{ ...SETTINGS, active: true }}
+    />
+  ),
 };
 
 /**
- * A username with nowhere to go truncates rather than pushing the chevron
- * off the rail — the footer's width belongs to the rail, not to the name.
+ * Both chips lit at once: /settings is the route AND the assistant's panel
+ * is open over it. Two true facts of different kinds — `aria-current` on
+ * the gear, `aria-pressed` on the assistant — which is why they are chips
+ * and not rows of one list.
+ */
+export const SettingsAndAssistantActive: Story = {
+  render: () => (
+    <DemoSidebar
+      items={NAV_ITEMS.map((item) => ({ ...item, active: false }))}
+      settings={{ ...SETTINGS, active: true }}
+      ai={{ active: true, onOpen: () => {} }}
+    />
+  ),
+};
+
+/**
+ * Auth is off, or nobody is signed in. There is no person to draw — and a
+ * blank silhouette would read as a sign-in button on an install with
+ * nothing to sign in to — so the avatar gives way to an ellipsis and the
+ * label is the app's translated word for "More". Not "Settings": the gear
+ * beside it already says that.
+ */
+export const NoUsername: Story = {
+  render: () => <DemoSidebar username="" />,
+};
+
+/** The same install on the 64px rail: ellipsis, gear, assistant. */
+export const NoUsernameCollapsed: Story = {
+  render: () => <DemoSidebar initialCollapsed username="" />,
+};
+
+/**
+ * A username with nowhere to go truncates rather than pushing the chevrons
+ * or the chips off the rail — the footer's width belongs to the rail, not
+ * to the name.
  */
 export const LongUsername: Story = {
   render: () => <DemoSidebar username="bartholomew.featherstonehaugh" />,
@@ -427,8 +511,9 @@ export const OverflowingNav: Story = {
 /**
  * Below the `lg` breakpoint the sidebar swaps to a fixed top bar with a
  * hamburger-driven dialog menu. The assistant rides in that top bar, right
- * of the board selector, so it stays one tap away; the settings menu is the
- * pinned footer of the drawer.
+ * of the board selector, so it stays one tap away; the account menu is the
+ * pinned footer of the drawer. The settings gear does not come along — the
+ * drawer's footer lists settings itself.
  */
 export const Mobile: Story = {
   globals: {

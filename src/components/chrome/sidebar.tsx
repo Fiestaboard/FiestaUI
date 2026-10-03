@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Menu, Sparkles, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, Settings, Sparkles, X } from "lucide-react";
 import { Fragment, memo, useEffect, useRef, useState } from "react";
 
 import { cn } from "../../lib/utils";
@@ -21,16 +21,34 @@ const MOBILE_ITEM_BASE = "flex items-center gap-3 rounded-lg px-4 py-3 text-base
 const MOBILE_ITEM_ACTIVE = cn(MOBILE_ITEM_BASE, NAV_ITEM_ACTIVE);
 const MOBILE_ITEM_INACTIVE = cn(MOBILE_ITEM_BASE, NAV_ITEM_INACTIVE);
 
-// The assistant is a footer ACTION, not a destination, so it deliberately
-// does not borrow the nav row's shape: it is a square icon chip that sits
-// beside the settings trigger (rail footer) or beside the board selector
-// (mobile header). It keeps `nav-active` for its on state because "the
-// assistant is open" is the same kind of fact as "this route is current" —
-// and now it is the only thing on the rail that can be saying it.
-const AI_ACTION_BASE =
-  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring";
-const AI_ACTION_ACTIVE = cn(AI_ACTION_BASE, NAV_ITEM_ACTIVE);
-const AI_ACTION_INACTIVE = cn(AI_ACTION_BASE, NAV_ITEM_INACTIVE);
+// The footer's icon chips: the settings shortcut and the assistant. Neither
+// borrows the nav row's shape while the rail is expanded — they are 36px
+// squares that sit beside the account trigger (rail footer), and the
+// assistant alone beside the board selector (mobile header). Both keep `nav-active` for their on state, and
+// the two states mean different things: the gear is lit because /settings
+// IS the current route (it has no row in the list to say so), the assistant
+// because its panel is open. A route and a panel can both be true at once,
+// which is why they are two chips and not two rows of one list.
+//
+// `focus-ring` is the system's two-tone recipe, not the solid
+// `ring-sidebar-ring` these used to carry. That one was the brand orange
+// alone: 1.56:1 against the light rail, and 1:1 against a LIT chip's own
+// orange fill, where focus did nothing but make the chip 2px bigger. The
+// ink hairlines in the shared recipe are what hold the boundary there.
+const FOOTER_CHIP_BASE = "focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors";
+const FOOTER_CHIP_ACTIVE = cn(FOOTER_CHIP_BASE, NAV_ITEM_ACTIVE);
+const FOOTER_CHIP_INACTIVE = cn(FOOTER_CHIP_BASE, NAV_ITEM_INACTIVE);
+// On the collapsed rail a chip is one more tile in the column of nav tiles
+// above it, so it takes their shape — the rail's full 48px, not a 36px
+// square. Otherwise the lit gear is a visibly smaller tile than the lit
+// Home row it is stacked under, and the two read as different kinds of "on".
+const FOOTER_CHIP_FILL_ACTIVE = cn(FOOTER_CHIP_ACTIVE, "w-full");
+const FOOTER_CHIP_FILL_INACTIVE = cn(FOOTER_CHIP_INACTIVE, "w-full");
+
+function footerChipClass(active: boolean, fill: boolean) {
+  if (fill) return active ? FOOTER_CHIP_FILL_ACTIVE : FOOTER_CHIP_FILL_INACTIVE;
+  return active ? FOOTER_CHIP_ACTIVE : FOOTER_CHIP_INACTIVE;
+}
 
 const DESKTOP_LINK_BASE =
   "flex items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium transition-colors";
@@ -93,6 +111,10 @@ export interface SidebarLinkProps {
   href: string;
   className?: string;
   "aria-label"?: string;
+  /** Set on whichever link is the current route — a nav row, or the settings shortcut. */
+  "aria-current"?: "page";
+  /** Stable hook for tests and e2e; set on the settings shortcut. */
+  "data-slot"?: string;
   onClick?: () => void;
   onMouseEnter?: () => void;
   onFocus?: () => void;
@@ -120,8 +142,8 @@ export interface SidebarProps {
   labels: SidebarLabels;
   /**
    * The nav list, top to bottom — one flat array rendered into one <nav>.
-   * Order is entirely the app's: put help, settings and sign-out at the end
-   * of it like any other destination.
+   * Order is entirely the app's. Settings does not belong in it: pass
+   * `settings` for the footer gear, and put sign-out in the account menu.
    */
   items?: SidebarNavItem[];
   /**
@@ -137,6 +159,15 @@ export interface SidebarProps {
    * Renders internal navigation links — inject your router's Link here
    * (FiestaBoard passes its ViewTransitionLink). External items render a
    * plain <a target="_blank"> internally and never hit this.
+   *
+   * It must return ONE element that puts every prop it is given on the
+   * anchor, including a `ref` and props not listed in `SidebarLinkProps`:
+   * collapsed rows and the settings shortcut are wrapped in a tooltip,
+   * which attaches its ref and hover/focus handlers to whatever comes back.
+   *
+   * The settings shortcut (`settings`) is rendered through this too. Its
+   * second argument is a synthetic item with `key: "settings"` — it is not
+   * one of `items`, so do not look it up in your own list by key.
    */
   renderLink: (props: SidebarLinkProps, item: SidebarNavItem) => React.ReactNode;
   collapsed: boolean;
@@ -167,22 +198,42 @@ export interface SidebarProps {
   boardSelector?: React.ReactNode;
   mobileBoardSelector?: React.ReactNode;
   /**
-   * The settings menu that anchors the footer: expanded it fills the width
-   * the assistant does not take, collapsed it is an icon above the
-   * assistant, and in the mobile menu it is the whole footer row.
+   * The account menu that anchors the footer: expanded it fills the width
+   * the icon chips do not take, collapsed it is an avatar above them, and
+   * in the mobile menu it is the whole footer row.
    *
    * A render function rather than a node because the trigger has two
-   * shapes — a name-and-chevron button at 256px, a bare gear at 64px — and
-   * only the app can build either: the menu's CONTENTS are auth, router,
-   * theme and i18n, none of which the design system knows about. FiestaUI
-   * owns where the trigger sits and how much room it gets; the app owns
-   * what is inside it.
+   * shapes — avatar, name and chevrons at 256px, a bare avatar at 64px
+   * (`SidebarAccountTrigger` draws both) — and only the app can build
+   * either: the menu's CONTENTS are auth, router, theme and i18n, none of
+   * which the design system knows about. FiestaUI owns where the trigger
+   * sits and how much room it gets; the app owns what is inside it.
+   *
+   * The prop keeps its 7.0.0 name: the menu behind it still leads to
+   * settings, it is only the trigger that stopped being a gear.
    *
    * Replaces `versionSlot` and `themeToggleSlot` (7.0.0). Both were footer
    * nodes that only ever held one control each; the version now lives in
    * the app's About dialog and the theme is a checked group in the menu.
    */
   renderSettingsMenu?: (ctx: { variant: "mobile" | "desktop"; collapsed: boolean }) => React.ReactNode;
+  /**
+   * A one-click shortcut to the settings route: a gear chip in the rail
+   * footer, between the account menu and the assistant. Omit to hide.
+   *
+   * Settings is also an item of the account menu, and that is deliberate
+   * rather than redundant — the menu is where you look for it, the gear is
+   * where you reach for it. It is a LINK (rendered through `renderLink`, so
+   * it navigates like any nav row), and `active` lights it while settings
+   * is the current route: settings has no row in the list, so without this
+   * nothing on the rail says where you are.
+   *
+   * Desktop rail only: the mobile header bar has no width to spare for a
+   * second chip. On mobile the route to settings is the app's — an inline
+   * row in what `renderSettingsMenu` returns for `variant: "mobile"` — so
+   * do not pass this without also covering the drawer.
+   */
+  settings?: { href: string; label: string; active?: boolean; onPrefetch?: () => void };
   /** App max width in px — the sidebar centers itself against it. */
   maxWidth: number;
   /** Gap between the app edge and the sidebar in px. */
@@ -205,6 +256,7 @@ export const Sidebar = memo(function Sidebar({
   boardSelector,
   mobileBoardSelector,
   renderSettingsMenu,
+  settings,
   maxWidth,
   sidebarInset,
 }: SidebarProps) {
@@ -389,6 +441,7 @@ export const Sidebar = memo(function Sidebar({
             onClick: () => setMobileMenuOpen(false),
             onMouseEnter: item.onPrefetch,
             onFocus: item.onPrefetch,
+            "aria-current": item.active ? "page" : undefined,
             className: mobileClassName,
             children: (
               <>
@@ -432,6 +485,10 @@ export const Sidebar = memo(function Sidebar({
           onFocus: item.onPrefetch,
           className: linkClassName,
           "aria-label": collapsed ? item.label : undefined,
+          // The fill says "you are here" to the eye; this says it to a
+          // screen reader. Without it the settings shortcut was the only
+          // link on the rail that ever announced itself as current.
+          "aria-current": item.active ? "page" : undefined,
           children: inner,
         },
         item,
@@ -466,7 +523,7 @@ export const Sidebar = memo(function Sidebar({
    * shut, it does not mark a location. That distinction is the whole point
    * of moving it off the nav list.
    */
-  const aiAction = () =>
+  const aiAction = (fill = false) =>
     ai ? (
       <button
         type="button"
@@ -474,47 +531,101 @@ export const Sidebar = memo(function Sidebar({
         aria-label={labels.aiAssistant}
         aria-pressed={ai.active}
         data-slot="sidebar-ai"
-        className={ai.active ? AI_ACTION_ACTIVE : AI_ACTION_INACTIVE}
+        className={footerChipClass(ai.active, fill)}
       >
         <Sparkles className="h-5 w-5" aria-hidden="true" />
       </button>
     ) : null;
 
   /**
-   * The footer strip: the app's settings menu taking every pixel the
-   * assistant does not, and the assistant pinned beside it. Collapsed, the
-   * 64px rail has no width to share, so the pair stacks — settings above,
-   * assistant below — which is also the order they read in expanded.
+   * The settings shortcut as an icon chip. A link, not a button: it goes
+   * somewhere, so it gets the app's router link, a real href (middle-click,
+   * copy address) and `aria-current` rather than `aria-pressed`.
+   *
+   * The synthetic nav item only exists to satisfy `renderLink`'s second
+   * argument, which apps use to tell rows apart.
+   */
+  const settingsAction = (fill = false) =>
+    settings
+      ? renderLink(
+          {
+            href: settings.href,
+            "aria-label": settings.label,
+            "aria-current": settings.active ? "page" : undefined,
+            "data-slot": "sidebar-settings-link",
+            onMouseEnter: settings.onPrefetch,
+            onFocus: settings.onPrefetch,
+            className: footerChipClass(Boolean(settings.active), fill),
+            children: <Settings className="h-5 w-5" aria-hidden="true" />,
+          },
+          { key: "settings", href: settings.href, icon: Settings, label: settings.label, active: settings.active },
+        )
+      : null;
+
+  /**
+   * The footer strip: the app's account menu taking every pixel the chips
+   * do not, then the settings gear, then the assistant. Collapsed, the 64px
+   * rail has no width to share, so the three stack — account, settings,
+   * assistant — which is also the order they read in expanded.
+   *
+   * Expanded, the two chips sit closer to each other (4px) than to the
+   * account trigger (8px): they are a pair of the same kind of thing, and
+   * the trigger is a different kind. Collapsed, that distinction gives way
+   * to the column: all three are 48×36 tiles on the nav list's own 40px
+   * pitch, so the footer continues the rhythm of the icons above it instead
+   * of starting a second one.
    *
    * `data-orientation` is the contract the unit tests hold; the pixels are
    * VRT's job.
    */
   const footerBlock = (variant: "mobile" | "desktop", isCollapsed: boolean) => {
     const menu = renderSettingsMenu?.({ variant, collapsed: isCollapsed });
-    const assistant = variant === "desktop" ? aiAction() : null;
-    if (!menu && !assistant) return null;
+    const shortcut = variant === "desktop" ? settingsAction(isCollapsed) : null;
+    const assistant = variant === "desktop" ? aiAction(isCollapsed) : null;
+    if (!menu && !shortcut && !assistant) return null;
+
+    // Icon-only in both states, so unlike the nav rows the chips always earn
+    // their tooltips. They point right off the collapsed rail and up out of
+    // the expanded footer — the directions with room.
+    const tooltipSide = isCollapsed ? "right" : "top";
 
     return (
       <div
         data-slot="sidebar-footer"
         data-orientation={isCollapsed ? "vertical" : "horizontal"}
-        className={cn("flex gap-2", isCollapsed ? "flex-col items-center" : "items-center")}
+        className={isCollapsed ? "flex flex-col items-stretch gap-1" : "flex items-center gap-2"}
       >
         {menu && (
           <div data-slot="sidebar-settings-menu" className={isCollapsed ? "shrink-0" : "min-w-0 flex-1"}>
             {menu}
           </div>
         )}
-        {/* The chip is icon-only in both states, so unlike the nav rows it
-            always earns its tooltip. It points right off the collapsed rail
-            and up out of the expanded footer — the directions with room. */}
-        {assistant && (
-          <Tooltip>
-            <TooltipTrigger asChild>{assistant}</TooltipTrigger>
-            <TooltipContent side={isCollapsed ? "right" : "top"} className="font-medium">
-              {labels.aiAssistant}
-            </TooltipContent>
-          </Tooltip>
+        {(shortcut || assistant) && (
+          <div
+            data-slot="sidebar-footer-actions"
+            // ms-auto: with no account menu to push them, the chips still
+            // hold the trailing edge rather than drifting to the leading one.
+            className={
+              isCollapsed ? "flex shrink-0 flex-col items-stretch gap-1" : "ms-auto flex shrink-0 items-center gap-1"
+            }
+          >
+            {shortcut && (
+              <Tooltip>
+                <TooltipTrigger asChild>{shortcut as React.ReactElement}</TooltipTrigger>
+                <TooltipContent side={tooltipSide} className="font-medium">
+                  {settings?.label}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {assistant && (
+              <Tooltip>
+                <TooltipTrigger asChild>{assistant}</TooltipTrigger>
+                <TooltipContent side={tooltipSide} className="font-medium">
+                  {labels.aiAssistant}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         )}
       </div>
     );
@@ -714,14 +825,17 @@ export const Sidebar = memo(function Sidebar({
 
             <div className="mx-2 border-t border-sidebar-border" />
 
-            {/* Footer: the settings menu and the assistant, and nothing else.
-                It used to be the version string beside a theme toggle — two
+            {/* Footer: the account menu, the settings gear and the
+                assistant, and nothing else. It used to be the version string beside a theme toggle — two
                 controls that between them said less than one menu does, and
                 the version could only render wrongly at 64px anyway (the
                 slot's flex layout clipped "v8.32.10 (dev)" mid-glyph into
                 the plausible-but-wrong "v8.32.1"). Both facts moved inside
                 the menu, where there is room to be right. */}
-            <div className="shrink-0 px-2 pb-3 pt-2">{footerBlock("desktop", collapsed)}</div>
+            {/* py-3: the same 12px above the strip as below it. At pt-2 the
+                controls sat visibly closer to the hairline than to the
+                rail's bottom edge. */}
+            <div className="shrink-0 px-2 py-3">{footerBlock("desktop", collapsed)}</div>
           </div>
         </aside>
       </TooltipProvider>
