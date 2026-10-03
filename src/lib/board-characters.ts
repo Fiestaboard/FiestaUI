@@ -164,6 +164,37 @@ export function getCharFromToken(token: BoardToken): string {
  * a message reaches the preview, template rendering has normalized colors to
  * single brackets. End tags (`{/red}`, `{/}`) render nothing.
  */
+/** Colour names an end tag may close — the named colours, not the codes. */
+const END_TAG_NAMES = new Set([
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "blue",
+  "violet",
+  "purple",
+  "white",
+  "black",
+  "filled",
+]);
+
+/** `{/}` or `{/<colour name>}` (any case). `{/63}`, `{/foo}` are not end tags. */
+function isEndTag(content: string): boolean {
+  if (!content.startsWith("/")) return false;
+  const name = content.slice(1).toLowerCase();
+  return name === "" || END_TAG_NAMES.has(name);
+}
+
+/**
+ * A typed heart is code 62, the same flap as a typed degree sign: the board
+ * draws whichever glyph its code-62 flap carries (FiestaBoard's board_chars
+ * maps `°`, `♥` and `❤` all to 62). So a typed heart becomes `°` here, and
+ * {@link applyCode62Glyph} turns it back into a heart on boards that have one.
+ */
+function typedCharToBoard(ch: string): string {
+  return ch === "♥" || ch === "❤" ? "°" : ch;
+}
+
 export function parseLine(line: string, maxTokens: number = Infinity): BoardToken[] {
   const tokens: BoardToken[] = [];
   let i = 0;
@@ -176,9 +207,11 @@ export function parseLine(line: string, maxTokens: number = Infinity): BoardToke
       if (closingBrace !== -1) {
         const content = line.substring(i + 1, closingBrace);
 
-        // Check if it's an end tag {/...} or {/}
-        if (content.startsWith("/")) {
-          // Skip end tags - they don't render anything
+        // End tags render nothing — but only `{/}` and `{/<colour name>}`
+        // are end tags. Anything else after a slash (`{/foo}`, `{/63}`) is
+        // literal text on the board, so it falls through to be drawn
+        // character by character (FiestaBoard's COLOR_MARKER_PATTERN).
+        if (isEndTag(content)) {
           i = closingBrace + 1;
           continue;
         }
@@ -202,9 +235,13 @@ export function parseLine(line: string, maxTokens: number = Infinity): BoardToke
       }
     }
 
+    // One cell per code point, as the board counts them: an emoji is one
+    // character to FiestaBoard's renderer, not a UTF-16 surrogate pair.
+    const codePoint = line.codePointAt(i) ?? 0;
+    const ch = String.fromCodePoint(codePoint);
     // Convert to uppercase since board only supports uppercase letters
-    tokens.push({ type: "char", value: line[i].toUpperCase() });
-    i++;
+    tokens.push({ type: "char", value: typedCharToBoard(ch.toUpperCase()) });
+    i += ch.length;
   }
 
   return tokens;
