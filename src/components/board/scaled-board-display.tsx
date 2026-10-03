@@ -81,7 +81,8 @@ function ScaledBoardDisplayImpl({
   const [scaledWidth, setScaledWidth] = useState<number | null>(null);
   const [scaledHeight, setScaledHeight] = useState<number | null>(null);
 
-  // The toggle only exists for note arrays; flagship/note always fit.
+  // The toggle only exists for note arrays; flagship/note/panel always fit.
+  // (`gridRows` / `gridCols` reach the board through the `props` spread.)
   const showToggle = isNoteArray(props.deviceType ?? "flagship");
 
   // Lazily read the persisted mode on mount (guarded for SSR/no-window).
@@ -178,7 +179,16 @@ function ScaledBoardDisplayImpl({
       ro.disconnect();
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, [props.message, props.size, props.deviceType, props.notesWide, props.notesTall, mode]);
+  }, [
+    props.message,
+    props.size,
+    props.deviceType,
+    props.notesWide,
+    props.notesTall,
+    props.gridRows,
+    props.gridCols,
+    mode,
+  ]);
 
   const toggle = showToggle ? (
     <div className="mb-1 flex w-full justify-center" role="group" aria-label={previewSizeLabel}>

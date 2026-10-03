@@ -230,13 +230,15 @@ export type Code62Glyph = "degree" | "heart";
  * Decide which glyph a board draws for code 62.
  *
  * Note and note-array hardware only ever shipped the heart flap, so their glyph
- * is a property of the device and `code62Glyph` is ignored for them. Flagship is
+ * is a property of the device and `code62Glyph` is ignored for them. A panel (a
+ * virtual board of any rows × cols) imitates Note hardware, so it draws the
+ * heart too — FiestaBoard's Python renderer makes the same call. Flagship is
  * the ambiguous one, and the caller has to say: unset means `"degree"`, the
  * glyph every Flagship carried before the hardware change, so a caller that has
  * not been taught about the new flap keeps rendering exactly as it did.
  */
 export function resolveCode62Glyph(deviceType: string, code62Glyph?: Code62Glyph): Code62Glyph {
-  if (deviceType === "note" || deviceType === "note_array") return "heart";
+  if (deviceType === "note" || deviceType === "note_array" || deviceType === "panel") return "heart";
   return code62Glyph ?? "degree";
 }
 

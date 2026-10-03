@@ -141,8 +141,11 @@ Rules:
   `DeviceType`) get **structural interfaces declared locally** in the component
   that needs them, exported so the app can check its own objects against them.
   Exception: `DeviceType` — use FiestaUI's, re-exported from `./constants`.
-  Note it is `"flagship" | "note" | "note_array"`, wider than the app's
-  two-member union, so any `switch` on it needs a `note_array` arm or a default.
+  Note it is `"flagship" | "note" | "note_array" | "panel"`, wider than the
+  app's two-member union, so any `switch` on it needs `note_array` and `panel`
+  arms or a default. Neither size is knowable from `deviceType` alone: a
+  `note_array` needs `notesWide`/`notesTall` and a `panel` needs
+  `gridRows`/`gridCols`.
 - App components (`HomeAssistantEntityPicker`) become **render-prop slots**:
   `renderEntityPicker?: (ctx: { value: string; onChange: (v: string) => void }) => React.ReactNode`.
   Omitted slot renders nothing — never a placeholder or a "coming soon".

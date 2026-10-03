@@ -50,8 +50,9 @@ export interface BoardShowcaseProps {
   boardType?: "black" | "white";
   /**
    * Which glyph the viewer's board draws for code 62 (FiestaBoard#1666).
-   * Flagship previews only — a `note` or `note_array` preview always draws the
-   * heart its hardware carries, whatever this says. Defaults to `"degree"`.
+   * Flagship previews only — a `note`, `note_array` or `panel` preview always
+   * draws the heart its hardware carries, whatever this says. Defaults to
+   * `"degree"`.
    */
   code62Glyph?: Code62Glyph;
   defaultBoardType?: "black" | "white";
@@ -122,6 +123,8 @@ export function BoardShowcase({
               code62Glyph={code62Glyph}
               notesWide={preview.notes_wide ?? 1}
               notesTall={preview.notes_tall ?? 1}
+              gridRows={preview.grid_rows}
+              gridCols={preview.grid_cols}
               previewLabel={previewLabel}
             />
           </TabsContent>

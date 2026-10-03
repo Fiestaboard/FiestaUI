@@ -311,7 +311,9 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
   // length and count against a Flagship grid. A component that knows its
   // device resolves its own geometry; explicit props still win, and are the
   // only way to describe a note_array (whose grid depends on how many notes
-  // wide/tall the array is, which this component is not told).
+  // wide/tall the array is, which this component is not told) or a panel
+  // (whose grid_rows × grid_cols it is not told either — resolved without them
+  // a panel is its 3×15 minimum, so a panel editor must pass both props).
   const deviceDimensions = deviceType ? resolveDimensions(deviceType) : null;
   const boardWidth = boardWidthProp ?? deviceDimensions?.cols ?? DEFAULT_BOARD_WIDTH;
   const boardLines = boardLinesProp ?? deviceDimensions?.rows ?? DEFAULT_BOARD_LINES;

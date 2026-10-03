@@ -33,7 +33,7 @@ const meta = {
     },
     deviceType: {
       control: "select",
-      options: ["flagship", "note", "note_array"],
+      options: ["flagship", "note", "note_array", "panel"],
       description: "Board hardware family",
     },
     notesWide: {
@@ -43,6 +43,14 @@ const meta = {
     notesTall: {
       control: { type: "number", min: 1, max: 8 },
       description: "Notes tall (note_array only)",
+    },
+    gridRows: {
+      control: { type: "number", min: 3, max: 96 },
+      description: "Explicit grid rows (panel only; clamped to 3–96)",
+    },
+    gridCols: {
+      control: { type: "number", min: 15, max: 128 },
+      description: "Explicit grid columns (panel only; clamped to 15–128)",
     },
     previewLabel: {
       control: "text",
@@ -98,6 +106,18 @@ export const NoteDevice: Story = {
     message: "STATIC NOTE\n{green}CHEAP TILES{/green}\nFOR LISTS °",
     size: "sm",
     deviceType: "note",
+  },
+};
+
+/** A 12 × 29 panel: an explicit character grid, drawn seamlessly. */
+export const PanelGrid: Story = {
+  args: {
+    message:
+      "A PANEL IS SIZED BY CHARACTER\n{green}12 ROWS BY 29 COLUMNS{/green}\nNOT BY WHOLE NOTE BLOCKS\n\nONE SEAMLESS SURFACE SO\nNO SEAMS AT ROW 3 OR\nAT COLUMN 15 °",
+    size: "sm",
+    deviceType: "panel",
+    gridRows: 12,
+    gridCols: 29,
   },
 };
 

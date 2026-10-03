@@ -44,8 +44,8 @@ const meta = {
     },
     deviceType: {
       control: "select",
-      options: ["flagship", "note", "note_array"],
-      description: "Board hardware family (6×22 flagship, 3×15 Note, or W×H Note array)",
+      options: ["flagship", "note", "note_array", "panel"],
+      description: "Board hardware family (6×22 flagship, 3×15 Note, W×H Note array, or a rows×cols panel)",
     },
     notesWide: {
       control: { type: "number", min: 1, max: 8 },
@@ -54,6 +54,14 @@ const meta = {
     notesTall: {
       control: { type: "number", min: 1, max: 8 },
       description: "Notes tall (note_array only)",
+    },
+    gridRows: {
+      control: { type: "number", min: 3, max: 96 },
+      description: "Explicit grid rows (panel only; clamped to 3–96)",
+    },
+    gridCols: {
+      control: { type: "number", min: 15, max: 128 },
+      description: "Explicit grid columns (panel only; clamped to 15–128)",
     },
     code62Glyph: {
       control: "select",
@@ -331,6 +339,23 @@ export const NoteArray: Story = {
     deviceType: "note_array",
     notesWide: 2,
     notesTall: 1,
+  },
+};
+
+/**
+ * A panel — a life-size virtual board on a TV — is sized by character, not by
+ * Note block: 12 rows × 29 columns is what a 55" screen fits, and is a multiple
+ * of a Note on neither axis. One seamless surface, so no Note seams.
+ */
+export const PanelGrid: Story = {
+  args: {
+    message:
+      "A PANEL IS SIZED BY CHARACTER\n{green}12 ROWS BY 29 COLUMNS{/green}\nNOT BY WHOLE NOTE BLOCKS\n\nONE SEAMLESS SURFACE SO\nNO SEAMS AT ROW 3 OR\nAT COLUMN 15 °",
+    size: "sm",
+    isLoading: false,
+    deviceType: "panel",
+    gridRows: 12,
+    gridCols: 29,
   },
 };
 

@@ -51,7 +51,7 @@ const meta = {
     },
     deviceType: {
       control: "select",
-      options: ["flagship", "note", "note_array"],
+      options: ["flagship", "note", "note_array", "panel"],
       description: "Board hardware family; note arrays get the Fit / Actual size toggle",
     },
     notesWide: {
@@ -61,6 +61,14 @@ const meta = {
     notesTall: {
       control: { type: "number", min: 1, max: 8 },
       description: "Notes tall (note_array only)",
+    },
+    gridRows: {
+      control: { type: "number", min: 3, max: 96 },
+      description: "Explicit grid rows (panel only; clamped to 3–96)",
+    },
+    gridCols: {
+      control: { type: "number", min: 15, max: 128 },
+      description: "Explicit grid columns (panel only; clamped to 15–128)",
     },
     animationsEnabled: {
       control: "boolean",
