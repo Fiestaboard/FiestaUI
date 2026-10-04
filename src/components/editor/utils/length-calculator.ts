@@ -39,6 +39,13 @@ export function calculateLineLength(lineContent: JSONContent[]): number {
         tileCount += 1;
         break;
 
+      case "icon":
+        // An icon is one cell on every board (its glyph, or its flap fallback).
+        // A colour span is a mark, not a node, so its cells are counted above
+        // as the text, tiles and atoms it wraps — the span itself is free.
+        tileCount += 1;
+        break;
+
       case "fillSpace":
         // fill_space is calculated dynamically, counts as 0 here
         tileCount += 0;

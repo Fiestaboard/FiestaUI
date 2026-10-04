@@ -1,0 +1,199 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`serialization is byte-identical without a charset > parses every legacy template to the same document 1`] = `
+[
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"HELLO"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"colorTile","attrs":{"color":"red","code":63}},{"type":"text","text":"​"},{"type":"text","text":" HOT "},{"type":"text","text":"​"},{"type":"colorTile","attrs":{"color":"blue","code":67}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"colorTile","attrs":{"color":"red","code":63}},{"type":"text","text":"​"},{"type":"text","text":"{63}"},{"type":"text","text":"{filled}"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"variable","attrs":{"pluginId":"weather","field":"temperature","filters":[]}},{"type":"text","text":"​"},{"type":"text","text":"°"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"variable","attrs":{"pluginId":"weather","field":"temperature","filters":[{"name":"pad","arg":"3"}]}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"fillSpace","attrs":{"id":"ID"}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"variable","attrs":{"pluginId":"datetime","field":"time","filters":[]}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"fillSpace","attrs":{"id":"ID","repeatChar":"."}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"formula","attrs":{"expression":"IF(weather.high > 80, 'HOT', 'MILD')"}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"variable","attrs":{"pluginId":"weather:sf","field":"temperature","filters":[]}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"variable","attrs":{"pluginId":"weather","field":"condition","filters":[{"name":"wrap"}]}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"A"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"B"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"C"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"D"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"E"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"F"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"G"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"{sun}"},{"type":"text","text":" "},{"type":"text","text":"{star}"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"variable","attrs":{"pluginId":"toString","field":"","filters":[]}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"lower case text"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"colorTile","attrs":{"color":"red","code":63}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"colorTile","attrs":{"color":"red","code":63}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"colorTile","attrs":{"color":"green","code":66}},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+  "{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"​"},{"type":"text","text":"LEFT"},{"type":"text","text":"​"},{"type":"fillSpace","attrs":{"id":"ID"}},{"type":"text","text":"​"},{"type":"text","text":"RIGHT"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"variable","attrs":{"pluginId":"center","field":"","filters":[]}},{"type":"text","text":"​"},{"type":"text","text":"MID"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"},{"type":"hardBreak"},{"type":"text","text":"​"},{"type":"text","text":"​"}]}]}",
+]
+`;
+
+exports[`serialization is byte-identical without a charset > round-trips every legacy template exactly as before 1`] = `
+[
+  [
+    "",
+    "
+
+
+
+
+",
+  ],
+  [
+    "HELLO",
+    "HELLO
+
+
+
+
+",
+  ],
+  [
+    "{{red}} HOT {{blue}}",
+    "{{red}} HOT {{blue}}
+
+
+
+
+",
+  ],
+  [
+    "{red}{63}{filled}",
+    "{{red}}{63}{FILLED}
+
+
+
+
+",
+  ],
+  [
+    "{{weather.temperature}}°",
+    "{{weather.temperature}}°
+
+
+
+
+",
+  ],
+  [
+    "{{weather.temperature|pad:3}}{{fill_space}}{{datetime.time}}",
+    "{{weather.temperature|pad:3}}{{fill_space}}{{datetime.time}}
+
+
+
+
+",
+  ],
+  [
+    "{{fill_space_repeat:.}}",
+    "{{fill_space_repeat:.}}
+
+
+
+
+",
+  ],
+  [
+    "{{= IF(weather.high > 80, 'HOT', 'MILD') }}",
+    "{{= IF(weather.high > 80, 'HOT', 'MILD') }}
+
+
+
+
+",
+  ],
+  [
+    "{{weather:sf.temperature}}",
+    "{{weather:sf.temperature}}
+
+
+
+
+",
+  ],
+  [
+    "{{weather.condition|wrap}}",
+    "{{weather.condition|wrap}}
+
+
+
+
+",
+  ],
+  [
+    "A
+B
+C
+D
+E
+F
+G",
+    "A
+B
+C
+D
+E
+F
+G",
+  ],
+  [
+    "{sun} {star}",
+    "{SUN} {STAR}
+
+
+
+
+",
+  ],
+  [
+    "{{toString}}",
+    "{{toString.}}
+
+
+
+
+",
+  ],
+  [
+    "lower case text",
+    "LOWER CASE TEXT
+
+
+
+
+",
+  ],
+  [
+    "{{red}}{{red}}{{green}}",
+    "{{red}}{{red}}{{green}}
+
+
+
+
+",
+  ],
+  [
+    "LEFT{{fill_space}}RIGHT
+{{center}}MID",
+    "LEFT{{fill_space}}RIGHT
+{{center.}}MID
+
+
+
+",
+  ],
+]
+`;
+
+exports[`the editor DOM is byte-identical without a charset > renders the same tree for a note with no toolbar 1`] = `
+"<div data-slot="box" class="relative"><div data-slot="box" class="flex-1"><div data-slot="box" class="border bg-background relative rounded-md" style="padding: 0.75rem; min-height: 6rem;"><div data-slot="flex" class="flex flex-row gap-2" style="min-height: 4.5rem;"><div data-slot="box" class="select-none shrink-0 text-right" style="font-size: 0.75rem; line-height: 1.5rem; min-width: 1.25rem;" aria-hidden="true"><div data-slot="box" style="height: 24px; line-height: 1.5rem; color: var(--muted-foreground); opacity: 0.4;">1</div><div data-slot="box" style="height: 24px; line-height: 1.5rem; color: var(--muted-foreground); opacity: 0.4;">2</div><div data-slot="box" style="height: 24px; line-height: 1.5rem; color: var(--foreground); opacity: 0.7;">3</div></div><div data-slot="box" class="relative flex-1 min-w-0"><div><div contenteditable="X" role="textbox" data-placeholder="Type text or insert variables..." aria-label="Template editor" aria-multiline="true" translate="no" class="tiptap ProseMirror w-full font-mono text-sm prose prose-sm max-w-none [&amp;_.ProseMirror]:outline-none [&amp;_.ProseMirror]:font-mono [&amp;_.ProseMirror]:text-sm [&amp;_.ProseMirror]:resize-none [&amp;_.ProseMirror]:uppercase [&amp;_.ProseMirror_p]:my-0 [&amp;_.ProseMirror_p]:leading-tight [&amp;_.ProseMirror_p]:min-h-[1.5rem]" tabindex="0"><p>​HI​<br>​​<span class="react-renderer node-colorTile" draggable="true"><span as="span" class="relative rounded-[3px] cursor-grab transition-all duration-control hover:scale-105 active:cursor-grabbing active:scale-100" data-drag-handle="true" style="white-space: nowrap; background-color: rgb(126, 211, 33); width: 1.5ch; height: 1rem; max-height: 1rem; min-height: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.3),
+    inset 0 1px 1px rgba(255,255,255,0.15),
+    inset 0 -1px 1px rgba(0,0,0,0.25),
+    inset 1px 0 1px rgba(255,255,255,0.1),
+    inset -1px 0 1px rgba(0,0,0,0.2); display: inline-block; vertical-align: middle; margin-left: 1px; margin-right: 1px;" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger" data-node-view-wrapper=""><div data-slot="box" class="absolute top-1/2 left-0 right-0 h-[1px] bg-black/10"></div><div data-slot="box" class="absolute inset-0 pointer-events-none rounded-[3px]" style="background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(0, 0, 0, 0.2) 100%);"></div><span aria-label="green color tile" style="position: absolute; inset: 0px; color: transparent; overflow: hidden; line-height: 1rem; font-size: 1rem; pointer-events: none;">█</span></span></span>​​<br>​​</p></div></div></div></div></div><p data-slot="text" class="text-xs text-muted-foreground font-normal mt-1">3 / 3 lines</p><div data-slot="flex" class="flex flex-row items-center gap-2 mt-2"><span data-slot="text" class="text-xs text-muted-foreground font-normal">Alignment:</span><div data-slot="flex" class="flex flex-row rounded-md border overflow-hidden"><button type="button" aria-label="Align left" class="px-3 py-1.5 text-xs transition-colors bg-primary text-primary-foreground" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-text-align-start w-4 h-4" aria-hidden="true"><path d="M21 5H3"></path><path d="M15 12H3"></path><path d="M17 19H3"></path></svg></button><button type="button" aria-label="Align center" class="px-3 py-1.5 text-xs border-x transition-colors hover:bg-muted text-muted-foreground" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-text-align-center w-4 h-4" aria-hidden="true"><path d="M21 5H3"></path><path d="M17 12H7"></path><path d="M19 19H5"></path></svg></button><button type="button" aria-label="Align right" class="px-3 py-1.5 text-xs transition-colors hover:bg-muted text-muted-foreground" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-text-align-end w-4 h-4" aria-hidden="true"><path d="M21 5H3"></path><path d="M21 12H9"></path><path d="M21 19H7"></path></svg></button></div><span data-slot="text" class="text-xs text-muted-foreground font-normal">(Line 3)</span></div></div></div>"
+`;
+
+exports[`the editor DOM is byte-identical without a charset > renders the same tree for a split-flap template 1`] = `
+"<div data-slot="box" class="relative"><div data-slot="flex" class="flex flex-row items-center gap-1 flex-wrap p-2 border rounded-t-md bg-background"><div data-slot="flex" class="flex flex-row items-center gap-0.5 rounded-md border border-border overflow-hidden bg-background"><button type="button" class="px-2 py-1.5 transition-colors hover:bg-muted/50 border-r border-border" aria-label="Undo" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-undo2 lucide-undo-2 w-4 h-4" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"></path></svg></button><button type="button" disabled="" class="px-2 py-1.5 transition-colors opacity-60 cursor-not-allowed" aria-label="Redo" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-redo2 lucide-redo-2 w-4 h-4" aria-hidden="true"><path d="m15 14 5-5-5-5"></path><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"></path></svg></button></div><div data-slot="box" class="h-6 w-px bg-border mx-1"></div><div data-slot="flex" class="flex flex-row items-center gap-0.5 rounded-md border border-border overflow-hidden bg-background"><button type="button" disabled="" class="px-2 py-1.5 transition-colors opacity-60 cursor-not-allowed border-r border-border" aria-label="Cut" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scissors w-4 h-4" aria-hidden="true"><circle cx="6" cy="6" r="3"></circle><path d="M8.12 8.12 12 12"></path><path d="M20 4 8.12 15.88"></path><circle cx="6" cy="18" r="3"></circle><path d="M14.8 14.8 20 20"></path></svg></button><button type="button" disabled="" class="px-2 py-1.5 transition-colors opacity-60 cursor-not-allowed border-r border-border" aria-label="Copy" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy w-4 h-4" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button><button type="button" class="px-2 py-1.5 transition-colors hover:bg-muted/50" aria-label="Paste" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-paste w-4 h-4" aria-hidden="true"><path d="M11 14h10"></path><path d="M16 4h2a2 2 0 0 1 2 2v1.344"></path><path d="m17 18 4-4-4-4"></path><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 1.793-1.113"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect></svg></button></div><div data-slot="box" class="h-6 w-px bg-border mx-1"></div><div data-slot="box" class="relative"><button type="button" class="flex items-center justify-center p-1.5 rounded-md hover:bg-muted/50 transition-colors border border-transparent" aria-expanded="false" aria-haspopup="true" aria-label="Variables" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><span data-slot="text" class="text-sm text-foreground font-normal w-4 h-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-code-xml w-4 h-4" aria-hidden="true"><path d="m18 16 4-4-4-4"></path><path d="m6 8-4 4 4 4"></path><path d="m14.5 4-5 16"></path></svg></span><span data-slot="text" class="text-sm text-foreground font-normal sr-only">Variables</span></button></div><div data-slot="box" class="relative"><button type="button" class="flex items-center justify-center p-1.5 rounded-md hover:bg-muted/50 transition-colors border border-transparent" aria-expanded="false" aria-haspopup="true" aria-label="Colors" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><span data-slot="text" class="text-sm text-foreground font-normal w-4 h-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-palette w-4 h-4" aria-hidden="true"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"></path><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle></svg></span><span data-slot="text" class="text-sm text-foreground font-normal sr-only">Colors</span></button></div><div data-slot="box" class="relative"><button type="button" class="flex items-center justify-center p-1.5 rounded-md hover:bg-muted/50 transition-colors border border-transparent" aria-expanded="false" aria-haspopup="true" aria-label="Formatting" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><span data-slot="text" class="text-sm text-foreground font-normal w-4 h-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-type w-4 h-4" aria-hidden="true"><path d="M12 4v16"></path><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"></path><path d="M9 20h6"></path></svg></span><span data-slot="text" class="text-sm text-foreground font-normal sr-only">Formatting</span></button></div><button type="button" class="flex items-center gap-1 px-2 py-1.5 rounded-md text-sm font-medium hover:bg-muted/50 transition-colors" aria-label="Insert formula" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square-function w-4 h-4" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><path d="M9 17c2 0 2.8-1 2.8-2.8V10c0-2 1-3.3 3.2-3"></path><path d="M9 11.2h5.7"></path></svg></button><button type="button" class="flex items-center justify-center p-1.5 rounded-md transition-colors border border-transparent hover:bg-muted/50" aria-label="Toggle wrap for current line" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-text-wrap w-4 h-4" aria-hidden="true"><path d="m16 16-3 3 3 3"></path><path d="M3 12h14.5a1 1 0 0 1 0 7H13"></path><path d="M3 19h6"></path><path d="M3 5h18"></path></svg></button><div data-slot="box" class="h-6 w-px bg-border mx-1"></div><div data-slot="flex" class="flex flex-row items-center gap-0.5 rounded-md border border-border overflow-hidden bg-background"><button type="button" class="px-2 py-1.5 transition-colors bg-primary text-primary-foreground" aria-label="Align left" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-text-align-start w-4 h-4" aria-hidden="true"><path d="M21 5H3"></path><path d="M15 12H3"></path><path d="M17 19H3"></path></svg></button><button type="button" class="px-2 py-1.5 border-x border-border transition-colors hover:bg-muted/50" aria-label="Align center" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-text-align-center w-4 h-4" aria-hidden="true"><path d="M21 5H3"></path><path d="M17 12H7"></path><path d="M19 19H5"></path></svg></button><button type="button" class="px-2 py-1.5 transition-colors hover:bg-muted/50" aria-label="Align right" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-text-align-end w-4 h-4" aria-hidden="true"><path d="M21 5H3"></path><path d="M21 12H9"></path><path d="M21 19H7"></path></svg></button></div></div><div data-slot="box" class="flex-1"><div data-slot="box" class="border bg-background relative rounded-md rounded-t-none" style="padding: 0.75rem; min-height: 10.5rem;"><div data-slot="flex" class="flex flex-row gap-2" style="min-height: 9rem;"><div data-slot="box" class="select-none shrink-0 text-right" style="font-size: 0.75rem; line-height: 1.5rem; min-width: 1.25rem;" aria-hidden="true"><div data-slot="box" style="height: 24px; line-height: 1.5rem; color: var(--muted-foreground); opacity: 0.4;">1</div><div data-slot="box" style="height: 24px; line-height: 1.5rem; color: var(--muted-foreground); opacity: 0.4;">2</div><div data-slot="box" style="height: 24px; line-height: 1.5rem; color: var(--muted-foreground); opacity: 0.4;">3</div><div data-slot="box" style="height: 24px; line-height: 1.5rem; color: var(--muted-foreground); opacity: 0.4;">4</div><div data-slot="box" style="height: 24px; line-height: 1.5rem; color: var(--muted-foreground); opacity: 0.4;">5</div><div data-slot="box" style="height: 24px; line-height: 1.5rem; color: var(--foreground); opacity: 0.7;">6</div></div><div data-slot="box" class="relative flex-1 min-w-0"><div><div contenteditable="X" role="textbox" data-placeholder="Type text or insert variables..." aria-label="Template editor" aria-multiline="true" translate="no" class="tiptap ProseMirror w-full font-mono text-sm prose prose-sm max-w-none [&amp;_.ProseMirror]:outline-none [&amp;_.ProseMirror]:font-mono [&amp;_.ProseMirror]:text-sm [&amp;_.ProseMirror]:resize-none [&amp;_.ProseMirror]:uppercase [&amp;_.ProseMirror_p]:my-0 [&amp;_.ProseMirror_p]:leading-tight [&amp;_.ProseMirror_p]:min-h-[1.5rem]" tabindex="0"><p>​​<span class="react-renderer node-colorTile" draggable="true"><span as="span" class="relative rounded-[3px] cursor-grab transition-all duration-control hover:scale-105 active:cursor-grabbing active:scale-100" data-drag-handle="true" style="white-space: nowrap; background-color: rgb(74, 144, 217); width: 1.5ch; height: 1rem; max-height: 1rem; min-height: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.3),
+    inset 0 1px 1px rgba(255,255,255,0.15),
+    inset 0 -1px 1px rgba(0,0,0,0.25),
+    inset 1px 0 1px rgba(255,255,255,0.1),
+    inset -1px 0 1px rgba(0,0,0,0.2); display: inline-block; vertical-align: middle; margin-left: 1px; margin-right: 1px;" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger" data-node-view-wrapper=""><div data-slot="box" class="absolute top-1/2 left-0 right-0 h-[1px] bg-black/10"></div><div data-slot="box" class="absolute inset-0 pointer-events-none rounded-[3px]" style="background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(0, 0, 0, 0.2) 100%);"></div><span aria-label="blue color tile" style="position: absolute; inset: 0px; color: transparent; overflow: hidden; line-height: 1rem; font-size: 1rem; pointer-events: none;">█</span></span></span>​ GOOD MORNING​<br>​​<span class="react-renderer node-variable" draggable="true"><span as="span" data-drag-handle="true" style="white-space: nowrap; display: inline-flex; vertical-align: baseline;" data-node-view-wrapper=""><span data-slot="badge" class="justify-center rounded-full border text-xs font-medium w-fit whitespace-nowrap shrink-0 [&amp;>svg]:size-3 [&amp;>svg]:pointer-events-none focus-ring aria-invalid:border-destructive overflow-hidden bg-tag-variable/15 border-tag-variable/30 text-tag-variable-foreground font-mono [a&amp;]:hover:bg-tag-variable/25 group inline-flex flex-nowrap items-center gap-1 px-1.5 py-0 border-dashed cursor-grab hover:bg-tag-variable/20 active:cursor-grabbing mr-0.5 transition-all duration-control"><span class="font-mono text-[11px] leading-none">datetime.time</span><span class="hidden group-hover:inline text-[10px] leading-none" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger">~10</span></span></span></span>​​<span class="react-renderer node-fillSpace" draggable="true"><span as="span" data-drag-handle="true" style="white-space: nowrap; display: inline-flex; vertical-align: baseline;" data-node-view-wrapper=""><span data-slot="tooltip-trigger" class="justify-center rounded-full border text-xs font-medium w-fit whitespace-nowrap shrink-0 [&amp;>svg]:size-3 gap-1 [&amp;>svg]:pointer-events-none focus-ring aria-invalid:border-destructive overflow-hidden bg-tag-success/15 border-tag-success/40 text-tag-success-foreground font-mono [a&amp;]:hover:bg-tag-success/25 group inline-flex flex-nowrap items-center px-1.5 py-0 border-dashed cursor-grab hover:bg-tag-success/25 mr-0.5 transition-all duration-control" id="base-ui-ID" data-base-ui-tooltip-trigger=""><span class="font-mono text-[11px] leading-none">fill_space</span></span></span></span>​​<span class="react-renderer node-variable" draggable="true"><span as="span" data-drag-handle="true" style="white-space: nowrap; display: inline-flex; vertical-align: baseline;" data-node-view-wrapper=""><span data-slot="badge" class="justify-center rounded-full border text-xs font-medium w-fit whitespace-nowrap shrink-0 [&amp;>svg]:size-3 [&amp;>svg]:pointer-events-none focus-ring aria-invalid:border-destructive overflow-hidden bg-tag-variable/15 border-tag-variable/30 text-tag-variable-foreground font-mono [a&amp;]:hover:bg-tag-variable/25 group inline-flex flex-nowrap items-center gap-1 px-1.5 py-0 border-dashed cursor-grab hover:bg-tag-variable/20 active:cursor-grabbing mr-0.5 transition-all duration-control"><span class="font-mono text-[11px] leading-none">datetime.date</span><span class="hidden group-hover:inline text-[10px] leading-none" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger">~10</span></span></span></span>​​<br>​​<span class="react-renderer node-colorTile" draggable="true"><span as="span" class="relative rounded-[3px] cursor-grab transition-all duration-control hover:scale-105 active:cursor-grabbing active:scale-100" data-drag-handle="true" style="white-space: nowrap; background-color: rgb(235, 64, 52); width: 1.5ch; height: 1rem; max-height: 1rem; min-height: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.3),
+    inset 0 1px 1px rgba(255,255,255,0.15),
+    inset 0 -1px 1px rgba(0,0,0,0.25),
+    inset 1px 0 1px rgba(255,255,255,0.1),
+    inset -1px 0 1px rgba(0,0,0,0.2); display: inline-block; vertical-align: middle; margin-left: 1px; margin-right: 1px;" id="base-ui-ID" data-base-ui-tooltip-trigger="" data-slot="tooltip-trigger" data-node-view-wrapper=""><div data-slot="box" class="absolute top-1/2 left-0 right-0 h-[1px] bg-black/10"></div><div data-slot="box" class="absolute inset-0 pointer-events-none rounded-[3px]" style="background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(0, 0, 0, 0.2) 100%);"></div><span aria-label="red color tile" style="position: absolute; inset: 0px; color: transparent; overflow: hidden; line-height: 1rem; font-size: 1rem; pointer-events: none;">█</span></span></span>​ 72°​<br>​​<span class="react-renderer node-formula" draggable="true"><span as="span" data-drag-handle="true" style="white-space: nowrap; display: inline-flex; vertical-align: baseline;" data-node-view-wrapper=""><span data-slot="tooltip-trigger" class="justify-center rounded-full border text-xs font-medium w-fit whitespace-nowrap shrink-0 [&amp;>svg]:size-3 [&amp;>svg]:pointer-events-none focus-ring aria-invalid:border-destructive overflow-hidden bg-tag-formula/15 border-tag-formula/30 text-tag-formula-foreground font-mono [a&amp;]:hover:bg-tag-formula/25 inline-flex flex-nowrap items-center gap-1 px-1.5 py-0 border-dashed cursor-pointer hover:bg-amber-500/20 mr-0.5 transition-all duration-control active:scale-95" role="button" tabindex="0" id="base-ui-ID" data-base-ui-tooltip-trigger=""><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square-function w-2.5 h-2.5 flex-shrink-0" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><path d="M9 17c2 0 2.8-1 2.8-2.8V10c0-2 1-3.3 3.2-3"></path><path d="M9 11.2h5.7"></path></svg><span class="font-mono text-[11px] leading-none">1+1</span></span></span></span>​​<br>​​<br>​​</p></div></div></div></div></div><p data-slot="text" class="text-xs text-muted-foreground font-normal mt-1">6 / 6 lines</p></div></div>"
+`;

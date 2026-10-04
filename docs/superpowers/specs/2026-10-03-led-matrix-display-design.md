@@ -278,7 +278,7 @@ against (section 14). That flip changes what existing literal text such as
 `{red:HOT}` draws on a flap, so it ships as a deliberate major
 (`feat(board)!`) in the same window as FiestaBoard's parser parity, after
 FiestaBoard's upgrade fixtures are scanned for affected strings
-(implementation plan, Task 9).
+(implementation plan, Task 12).
 
 ## 5. Character sets
 
@@ -871,37 +871,111 @@ its own text, and keys `data-section` on stable ids.
 
 ## 10. Editor integration
 
-Done, additively, at the picker level:
+Done in FiestaUI, in two layers, both additive and default-off.
 
-- `DrawCharPickerContent` takes `charset` and offers only the stamps the set
-  draws (through `CharacterGlyph` for LED sets) plus a lowercase row for a
-  mixed-case set; the code-62 stamp stays `°` and its glyph follows the set.
-- `ColorPickerContent` takes `charset`, `onInsertTextColor` (a text-colour
-  group for sets with colour spans, drawn as glyphs at 30 px in 40 px
-  buttons, black labelled "Black (unlit on LEDs)"; the host wraps the
-  selection as `{{red:…}}`) and `onInsertIcon` (an icon group of the set's
-  icons, inserting `{{icon:sun}}`). Text colours and icons are
-  `role="group"`s of plain buttons, each its own tab stop; the container's
-  key handling covers only the swatch grid. The code-62 button draws its
-  glyph through `CharacterGlyph`.
-- Without `charset` both pickers are byte-for-byte what they were.
+**The pickers (plan Task 6).** `DrawCharPickerContent` takes `charset` and
+offers only the stamps the set draws (through `CharacterGlyph` for LED sets)
+plus a lowercase row for a mixed-case set and, since Task 8, an icon row
+for a set with icons; the code-62 stamp stays `°` and its glyph follows the
+set. `ColorPickerContent` takes `charset`, `onInsertTextColor` (a text-colour
+group for sets with colour spans, black labelled "Black (unlit on LEDs)"),
+`onInsertBlockColor` (a block-colour group for sets with block spans) and
+`onInsertIcon` (the set's icons). Those groups are `role="group"`s of plain
+buttons outside the swatch listbox. Without `charset` both pickers are
+byte-for-byte what they were.
 
-Left for the FiestaBoard app, in order:
+**The editor (plan Task 8).** `TemplateEditor` takes `charset` (an id or a
+`CharacterSet`) or `deviceModel` (an id or a `DeviceModel`, which implies the
+set through `characterSetForModel` with `code62Glyph`, and the grid from the
+model's geometry — an LED model's rows × cols are what its pixels fit in its
+font). Unknown ids throw. With a set known:
 
-1. Thread `charset` from the device model into `TemplateEditor` →
-   `TemplateEditorToolbar` → the pickers (the props exist).
-2. TipTap nodes for a colour span and a block span (a mark with
-   `color`/`background` attrs) and an icon atom (like `ColorTileNode`), with
-   `parseLineContent` / `serializeTemplateSimple` reading and writing
-   `{{red:…}}`, `{{black/white:…}}`, `{{icon:sun}}`. The serialiser emits
-   double-brace spans and icons only when the charset supports them;
-   otherwise it emits the fallback text. Template tokens are double-braced;
-   rendering normalises them to the single-brace message markup.
-3. Warnings: `validateMessage(value, charset)` on change, issue positions
-   decorated with the fallback as the title; `CharacterSetSpecimen` as the
-   "what can this board show" panel.
-4. Draw mode: an icon brush (`{{icon:sun}}` is one cell; `tokenizeLine`
-   already treats it as one).
+- The template is parsed with the extended markup and the toolbar offers,
+  through the pickers, only the forms the set supports. A colour span and a
+  block span are one TipTap **mark** (`colorSpan`, attrs `color` /
+  `background`) over a run of cells, toggled on the selection; an icon is an
+  **atom node** (`icon`) drawn by `CharacterGlyph` with the target set, so a
+  flap target shows the tile fallback, marked.
+- Every cell the set cannot draw as written is decorated (`charsetIssue` /
+  `charsetFallback` per cell): a wavy underline, a `title` naming what draws
+  instead ("drawn as yellow tile", "drawn as blank", "drawn without the
+  colour"), and a summary under the surface that is the textbox's accessible
+  description. On a split-flap set the summary says spans and icons render
+  literally until the coordinated release (Task 12). Nothing blocks typing,
+  and reading the document never rewrites it.
+- Draw mode gets an icon brush when the set has icons, colour swatches only
+  when it has tiles, and its grid from the model. `{{icon:sun}}` is one cell
+  and a span is one cell per character, so a line with either stays
+  positional.
+- Length counting treats a span as its content and an icon as one cell.
+- Case follows the set. A mixed-case set (`CharacterSet.mixedCase`, the LED
+  faces) draws lowercase as itself, so the editor keeps typed lowercase in
+  the surface and in the serialised template, lowercase stamps paint
+  lowercase, and no `case` warning is raised. Every other set, and no set,
+  uppercases on serialize exactly as before.
+
+Without `charset` / `deviceModel` the editor is byte-identical in value and
+DOM to what shipped before Task 8 (pinned by snapshots generated at the parent
+commit): the extended forms are not parsed, so a split-flap template
+serializes exactly as before.
+
+### 10.1 Template syntax
+
+Template tokens are double-braced; FiestaBoard's engine normalises them to
+the single-braced message markup of §4.1 when it renders:
+
+| Authoring (template)   | Rendered (message)   | Meaning                                           |
+| ---------------------- | -------------------- | ------------------------------------------------- |
+| `{{red:HOT}}`          | `{red:HOT}`          | colour span; also `{{63:HOT}}`, `{{#ff8800:HOT}}` |
+| `{{black/white:OPEN}}` | `{black/white:OPEN}` | block span, `fg/bg`                               |
+| `{{icon:sun}}`         | `{icon:sun}`         | icon, by canonical name                           |
+
+- **Closed head grammar.** A head is a colour name (red, orange, yellow,
+  green, blue, violet, purple, white, black), a code 63–70, `#rrggbb`,
+  `fg/bg` (both colours required), or the literal `icon`. Anything else
+  before the colon — `{{weather:sf.temperature}}` — is a **variable**. Never
+  `filled` / 71: a flap, not a hue, so `{{filled:x}}` is a variable too.
+- **Reserved plugin ids.** FiestaBoard reserves those colour names, the
+  codes and `icon` as plugin ids, so the two grammars cannot collide.
+- **Nesting.** A variable, a formula, a tile or an icon inside a span body
+  round-trips: `{{red:{{weather.temp}}°}}`. The span ends at the `}}` that
+  balances its own `{{`. A span inside a span flattens to adjacent spans of
+  the same cells.
+- **When to emit.** The editor offers spans, blocks and icons only when the
+  target set supports them (`colorSpans`, `blockSpans`, `icons`). Vestaboard
+  sets support none, so a split-flap template serialises exactly as today. A
+  template that already holds a span is never rewritten on load; the warning
+  says what the board will do with it.
+- **Icons.** The editor always writes `{{icon:…}}` with the canonical name
+  (`{{icon:x}}` → `{{icon:cross}}`). The legacy `{sun}` shortcuts are
+  read-only aliases (D16) and are never written back. `{{icon:heart}}` is the
+  ♥ character, not an icon.
+- **Mixed boards.** Until Task 12, a page shown on both a flap and an LED
+  board renders the new forms literally on the flap; the editor's warnings
+  surface that when the target is split-flap. FiestaBoard applies
+  `TemplateEngine.render(..., extended_markup=False)` per flap output (B4
+  #2161, B5 `feat/template-extended-syntax`).
+
+### 10.2 Data is not markup — FiestaBoard's engine contract
+
+There is NO literal-brace escape in `parseLine` or in the editor's parser.
+Braces that arrive in **data** (substituted variable values) are the
+engine's to neutralise, under this rule, agreed with FiestaBoard and
+implemented in its engine and manifest (B5); the FiestaUI editor is
+unaffected:
+
+1. **Default.** A substituted variable value may contain exactly the BASE
+   grammar: tile tokens `{63}`–`{71}` and the names red…black and filled, and
+   the base end tags `{/}` and `{/<colour name>}`. Every other brace becomes
+   `(` / `)`: the extended constructs, `{/63}`, `{/foo}`, `{icon:…}` and
+   stray braces. So data cannot inject a span, a block or an icon, nor close
+   a span the template opened. This keeps art plugins that emit tile rows
+   (e.g. `fiestaboard-plugin--pride`'s `{red}` rows) working.
+2. **Opt-in.** A plugin variable declared with `"format": "markup"` in its
+   manifest variable metadata passes through un-neutralised, and the board's
+   character set still governs projection. It is per variable, so user text
+   such as calendar titles and RSS headlines is never markup.
+3. **Applies to every output,** flap included.
 
 ## 11. Accessibility
 
@@ -1096,7 +1170,8 @@ never forks it:
 | Task 2: fonts, character sets, layout/raster, device models, schemas | schema vendoring, B3 rich-cell projection, manifest validation, Pixoo repo v0.1.0, layout goldens |
 | Task 4: transitions + transition goldens                             | B2 `src/led/` port (needs Tasks 2 and 4, not the canvas in Task 3)                                |
 | Task 7: cells-in + `DisplayPreview`                                  | app previews of rich cells                                                                        |
-| Task 9: coordinated `extendedMarkup` default flip (major)            | released together with core parser parity                                                         |
+| Task 8: device-aware `TemplateEditor`                                | the app's editor, with `deviceModel` threaded from the board; B5 `feat/template-extended-syntax`  |
+| Task 12: coordinated `extendedMarkup` default flip (major)           | released together with core parser parity                                                         |
 
 Repos: `fiestaboard-output--divoom-pixoo` (first; a data-only skeleton to
 start), `fiestaboard-output--vestaboard`, `fiestaboard-output--fiestapanel`.
@@ -1194,7 +1269,7 @@ The owner delegated this question with "whatever is best for scaling". The decis
 - **Legacy shortcuts become aliases.** FiestaBoard's legacy single-brace shortcuts (`{sun}`, `{star}`, `{cloud}`, `{rain}`, `{snow}`, `{storm}`, `{fog}`, `{partly}`, `{check}`, `{x}`) resolve through the registry to the matching `{icon:…}`. There is no second table.
 - **`{heart}` stays the ♥ character** (code 62).
 - **The tile fallbacks win.** On a split-flap board `{sun}` changes from `*` to the yellow tile.
-- **When it ships:** the visible change ships only in the coordinated Task 9 release. FiestaBoard's upgrade scanner flags shortcut usage, and the release notes call it out.
+- **When it ships:** the visible change ships only in the coordinated Task 12 release. FiestaBoard's upgrade scanner flags shortcut usage, and the release notes call it out.
 - **Where aliases resolve:** if a FiestaUI preview needs to resolve a shortcut (for example, a template that uses `{sun}`), it does so through `resolveBoardIconName`, never through a separate map.
 - **Implementation:** FiestaBoard's side is Stack B layer B4, `feat/icon-shortcut-aliases`.
 

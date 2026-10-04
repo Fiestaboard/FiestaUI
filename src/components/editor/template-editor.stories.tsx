@@ -10,11 +10,23 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Clock, Cloud, TrainFront, TrendingUp } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
+import { CHARACTER_SET_IDS, materializeCharacterSet } from "../../lib/character-sets";
+import { ACME_SIGN_CHARSET, ACME_SIGN_MODEL } from "../../lib/charset-golden-cases";
+import {
+  DEVICE_MODEL_IDS,
+  type DeviceModel,
+  type DeviceModelRef,
+  ledSpecForModel,
+  resolveDeviceModel,
+} from "../../lib/devices";
+import { ledGridLayout } from "../../lib/led-matrix";
+import { DisplayPreview } from "../board/display-preview";
 import { Button } from "../forms/button";
 import { Box } from "../layout/box";
 import { Flex } from "../layout/flex";
 import { Stack } from "../layout/stack";
 import { Text } from "../typography/text";
+import { resolveDimensions } from "./constants";
 import {
   type LineAlignment,
   TemplateEditor,
@@ -130,6 +142,16 @@ const meta = {
       control: "select",
       options: ["flagship", "note", "note_array"],
       description: "Resolves the board grid (width × lines) that the editor validates against.",
+    },
+    deviceModel: {
+      control: "select",
+      options: [undefined, ...DEVICE_MODEL_IDS],
+      description: "A device model id (or, in code, a plugin's model object): implies the character set and the grid.",
+    },
+    charset: {
+      control: "select",
+      options: [undefined, ...CHARACTER_SET_IDS],
+      description: "The character set, when it is not the one the model implies.",
     },
     boardLines: { control: { type: "range", min: 1, max: 12, step: 1 } },
     boardWidth: { control: { type: "range", min: 8, max: 44, step: 1 } },
@@ -380,4 +402,210 @@ function DrawModeDemo() {
 
 export const DrawMode: Story = {
   render: () => <DrawModeDemo />,
+};
+
+/* ── Device-aware editing (Task 8) ──────────────────────────────────────────
+ * `deviceModel` (or `charset`) tells the editor which board it is writing
+ * for: the grid comes from the model, the toolbar offers only the forms the
+ * board's character set supports (colour spans, block spans, icons), icons
+ * are drawn the way that board will draw them, and every cell the set
+ * cannot draw as written is underlined with what will draw instead.
+ */
+
+/**
+ * A plugin's model as FiestaBoard would hand it over: the declared model with
+ * its declared set made whole (`materializeCharacterSet`), never a built-in id.
+ */
+const ACME_MODEL: DeviceModel = {
+  ...(JSON.parse(JSON.stringify(ACME_SIGN_MODEL)) as Omit<DeviceModel, "charset">),
+  charset: materializeCharacterSet(ACME_SIGN_CHARSET),
+};
+
+/** A template using every form an RGB LED set supports, plus the flap-era nodes. */
+const LED_TEMPLATE = [
+  "{{icon:sun}} {{yellow:72°}} {{weather.condition}}",
+  "{{black/white:OPEN}} {{green:{{datetime.time}}}}",
+  "{{red:HOT}} {{blue:COLD}} {{red}}{{blue}}",
+].join("\n");
+
+/** A Flagship built before 2026: its code-62 flap is the degree sign, so a typed ♥ is warned. */
+export const FlagshipV1: Story = {
+  name: "Flagship v1 (degree)",
+  args: {
+    value: "72° SUNNY ♥\n{{datetime.time}}{{fill_space}}{{datetime.date}}",
+    deviceType: undefined,
+    deviceModel: "vestaboard_flagship",
+    code62Glyph: "degree",
+  },
+};
+
+/** A Flagship built since: the same editor, and the flap draws a heart, so the ° is warned instead. */
+export const FlagshipV2Heart: Story = {
+  name: "Flagship v2 (heart)",
+  args: {
+    value: "72° SUNNY ♥\n{{datetime.time}}{{fill_space}}{{datetime.date}}",
+    deviceType: undefined,
+    deviceModel: "vestaboard_flagship",
+    code62Glyph: "heart",
+  },
+};
+
+/** A Note by model: three lines, the heart flap, no extended forms on offer. */
+export const NoteModel: Story = {
+  name: "Note (model)",
+  args: {
+    value: "MEETING AT 3\n{{datetime.time}}\nCONF ROOM B",
+    deviceType: undefined,
+    deviceModel: "vestaboard_note",
+  },
+};
+
+/** A Pixoo 64 in its 3×5 face: 16 × 10 cells, RGB, every icon, colour and block spans. */
+export const Pixoo64: Story = {
+  args: { value: LED_TEMPLATE, deviceType: undefined, deviceModel: "divoom_pixoo64" },
+};
+
+/** A HUB75 64×32 panel in the 5×7 face: 10 × 4 cells, the same forms. */
+export const Hub75: Story = {
+  name: "HUB75 64×32",
+  args: { value: LED_TEMPLATE, deviceType: undefined, deviceModel: "hub75_64x32" },
+};
+
+/** An AWTRIX clock: 8 × 1 cells of the 3×5 face, the small set — the editor's grid follows it. */
+export const Awtrix: Story = {
+  name: "AWTRIX (small set)",
+  args: { value: "{{icon:sun}} 72°", deviceType: undefined, deviceModel: "ulanzi_tc001_awtrix" },
+};
+
+/** A MAX7219 4-in-1: monochrome red, so colour is lit-or-not; the picker's glyphs show that. */
+export const Max7219: Story = {
+  name: "MAX7219 (mono)",
+  args: { value: "{{red:HOT}} 72°", deviceType: undefined, deviceModel: "max7219_4in1" },
+};
+
+/**
+ * A plugin's model, passed as the object its manifest carries: the ACME
+ * amber sign's set is uppercase-only, has block spans but no colour spans,
+ * and three icons. The toolbar offers exactly that.
+ */
+export const AcmePluginSet: Story = {
+  name: "ACME plugin set",
+  args: {
+    value: "{{icon:up}} 12.50€\n{{black/white:OPEN}}",
+    deviceType: undefined,
+    deviceModel: ACME_MODEL,
+  },
+};
+
+/** Sample values the live preview substitutes for the story's variables. */
+const SAMPLE_VALUES: Record<string, string> = {
+  "weather.condition": "SUNNY",
+  "weather.temperature": "72",
+  "weather.high": "78",
+  "weather.low": "61",
+  "datetime.time": "9:41",
+  "datetime.date": "AUG 15",
+  "datetime.day": "FRI",
+  "stocks.price": "182.5",
+  "stocks.change_percent": "+1.2",
+  "stocks.symbol": "AAPL",
+};
+
+/**
+ * Template text → the board markup `DisplayPreview` reads: variables get
+ * sample values, `fill_space` pads the line, formulas show as `…`, and the
+ * double-braced tokens become the single-braced message markup. A story
+ * stand-in for FiestaBoard's template engine, not the engine itself.
+ */
+function previewFromTemplate(template: string, cols: number): string {
+  return template
+    .split("\n")
+    .map((line) => {
+      let out = line
+        .replace(/\{\{=[^}]*\}\}/g, "…")
+        .replace(/\{\{([a-z_]+\.[a-z_.0-9]+)(\|[^}]*)?\}\}/gi, (_m, path: string) => SAMPLE_VALUES[path] ?? "?");
+      const fill = out.indexOf("{{fill_space}}");
+      if (fill !== -1) {
+        const rest = out.replace("{{fill_space}}", "");
+        const visible = rest
+          .replace(/\{\{[^:}]+:/g, "")
+          .replace(/\{\{[^}]+\}\}/g, "#")
+          .replace(/\}\}/g, "").length;
+        out = out.replace("{{fill_space}}", " ".repeat(Math.max(1, cols - visible)));
+      }
+      return out.replaceAll("{{", "{").replaceAll("}}", "}");
+    })
+    .join("\n");
+}
+
+function BesideLivePreviewDemo({ model }: { model: DeviceModelRef }) {
+  const [value, setValue] = useState(LED_TEMPLATE);
+  const resolved = resolveDeviceModel(model);
+  const spec = ledSpecForModel(resolved);
+  const cols = spec ? ledGridLayout(spec).cols : resolveDimensions(resolved.legacy?.deviceType ?? "flagship").cols;
+  return (
+    <Flex gap="4" wrap align="start" className="w-full">
+      <Box className="w-full max-w-[40rem] flex-1">
+        <TemplateEditor value={value} onChange={setValue} deviceModel={model} toolbarProps={TOOLBAR_PROPS} />
+      </Box>
+      <Stack gap="2" className="min-w-[16rem]">
+        <Text size="xs" tone="muted">
+          Live preview: {resolved.label}
+        </Text>
+        {/* A flap preview reads the extended markup only once FiestaBoard's
+            parser has parity (plan Task 12); until then it draws the forms
+            literally, which is exactly what the editor's warning says. */}
+        <DisplayPreview
+          model={model}
+          message={previewFromTemplate(value, cols)}
+          extendedMarkup={resolved.technology === "led_matrix"}
+          size="sm"
+        />
+      </Stack>
+    </Flex>
+  );
+}
+
+/**
+ * The editor beside a live `DisplayPreview` of the same device, re-rendered
+ * from the editor's value on every edit (variables get sample values).
+ */
+export const BesideLivePreview: Story = {
+  render: () => <BesideLivePreviewDemo model="divoom_pixoo64" />,
+};
+
+/** The same pairing on a split-flap board: spans and icons degrade to tiles there. */
+export const BesideLivePreviewSplitFlap: Story = {
+  name: "Beside live preview (split-flap)",
+  render: () => <BesideLivePreviewDemo model="vestaboard_flagship" />,
+};
+
+/**
+ * Cells the target cannot draw as written: on the ACME sign, `°` and `$`
+ * draw as blank, the colour span draws without its colour, and the sun has
+ * no glyph (its yellow tile fallback is drawn, marked). Each cell carries
+ * a title with what draws instead; the summary under the surface is the
+ * textbox's accessible description.
+ */
+export const UnsupportedCharacters: Story = {
+  args: {
+    value: "72° {{red:HOT}} {{icon:sun}} $\n{{icon:check}} {{black/white:OK}}",
+    deviceType: undefined,
+    deviceModel: ACME_MODEL,
+  },
+};
+
+/**
+ * The extended forms on a split-flap target: until FiestaBoard's coordinated
+ * release (plan Task 12) a flap board renders them literally, and the editor
+ * says so rather than pretending the tile fallbacks will appear.
+ */
+export const FlapWithExtendedMarkup: Story = {
+  name: "Split-flap with extended markup",
+  args: {
+    value: "{{red:HOT}} {{icon:sun}} 72°",
+    deviceType: undefined,
+    deviceModel: "vestaboard_flagship",
+    code62Glyph: "heart",
+  },
 };

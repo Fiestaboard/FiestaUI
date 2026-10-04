@@ -17,7 +17,7 @@ import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { CURSOR_ANCHOR } from "../constants";
 import type { CellPaint } from "./draw-mode";
 import { paintLine } from "./draw-mode";
-import { parseLineContent } from "./serialization";
+import { parseLineContent, type TemplateMarkupOptions } from "./serialization";
 
 /**
  * Cursor-anchor zero-width space, mirroring serialization.ts.
@@ -60,6 +60,9 @@ export function lineRanges(doc: PMNode): LineRange[] {
  * @param lines      Current template lines (serialized doc, split on "\n").
  * @param byRow      Cell paints grouped by row index.
  * @param boardWidth Board columns, used to clamp painted lines.
+ * @param parseOptions How the repainted line is read back; `extendedMarkup`
+ *                   when the editor knows its set, so an icon or span cell
+ *                   becomes the node it is rather than a variable.
  * @returns The transaction to dispatch (caller adds closeHistory), or null
  *          when there is nothing to paint.
  */
@@ -68,6 +71,7 @@ export function buildStrokeTransaction(
   lines: string[],
   byRow: Map<number, CellPaint[]>,
   boardWidth: number,
+  parseOptions: TemplateMarkupOptions = {},
 ): Transaction | null {
   if (byRow.size === 0) return null;
   const ranges = lineRanges(state.doc);
@@ -101,7 +105,7 @@ export function buildStrokeTransaction(
     // Mirror parseTemplateSimple's line shape: leading + trailing cursor anchors.
     const content = [
       { type: "text", text: CURSOR_ANCHOR_CHAR },
-      ...parseLineContent(painted),
+      ...parseLineContent(painted, parseOptions),
       { type: "text", text: CURSOR_ANCHOR_CHAR },
     ];
     const { from, to } = ranges[row];

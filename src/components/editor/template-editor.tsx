@@ -37,13 +37,22 @@ import { closeHistory, undoDepth } from "@tiptap/pm/history";
 import type { Slice } from "@tiptap/pm/model";
 import type { Transaction } from "@tiptap/pm/state";
 import { TextSelection } from "@tiptap/pm/state";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, type JSONContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { ComponentProps } from "react";
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
 
 import type { Code62Glyph } from "../../lib/board-characters";
+import { type CharacterSet, type CharacterSetId, resolveCharacterSet } from "../../lib/character-sets";
+import {
+  characterSetForModel,
+  type DeviceModel,
+  type DeviceModelRef,
+  ledSpecForModel,
+  resolveDeviceModel,
+} from "../../lib/devices";
+import { ledGridLayout } from "../../lib/led-matrix";
 import { cn } from "../../lib/utils";
 import { Skeleton } from "../feedback/skeleton";
 import { Box } from "../layout/box";
@@ -53,18 +62,34 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ove
 import { Text } from "../typography/text";
 import type { DeviceType } from "./constants";
 import { CURSOR_ANCHOR, DEFAULT_BOARD_LINES, DEFAULT_BOARD_WIDTH, resolveDimensions } from "./constants";
+import {
+  type CharsetWarning,
+  CharsetWarnings,
+  type CharsetWarningsLabels,
+  readCharsetWarnings,
+  setCharsetWarningsCharset,
+} from "./extensions/charset-warnings";
+import { ColorSpanMark } from "./extensions/color-span-mark";
 import { ColorTileNode } from "./extensions/color-tile-node";
 import { FillSpaceNode } from "./extensions/fill-space-node";
 import { FormulaNode } from "./extensions/formula-node";
+import { IconNode } from "./extensions/icon-node";
 import { LineNavigation } from "./extensions/line-navigation";
 import { SingleParagraphDoc } from "./extensions/single-paragraph-doc";
 import { TrailingNewline } from "./extensions/trailing-newline";
 import { VariableNode } from "./extensions/variable-node";
 import { WrappedTextNode } from "./extensions/wrapped-text-node";
+import { NodeViewInjectionProvider, useNodeViewInjection } from "./node-views/node-view-context";
 import { TemplateEditorToolbar } from "./template-editor-toolbar";
 import type { CellPaint, DrawBrush } from "./utils/draw-mode";
 import { brushToCell } from "./utils/draw-mode";
-import { parseLineContent, parseTemplateSimple, serializeTemplateSimple } from "./utils/serialization";
+import {
+  parseLineContent,
+  parseTemplateSimple,
+  serializeInlineNodes,
+  serializeTemplateSimple,
+  type TemplateMarkupOptions,
+} from "./utils/serialization";
 import { buildStrokeTransaction } from "./utils/stroke-transaction";
 
 export type LineAlignment = "left" | "center" | "right";
@@ -125,6 +150,18 @@ export interface TemplateEditorLabels {
    * string a localizing consumer needs to be able to reach.
    */
   editorAriaLabel: string;
+  /**
+   * Summary under the surface when the target set cannot draw `n` cells as
+   * written (`charset` / `deviceModel` given). It is the textbox's
+   * accessible description; each marked cell also carries a `title`.
+   */
+  charsetWarningsSummary: (n: number) => string;
+  /**
+   * Appended to the summary when the target is a split-flap set and the
+   * template holds colour spans or icons, which that board draws literally
+   * until FiestaBoard's coordinated release (plan Task 12).
+   */
+  flapExtendedMarkup: string;
 }
 
 export const DEFAULT_TEMPLATE_EDITOR_LABELS: TemplateEditorLabels = {
@@ -136,6 +173,10 @@ export const DEFAULT_TEMPLATE_EDITOR_LABELS: TemplateEditorLabels = {
   alignCenter: "Align center",
   alignRight: "Align right",
   editorAriaLabel: "Template editor",
+  charsetWarningsSummary: (n) =>
+    `${n} ${n === 1 ? "cell" : "cells"} won't draw as written on this board — hover a marked cell to see what it draws instead.`,
+  flapExtendedMarkup:
+    "Colour spans and icons render literally on a split-flap board until FiestaBoard's coordinated release.",
 };
 
 /**
@@ -158,6 +199,7 @@ export type TemplateEditorToolbarSlotProps = Omit<
   | "onWrapToggle"
   | "deviceType"
   | "code62Glyph"
+  | "charset"
   | "onSyncFromBoard"
   | "syncFromBoardPending"
   | "drawMode"
@@ -168,7 +210,52 @@ export type TemplateEditorToolbarSlotProps = Omit<
 
 /** Inline atom node types that this editor renders as click-targets. Excludes
  *  hardBreak so a click resolving to a line break doesn't jump the caret past it. */
-const CUSTOM_INLINE_ATOMS = new Set(["variable", "colorTile", "fillSpace", "formula", "wrappedText"]);
+const CUSTOM_INLINE_ATOMS = new Set(["variable", "colorTile", "fillSpace", "formula", "wrappedText", "icon"]);
+
+/** The node types a drag handle may pick up (see the mousedown handler). */
+const DRAGGABLE_ATOMS = new Set(["variable", "colorTile", "fillSpace", "wrappedText", "icon"]);
+
+/**
+ * One clipboard node → its template text. Kept as the app wrote it (text
+ * verbatim, anchors included, no uppercasing) so the clipboard is byte for
+ * byte what it was; the icon case and the span grouping around it are the
+ * only additions.
+ */
+function serializeClipboardNode(node: JSONContent): string {
+  try {
+    switch (node.type) {
+      case "text":
+        return node.text || "";
+      case "variable": {
+        const { pluginId, field, filters } = node.attrs || {};
+        const filterStr =
+          filters && filters.length > 0
+            ? filters.map((f: { name: string; arg?: string }) => `|${f.name}${f.arg ? ":" + f.arg : ""}`).join("")
+            : "";
+        return `{{${pluginId || ""}.${field || ""}${filterStr}}}`;
+      }
+      case "colorTile":
+        return `{{${node.attrs?.color || ""}}}`;
+      case "fillSpace": {
+        const repeatChar = node.attrs?.repeatChar;
+        return repeatChar && repeatChar !== " " ? `{{fill_space_repeat:${repeatChar}}}` : `{{fill_space}}`;
+      }
+      case "wrappedText":
+        return `{{${node.attrs?.text || ""}|wrap}}`;
+      case "formula":
+        return `{{= ${node.attrs?.expression || ""} }}`;
+      case "icon":
+        return `{{icon:${node.attrs?.name || ""}}}`;
+      case "hardBreak":
+        return "\n";
+      default:
+        return "";
+    }
+  } catch (error) {
+    console.warn("Error serializing node:", error);
+    return "";
+  }
+}
 
 /**
  * Serialize a TipTap slice to template string format
@@ -179,51 +266,48 @@ function serializeSliceToTemplate(slice: Slice | null | undefined): string {
     if (!slice || !slice.content || slice.content.size === 0) {
       return "";
     }
-
-    let text = "";
-
-    // Iterate over the fragment using ProseMirror's forEach method
-    slice.content.forEach((node) => {
-      if (!node || !node.type) {
-        return;
-      }
-
-      try {
-        if (node.type.name === "text") {
-          text += node.text || "";
-        } else if (node.type.name === "variable") {
-          const { pluginId, field, filters } = node.attrs || {};
-          const filterStr =
-            filters && filters.length > 0
-              ? filters.map((f: { name: string; arg?: string }) => `|${f.name}${f.arg ? ":" + f.arg : ""}`).join("")
-              : "";
-          text += `{{${pluginId || ""}.${field || ""}${filterStr}}}`;
-        } else if (node.type.name === "colorTile") {
-          text += `{{${node.attrs?.color || ""}}}`;
-        } else if (node.type.name === "fillSpace") {
-          const repeatChar = node.attrs?.repeatChar;
-          if (repeatChar && repeatChar !== " ") {
-            text += `{{fill_space_repeat:${repeatChar}}}`;
-          } else {
-            text += `{{fill_space}}`;
-          }
-        } else if (node.type.name === "wrappedText") {
-          text += `{{${node.attrs?.text || ""}|wrap}}`;
-        } else if (node.type.name === "formula") {
-          text += `{{= ${node.attrs?.expression || ""} }}`;
-        } else if (node.type.name === "hardBreak") {
-          text += "\n";
-        }
-      } catch (error) {
-        console.warn("Error serializing node:", error);
-      }
-    });
-
-    return text;
+    const nodes = (slice.content.toJSON() as JSONContent[] | null) ?? [];
+    // Shares the span grouping with the document serializer, so a copied
+    // `{{red:HOT {{x.y}}}}` pastes back as one span.
+    return serializeInlineNodes(nodes, serializeClipboardNode);
   } catch (error) {
     console.warn("Error in serializeSliceToTemplate:", error);
     return "";
   }
+}
+
+/**
+ * The grid a device model implies. An LED matrix's is what its pixels fit
+ * in the model's font (`ledGridLayout`); a `cells` geometry says it
+ * outright; a panel may declare its size; a note array cannot be known from
+ * the model alone (it depends on how many notes wide and tall the board
+ * is), so it falls through to the explicit props or `deviceType`.
+ */
+function gridForModel(model: DeviceModel): { rows: number; cols: number } | null {
+  const g = model.geometry;
+  switch (g.kind) {
+    case "cells":
+      return { rows: g.rows, cols: g.cols };
+    case "pixels": {
+      const spec = ledSpecForModel(model);
+      if (!spec) return null;
+      const { rows, cols } = ledGridLayout(spec);
+      return { rows, cols };
+    }
+    case "panel":
+      return g.rows !== undefined && g.cols !== undefined ? { rows: g.rows, cols: g.cols } : null;
+    default:
+      return null;
+  }
+}
+
+/** Same warnings, by position and message — the summary only re-renders on a real change. */
+function sameWarnings(a: CharsetWarning[], b: CharsetWarning[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].from !== b[i].from || a[i].to !== b[i].to || a[i].message !== b[i].message) return false;
+  }
+  return true;
 }
 
 export interface TemplateEditorProps {
@@ -255,6 +339,30 @@ export interface TemplateEditorProps {
    * which is how every Flagship behaved before the change.
    */
   code62Glyph?: Code62Glyph;
+  /**
+   * The character set the target board draws (lib/character-sets): a
+   * built-in id or a set object (an output plugin's). With it the editor
+   * reads and writes the extended markup (`{{red:HOT}}`,
+   * `{{black/white:OPEN}}`, `{{icon:sun}}`), offers through the toolbar
+   * only the forms the set supports, draws icons the way the set will, and
+   * underlines every cell the set cannot draw as written. Wins over the set
+   * `deviceModel` implies. Unset (and no `deviceModel`): today's editor,
+   * byte for byte — the extended forms are not parsed, so a split-flap
+   * template serializes exactly as before. An unknown id throws; it never
+   * quietly becomes a Vestaboard.
+   */
+  charset?: CharacterSetId | CharacterSet;
+  /**
+   * The target device (lib/devices): a built-in id or a model object (an
+   * output plugin's). Implies the set (`characterSetForModel`, with
+   * `code62Glyph` picking a Flagship's flap) and the grid: an LED model's
+   * rows × columns are what its pixels fit in its font, a split-flap model's
+   * are the device's. Explicit `boardWidth` / `boardLines` still win, and a
+   * note array still needs them. An unknown id throws.
+   */
+  deviceModel?: DeviceModelRef;
+  /** Strings for the per-cell warnings' titles. Read once, when the editor is created. */
+  charsetWarningsLabels?: Partial<CharsetWarningsLabels>;
   onSyncFromBoard?: () => void; // Callback to populate template from current board display
   syncFromBoardPending?: boolean; // True while the sync mutation is in flight
   drawMode?: boolean; // True while draw mode is active (collapses the editor, keeps toolbar)
@@ -290,8 +398,11 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
     boardWidth: boardWidthProp,
     boardLines: boardLinesProp,
     onLineCountChange,
-    deviceType,
+    deviceType: deviceTypeProp,
     code62Glyph,
+    charset,
+    deviceModel,
+    charsetWarningsLabels,
     onSyncFromBoard,
     syncFromBoardPending = false,
     drawMode = false,
@@ -306,6 +417,33 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
 ) {
   const l = { ...DEFAULT_TEMPLATE_EDITOR_LABELS, ...labels };
 
+  // The target device and its set. Both throw on an unknown id — loudly, as
+  // every API here does, never coercing a stranger to a Flagship. The set
+  // is what turns the extended markup on: with one (a flap set included,
+  // so the warnings can say what a flap does with a span) the parser reads
+  // spans and icons; without one it is the parser that shipped.
+  const model = useMemo(() => (deviceModel ? resolveDeviceModel(deviceModel) : null), [deviceModel]);
+  const set = useMemo(
+    () => (charset ? resolveCharacterSet(charset) : model ? characterSetForModel(model, code62Glyph) : null),
+    [charset, model, code62Glyph],
+  );
+  // A mixed-case set (the LED faces) draws lowercase as itself, so the
+  // editor keeps what was typed — in the surface and in the template. Every
+  // other set, and no set at all, uppercases on serialize as it always has.
+  const preserveCase = set?.mixedCase === true;
+  const markupOptions = useMemo<TemplateMarkupOptions>(
+    () => (set ? { extendedMarkup: true, preserveCase } : {}),
+    [set, preserveCase],
+  );
+  // The useEditor config below is captured once, when the view is created,
+  // so its handlers (paste, onUpdate, onCreate) read the live options from
+  // this ref rather than the closure's.
+  const markupOptionsRef = useRef(markupOptions);
+  useEffect(() => {
+    markupOptionsRef.current = markupOptions;
+  }, [markupOptions]);
+  const deviceType = deviceTypeProp ?? model?.legacy?.deviceType;
+
   // Board geometry. The app defaulted straight to the flagship 22×6 constants,
   // so an editor that had been told `deviceType="note"` still validated line
   // length and count against a Flagship grid. A component that knows its
@@ -314,9 +452,52 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
   // wide/tall the array is, which this component is not told) or a panel
   // (whose grid_rows × grid_cols it is not told either — resolved without them
   // a panel is its 3×15 minimum, so a panel editor must pass both props).
+  // A device model sits between the two: its grid is used when the props
+  // leave it open, and `deviceType` is the fallback for a model that cannot
+  // say (a note array).
+  const modelGrid = model ? gridForModel(model) : null;
   const deviceDimensions = deviceType ? resolveDimensions(deviceType) : null;
-  const boardWidth = boardWidthProp ?? deviceDimensions?.cols ?? DEFAULT_BOARD_WIDTH;
-  const boardLines = boardLinesProp ?? deviceDimensions?.rows ?? DEFAULT_BOARD_LINES;
+  const boardWidth = boardWidthProp ?? modelGrid?.cols ?? deviceDimensions?.cols ?? DEFAULT_BOARD_WIDTH;
+  const boardLines = boardLinesProp ?? modelGrid?.rows ?? deviceDimensions?.rows ?? DEFAULT_BOARD_LINES;
+
+  // The warnings summary is the textbox's accessible description; the id is
+  // minted once and the attribute set when the view is created, so it is
+  // only wired when the editor knows a set at mount.
+  const warningsId = useId();
+  const [warnings, setWarnings] = useState<CharsetWarning[]>([]);
+  // An app may already wrap the editor in its own NodeViewInjectionProvider
+  // (labels, the formula editor slot); the set is merged in, never shadowing.
+  const outerInjection = useNodeViewInjection();
+
+  // The surface's attributes. A function, because `preserveCase` can change
+  // after mount (a board switched) and the view is then given a fresh set
+  // through `editor.setOptions`; everything else is read once, as before.
+  const surfaceAttributes = (keepCase: boolean): Record<string, string> => ({
+    class: cn(
+      "w-full font-mono text-sm",
+      "prose prose-sm max-w-none",
+      "[&_.ProseMirror]:outline-none",
+      "[&_.ProseMirror]:font-mono",
+      "[&_.ProseMirror]:text-sm",
+      "[&_.ProseMirror]:resize-none",
+      // Visual uppercase display — except for a set that draws lowercase,
+      // where the surface shows exactly what the template will carry.
+      !keepCase && "[&_.ProseMirror]:uppercase",
+      "[&_.ProseMirror_p]:my-0 [&_.ProseMirror_p]:leading-tight",
+      "[&_.ProseMirror_p]:min-h-[1.5rem]",
+      className,
+    ),
+    // These attributes are read once, when the ProseMirror view is
+    // created; TipTap does not re-run this config on re-render. Changing
+    // `placeholder` or `labels` after mount therefore does not update
+    // them — same behaviour as the app, whose `t` was captured here too.
+    "data-placeholder": placeholder,
+    role: "textbox",
+    "aria-label": l.editorAriaLabel,
+    "aria-multiline": "true",
+    ...(set ? { "aria-describedby": warningsId } : {}),
+    ...(keepCase ? { "data-preserve-case": "" } : {}),
+  });
 
   // Use device-aware defaults when props not provided
   const effectiveAlignments = lineAlignments || Array.from({ length: boardLines }, () => "left" as LineAlignment);
@@ -361,33 +542,18 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
       FillSpaceNode,
       FormulaNode,
       WrappedTextNode,
+      // The extended markup. Always in the schema (an app composing its own
+      // editor gets the same one); nothing creates a span or an icon unless
+      // the template parsed with a set or the toolbar offered it.
+      ColorSpanMark,
+      IconNode,
+      CharsetWarnings.configure({ charset: set, labels: charsetWarningsLabels ?? {} }),
       LineNavigation,
       TrailingNewline,
     ],
-    content: parseTemplateSimple(value || "", boardLines),
+    content: parseTemplateSimple(value || "", boardLines, markupOptions),
     editorProps: {
-      attributes: {
-        class: cn(
-          "w-full font-mono text-sm",
-          "prose prose-sm max-w-none",
-          "[&_.ProseMirror]:outline-none",
-          "[&_.ProseMirror]:font-mono",
-          "[&_.ProseMirror]:text-sm",
-          "[&_.ProseMirror]:resize-none",
-          "[&_.ProseMirror]:uppercase", // Visual uppercase display
-          "[&_.ProseMirror_p]:my-0 [&_.ProseMirror_p]:leading-tight",
-          "[&_.ProseMirror_p]:min-h-[1.5rem]",
-          className,
-        ),
-        // These attributes are read once, when the ProseMirror view is
-        // created; TipTap does not re-run this config on re-render. Changing
-        // `placeholder` or `labels` after mount therefore does not update
-        // them — same behaviour as the app, whose `t` was captured here too.
-        "data-placeholder": placeholder,
-        role: "textbox",
-        "aria-label": l.editorAriaLabel,
-        "aria-multiline": "true",
-      },
+      attributes: surfaceAttributes(preserveCase),
       handleKeyDown: (view, event) => {
         // Enter: insert a hardBreak directly via ProseMirror's view.
         // This runs BEFORE any plugin keymap, so it's the most reliable
@@ -633,7 +799,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
           const pastedText = event.clipboardData?.getData("text/plain") || "";
 
           if (pastedText && (pastedText.includes("{{") || pastedText.match(/\{[a-z]+\}/i))) {
-            const nodes = parseLineContent(pastedText);
+            const nodes = parseLineContent(pastedText, markupOptionsRef.current);
             if (nodes.length > 0 && editorRef.current?.state && editorRef.current?.chain) {
               editorRef.current.chain().focus().insertContent(nodes).run();
               return true; // Handled
@@ -650,8 +816,9 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
           return text; // Don't transform template strings
         }
         // Convert plain text to uppercase for consistency
-        // Final uppercase conversion happens during serialization
-        return text.toUpperCase();
+        // Final uppercase conversion happens during serialization — unless
+        // the target set draws lowercase, in which case neither step does.
+        return markupOptionsRef.current.preserveCase ? text : text.toUpperCase();
       },
       handleDOMEvents: {
         // Handle mousedown on drag handles to select the node before dragging
@@ -674,13 +841,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
                 let node = $pos.nodeAfter;
                 let nodePos = $pos.pos;
 
-                if (
-                  !node ||
-                  (node.type.name !== "variable" &&
-                    node.type.name !== "colorTile" &&
-                    node.type.name !== "fillSpace" &&
-                    node.type.name !== "wrappedText")
-                ) {
+                if (!node || !DRAGGABLE_ATOMS.has(node.type.name)) {
                   // Try the node before
                   node = $pos.nodeBefore;
                   if (node) {
@@ -688,13 +849,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
                   }
                 }
 
-                if (
-                  node &&
-                  (node.type.name === "variable" ||
-                    node.type.name === "colorTile" ||
-                    node.type.name === "fillSpace" ||
-                    node.type.name === "wrappedText")
-                ) {
+                if (node && DRAGGABLE_ATOMS.has(node.type.name)) {
                   // Store drag state for handleDrop
                   dragStateRef.current = { from: nodePos, to: nodePos + node.nodeSize };
 
@@ -868,7 +1023,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
         return;
       }
       const doc = editor.getJSON();
-      const templateString = serializeTemplateSimple(doc, boardLines);
+      const templateString = serializeTemplateSimple(doc, boardLines, markupOptionsRef.current);
       const lineCount = templateString.split("\n").length;
       onChange(templateString);
 
@@ -880,7 +1035,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
     },
     onCreate: ({ editor }) => {
       const doc = editor.getJSON();
-      const templateString = serializeTemplateSimple(doc, boardLines);
+      const templateString = serializeTemplateSimple(doc, boardLines, markupOptionsRef.current);
       const lineCount = templateString.split("\n").length;
       setEditorLineCount(lineCount);
       if (onLineCountChange) {
@@ -898,6 +1053,45 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
     if (editor) {
       editorRef.current = editor;
     }
+  }, [editor]);
+
+  // The set can change after mount (a board switched in a settings form);
+  // the warnings plugin holds it as state, so push it through a transaction
+  // rather than through the extension options, which are read once.
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    editor.view.dispatch(setCharsetWarningsCharset(editor.state.tr, set));
+  }, [editor, set]);
+
+  // …and so can its case: the surface's uppercase display is an attribute
+  // ProseMirror applies from `editorProps.attributes`, which `setOptions`
+  // re-applies through `view.setProps`. Only when it actually differs, so a
+  // mount with the right attributes (the common case) touches nothing.
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    if (editor.view.dom.hasAttribute("data-preserve-case") === preserveCase) return;
+    editor.setOptions({
+      editorProps: { ...editor.options.editorProps, attributes: surfaceAttributes(preserveCase) },
+    });
+    // surfaceAttributes reads props that are deliberately captured once (see
+    // its comment); only the case flag is meant to re-apply.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, preserveCase]);
+
+  // Mirror the plugin's warnings into React state for the summary. Compared
+  // by position and message so a keystroke that moves nothing marked does
+  // not re-render the toolbar.
+  useEffect(() => {
+    if (!editor) return;
+    const sync = () => {
+      const next = readCharsetWarnings(editor.state);
+      setWarnings((prev) => (sameWarnings(prev, next) ? prev : next));
+    };
+    sync();
+    editor.on("transaction", sync);
+    return () => {
+      editor.off("transaction", sync);
+    };
   }, [editor]);
 
   // Draw-mode stroke history bookkeeping. Each applyStroke records the
@@ -976,8 +1170,8 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
         const ed = editorRef.current;
         if (!ed || ed.isDestroyed) return [];
 
-        const cell = brushToCell(brush);
-        const lines = serializeTemplateSimple(ed.getJSON(), boardLines).split("\n");
+        const cell = brushToCell(brush, { preserveCase: markupOptions.preserveCase });
+        const lines = serializeTemplateSimple(ed.getJSON(), boardLines, markupOptions).split("\n");
         const byRow = new Map<number, CellPaint[]>();
         for (const p of paints) {
           if (p.row < 0 || p.row >= boardLines || p.col < 0 || p.col >= boardWidth) continue;
@@ -987,7 +1181,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
         }
         if (byRow.size === 0) return [];
 
-        const tr = buildStrokeTransaction(ed.state, lines, byRow, boardWidth);
+        const tr = buildStrokeTransaction(ed.state, lines, byRow, boardWidth, markupOptions);
         if (!tr) return [];
 
         const { view } = ed;
@@ -1011,7 +1205,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
         ed.chain().redo().run();
       },
     }),
-    [boardLines, boardWidth],
+    [boardLines, boardWidth, markupOptions],
   );
 
   // Measure actual pixel height of each board line so the gutter stays in sync
@@ -1204,7 +1398,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
     // draft restore). Skipping while focused prevents setContent from
     // clobbering the cursor during active typing.
     if (!editor.isFocused) {
-      const currentSerialized = serializeTemplateSimple(editor.getJSON(), boardLines);
+      const currentSerialized = serializeTemplateSimple(editor.getJSON(), boardLines, markupOptions);
       if (value !== currentSerialized) {
         // Defer setContent outside the React lifecycle so TipTap's internal
         // flushSync (in ReactRenderer for NodeViews) doesn't fire inside a
@@ -1214,7 +1408,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
           // TipTap v3 signature: setContent(content, options). The v2
           // three-argument form silently dropped both `emitUpdate: false`
           // and `parseOptions`, echoing this sync back out as an edit.
-          editor.commands.setContent(parseTemplateSimple(value || "", boardLines), {
+          editor.commands.setContent(parseTemplateSimple(value || "", boardLines, markupOptions), {
             emitUpdate: false,
             parseOptions: { preserveWhitespace: true },
           });
@@ -1228,7 +1422,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
       onLineCountChange(lineCount);
     }
     scheduleMeasureRef.current?.();
-  }, [value, editor, boardLines, onLineCountChange]);
+  }, [value, editor, boardLines, onLineCountChange, markupOptions]);
 
   // No need to enforce paragraph count - we use line breaks now
 
@@ -1406,6 +1600,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
           onWrapToggle={handleWrapClick}
           deviceType={deviceType}
           code62Glyph={code62Glyph}
+          charset={set ?? undefined}
           onSyncFromBoard={onSyncFromBoard}
           syncFromBoardPending={syncFromBoardPending}
           drawMode={drawMode}
@@ -1459,7 +1654,9 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
 
             {/* Editor content */}
             <Box className="relative flex-1 min-w-0">
-              <EditorContent editor={editor} />
+              <NodeViewInjectionProvider {...outerInjection} charset={set ?? outerInjection.charset}>
+                <EditorContent editor={editor} />
+              </NodeViewInjectionProvider>
             </Box>
           </Flex>
         </Box>
@@ -1474,6 +1671,24 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
           {l.lineCount(editorLineCount, boardLines)}
           {isOverLineLimit && l.overLineLimit(boardLines)}
         </Text>
+
+        {/* Charset warnings summary: the textbox's accessible description.
+            Rendered whenever a set is known so the id always resolves;
+            visually hidden while there is nothing to say. */}
+        {set && (
+          <Text
+            id={warningsId}
+            size="xs"
+            tone="warning"
+            weight="medium"
+            className={cn("mt-1", warnings.length === 0 && "sr-only")}
+            data-slot="charset-warnings-summary"
+            data-count={warnings.length}
+          >
+            {warnings.length > 0 && l.charsetWarningsSummary(warnings.length)}
+            {warnings.some((w) => w.literalOnFlap) && ` ${l.flapExtendedMarkup}`}
+          </Text>
+        )}
 
         {/* Alignment controls - only show if toolbar is hidden */}
         {!showToolbar && showAlignmentControls && (
