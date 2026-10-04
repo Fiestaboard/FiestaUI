@@ -155,7 +155,19 @@ describe("TvFrame", () => {
           <Board />
         </TvFrame>,
       );
-      expect(screen.getByRole("status")).toHaveTextContent("No signal");
+      const status = screen.getByRole("status");
+      expect(status).toHaveTextContent("No signal");
+      // Announced as written: the live region's text is not CSS-uppercased
+      // (a screen reader would spell "NO SIGNAL" out). The uppercase look is
+      // a separate, aria-hidden copy.
+      expect(status).not.toHaveClass("uppercase");
+      const spoken = status.querySelector('[data-slot="tv-frame-status-text"]')!;
+      expect(spoken).toHaveTextContent("No signal");
+      expect(spoken).toHaveClass("sr-only");
+      expect(spoken).not.toHaveAttribute("aria-hidden");
+      const shown = status.querySelector('[aria-hidden="true"]')!;
+      expect(shown).toHaveTextContent("No signal");
+      expect(shown).toHaveClass("uppercase");
       expect(slot("")).toHaveAttribute("data-offline", "");
       expect(slot("board")).toHaveAttribute("aria-hidden", "true");
       expect(slot("board")).toHaveStyle({ visibility: "hidden" });

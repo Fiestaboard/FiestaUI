@@ -283,14 +283,26 @@ export function TvFrame({
             }}
           />
           {/* Offline: what the TV says when nothing arrives, and what AT
-              hears. Empty while a frame is showing, so the change announces. */}
+              hears. Empty while a frame is showing, so the change announces.
+              The announced text is the label as written, off screen; the
+              uppercase, letter-spaced rendering is a separate aria-hidden
+              copy, so a screen reader is never handed "NO SIGNAL" to spell. */}
           <div
             role="status"
             data-slot="tv-frame-status"
-            className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono font-medium tracking-[0.2em] uppercase select-none"
+            className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono font-medium select-none"
             style={{ color: "#9a9a9a", fontSize: "max(10px, 1.4cqw)" }}
           >
-            {offline ? offlineLabel : null}
+            {offline ? (
+              <>
+                <span className="sr-only" data-slot="tv-frame-status-text">
+                  {offlineLabel}
+                </span>
+                <span aria-hidden="true" className="tracking-[0.2em] uppercase">
+                  {offlineLabel}
+                </span>
+              </>
+            ) : null}
           </div>
         </div>
         {/* The standby LED on the chin: amber only when the screen is off. */}
