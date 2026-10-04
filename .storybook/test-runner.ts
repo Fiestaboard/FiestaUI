@@ -25,6 +25,9 @@ function requestedTheme(): Theme | undefined {
   return theme as Theme;
 }
 
+/** A small, stable story the runner boots on (see prepare). */
+const BOOT_STORY = "forms-button--default";
+
 const config: TestRunnerConfig = {
   // Replaces the runner's default prepare, which is only this `page.goto` (plus
   // the optional `getHttpHeaders` hook, mirrored here). Owning it is what lets
@@ -39,6 +42,16 @@ const config: TestRunnerConfig = {
   // boots on a real selection, the globals land, and they then persist across
   // every setCurrentStory the runner emits. Measured, not assumed: booting
   // `iframe.html?globals=theme:light` alone left <html> dark on every story.
+  //
+  // The boot selects BOOT_STORY, not `*`. `*` resolves to the first story in
+  // the sort, which is Foundations/Inventory/AllComponents: ~8,000 nodes,
+  // including live LED canvases and looping transition previews. Every test
+  // file boots once, so every file paid for that page before its first story.
+  // That pushed the first smoke test of whichever files shared a shard with it
+  // past the 15 s timeout (ThemeToggle, ActionCard, BoardShowcase). Any real
+  // story makes the globals land, so the boot uses a small, stable one. If it
+  // is ever renamed, the boot renders "missing story" and the theme check in
+  // postVisit fails loudly rather than silently testing the wrong palette.
   async prepare({ page, browserContext, testRunnerConfig }) {
     const targetURL = process.env.TARGET_URL;
     if (!targetURL) throw new Error("TARGET_URL is unset — the test runner always exports it from --url.");
@@ -46,7 +59,7 @@ const config: TestRunnerConfig = {
     const theme = requestedTheme();
     if (theme) {
       iframeURL.searchParams.set("globals", `theme:${theme}`);
-      iframeURL.searchParams.set("id", "*");
+      iframeURL.searchParams.set("id", BOOT_STORY);
       iframeURL.searchParams.set("viewMode", "story");
     }
 
