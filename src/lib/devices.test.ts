@@ -161,13 +161,16 @@ describe("characterSetForModel reads the model's own set", () => {
 });
 
 describe("the Pixoo 64, the first test device", () => {
-  it("is id divoom_pixoo64 with legacy preset pixoo64, 3×5 by default, a 32-frame sequence budget", () => {
+  it("is id divoom_pixoo64 with legacy preset pixoo64, 3×5 by default, and snaps (one frame per change)", () => {
     const pixoo = DEVICE_MODELS.divoom_pixoo64;
     expect(pixoo.legacy).toEqual({ preset: "pixoo64" });
     expect(pixoo.font).toBe("3x5");
     // 10 × 16 cells clears FiestaBoard's 3 × 15 floor; 5×7 would give 8 × 10.
     expect(characterSetForModel(pixoo).id).toBe("led_3x5");
-    expect(pixoo.animation).toEqual({ delivery: "sequence", maxFps: 12.5, maxFrames: 32, minFrameMs: 80 });
+    // Hardware test, 2026-10-04: uploaded animations loop and show a
+    // "LOADING…" overlay, single frames are clean — so no sequence budget,
+    // and a nominal 2 fps keeps the default transition on "none".
+    expect(pixoo.animation).toEqual({ delivery: "stream", maxFps: 2 });
     expect(pixoo.geometry).toEqual({ kind: "pixels", width: 64, height: 64 });
   });
 });

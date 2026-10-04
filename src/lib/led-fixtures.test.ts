@@ -77,8 +77,9 @@ describe("LED data fixtures", () => {
       expect({ notes: n, sources }, id).toEqual(notes[id]);
       expect(n, id).not.toBe("");
     }
-    expect(f.divoom_pixoo64.animation.notes).toMatch(/Loading/);
-    expect(f.divoom_pixoo64.animation.notes).toMatch(/300 pushes/);
+    expect(f.divoom_pixoo64.animation.notes).toMatch(/LOADING/);
+    expect(f.divoom_pixoo64.animation.notes).toMatch(/SNAPS/);
+    expect(f.divoom_pixoo64.animation.sources[0]).toMatch(/hardware test on a Pixoo 64/);
     expect(f.ulanzi_tc001_awtrix.animation.notes).toMatch(/UNMEASURED/);
   });
 });

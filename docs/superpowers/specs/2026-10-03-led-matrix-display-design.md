@@ -26,7 +26,7 @@ flap board takes and degrade gracefully in both directions.
 
 | Device                   | Pixels               | Colour | Raw frame in?                    | Animation                                 |
 | ------------------------ | -------------------- | ------ | -------------------------------- | ----------------------------------------- |
-| Divoom Pixoo 64          | 64×64                | RGB    | yes (base64 RGB888 per frame)    | uploaded sequence, ≤ 32 frames, ~80 ms    |
+| Divoom Pixoo 64          | 64×64                | RGB    | yes (base64 RGB888 per frame)    | single frames only — it snaps (measured)  |
 | AWTRIX 3 / Ulanzi TC001  | 32×8                 | RGB    | yes (`draw`/`db`, RGB565)        | no measured frame rate — treated as none  |
 | HUB75 (Pi / ESP32)       | 64×32, 64×64, 128×64 | RGB    | via a small daemon               | stream, 30–60 fps pushed                  |
 | WLED 2D (ESP32 + WS2812) | 16×16 … 32×32+       | RGB    | yes (DDP, E1.31, `seg.i`)        | stream, 25–40 fps                         |
@@ -44,18 +44,18 @@ serpentine reorder, or a 1-bit threshold.
 
 - **Pixoo 64.** `Draw/SendHttpGif` takes one POST per frame (`PicNum`,
   `PicOffset`, `PicSpeed` ms, `PicData` base64 RGB888, `PicWidth` 64) and the
-  device plays the animation locally after a ~5 s "Loading.." overlay.
-  Community limits: frames capped at 32 (pixoo-homeassistant PR #158,
-  "repeated long pushes make the device unresponsive") to ~40 (pixoo-toolkit,
-  "before potential device crash"); pushes spaced ~150 ms–1 s; the device
-  stops responding after ~300 pushes until rebooted; `Draw/ResetHttpGifId`
-  before each animation; `Draw/CommandList` cannot batch frames. Streaming at
-  80 ms is impossible; a sequence of ≤ 32 frames is the model. The official
-  doc's "≤ 60 frames" is unverified (JS-rendered page). —
-  github.com/cyanheads/pixoo-toolkit (AGENTS.md),
-  github.com/gickowtf/pixoo-homeassistant/pull/158,
-  github.com/SomethingWithComputers/pixoo, github.com/Grayda/pixoo_api
-  (NOTES.md).
+  device plays the animation locally. **Measured** (hardware test on a Pixoo
+  64, FiestaBoard program, 2026-10-04): an uploaded animation **loops
+  forever** — there is no play-once; more than ~3 uploaded frames first show
+  a ~6 s "LOADING…" overlay; landing on a still after an animation glitches
+  for ~5 s; a single-frame push is clean in ~0.5 s; 40 frames play and ~55 is
+  the most it takes. Applying the owner's rule (flip only when the device is
+  fast enough): **the Pixoo snaps** — `{ delivery: "stream", maxFps: 2 }`,
+  one frame per change, the default transition `none`, and the adapter never
+  uploads a sequence. The earlier community figures (a 32-frame cap, a ~300-
+  push freeze, a ~5 s overlay — pixoo-toolkit, pixoo-homeassistant PR #158,
+  SomethingWithComputers/pixoo, Grayda/pixoo_api) are superseded by the
+  measurement and kept in the sources for reference.
 - **AWTRIX 3.** `draw` ops over HTTP/MQTT; a full 8×32 `db` bitmap returned
   `ErrorParsingJson` (issue #214); `TSPEED` 500 ms, `ATIME` 7 s; no documented
   push rate and none measured. Modelled as UNMEASURED → "none" until a client
@@ -130,9 +130,12 @@ precedents are AWTRIX's fragment arrays and Pixlet's per-widget `color`.
    character order. The split-flap `BoardDisplay` keeps that order because it
    imitates real hardware.
 9. **The Pixoo 64 is the first test device**: 3×5 face by default (10 × 16
-   cells), a 32-frame budget per transition, the adapter to start with a push
-   counter that reboots or drops to single frames before ~250 pushes and
-   animates only on change — to be confirmed in a hardware spike.
+   cells). The hardware spike (2026-10-04) found that uploaded animations
+   loop and show a "LOADING…" overlay while single frames are clean, so the
+   Pixoo snaps: one frame per change, no sequence budget, default
+   transition `none` (section 2). The 32-frame sequence machinery stays,
+   pinned on a generic sequence-capable fixture device, for the plugins
+   that can play one.
 10. **Monochrome is a layout option, tinting is not.** `monochrome: "#rrggbb"`
     is in the frame (every lit pixel takes the panel colour); brightness and
     gamma are preview-only and deferred.
@@ -1080,12 +1083,14 @@ in a block, monochrome`.
 
 ## 16. Risks
 
-- **Pixoo push freeze and the "Loading.." overlay.** Every uploaded
-  animation first shows a ~5 s overlay; frames must be pushed ~150 ms–1 s
-  apart, so a 32-frame change takes 5–32 s to upload; the device stops
-  responding after ~300 pushes — about nine animated changes at 32 frames —
-  until rebooted; more than ~32–40 frames can crash it. Mitigation decided:
-  a push counter in the adapter that reboots or drops to single-frame
+- **Pixoo push freeze and the "Loading.." overlay — resolved by the
+  hardware test (2026-10-04).** Uploaded animations loop forever, more than
+  ~3 frames show a ~6 s "LOADING…" overlay, a still after an animation
+  glitches for ~5 s, and a single-frame push is clean in ~0.5 s. Decision:
+  the Pixoo snaps (`stream`, nominal 2 fps, default `none`); the adapter
+  pushes one frame per change and never uploads a sequence, so the push
+  counter and reboot mitigations are moot. The earlier plan follows for the
+  record: a push counter in the adapter that reboots or drops to single-frame
   pushes before ~250 pushes, animate only on a changed value, 32 frames
   kept; 16 frames (~18 changes between reboots, still a cascade — the menu's
   flip minimum is 8) is one number in the model if the spike says so. If the
@@ -1105,8 +1110,10 @@ in a block, monochrome`.
   carry the edge.
 - **AWTRIX unmeasured.** Modelled as "none" until a push rate is measured on
   a TC001; a wrong guess either way is one number in the model.
-- **Unverified figures** called out above: Pixoo's official frame cap, Tom
-  Thumb's descender detail, Tronbyt's default delay, MAX7219/P10 host fps.
+- **Unverified figures** called out above: Tom Thumb's descender detail,
+  Tronbyt's default delay, MAX7219/P10 host fps. (The Pixoo's frame cap was
+  measured on 2026-10-04: 40 frames play, ~55 is the most it takes — moot
+  now that it snaps.)
 
 ### Decided: legacy shortcuts become icon aliases (FiestaBoard plan D16)
 
