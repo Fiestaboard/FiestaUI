@@ -54,9 +54,10 @@ import {
 import { type LedTransitionId, resolveLedTransition } from "../../lib/led-transition-registry";
 import { type LedTransitionSpec, planLedTransition } from "../../lib/led-transitions";
 import { cn } from "../../lib/utils";
+import { type LedLook, type LedPixelShape, resolveLedLook } from "./led-look";
 import { useReducedMotion } from "./reduced-motion";
 
-export type LedPixelShape = "round" | "square";
+export type { LedPixelShape } from "./led-look";
 
 export interface LedMatrixDisplayProps extends LedLayoutOptions {
   message: string | null;
@@ -118,17 +119,6 @@ export interface LedMatrixDisplayProps extends LedLayoutOptions {
 
 const PITCH = { sm: 4, md: 6, lg: 9 } as const;
 
-/*
- * The look of a panel whose model says nothing — the same values the
- * built-in LED models carry in their `appearance`, so a bare size and a
- * `model` draw alike.
- */
-/** Panel substrate (soldermask) behind the LEDs. */
-const DEFAULT_SUBSTRATE_COLOR = "#0a0a0a";
-/** An unlit LED: visible as a grid, never mistaken for lit. */
-const DEFAULT_OFF_COLOR = "#171717";
-/** Round LED diameter, and square LED side, as a fraction of pitch. */
-const DEFAULT_DOT_RATIO: Record<LedPixelShape, number> = { round: 0.72, square: 0.82 };
 /**
  * Below this many device pixels a circle antialiases to mush, so round LEDs
  * draw as squares — at that size a real LED reads as a square point anyway.
@@ -140,14 +130,6 @@ const MAX_CANVAS_PIXELS = 16_000_000;
 
 const defaultMessageLabel = (msg: string) => `LED matrix preview: ${msg}`;
 const NO_TEXT_LABEL = "LED matrix preview";
-
-/** How the LEDs are drawn — resolved from the model's appearance and the props. */
-interface LedLook {
-  shape: LedPixelShape;
-  dotRatio: number;
-  offColor: string;
-  substrateColor: string;
-}
 
 /** Trace one LED into a path. */
 function traceDot(path: Path2D, round: boolean, cx: number, cy: number, size: number) {
@@ -327,15 +309,10 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
   const mono = monochrome ?? (deviceModel?.color.kind === "monochrome" ? deviceModel.color.color : undefined);
   const charset = charsetProp ?? (deviceModel ? characterSetForModel(deviceModel) : undefined);
 
-  // The look is the model's appearance, with the prop winning for the shape.
-  // The model's dot ratio describes *its* shape: when the prop picks the
-  // other one, the dot takes that shape's default size instead.
+  // The look is the model's appearance, with the prop winning for the shape
+  // (see ./led-look, shared with CharacterGlyph).
   const appearance = deviceModel?.appearance;
-  const modelShape = appearance?.pixelShape ?? "round";
-  const shape = pixelShape ?? modelShape;
-  const dotRatio = (shape === modelShape ? appearance?.dotRatio : undefined) ?? DEFAULT_DOT_RATIO[shape];
-  const offColor = appearance?.offColor ?? DEFAULT_OFF_COLOR;
-  const substrateColor = appearance?.substrateColor ?? DEFAULT_SUBSTRATE_COLOR;
+  const { shape, dotRatio, offColor, substrateColor } = resolveLedLook(appearance, pixelShape);
   const bezel = appearance?.bezel;
 
   const layout = useMemo(
