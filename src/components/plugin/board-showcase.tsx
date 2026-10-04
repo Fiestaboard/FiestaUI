@@ -55,6 +55,13 @@ export interface BoardShowcaseProps {
    * `"degree"`.
    */
   code62Glyph?: Code62Glyph;
+  /**
+   * Parse the extended markup — colour spans `{red:HOT}`, block spans and
+   * `{icon:sun}` icons — on the board. Unset, the board's own default applies
+   * (off until split-flap boards flip to the extended grammar in a major, on
+   * after it); pass `false` to keep the literal parse through that flip.
+   */
+  extendedMarkup?: boolean;
   defaultBoardType?: "black" | "white";
   onBoardTypeChange?: (boardType: "black" | "white") => void;
   labels?: Partial<BoardShowcaseLabels>;
@@ -78,6 +85,7 @@ export function BoardShowcase({
   size = "md",
   boardType,
   code62Glyph,
+  extendedMarkup,
   defaultBoardType = "black",
   onBoardTypeChange,
   labels,
@@ -121,6 +129,7 @@ export function BoardShowcase({
               boardType={activeBoardType}
               deviceType={preview.device_type ?? "flagship"}
               code62Glyph={code62Glyph}
+              extendedMarkup={extendedMarkup}
               notesWide={preview.notes_wide ?? 1}
               notesTall={preview.notes_tall ?? 1}
               gridRows={preview.grid_rows}
