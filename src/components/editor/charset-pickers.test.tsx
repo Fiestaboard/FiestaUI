@@ -311,10 +311,11 @@ describe("DrawCharPickerContent with a charset", () => {
     const { rerender } = render(
       <DrawCharPickerContent current={{ kind: "eraser" }} onSelect={vi.fn()} charset="led_5x7" />,
     );
-    const z = screen.getByRole("button", { name: "z" });
     fireEvent.keyDown(screen.getByRole("button", { name: "A" }), { key: "End" });
-    expect(z).toHaveFocus();
-    expect(z).toHaveAttribute("tabindex", "0");
+    const last = screen.getAllByRole("button").at(-1)!;
+    expect(last).toHaveFocus();
+    expect(last).toHaveAttribute("tabindex", "0");
+    expect(screen.getAllByRole("button").indexOf(last)).toBeGreaterThan(DRAW_CHARS.length);
     rerender(<DrawCharPickerContent current={{ kind: "eraser" }} onSelect={vi.fn()} charset="vestaboard_v1" />);
     const stops = screen.getAllByRole("button").filter((b) => b.getAttribute("tabindex") === "0");
     expect(stops).toHaveLength(1);

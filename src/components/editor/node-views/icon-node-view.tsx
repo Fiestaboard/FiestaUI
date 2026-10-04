@@ -7,6 +7,7 @@
 import type { ReactNodeViewProps } from "@tiptap/react";
 import { NodeViewWrapper } from "@tiptap/react";
 
+import { boardIconToken } from "../../../lib/board-characters";
 import { BOARD_ICONS, type BoardIconName } from "../../../lib/board-icons";
 import { CHARACTER_SETS } from "../../../lib/character-sets";
 import { CharacterGlyph } from "../../board/character-glyph";
@@ -64,7 +65,7 @@ export function IconNodeView({ node, labels }: IconNodeViewProps) {
             }}
           >
             <CharacterGlyph
-              token={{ ...tokenFor(name) }}
+              token={boardIconToken(name)}
               charset={set}
               size="sm"
               height={20}
@@ -79,12 +80,4 @@ export function IconNodeView({ node, labels }: IconNodeViewProps) {
       </Tooltip>
     </TooltipProvider>
   );
-}
-
-/** The parsed token an icon name stands for: its flap fallback, tagged `icon`. */
-function tokenFor(name: BoardIconName) {
-  const fallback = BOARD_ICONS[name]?.fallback ?? null;
-  return fallback !== null && /^\d\d$/.test(fallback)
-    ? ({ type: "color", code: fallback, icon: name } as const)
-    : ({ type: "char", value: fallback ?? " ", icon: name } as const);
 }

@@ -167,23 +167,104 @@ describe("length counting", () => {
 describe("draw mode", () => {
   it("stamps an icon as one cell and keeps a line with icons positional", () => {
     expect(brushToCell({ kind: "icon", icon: "sun" })).toBe("{{icon:sun}}");
-    expect(lineToCells("A{{icon:sun}}B")).toEqual(["A", "{{icon:sun}}", "B"]);
-    expect(isPositionalLine("A{{icon:sun}}B")).toBe(true);
-    expect(isPositionalLine("A{{weather.temp}}B")).toBe(false);
+    expect(lineToCells("A{{icon:sun}}B", EXT)).toEqual(["A", "{{icon:sun}}", "B"]);
+    expect(isPositionalLine("A{{icon:sun}}B", EXT)).toBe(true);
+    expect(isPositionalLine("A{{weather.temp}}B", EXT)).toBe(false);
   });
 
   it("splits a span into per-cell spans and merges them back through the editor", () => {
-    expect(lineToCells("{{red:HOT}}")).toEqual(["{{red:H}}", "{{red:O}}", "{{red:T}}"]);
-    expect(lineToCells("{{black/white:{{icon:sun}}X}}")).toEqual(["{{black/white:{{icon:sun}}}}", "{{black/white:X}}"]);
-    expect(lineToCells("{{red:A{{blue:B}}C}}")).toEqual(["{{red:A}}", "{{blue:B}}", "{{red:C}}"]);
-    const painted = paintLine("{{red:HOT}}", [{ col: 1, cell: "{{icon:sun}}" }], 22);
+    expect(lineToCells("{{red:HOT}}", EXT)).toEqual(["{{red:H}}", "{{red:O}}", "{{red:T}}"]);
+    expect(lineToCells("{{black/white:{{icon:sun}}X}}", EXT)).toEqual([
+      "{{black/white:{{icon:sun}}}}",
+      "{{black/white:X}}",
+    ]);
+    expect(lineToCells("{{red:A{{blue:B}}C}}", EXT)).toEqual(["{{red:A}}", "{{blue:B}}", "{{red:C}}"]);
+    const painted = paintLine("{{red:HOT}}", [{ col: 1, cell: "{{icon:sun}}" }], 22, EXT);
     expect(painted).toBe("{{red:H}}{{icon:sun}}{{red:T}}");
     expect(roundTrip(painted)).toBe("{{red:H}}{{icon:sun}}{{red:T}}");
-    expect(roundTrip(paintLine("{{red:HOT}}", [{ col: 3, cell: "!" }], 22))).toBe("{{red:HOT}}!");
+    expect(roundTrip(paintLine("{{red:HOT}}", [{ col: 3, cell: "!" }], 22, EXT))).toBe("{{red:HOT}}!");
   });
 
   it("renders positional cells with single braces for the board parser", () => {
-    expect(renderPositionalLine("{{red}}A{{icon:sun}}{{red:H}}")).toBe("{red}A{icon:sun}{red:H}");
+    expect(renderPositionalLine("{{red}}A{{icon:sun}}{{red:H}}", EXT)).toBe("{red}A{icon:sun}{red:H}");
+  });
+
+  it("without the extended markup reads a span or an icon as a dynamic token, exactly as the editor always has", () => {
+    // These are the outputs of the pre-charset draw-mode (the parent of this
+    // change, feat/display-preview), recorded by running it: a host that has
+    // not been given a set must get byte for byte the same stroke. Note the
+    // first `}}` ending a token, as it always did, so `{{red:{{66}}}}` leaves
+    // two stray braces.
+    const parent: Array<[string, string[], boolean, string, string]> = [
+      ["{{red:HOT}}", [], false, " X", ""],
+      ["A{{red:HOT}}B", ["A", "B"], false, "AX", "AB"],
+      ["{{icon:sun}}", [], false, " X", ""],
+      ["{{black/white:OPEN}}", [], false, " X", ""],
+      ["{{red:{{66}}}}", ["}", "}"], false, "}X", "}}"],
+      ["{{red}}HOT", ["{{red}}", "H", "O", "T"], true, "{{red}}XOT", "{red}HOT"],
+    ];
+    for (const [line, cells, positional, painted, rendered] of parent) {
+      expect(lineToCells(line), line).toEqual(cells);
+      expect(isPositionalLine(line), line).toBe(positional);
+      expect(paintLine(line, [{ col: 1, cell: "X" }], 22), line).toBe(painted);
+      expect(renderPositionalLine(line), line).toBe(rendered);
+      // An explicit "off" is the same as no options.
+      expect(lineToCells(line, { extendedMarkup: false }), line).toEqual(cells);
+    }
+  });
+
+  it("caps span nesting like the parser, so a hostile line cannot overflow the stack", () => {
+    const deep = "{{red:".repeat(5000) + "X" + "}}".repeat(5000);
+    expect(() => lineToCells(deep, EXT)).not.toThrow();
+    expect(() => isPositionalLine(deep, EXT)).not.toThrow();
+    expect(() => lineToCells(deep)).not.toThrow();
+  });
+});
+
+describe("span nesting depth", () => {
+  const nest = (depth: number, inner: string) => "{{red:".repeat(depth) + inner + "}}".repeat(depth);
+  const marksOf = (nodes: ReturnType<typeof parseLineContent>) =>
+    stripAnchors(nodes).map((n) => [n.type, n.text ?? n.attrs?.name, n.marks?.[0]?.attrs?.color]);
+
+  it("reads spans eight deep and keeps a ninth-level opener as literal text", () => {
+    // Marks are flat, so the innermost span wins: seven red around a blue is
+    // a blue X; eight red around a blue opener is red literal text, exactly
+    // as parseLine (MAX_SPAN_DEPTH, spec §4.1) treats a ninth level.
+    expect(marksOf(parseLineContent(nest(7, "{{blue:X}}"), EXT))).toEqual([["text", "X", "blue"]]);
+    expect(marksOf(parseLineContent(nest(8, "{{blue:X}}"), EXT))).toEqual([["text", "{{blue:X}}", "red"]]);
+    // Literal text is text: uppercased by the default serializer like any
+    // other, kept as typed with preserveCase.
+    expect(serializeTemplateSimple(parseTemplateSimple(nest(8, "{{blue:X}}"), 1, EXT), 1)).toBe("{{red:{{BLUE:X}}}}");
+    expect(serializeTemplateSimple(parseTemplateSimple(nest(8, "{{blue:X}}"), 1, EXT), 1, { preserveCase: true })).toBe(
+      "{{red:{{blue:X}}}}",
+    );
+  });
+
+  it("never recurses past the cap: 5,000 levels parse without overflowing", () => {
+    const deep = nest(5000, "X");
+    let nodes!: ReturnType<typeof parseLineContent>;
+    expect(() => {
+      nodes = parseLineContent(deep, EXT);
+    }).not.toThrow();
+    expect(stripAnchors(nodes)).toHaveLength(1);
+    expect(nodes[0].marks?.[0]?.attrs?.color).toBe("red");
+    expect(() => parseLineContent(deep)).not.toThrow();
+  });
+});
+
+describe("an empty span body", () => {
+  it("is kept as literal text, not dropped", () => {
+    expect(stripAnchors(parseLineContent("{{red:}}", EXT))).toEqual([{ type: "text", text: "{{red:}}" }]);
+    expect(stripAnchors(parseLineContent("{{black/white:}}", EXT))).toEqual([
+      { type: "text", text: "{{black/white:}}" },
+    ]);
+    // Text, so the default serializer uppercases it like any text; with
+    // preserveCase (a mixed-case set) it round-trips untouched.
+    expect(roundTrip("{{red:}}")).toBe("{{RED:}}");
+    expect(roundTrip("A{{red:}}B")).toBe("A{{RED:}}B");
+    const keep = (t: string) => serializeTemplateSimple(parseTemplateSimple(t, 1, EXT), 1, { preserveCase: true });
+    expect(keep("{{red:}}")).toBe("{{red:}}");
+    expect(keep("A{{red:}}B")).toBe("A{{red:}}B");
   });
 });
 

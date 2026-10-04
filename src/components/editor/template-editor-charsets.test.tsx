@@ -195,6 +195,96 @@ describe("inserting through the toolbar", () => {
   });
 });
 
+describe("the clipboard", () => {
+  /** A copy event with a recording clipboard, as ProseMirror's copy handler expects. */
+  const copyEvent = () => {
+    const data = new Map<string, string>();
+    const event = new Event("copy", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", {
+      value: {
+        setData: (type: string, value: string) => void data.set(type, value),
+        getData: (type: string) => data.get(type) ?? "",
+        clearData: () => data.clear(),
+        types: [],
+        items: [],
+        files: [],
+      },
+    });
+    return { event, data };
+  };
+
+  it("copies a span with an atom inside as one span, so it pastes back as it was", async () => {
+    const { textbox } = await mount({ value: "{{red:HOT {{weather.temperature}}}} END", charset: "led_5x7" });
+    // Select the whole line: ProseMirror hands the serializer a slice opened
+    // one level (the paragraph); the inline nodes are inside it.
+    textbox.focus();
+    const p = textbox.querySelector("p")!;
+    const range = document.createRange();
+    range.selectNodeContents(p);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+    await act(async () => {
+      document.dispatchEvent(new Event("selectionchange"));
+      await new Promise((r) => setTimeout(r, 40));
+    });
+    const { event, data } = copyEvent();
+    await act(async () => {
+      textbox.dispatchEvent(event);
+    });
+    // The clipboard keeps the document's cursor anchors (zero-width spaces)
+    // verbatim, as it always has; the template shape is what matters here.
+    expect(data.get("text/plain")?.replaceAll("\u200b", "").replace(/\n+$/, "")).toBe(
+      "{{red:HOT {{weather.temperature}}}} END",
+    );
+  });
+
+  it("refuses a pasted span whose colour is not a colour: no style injection, no hostile head in the value", async () => {
+    const { textbox, onChange } = await mount({ value: "A", charset: "led_5x7" });
+    await select(textbox, "");
+    const hostile = "red;background:url(https://evil.example/x)";
+    const html =
+      `<span data-type="color-span" data-color="${hostile}" style="--span-color:red;background:url(https://evil.example/x)">X</span>` +
+      `<span data-type="color-span" data-color="blue" style="--span-color:#0000ff">Y</span>`;
+    const event = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", {
+      value: {
+        getData: (type: string) => (type === "text/html" ? html : "XY"),
+        types: ["text/html", "text/plain"],
+        items: [],
+        files: [],
+      },
+    });
+    await act(async () => {
+      textbox.dispatchEvent(event);
+      await new Promise((r) => setTimeout(r, 40));
+    });
+    expect(textbox.innerHTML).not.toContain("evil.example");
+    expect(textbox.innerHTML).not.toContain("url(");
+    // The hostile span is plain text; the valid one keeps its colour, and
+    // only a valid colour reaches the custom property.
+    expect(textbox.querySelector('[data-type="color-span"][data-color="blue"]')).toHaveTextContent("Y");
+    expect(textbox.querySelector('[data-type="color-span"][data-color="blue"]')?.getAttribute("style")).toMatch(
+      /^--span-color: ?#4a90d9;?$/,
+    );
+    expect(textbox.querySelector(`[data-color="${hostile}"]`)).toBeNull();
+    const value = lastValue(onChange) ?? "";
+    expect(value).not.toContain("evil.example");
+    expect(value).toContain("{{blue:Y}}");
+  });
+});
+
+describe("an empty span in the value", () => {
+  it("is shown as its literal text and never echoed back as an edit", async () => {
+    const { textbox, onChange } = await mount({ value: "{{red:}} HI", charset: "led_5x7" });
+    expect(textbox).toHaveTextContent("{{red:}} HI");
+    expect(textbox.querySelector('[data-type="color-span"]')).toBeNull();
+    // Value sync compares the serialized document with the value: a dropped
+    // span would differ on every sync and bounce the content.
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
 describe("unsupported-character warnings", () => {
   it("underlines cells the set cannot draw, with a title naming what draws instead", async () => {
     // acme: uppercase A–Z 0–9 - : . €, block spans, icons up/down/check; no ° or $ or colour spans.

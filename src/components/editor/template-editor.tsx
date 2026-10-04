@@ -266,7 +266,15 @@ function serializeSliceToTemplate(slice: Slice | null | undefined): string {
     if (!slice || !slice.content || slice.content.size === 0) {
       return "";
     }
-    const nodes = (slice.content.toJSON() as JSONContent[] | null) ?? [];
+    // A selection inside the paragraph arrives as a slice opened one level
+    // on each side: its content is the paragraph, and the inline nodes are
+    // inside it. Unwrap `openStart` levels (while there is one node to
+    // unwrap) so the serializer sees the inline run itself.
+    let content = slice.content;
+    for (let i = 0; i < slice.openStart && content.childCount === 1 && !content.firstChild!.isInline; i++) {
+      content = content.firstChild!.content;
+    }
+    const nodes = (content.toJSON() as JSONContent[] | null) ?? [];
     // Shares the span grouping with the document serializer, so a copied
     // `{{red:HOT {{x.y}}}}` pastes back as one span.
     return serializeInlineNodes(nodes, serializeClipboardNode);
@@ -471,7 +479,8 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
 
   // The surface's attributes. A function, because `preserveCase` can change
   // after mount (a board switched) and the view is then given a fresh set
-  // through `editor.setOptions`; everything else is read once, as before.
+  // through `editor.setOptions` (see the effect below); the other values
+  // are captured at creation and never re-applied, as before.
   const surfaceAttributes = (keepCase: boolean): Record<string, string> => ({
     class: cn(
       "w-full font-mono text-sm",
@@ -487,10 +496,11 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
       "[&_.ProseMirror_p]:min-h-[1.5rem]",
       className,
     ),
-    // These attributes are read once, when the ProseMirror view is
-    // created; TipTap does not re-run this config on re-render. Changing
-    // `placeholder` or `labels` after mount therefore does not update
-    // them — same behaviour as the app, whose `t` was captured here too.
+    // Captured when the ProseMirror view is created: TipTap does not re-run
+    // this config on re-render, and only the case flag is re-applied after
+    // mount. Changing `placeholder` or `labels` later therefore does not
+    // update them — same behaviour as the app, whose `t` was captured here
+    // too.
     "data-placeholder": placeholder,
     role: "textbox",
     "aria-label": l.editorAriaLabel,
@@ -1057,26 +1067,12 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
 
   // The set can change after mount (a board switched in a settings form);
   // the warnings plugin holds it as state, so push it through a transaction
-  // rather than through the extension options, which are read once.
+  // rather than through the extension options, which are captured when the
+  // extension is configured and never re-read.
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     editor.view.dispatch(setCharsetWarningsCharset(editor.state.tr, set));
   }, [editor, set]);
-
-  // …and so can its case: the surface's uppercase display is an attribute
-  // ProseMirror applies from `editorProps.attributes`, which `setOptions`
-  // re-applies through `view.setProps`. Only when it actually differs, so a
-  // mount with the right attributes (the common case) touches nothing.
-  useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
-    if (editor.view.dom.hasAttribute("data-preserve-case") === preserveCase) return;
-    editor.setOptions({
-      editorProps: { ...editor.options.editorProps, attributes: surfaceAttributes(preserveCase) },
-    });
-    // surfaceAttributes reads props that are deliberately captured once (see
-    // its comment); only the case flag is meant to re-apply.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, preserveCase]);
 
   // Mirror the plugin's warnings into React state for the summary. Compared
   // by position and message so a keystroke that moves nothing marked does

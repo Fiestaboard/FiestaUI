@@ -52,8 +52,17 @@ export interface TemplateMarkupOptions {
   preserveCase?: boolean;
 }
 
-/** The name {@link TemplateMarkupOptions} shipped under; kept as an alias. */
-export type TemplateParseOptions = TemplateMarkupOptions;
+/**
+ * How deep spans may nest, the same cap as the board parser's
+ * `MAX_SPAN_DEPTH` (spec §4.1): a span at the top level is depth 1. An opener
+ * that would open a ninth level is kept as literal text — the whole token,
+ * since marks are flat and a nested span flattens on the next round-trip
+ * anyway — so a hostile template cannot recurse without bound. The board
+ * parser differs in one detail: it still reads tiles and icons inside a
+ * literal ninth-level opener, where this keeps the token whole; both are
+ * pathological input, and neither recurses.
+ */
+export const MAX_TEMPLATE_SPAN_DEPTH = 8;
 
 /** The mark name a colour or block span carries (extensions/color-span-mark). */
 export const COLOR_SPAN_MARK = "colorSpan";
@@ -378,6 +387,11 @@ function withSpanMark(nodes: JSONContent[], attrs: ColorSpanAttrs): JSONContent[
  * Exported for use in insertion utilities
  */
 export function parseLineContent(text: string, options: TemplateMarkupOptions = {}): JSONContent[] {
+  return parseInline(text, options, 0);
+}
+
+/** {@link parseLineContent} at a span nesting `depth` (0 outside any span). */
+function parseInline(text: string, options: TemplateMarkupOptions, depth: number): JSONContent[] {
   const extended = options.extendedMarkup === true;
   const nodes: JSONContent[] = [];
   let remaining = text;
@@ -446,7 +460,7 @@ export function parseLineContent(text: string, options: TemplateMarkupOptions = 
         });
       }
       // The extended markup, under the closed head grammar.
-      else if (extended && parseExtendedToken(content, nodes)) {
+      else if (extended && parseExtendedToken(content, nodes, depth)) {
         // handled
       }
       // Otherwise it's a variable
@@ -560,9 +574,12 @@ export function parseLineContent(text: string, options: TemplateMarkupOptions = 
  *
  * An `icon:` head with a name the registry does not know is kept as literal
  * text, so it round-trips untouched (and the warnings can say so) rather
- * than becoming a variable of a reserved plugin id.
+ * than becoming a variable of a reserved plugin id. A span with an empty
+ * body (`{{red:}}`) is literal text too — there is nothing to mark, and
+ * dropping it would make the value and the document disagree. A span past
+ * {@link MAX_TEMPLATE_SPAN_DEPTH} is literal text as well.
  */
-function parseExtendedToken(content: string, nodes: JSONContent[]): boolean {
+function parseExtendedToken(content: string, nodes: JSONContent[], depth: number): boolean {
   const colon = content.indexOf(":");
   if (colon <= 0) return false;
   const head = content.slice(0, colon);
@@ -580,7 +597,11 @@ function parseExtendedToken(content: string, nodes: JSONContent[]): boolean {
   }
   const span = spanHead(head);
   if (!span) return false;
-  const inner = parseLineContent(body, { extendedMarkup: true });
+  if (body === "" || depth >= MAX_TEMPLATE_SPAN_DEPTH) {
+    nodes.push({ type: "text", text: `{{${content}}}` });
+    return true;
+  }
+  const inner = parseInline(body, { extendedMarkup: true }, depth + 1);
   nodes.push(...withSpanMark(inner, span));
   return true;
 }

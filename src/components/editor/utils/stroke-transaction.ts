@@ -60,9 +60,12 @@ export function lineRanges(doc: PMNode): LineRange[] {
  * @param lines      Current template lines (serialized doc, split on "\n").
  * @param byRow      Cell paints grouped by row index.
  * @param boardWidth Board columns, used to clamp painted lines.
- * @param parseOptions How the repainted line is read back; `extendedMarkup`
- *                   when the editor knows its set, so an icon or span cell
- *                   becomes the node it is rather than a variable.
+ * @param parseOptions How the line is split into cells and the repainted
+ *                   line read back; `extendedMarkup` when the editor knows
+ *                   its set, so an icon or span cell is a cell (and becomes
+ *                   the node it is rather than a variable). Without it a
+ *                   stroke lands exactly as it did before the extended
+ *                   markup existed.
  * @returns The transaction to dispatch (caller adds closeHistory), or null
  *          when there is nothing to paint.
  */
@@ -101,7 +104,7 @@ export function buildStrokeTransaction(
   // replacement keep their original positions.
   const rows = [...byRow.keys()].sort((a, b) => b - a);
   for (const row of rows) {
-    const painted = paintLine(lines[row] ?? "", byRow.get(row)!, boardWidth);
+    const painted = paintLine(lines[row] ?? "", byRow.get(row)!, boardWidth, parseOptions);
     // Mirror parseTemplateSimple's line shape: leading + trailing cursor anchors.
     const content = [
       { type: "text", text: CURSOR_ANCHOR_CHAR },

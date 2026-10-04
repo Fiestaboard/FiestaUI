@@ -27,7 +27,7 @@ import { Mark, mergeAttributes } from "@tiptap/core";
 
 import { getBoardColor, isValidBoardColor } from "../../../lib/board-colors";
 import type { ColorSpanAttrs } from "../utils/serialization";
-import { COLOR_SPAN_MARK } from "../utils/serialization";
+import { COLOR_SPAN_MARK, spanColor } from "../utils/serialization";
 
 /** `red` / `63` / `purple` / `#ff8800` → the hex the mark's hint is drawn in. */
 export function spanColorHex(color: string): string {
@@ -46,26 +46,45 @@ export const ColorSpanMark = Mark.create({
     return {
       color: {
         default: "red",
-        parseHTML: (element) => element.getAttribute("data-color"),
+        // Through the head grammar, so pasted HTML can only name a colour.
+        parseHTML: (element) => spanColor(element.getAttribute("data-color") ?? ""),
         renderHTML: (attributes) => ({ "data-color": attributes.color }),
       },
       background: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-background"),
+        parseHTML: (element) => spanColor(element.getAttribute("data-background") ?? ""),
         renderHTML: (attributes) => (attributes.background ? { "data-background": attributes.background } : {}),
       },
     };
   },
 
   parseHTML() {
-    return [{ tag: 'span[data-type="color-span"]' }];
+    // A pasted span whose colours are not colours is not a span: its text
+    // is kept, the mark is not. The attributes are validated here as well as
+    // above, so the rule itself is refused rather than falling back to red.
+    return [
+      {
+        tag: 'span[data-type="color-span"]',
+        getAttrs: (element) => {
+          const color = spanColor(element.getAttribute("data-color") ?? "");
+          const background = element.getAttribute("data-background");
+          if (color === null) return false;
+          if (background !== null && spanColor(background) === null) return false;
+          return null;
+        },
+      },
+    ];
   },
 
   renderHTML({ HTMLAttributes, mark }) {
+    // Only a validated colour reaches the stylesheet: the custom properties
+    // are emitted for colours the head grammar accepts and nothing else, so
+    // an attribute that somehow carries more can never become CSS.
     const { color, background } = mark.attrs as ColorSpanAttrs;
-    const style = background
-      ? `--span-color:${spanColorHex(color)};--span-background:${spanColorHex(background)}`
-      : `--span-color:${spanColorHex(color)}`;
-    return ["span", mergeAttributes({ "data-type": "color-span", style }, HTMLAttributes), 0];
+    const parts: string[] = [];
+    if (spanColor(color ?? "") !== null) parts.push(`--span-color:${spanColorHex(color)}`);
+    if (background && spanColor(background) !== null) parts.push(`--span-background:${spanColorHex(background)}`);
+    const style = parts.length > 0 ? { style: parts.join(";") } : {};
+    return ["span", mergeAttributes({ "data-type": "color-span", ...style }, HTMLAttributes), 0];
   },
 });

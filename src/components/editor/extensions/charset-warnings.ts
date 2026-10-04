@@ -29,8 +29,8 @@ import type { Node as PMNode } from "@tiptap/pm/model";
 import { Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 
-import type { BoardToken } from "../../../lib/board-characters";
-import { BOARD_ICONS, type BoardIconName } from "../../../lib/board-icons";
+import { boardIconToken, type BoardToken } from "../../../lib/board-characters";
+import type { BoardIconName } from "../../../lib/board-icons";
 import { type CharacterSet, charsetFallback, type CharsetIssue, charsetIssue } from "../../../lib/character-sets";
 import { characterGlyphName } from "../../board/character-glyph";
 import { CURSOR_ANCHOR } from "../constants";
@@ -94,16 +94,6 @@ function spanOf(node: PMNode): Pick<BoardToken, "color" | "background"> {
   const out: Pick<BoardToken, "color" | "background"> = { color };
   if (background) out.background = background;
   return out;
-}
-
-/** The token `parseLine` emits for `{icon:name}`: the flap fallback, tagged. */
-function iconToken(name: BoardIconName, span: Pick<BoardToken, "color" | "background">): BoardToken {
-  const fallback = BOARD_ICONS[name]?.fallback ?? null;
-  const token: BoardToken =
-    fallback !== null && /^\d\d$/.test(fallback)
-      ? { type: "color", code: fallback, icon: name }
-      : { type: "char", value: fallback ?? " ", icon: name };
-  return { ...token, ...span };
 }
 
 /** Black text — `black` or its code — is an unlit letter, the default. */
@@ -172,11 +162,12 @@ export function collectCharsetWarnings(
       return false;
     }
     if (node.type.name === "icon") {
-      push(pos, pos + node.nodeSize, iconToken(node.attrs.name as BoardIconName, spanOf(node)));
+      push(pos, pos + node.nodeSize, boardIconToken(node.attrs.name as BoardIconName, spanOf(node)));
       return false;
     }
     if (node.type.name === "colorTile") {
-      push(pos, pos + node.nodeSize, { type: "color", code: String(node.attrs.color ?? ""), ...spanOf(node) });
+      // By its numeric code, which is what the board is sent for a tile.
+      push(pos, pos + node.nodeSize, { type: "color", code: String(node.attrs.code), ...spanOf(node) });
       return false;
     }
     return true;

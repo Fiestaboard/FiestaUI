@@ -300,9 +300,12 @@ export * from "./components/editor/variable-picker-content";
 export {
   type CharsetWarning,
   CharsetWarnings,
+  charsetWarningsKey,
   type CharsetWarningsLabels,
   collectCharsetWarnings,
   DEFAULT_CHARSET_WARNINGS_LABELS,
+  readCharsetWarnings,
+  setCharsetWarningsCharset,
 } from "./components/editor/extensions/charset-warnings";
 export { ColorSpanMark, spanColorHex } from "./components/editor/extensions/color-span-mark";
 export * from "./components/editor/extensions/color-tile-node";
