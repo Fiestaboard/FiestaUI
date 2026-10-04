@@ -234,8 +234,11 @@ describe("Combobox — keyboard model", () => {
     await user.keyboard("{ArrowDown}{Escape}");
 
     // Base UI unmounts the popup once its exit animation settles, so the list
-    // outlives the keypress by a tick. This still fails if it never goes away.
-    await waitForElementToBeRemoved(() => screen.queryByRole("listbox"));
+    // usually outlives the keypress by a tick, but not always.
+    // waitForElementToBeRemoved throws if the list is ALREADY gone when it
+    // starts, which made this test flaky under load. waitFor still fails if
+    // the list never goes away.
+    await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument());
 
     expect(input()).toHaveAttribute("aria-expanded", "false");
     expect(onValueChange).not.toHaveBeenCalled();
