@@ -290,14 +290,48 @@ function spanColor(head: string): string | null {
   return HEX_COLOR.test(head) ? head.toLowerCase() : null;
 }
 
-/** Index of the `}` matching the `{` at `open`, counting nested braces; -1 if unbalanced. */
-function matchingBrace(line: string, open: number): number {
-  let depth = 0;
-  for (let i = open; i < line.length; i++) {
-    if (line[i] === "{") depth++;
-    else if (line[i] === "}" && --depth === 0) return i;
+/**
+ * How deep spans may nest. A span opened at the top level is depth 1 and a
+ * span inside it is depth 2; an opener that would open depth 9 is not a
+ * marker but literal text (see {@link parseLine}). Eight is far beyond any
+ * message a person writes, and it bounds the parser's recursion so a
+ * hostile run of openers cannot overflow the stack. FiestaBoard's Python
+ * parser mirrors this cap; change it there too.
+ */
+export const MAX_SPAN_DEPTH = 8;
+
+/**
+ * The longest content a tile or end tag can have (`/orange`), the longest
+ * span head (`#rrggbb/#rrggbb`) and the longest icon name. Anything longer is
+ * never a marker, so the parser need not copy it out to find that out — which
+ * is what keeps a line of 100k openers linear rather than quadratic.
+ */
+const SHORT_MARKER_MAX = 8;
+const SPAN_HEAD_MAX = 16;
+const ICON_NAME_MAX = 16;
+
+/**
+ * Where every brace in `line` leads, found in one pass each: `close[i]` is the
+ * first `}` at or after `i` (-1 when there is none), and `match[i]`, for a `{`
+ * at `i`, is the `}` that balances it counting every brace in between (-1
+ * when unbalanced). Precomputed once per {@link parseLine} call so no opener
+ * ever scans forward on its own.
+ */
+function braceMap(line: string): { close: Int32Array; match: Int32Array } {
+  const n = line.length;
+  const close = new Int32Array(n);
+  const match = new Int32Array(n).fill(-1);
+  let next = -1;
+  for (let i = n - 1; i >= 0; i--) {
+    if (line[i] === "}") next = i;
+    close[i] = next;
   }
-  return -1;
+  const open: number[] = [];
+  for (let i = 0; i < n; i++) {
+    if (line[i] === "{") open.push(i);
+    else if (line[i] === "}" && open.length > 0) match[open.pop() as number] = i;
+  }
+  return { close, match };
 }
 
 /** The colours a span opens with: `red` → fg only, `black/white` → fg on bg. */
@@ -361,7 +395,10 @@ function iconToken(name: BoardIconName, span: SpanColors | undefined): BoardToke
  *   plain — the letters survive, only the colour is lost. This is distinct
  *   from `{red}HOT`, which is a red *tile* followed by HOT. Braces nest, so a
  *   tile or another span inside a span (`{red:HOT {63}}`) is fine, and the
- *   span ends at the brace that balances its own. A colour is a board colour
+ *   span ends at the brace that balances its own. Spans nest at most
+ *   {@link MAX_SPAN_DEPTH} (8) deep: an opener that would open a ninth level
+ *   is literal text, while tiles and icons inside it still parse. A colour is
+ *   a board colour
  *   name, a tile code `63`–`70` or `#rrggbb`; `filled` / `71` is a tile, not
  *   a colour, so `{filled:x}` is literal. Anything else before the colon
  *   (`{foo:bar}`) is literal text, like any other unknown marker.
@@ -380,60 +417,86 @@ function iconToken(name: BoardIconName, span: SpanColors | undefined): BoardToke
 export function parseLine(line: string, maxTokens: number = Infinity, options: ParseLineOptions = {}): BoardToken[] {
   const tokens: BoardToken[] = [];
   const { preserveCase = false, extendedMarkup = false } = options;
+  // A line with no brace at all has no markers; skip the brace map for it.
+  const braces = line.indexOf("{") === -1 ? null : braceMap(line);
 
-  const walk = (text: string, span: SpanColors | undefined) => {
-    let i = 0;
-    while (i < text.length && tokens.length < maxTokens) {
+  // Parse `line[start, end)` inside `span` (undefined at the top level), at
+  // span nesting `depth`. Spans recurse into their own body, bounded by
+  // MAX_SPAN_DEPTH; everything else is one forward pass.
+  const walk = (start: number, end: number, span: SpanColors | undefined, depth: number) => {
+    let i = start;
+    while (i < end && tokens.length < maxTokens) {
       // Check for single-bracket markers: {63}, {red}, {/red}, {/}, and under
       // extendedMarkup {red:…}, {black/white:…}, {icon:…}. (After template
       // rendering, colors are normalized to single brackets.)
-      if (text[i] === "{") {
-        const closingBrace = text.indexOf("}", i);
-        if (closingBrace !== -1) {
-          const content = text.substring(i + 1, closingBrace);
+      if (line[i] === "{" && braces) {
+        const closingBrace = braces.close[i];
+        if (closingBrace !== -1 && closingBrace < end) {
+          // A tile or an end tag is short; a longer content is never one, and
+          // is not copied out to find that out.
+          if (closingBrace - i - 1 <= SHORT_MARKER_MAX) {
+            const content = line.substring(i + 1, closingBrace);
 
-          // End tags render nothing — but only `{/}` and `{/<colour name>}`
-          // are end tags. Anything else after a slash (`{/foo}`, `{/63}`) is
-          // literal text on the board, so it falls through to be drawn
-          // character by character (FiestaBoard's COLOR_MARKER_PATTERN).
-          if (isEndTag(content)) {
-            i = closingBrace + 1;
-            continue;
+            // End tags render nothing — but only `{/}` and `{/<colour name>}`
+            // are end tags. Anything else after a slash (`{/foo}`, `{/63}`) is
+            // literal text on the board, so it falls through to be drawn
+            // character by character (FiestaBoard's COLOR_MARKER_PATTERN).
+            if (isEndTag(content)) {
+              i = closingBrace + 1;
+              continue;
+            }
+
+            const colorCode = lookupColorCode(content);
+            if (colorCode) {
+              tokens.push({ type: "color", code: colorCode });
+              i = closingBrace + 1;
+              continue;
+            }
           }
 
-          const colorCode = lookupColorCode(content);
-          if (colorCode) {
-            tokens.push({ type: "color", code: colorCode });
-            i = closingBrace + 1;
-            continue;
+          // The head of an extended marker is what sits before the first `:`.
+          // A valid head is at most SPAN_HEAD_MAX long, so the colon is only
+          // looked for that far: a later one makes the marker literal anyway.
+          let colon = -1;
+          if (extendedMarkup) {
+            const headEnd = Math.min(closingBrace, i + 2 + SPAN_HEAD_MAX);
+            for (let k = i + 1; k < headEnd; k++) {
+              if (line[k] === ":") {
+                colon = k;
+                break;
+              }
+            }
           }
-
-          const colon = extendedMarkup ? content.indexOf(":") : -1;
-          if (colon > 0) {
-            const head = content.substring(0, colon);
+          if (colon > i + 1) {
+            const head = line.substring(i + 1, colon);
             if (head.toLowerCase() === "icon") {
-              const raw = content.substring(colon + 1).toLowerCase();
-              // `{icon:heart}` is the heart character, not an icon: exactly
-              // a typed ♥, which the split-flap projection draws as code 62.
-              if (raw === "heart") {
-                tokens.push(withSpan({ type: "char", value: "♥" }, span));
-                i = closingBrace + 1;
-                continue;
+              if (closingBrace - colon - 1 <= ICON_NAME_MAX) {
+                const raw = line.substring(colon + 1, closingBrace).toLowerCase();
+                // `{icon:heart}` is the heart character, not an icon: exactly
+                // a typed ♥, which the split-flap projection draws as code 62.
+                if (raw === "heart") {
+                  tokens.push(withSpan({ type: "char", value: "♥" }, span));
+                  i = closingBrace + 1;
+                  continue;
+                }
+                const name = resolveBoardIconName(raw);
+                if (name) {
+                  tokens.push(iconToken(name, span));
+                  i = closingBrace + 1;
+                  continue;
+                }
               }
-              const name = resolveBoardIconName(raw);
-              if (name) {
-                tokens.push(iconToken(name, span));
-                i = closingBrace + 1;
-                continue;
-              }
-            } else {
+            } else if (depth < MAX_SPAN_DEPTH) {
+              // Past the depth cap an opener is literal text: it falls through
+              // with its head, its colon and, when the walk reaches it, its
+              // closing brace. Tiles and icons inside it still parse.
               const opened = spanHead(head);
               // The first `}` may belong to a tile inside the span; the span
               // itself ends at the brace that balances its own `{`.
-              const end = opened ? matchingBrace(text, i) : -1;
-              if (opened && end !== -1) {
-                walk(text.substring(i + colon + 2, end), opened);
-                i = end + 1;
+              const spanEnd = opened ? braces.match[i] : -1;
+              if (opened && spanEnd !== -1) {
+                walk(colon + 1, spanEnd, opened, depth + 1);
+                i = spanEnd + 1;
                 continue;
               }
             }
@@ -444,7 +507,7 @@ export function parseLine(line: string, maxTokens: number = Infinity, options: P
 
       // One cell per code point, as the board counts them: an emoji is one
       // character to FiestaBoard's renderer, not a UTF-16 surrogate pair.
-      const codePoint = text.codePointAt(i) ?? 0;
+      const codePoint = line.codePointAt(i) ?? 0;
       const ch = String.fromCodePoint(codePoint);
       // The board only supports uppercase letters, unless the caller can draw more.
       tokens.push(withSpan({ type: "char", value: typedCharToBoard(preserveCase ? ch : ch.toUpperCase()) }, span));
@@ -452,7 +515,7 @@ export function parseLine(line: string, maxTokens: number = Infinity, options: P
     }
   };
 
-  walk(line, undefined);
+  walk(0, line.length, undefined, 0);
   return tokens;
 }
 

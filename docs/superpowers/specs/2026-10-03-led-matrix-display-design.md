@@ -181,7 +181,7 @@ board parse one string the same way.
 | Marker                   | Meaning                                                                                                                                                                            | Split-flap                                   | LED RGB                               | LED monochrome                             |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------- | ------------------------------------------ |
 | `{red}`, `{63}` … `{71}` | A colour **tile**: one cell                                                                                                                                                        | the tile                                     | the glyph box filled (not the gutter) | a lit block; `{black}`/`{70}`/`{71}` unlit |
-| `{red:HOT}`              | A colour **span**: the letters in the colour. `<colour>` is a board colour name, a tile code `63`–`71` or `#rrggbb`; content parses recursively and braces nest (`{red:HOT {66}}`) | `HOT` in the flap colour                     | red letters                           | lit letters                                |
+| `{red:HOT}`              | A colour **span**: the letters in the colour. `<colour>` is a board colour name, a tile code `63`–`70` or `#rrggbb`; content parses recursively and braces nest (`{red:HOT {66}}`) | `HOT` in the flap colour                     | red letters                           | lit letters                                |
 | `{black/white:OPEN}`     | A **block span**: background `bg`, glyph `fg`; both board colours, codes or hex                                                                                                    | `OPEN` uncoloured                            | white field, unlit glyph (inverse)    | field in the panel colour, glyph unlit     |
 | `{icon:sun}`             | An **icon**: one cell, a character not an image                                                                                                                                    | its fallback: a tile, a character or a blank | the glyph in the icon's colour        | the lit glyph                              |
 | `{/}` , `{/red}`         | End tags                                                                                                                                                                           | —                                            | —                                     | —                                          |
@@ -200,6 +200,22 @@ is a board colour name (`red` … `black`, `purple`), a tile code `63`–`70` or
 `#rrggbb`; `filled` / `71` names a flap, not a hue, so `{filled:x}` is
 literal while `{filled}` stays a tile. Anything else before the colon
 (`{foo:bar}`) is literal text, like every unknown marker today.
+
+**Nesting depth.** Spans nest at most **8** deep (`MAX_SPAN_DEPTH`). A span
+opened outside any span is depth 1 and a span inside it is depth 2; an
+opener that would open depth 9 is not a marker: its `{`, head and `:` are
+ordinary characters of the depth-8 span, and its `}` is an ordinary `}`
+when the parse reaches it. Only parsed spans (colour and block) count — a
+literal `{foo:…}` wrapper uses no level — and tiles, icons and end tags are
+not spans, so they parse at every depth, including inside a literal
+ninth-level opener. A span's extent is unchanged by the cap: it still ends
+at the brace that balances its own `{`, counting every brace between them.
+So `{red:`×8 + `{blue:X}` + `}`×8 is eight red spans around the literal
+red text `{BLUE:X}`, and `{red:`×7 + `{blue:X}` + `}`×7 is a blue `X`. The
+cap bounds the parser's recursion; with brace matches found in one pass
+per line, a line of any length parses in linear time. The Python parser
+mirrors the cap exactly (parity fixtures in
+`scripts/ci/tests/board-characters.test.mjs`).
 
 Why not reuse `{red}…{/red}` for spans: it already parses — tile, text,
 nothing — and tens of plugin previews contain it. Reinterpreting it on LEDs

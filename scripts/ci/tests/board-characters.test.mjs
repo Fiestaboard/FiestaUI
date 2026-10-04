@@ -44,7 +44,9 @@ await build({
 
 const {
   BOARD_CHARS,
+  BOARD_ICON_ALIASES,
   BOARD_ICON_NAMES,
+  BOARD_ICONS,
   getCharIndex,
   isColorTile,
   parseLine,
@@ -474,6 +476,103 @@ test("extended (B1 finding 5): an icon whose fallback is a tile keeps the surrou
   // A plain tile inside a span is just a tile: it is not an icon and draws
   // its own colour, so the span does not touch it.
   assert.deepEqual(parseLine("{red:{66}}", Infinity, EXT), [color("66")]);
+});
+
+test("extended: spans nest to depth 8; a ninth level is literal text (the span depth cap)", () => {
+  // A span opened at the top level is depth 1; a span inside it is depth 2.
+  // MAX_SPAN_DEPTH is 8: an opener that would open depth 9 is not a marker —
+  // its `{`, head and `:` are ordinary characters in the enclosing span, and
+  // its `}` is an ordinary `}` when the walk reaches it. Tiles, icons and end
+  // tags are not spans: they parse at every depth. The extent of a span is
+  // still the brace that balances its own `{`, counting every brace inside.
+  const nest = (depth, inner) => "{red:".repeat(depth) + inner + "}".repeat(depth);
+  const red = (value) => ({ type: "char", value, color: "red" });
+  const blue = (value) => ({ type: "char", value, color: "blue" });
+
+  // Seven red spans around a blue one: the blue span is depth 8, and parses.
+  assert.deepEqual(parseLine(nest(7, "{blue:X}"), Infinity, EXT), [blue("X")]);
+  // Eight red spans around a blue one: the blue opener would be depth 9, so it
+  // is literal text in the depth-8 red span — braces, head, colon and all.
+  assert.deepEqual(parseLine(nest(8, "{blue:X}"), Infinity, EXT), [..."{BLUE:X}"].map(red));
+  // Nothing inside the literal opener counts as a deeper span either: a
+  // tenth-level opener is literal in the same way, and the trailing braces are
+  // ordinary characters up to the one that closes the depth-8 span.
+  assert.deepEqual(parseLine(nest(8, "{blue:{green:X}}"), Infinity, EXT), [..."{BLUE:{GREEN:X}}"].map(red));
+  // Tiles and icons are not spans; they still parse at depth 8, and inside a
+  // literal ninth-level opener.
+  assert.deepEqual(parseLine(nest(8, "{66}{icon:up}"), Infinity, EXT), [
+    color("66"),
+    { type: "char", value: "+", icon: "up", color: "red" },
+  ]);
+  assert.deepEqual(parseLine(nest(8, "{blue:{66}{icon:up}}"), Infinity, EXT), [
+    ...[..."{BLUE:"].map(red),
+    color("66"),
+    { type: "char", value: "+", icon: "up", color: "red" },
+    red("}"),
+  ]);
+  // Only parsed spans count toward the depth: a literal `{foo:…}` wrapper does
+  // not use a level, and a block span uses one like a colour span.
+  assert.deepEqual(parseLine("{foo:" + nest(7, "{blue:X}") + "}", Infinity, EXT), [
+    ...[..."{FOO:"].map(char),
+    blue("X"),
+    char("}"),
+  ]);
+  assert.deepEqual(parseLine("{black/white:" + nest(7, "{blue:X}") + "}", Infinity, EXT), [
+    ...[..."{BLUE:X}"].map((value) => ({ type: "char", value, color: "red" })),
+  ]);
+  // The depth-8 span still ends at its balancing brace, so text after it is
+  // outside every span.
+  assert.deepEqual(parseLine(nest(8, "{blue:X}") + "Z", Infinity, EXT), [...[..."{BLUE:X}"].map(red), char("Z")]);
+});
+
+test("parseLine: pathological brace runs parse in linear time, with and without maxTokens", () => {
+  // Every `{` used to scan forward for its `}` and its balancing brace, and a
+  // span recursed into a copy of its body, so a run of openers was quadratic
+  // (and deep nesting recursed once per level). Brace matches are now found in
+  // one pass per call and spans are capped at depth 8, so these finish fast
+  // and never throw.
+  const deep = "{red:".repeat(10000) + "X" + "}".repeat(10000);
+  const openers = "{red:".repeat(100000);
+  const bareOpeners = "{".repeat(100000);
+  const siblings = "{red:X}".repeat(50000);
+  const closers = "{red:".repeat(100000) + "}";
+  const icons = "{icon:".repeat(100000) + "}";
+  for (const [name, line] of Object.entries({ deep, openers, bareOpeners, siblings, closers, icons })) {
+    for (const options of [EXT, {}]) {
+      for (const cap of [Infinity, 132]) {
+        const started = performance.now();
+        const tokens = parseLine(line, cap, options);
+        const elapsed = performance.now() - started;
+        assert.ok(elapsed < 200, `${name} (${JSON.stringify(options)}, cap ${cap}) took ${elapsed.toFixed(0)}ms`);
+        assert.ok(tokens.length <= Math.min(cap, line.length), name);
+      }
+    }
+  }
+  // And the capped parse of the deep run is the eight-span prefix: every
+  // opener past the eighth is literal, coloured by the eighth span.
+  const tokens = parseLine(deep, Infinity, EXT);
+  assert.equal(tokens.length, deep.length - 8 * "{red:".length - 8);
+  assert.deepEqual(
+    tokens.slice(0, 5),
+    [..."{RED:"].map((value) => ({ type: "char", value, color: "red" })),
+  );
+  assert.deepEqual(tokens.at(-1), { type: "char", value: "}", color: "red" });
+});
+
+test("board icons: the registry and its aliases are frozen, null-prototype tables", () => {
+  for (const [name, table] of [
+    ["BOARD_ICONS", BOARD_ICONS],
+    ["BOARD_ICON_ALIASES", BOARD_ICON_ALIASES],
+  ]) {
+    assert.ok(Object.isFrozen(table), `${name} must be frozen`);
+    assert.equal(Object.getPrototypeOf(table), null, `${name} must keep its null prototype`);
+  }
+  for (const spec of Object.values(BOARD_ICONS)) assert.ok(Object.isFrozen(spec), "each icon spec must be frozen");
+  assert.throws(() => {
+    "use strict";
+    BOARD_ICON_ALIASES.constructor = "sun";
+  });
+  assert.equal(resolveBoardIconName("constructor"), null);
 });
 
 test("extended: preserveCase keeps the message's case; the default uppercases", () => {

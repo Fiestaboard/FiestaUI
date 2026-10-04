@@ -51,10 +51,18 @@ export type BoardIconName =
   | "partly";
 
 /**
- * Null-prototype so `{icon:constructor}` cannot pass the lookup in
- * `parseLine` — the same guard `ALL_COLOR_CODES` carries.
+ * A lookup table nothing can grow or inherit from: null-prototype so
+ * `{icon:constructor}` cannot pass the lookup in `parseLine` (the same guard
+ * `ALL_COLOR_CODES` carries), and frozen — entries too — so a consumer cannot
+ * add an icon or edit a fallback behind the parser's back.
  */
-export const BOARD_ICONS: Readonly<Record<BoardIconName, BoardIconSpec>> = Object.assign(Object.create(null), {
+function freezeTable<T extends Record<string, unknown>>(entries: T): Readonly<T> {
+  const table = Object.assign(Object.create(null), entries) as T;
+  for (const value of Object.values(table)) if (typeof value === "object" && value !== null) Object.freeze(value);
+  return Object.freeze(table);
+}
+
+export const BOARD_ICONS: Readonly<Record<BoardIconName, BoardIconSpec>> = freezeTable({
   sun: { label: "sun", color: BOARD_COLORS.yellow, fallback: "65" },
   cloud: { label: "cloud", color: BOARD_COLORS.white, fallback: "69" },
   rain: { label: "rain", color: BOARD_COLORS.blue, fallback: "67" },
@@ -83,7 +91,7 @@ export const BOARD_ICON_NAMES = Object.keys(BOARD_ICONS) as BoardIconName[];
  * shortcuts (`engine.py` SYMBOL_CHARS: storm, x). `heart` is not an icon —
  * `{icon:heart}` is the ♥ character, see `parseLine`.
  */
-export const BOARD_ICON_ALIASES: Readonly<Record<string, BoardIconName>> = Object.assign(Object.create(null), {
+export const BOARD_ICON_ALIASES: Readonly<Record<string, BoardIconName>> = freezeTable({
   storm: "bolt",
   x: "cross",
 });
