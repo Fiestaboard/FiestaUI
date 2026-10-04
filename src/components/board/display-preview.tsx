@@ -43,7 +43,7 @@ import {
 } from "../../lib/board-dimensions";
 import { isDevBuild } from "../../lib/dev";
 import { type DeviceModel, type DeviceModelRef, resolveDeviceModel } from "../../lib/devices";
-import { type BoardCellGrid } from "../../lib/led-matrix";
+import { type BoardCellGrid, type LedLetterCase } from "../../lib/led-matrix";
 import { type LedTransitionId } from "../../lib/led-transition-registry";
 import { type LedTransitionSpec } from "../../lib/led-transitions";
 import { BoardDisplay } from "./board-display";
@@ -95,6 +95,12 @@ export interface DisplayPreviewProps {
   extendedMarkup?: boolean;
   /** Renderer size. Defaults to each renderer's own. */
   size?: "sm" | "md" | "lg";
+  /**
+   * LED: keep the message's case (`"mixed"`) on a face that carries
+   * lowercase, as `LedMatrixDisplay` does; default `"upper"`, the flap's
+   * only case. A split-flap board has no lowercase, so it ignores this.
+   */
+  letterCase?: LedLetterCase;
   /** Note array: the board's notes wide / tall. */
   notesWide?: number;
   notesTall?: number;
@@ -220,6 +226,7 @@ export function DisplayPreview({
   code62Glyph,
   extendedMarkup,
   size,
+  letterCase,
   notesWide,
   notesTall,
   gridRows,
@@ -263,7 +270,7 @@ export function DisplayPreview({
     board = (
       <LedMatrixDisplay
         model={model}
-        {...defined({ ...content, size, transition, announceUpdates })}
+        {...defined({ ...content, size, letterCase, transition, announceUpdates })}
         pixelShape={isPixelShape(pixelShape) ? pixelShape : undefined}
       />
     );
