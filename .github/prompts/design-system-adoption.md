@@ -19,6 +19,16 @@ exported there; component sources are in `{{FIESTAUI_DIR}}/src/components/`.
 3. Repeated patterns the kit does NOT cover → file a FiestaUI issue (see
    below). Never build kit-like components inside FiestaBoard.
 
+## Out of scope: LED matrix and character-set adoption
+
+The LED matrix components (`LedMatrixDisplay` and the LED pickers, glyphs
+and specimens that follow it) and the `charset` / `model` props on the kit's
+pickers are adopted in FiestaBoard only through its output-plugins program,
+which owns the device models, the parser parity work and the markup
+switch-over. Do NOT swap FiestaBoard code onto them, add those props, or
+file issues asking for it: leave anything LED- or character-set-shaped as it
+is and, if you notice a candidate, mention it under "Skipped" in the summary.
+
 ## Swap rules
 
 1. Swap only when confident: the kit component reproduces the same behavior

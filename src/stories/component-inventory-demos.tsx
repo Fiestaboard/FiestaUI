@@ -68,6 +68,7 @@ import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "../compone
 import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
 import { BoardTeaser } from "../components/board/board-teaser";
+import { LedMatrixDisplay } from "../components/board/led-matrix-display";
 import { ScaledBoardDisplay } from "../components/board/scaled-board-display";
 import { StaticBoardDisplay } from "../components/board/static-board-display";
 import { BoardIcon } from "../components/chrome/board-icon";
@@ -1591,6 +1592,9 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </div>
   ),
   BoardTeaser: () => <BoardTeaser teaser="AQI 42 GOOD" size="md" />,
+  LedMatrixDisplay: () => (
+    <LedMatrixDisplay message={"72° SUNNY\nAQI 42\n{66}{66} GOOD"} preset="hub75_64x32" size="sm" />
+  ),
 
   /* ---- Data ---- */
   StatStrip: () => (
