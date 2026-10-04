@@ -610,11 +610,13 @@ export function deviceFacts(device: ShowcaseDevice): DeviceFacts {
         : `one colour, ${c.color}, ${c.bitDepth === 1 ? "on or off" : "8-bit brightness"}`;
   const a = model.animation;
   const animation =
-    a.delivery === "none"
-      ? "takes one message; the hardware changes by itself"
-      : a.delivery === "stream"
-        ? `streamed, about ${a.maxFps} frames a second`
-        : `uploaded sequences of up to ${a.maxFrames ?? "any number of"} frames, ${a.minFrameMs ?? "?"} ms each (${a.maxFps} fps)`;
+    model.technology === "split_flap"
+      ? `written frame by frame, about ${a.maxFps} a second; the flaps cascade each write`
+      : a.delivery === "none"
+        ? "takes one message; the hardware changes by itself"
+        : a.delivery === "stream"
+          ? `streamed, about ${a.maxFps} frames a second`
+          : `uploaded sequences of up to ${a.maxFrames ?? "any number of"} frames, ${a.minFrameMs ?? "?"} ms each (${a.maxFps} fps)`;
   const defaultTransition = defaultTransitionIdForModel(model);
   const flip = transitionsForModel(model).find((t) => t.id === "flip");
   const defaultWhy =

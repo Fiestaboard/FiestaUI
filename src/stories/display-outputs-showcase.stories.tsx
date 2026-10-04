@@ -41,6 +41,7 @@ import { BOARD_ICON_NAMES, BOARD_ICONS } from "../lib/board-icons";
 import { type CharacterSet, type CharacterSetId, charsetDiff } from "../lib/character-sets";
 import { ACME_SIGN_MODEL, goldenCharacterSet } from "../lib/charset-golden-cases";
 import { DEVICE_MODEL_IDS, DEVICE_MODELS, type DeviceModel, validateDeviceModel } from "../lib/devices";
+import { SEQUENCE_PANEL_MODEL } from "../lib/led-golden-cases";
 import { LED_TRANSITIONS, type LedTransitionId, transitionsForModel } from "../lib/led-transition-registry";
 import { LED_TRANSITION_KINDS } from "../lib/led-transitions";
 import { FIESTAPANEL_LED_MATRIX_MODEL, FIESTAPANEL_SPLIT_FLAP_MODEL } from "../lib/plugin-model-fixtures";
@@ -165,8 +166,9 @@ export const Overview: Story = {
         </Text>
         <Text>
           Transitions are a menu judged against each device's frame budget: FiestaBoard's own flip, which scrambles
-          through the board's own characters, is the default wherever the device can show it, and the Pixoo's 32-frame
-          sequence budget is honoured by compressing, never truncating. Under reduced motion every change snaps.
+          through the board's own characters, is the default wherever the device can show it, and a sequence player's
+          frame budget is honoured by compressing, never truncating. The Pixoo 64 snaps: its hardware test showed
+          uploaded animations loop and overlay. Under reduced motion every change snaps.
         </Text>
       </Stack>
       <Figure caption="A HUB75 128×64 through DisplayPreview: colour spans, a tile bar, icons, lowercase in the 5×7 face.">
@@ -197,7 +199,7 @@ export const Overview: Story = {
             </li>
             <li>
               <StoryLink id={`${SHOWCASE}--transitions`}>Transitions</StoryLink> — every kind, the per-device defaults
-              and the Pixoo's budget.
+              and a sequence device's budget.
             </li>
             <li>
               <StoryLink id={`${SHOWCASE}--colour-blocks-and-icons`}>Colour, blocks and icons</StoryLink> — the grammar
@@ -694,11 +696,13 @@ function DefaultsTable() {
             const flip = menu.find((t) => t.id === "flip")!;
             const def = flip.available ? "flip" : "none";
             const frames =
-              a.delivery === "none"
-                ? "none: one message at a time"
-                : a.delivery === "stream"
-                  ? `streamed at ${a.maxFps} fps`
-                  : `sequence of ≤ ${a.maxFrames ?? "∞"} frames`;
+              model.technology === "split_flap"
+                ? `written frame by frame, about ${a.maxFps}/s; the flaps cascade`
+                : a.delivery === "none"
+                  ? "none: one message at a time"
+                  : a.delivery === "stream"
+                    ? `streamed at ${a.maxFps} fps`
+                    : `sequence of ≤ ${a.maxFrames ?? "∞"} frames`;
             return (
               <TableRow key={model.id}>
                 <TableCell>
@@ -725,8 +729,9 @@ function DefaultsTable() {
 
 /**
  * The six kinds on one device, the per-device defaults from the registry
- * (flip wherever the device can show one, else none), and the Pixoo's menu
- * with every entry compressed into its 32-frame sequence budget.
+ * (flip wherever the device can show one, else none), and a sequence
+ * player's menu with every entry compressed into its 32-frame budget — the
+ * generic `sequence_panel_64` fixture model, since the Pixoo 64 snaps.
  */
 export const Transitions: Story = {
   render: () => (
@@ -745,12 +750,14 @@ export const Transitions: Story = {
         <DefaultsTable />
       </Stack>
       <Stack gap="3">
-        <PanelHeading title="The Pixoo 64's 32-frame budget">
-          The Divoom HTTP API takes a whole animation and plays it itself, so every entry is compressed to fit 32 frames
-          — a flip becomes one frame per step with no half-flaps — and always lands on the final frame. The previews
-          show exactly the frames a sequence will contain.
+        <PanelHeading title="A sequence player's 32-frame budget">
+          A device that takes a whole animation and plays it itself compresses every entry to fit its budget — here 32
+          frames on the <Code>sequence_panel_64</Code> fixture model: a flip becomes one frame per step with no
+          half-flaps — and always lands on the final frame. The previews show exactly the frames a sequence will
+          contain. (The Pixoo 64 used to stand here; its hardware test showed uploaded animations loop and overlay, so
+          it snaps.)
         </PanelHeading>
-        <LedTransitionPicker model="divoom_pixoo64" columns="3" />
+        <LedTransitionPicker model={SEQUENCE_PANEL_MODEL as unknown as DeviceModel} columns="3" />
       </Stack>
     </Stack>
   ),
