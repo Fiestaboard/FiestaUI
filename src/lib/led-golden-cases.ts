@@ -68,6 +68,28 @@ export const ACME_SIGN_YEN_CHARSET: CharacterSetInput = {
 /** A plugin device-model declaration: JSON, with its character set inline. */
 export type GoldenPluginModel = Readonly<Record<string, unknown>> & { readonly charset: CharacterSetInput };
 
+/**
+ * A generic sequence-capable device, declared as a plugin manifest would: a
+ * 64×64 RGB panel that takes an uploaded sequence of up to 32 frames held
+ * at least 80 ms each, in the 3×5 face over the built-in set. It pins the
+ * 32-frame budget machinery (compression, the default flip fitting whole)
+ * that the Pixoo 64 used to pin before its hardware test showed it snaps
+ * (`DEVICE_MODELS.divoom_pixoo64`): the budget rules are a property of the
+ * sequence contract, not of one device.
+ */
+export const SEQUENCE_PANEL_MODEL = {
+  id: "sequence_panel_64",
+  label: "Sequence panel 64×64",
+  technology: "led_matrix",
+  family: "sequence_http",
+  geometry: { kind: "pixels", width: 64, height: 64 },
+  color: { kind: "rgb", bitDepth: 24 },
+  charset: { id: "sequence_panel_3x5", extends: "led_3x5" },
+  animation: { delivery: "sequence", maxFps: 12.5, maxFrames: 32, minFrameMs: 80 },
+  font: "3x5",
+  appearance: { pixelShape: "square", dotRatio: 0.9 },
+} as const satisfies GoldenPluginModel;
+
 export const GOLDEN_LAYOUT_CASES: readonly GoldenLayoutCase[] = [
   { name: "awtrix 3x5 clip", message: "72° {66}OK TOO LONG", spec: { width: 32, height: 8, font: "3x5" } },
   { name: "5x7 weather with tiles", message: "72° SUNNY\nHI 78 LO 61\n{65}{65} UV 6", spec: { width: 64, height: 32 } },
@@ -180,24 +202,25 @@ export const GOLDEN_TRANSITION_CASES: readonly GoldenTransitionCase[] = [
     fps: 25,
   },
   {
-    // Compressed to the Pixoo's hard budget: stagger first, then scramble,
-    // one frame per step and no half-flaps; the last frame is the target.
-    name: "pixoo 32-frame budget",
+    // Compressed to a sequence player's hard budget: the scramble keeps up
+    // to maxFrames − 2 steps and the stagger takes what is left (here 30 and
+    // 0), one frame per step and no half-flaps; the last frame is the target.
+    name: "sequence device 32-frame budget",
     from: "72° SUNNY\n{66} AQI 42",
     to: "61° RAIN\n{63} AQI 90",
     spec: { width: 32, height: 16, font: "3x5" },
     transition: { kind: "flip", scrambleSteps: 40, stagger: 20 },
-    model: "divoom_pixoo64",
+    pluginModel: SEQUENCE_PANEL_MODEL,
   },
   {
-    // The default flip on the Pixoo fits whole: 6 + 6 + 2 = 14 frames.
-    name: "pixoo default flip, monochrome amber",
+    // The default flip on a 32-frame sequence player fits whole: 6 + 6 + 2 = 14 frames.
+    name: "sequence device default flip, monochrome amber",
     from: "{black/white:OPEN} 9-5",
     to: "{black/white:SHUT} 5-9",
     spec: { width: 32, height: 16, font: "3x5" },
     options: { monochrome: "#ffb000" },
     transition: "flip",
-    model: "divoom_pixoo64",
+    pluginModel: SEQUENCE_PANEL_MODEL,
   },
   {
     // A plugin sign under its own 12-frame sequence budget, amber, in its

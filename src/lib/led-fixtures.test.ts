@@ -163,8 +163,9 @@ describe("LED golden cases", () => {
     }
   });
 
-  it("the Pixoo case is exactly 32 frames, one per step, no half-flaps, and the default flip fits whole", () => {
-    const c = golden.transitions.find((g: { name: string }) => g.name === "pixoo 32-frame budget");
+  it("the sequence-device case is exactly 32 frames, one per step, no half-flaps, and the default flip fits whole", () => {
+    const c = golden.transitions.find((g: { name: string }) => g.name === "sequence device 32-frame budget");
+    expect(c.pluginModel.id).toBe("sequence_panel_64");
     expect(c.resolvedSpec).toEqual({
       kind: "flip",
       stepMs: 80,
@@ -176,7 +177,13 @@ describe("LED golden cases", () => {
     expect(c.frameCount).toBe(32);
     expect(c.frames).toHaveLength(32);
     expect(c.durationMs).toBe(31 * 80);
-    const whole = golden.transitions.find((g: { name: string }) => g.name === "pixoo default flip, monochrome amber");
+    // The split: the scramble keeps 30 of the 32 frames, the stagger none —
+    // so every changing cell is mid-scramble from frame 1 to frame 30.
+    const changing = c.frames.findIndex((f: string, i: number) => i > 0 && f !== c.frames[0]);
+    expect(changing).toBe(1);
+    const whole = golden.transitions.find(
+      (g: { name: string }) => g.name === "sequence device default flip, monochrome amber",
+    );
     expect(whole.frameCount).toBe(14);
   });
 

@@ -413,13 +413,77 @@ describe("flip — FiestaBoard's scramble", () => {
     // No half-flap frame exists inside a budget; frameAt steps over exactly these frames.
     expect(bytes(tr.frameAt(40))).toEqual(bytes(tr.frameAt(0)));
     for (let f = 0; f < 8; f++) expect(bytes(tr.frameAt(f * 80 + 10))).toEqual(bytes(frames[f]));
-    // The Pixoo's 32 frames hold the default flip whole: nothing is shortened.
-    const pixoo = planLedTransition(lay("AB"), lay("CD"), { kind: "flip", maxFrames: 32 });
-    expect(pixoo.frameCount).toBe(2 + 6 + 6);
+    // The split: 8 frames = stagger + scramble + 2. The stagger goes first
+    // (it is the cascade; the scramble is the flip), so the scramble keeps 6
+    // steps and the stagger drops to 0 — the changing cell starts at once and
+    // is mid-scramble on every frame between the old glyph and the new.
+    const fromGlyph = lay("A").cells[0].glyph;
+    const toGlyph = lay("?").cells[0].glyph;
+    for (let f = 1; f <= 6; f++) {
+      const g = tr.layoutAt(f * 80).cells[0].glyph;
+      expect(g, `frame ${f}`).not.toBe(fromGlyph);
+      expect(g, `frame ${f}`).not.toBe(toGlyph);
+    }
+    expect(tr.layoutAt(7 * 80).cells[0].glyph).toBe(toGlyph);
+    // Room for the whole scramble and part of the stagger: the scramble is
+    // untouched and the stagger takes what is left (10 − 2 − 6 = 2).
+    const partial = planLedTransition(lay("AB"), lay("CD"), {
+      kind: "flip",
+      scrambleSteps: 6,
+      stagger: 6,
+      maxFrames: 10,
+    });
+    expect(partial.frameCount).toBe(10);
+    for (const cell of [0, 1]) {
+      const seq = Array.from({ length: 10 }, (_, f) => partial.layoutAt(f * 80).cells[cell].glyph);
+      const firstScrambled = seq.findIndex((g, f) => f > 0 && g !== seq[0]);
+      // Delay is 0…2 steps; then six scrambled glyphs; then the target.
+      expect(firstScrambled).toBeGreaterThanOrEqual(1);
+      expect(firstScrambled).toBeLessThanOrEqual(3);
+      expect(seq.slice(firstScrambled, firstScrambled + 6).every((g) => g !== seq[0] && g !== seq[9])).toBe(true);
+      expect(seq[firstScrambled + 6]).toBe(seq[9]);
+    }
+    // A 32-frame sequence budget holds the default flip whole: nothing is shortened.
+    const whole = planLedTransition(lay("AB"), lay("CD"), { kind: "flip", maxFrames: 32 });
+    expect(whole.frameCount).toBe(2 + 6 + 6);
     // A two-frame budget is old → new.
     const two = planLedTransition(lay("A"), lay("B"), { kind: "flip", maxFrames: 2 });
     expect(two.frameCount).toBe(2);
     expect(ledTransitionFrames(two).map(bytes)).toEqual([bytes(two.from), bytes(two.to)]);
+  });
+
+  it("runs no scramble on a set with nothing to scramble through, instead of crashing", () => {
+    // A plugin set that draws no character, tile or icon has an empty pool.
+    // Its cells can still change (the layout keeps glyph keys the face will
+    // draw blank), so the flip must plan with scrambleSteps 0, not index
+    // into nothing.
+    const empty = materializeCharacterSet({
+      id: "blank_set",
+      label: "Blank",
+      version: 1,
+      chars: [],
+      tiles: false,
+      icons: [],
+      mixedCase: false,
+      colorSpans: false,
+      blockSpans: false,
+      font: "3x5",
+    });
+    expect(ledScramblePool(empty)).toEqual([]);
+    const from = lay("A", { charset: empty });
+    const to = lay("B", { charset: empty });
+    let tr!: ReturnType<typeof planLedTransition>;
+    expect(() => {
+      tr = planLedTransition(from, to, { kind: "flip", stepMs: 80, scrambleSteps: 4, stagger: 2, halfFlap: false });
+      ledTransitionFrames(tr);
+    }).not.toThrow();
+    // stagger + 0 + 2 frames: the cells go straight to their targets.
+    expect(tr.frameCount).toBe(4);
+    expect(bytes(tr.frameAt(tr.durationMs))).toEqual(bytes(tr.to));
+    for (let f = 0; f < 4; f++) {
+      const g = tr.layoutAt(f * 80).cells[0].glyph;
+      expect([from.cells[0].glyph, to.cells[0].glyph]).toContain(g);
+    }
   });
 
   it("quantises a per-pixel kind to a budget, last frame settled", () => {

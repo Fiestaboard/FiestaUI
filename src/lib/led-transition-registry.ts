@@ -119,7 +119,7 @@ export const LED_TRANSITIONS: Readonly<Record<LedTransitionId, LedTransitionEntr
 export const LED_TRANSITION_IDS = Object.keys(LED_TRANSITIONS) as LedTransitionId[];
 
 export function isLedTransitionId(value: unknown): value is LedTransitionId {
-  return typeof value === "string" && value in LED_TRANSITIONS;
+  return typeof value === "string" && Object.hasOwn(LED_TRANSITIONS, value);
 }
 
 /** One menu entry judged against one device. */
@@ -229,8 +229,10 @@ export interface ResolvedLedTransition {
   spec: LedTransitionSpec | "none";
   /** Where it came from. `fallback`: the explicit choice could not run here. */
   source: "explicit" | "default" | "fallback";
-  /** The explicit choice that was set aside, when `source` is `fallback`. */
-  requested?: LedTransitionId;
+  /** The explicit choice that was set aside, when `source` is `fallback` —
+   *  an id the device cannot run, or a value that is no id at all (a stale
+   *  setting), reported as given. */
+  requested?: LedTransitionId | string;
   /** Why the choice fell back, or how the entry is degraded. */
   reason?: string;
 }
@@ -239,16 +241,31 @@ export interface ResolvedLedTransition {
  * Apply the precedence: an explicit choice wins when the device can run it;
  * otherwise the model's default. A spec with its own timings is kept as
  * given (its `kind` is checked, its numbers are the caller's), except that a
- * device frame budget is always applied. Without a model there is no device
- * to ask: an explicit choice runs as written and nothing is a default.
+ * device frame budget is always applied — the tighter of the caller's and
+ * the device's. Without a model there is no device to ask: an explicit
+ * choice runs as written and nothing is a default. A choice that is not a
+ * registry id at all (a stale setting, a typo in a plugin's request) is
+ * never run or looked up: it falls back to the default with
+ * `source: "fallback"`, `requested` as given and a reason.
  */
 export function resolveLedTransition(
   choice: LedTransitionId | LedTransitionSpec | undefined,
   ref?: DeviceModelRef,
 ): ResolvedLedTransition {
   const model: DeviceModel | undefined = ref === undefined ? undefined : resolveDeviceModel(ref);
-  const requested: LedTransitionId | undefined =
+  const requested: string | undefined =
     choice === undefined ? undefined : typeof choice === "string" ? choice : choice.kind;
+  if (requested !== undefined && !isLedTransitionId(requested)) {
+    const fallbackId = model ? defaultTransitionIdForModel(model) : "none";
+    const fallback = model ? transitionSpecForDevice(fallbackId, model.animation)!.spec : "none";
+    return {
+      id: fallbackId,
+      spec: fallback,
+      source: "fallback",
+      requested,
+      reason: `Unknown transition "${requested}"; one of ${LED_TRANSITION_IDS.join(", ")}.`,
+    };
+  }
   if (!model) {
     if (choice === undefined || choice === "none")
       return { id: "none", spec: "none", source: choice ? "explicit" : "default" };
@@ -268,7 +285,7 @@ export function resolveLedTransition(
         if (device.stepMs !== undefined)
           spec.stepMs = Math.max(choice.stepMs ?? DEFAULT_LED_FLIP_STEP_MS, device.stepMs);
         if (device.halfFlap === false) spec.halfFlap = false;
-        if (device.maxFrames !== undefined) spec.maxFrames = device.maxFrames;
+        if (device.maxFrames !== undefined) spec.maxFrames = Math.min(choice.maxFrames ?? Infinity, device.maxFrames);
       }
       return { id: requested, spec, source: "explicit", reason: result.reason };
     }

@@ -717,24 +717,26 @@ byte; h = (h × prime) mod 2³²` per byte) over exactly these bytes, in this
   never contain NUL, so the layout is unambiguous). The seed feeds
   mulberry32 (`a += 0x6d2b79f5; t = imul(a ^ (a >>> 15), 1 | a); t = (t +
 imul(t ^ (t >>> 7), 61 | t)) ^ t; (t ^ (t >>> 14)) >>> 0) / 2³²`), and the
-  cell's plan is read from it in this order: its delay, `floor(r × (stagger
-  - 1))`when`stagger > 0`(no draw otherwise); then, per scramble step,`pool[floor(r × n)]`, and if that glyph equals the previous one shown (the
-cell's old glyph for the first step) or the target, and `n > 2`, one more
-draw: `pool[(i + 1 + floor(r × (n − 1))) mod n]`where`i`is the first
-pick's index. Pinned seeds:`(0, "A", "B", 6, 1) = 3714565441`,
-`(3, "A", "€", 6, 2) = 990692943`, `(0, " ", "tile:63", 8, 1) =
-    2711017083`, `(5, "icon:sun", "¥", 12, 2) = 2318610564`— computed
-independently in Python and asserted in`led-transitions.test.ts`. So the
-preview, `ledTransitionFrames`, the frames a device receives and the
-Python port's are identical and repeatable; a different change scrambles
-differently (tested); laying out another set first changes nothing
-(golden: the ACME flip after another set's `¥€`, byte-identical to the
-standalone case; and a `vi.resetModules` test that a fresh module graph
-    agrees with a primed one). Hashing glyph _keys_ is the point: an earlier
-    revision hashed the glyph's index in a process-local table that custom
-    glyphs were appended to on first sight (FiestaBoard #2170), so two
-    processes could scramble a cell changing to or from a plugin's glyph
-    differently.
+  cell's plan is read from it in this order: its delay,
+  `floor(r × (stagger + 1))` when `stagger > 0` (no draw otherwise, delay
+  0); then, per scramble step, `pool[floor(r × n)]`, and if that glyph
+  equals the previous one shown (the
+  cell's old glyph for the first step) or the target, and `n > 2`, one more
+  draw: `pool[(i + 1 + floor(r × (n − 1))) mod n]`where`i`is the first
+  pick's index. Pinned seeds:`(0, "A", "B", 6, 1) = 3714565441`,
+  `(3, "A", "€", 6, 2) = 990692943`, `(0, " ", "tile:63", 8, 1) =
+  2711017083`, `(5, "icon:sun", "¥", 12, 2) = 2318610564`— computed
+  independently in Python and asserted in`led-transitions.test.ts`. So the
+  preview, `ledTransitionFrames`, the frames a device receives and the
+  Python port's are identical and repeatable; a different change scrambles
+  differently (tested); laying out another set first changes nothing
+  (golden: the ACME flip after another set's `¥€`, byte-identical to the
+  standalone case; and a `vi.resetModules` test that a fresh module graph
+  agrees with a primed one). Hashing glyph _keys_ is the point: an earlier
+  revision hashed the glyph's index in a process-local table that custom
+  glyphs were appended to on first sight (FiestaBoard #2170), so two
+  processes could scramble a cell changing to or from a plugin's glyph
+  differently.
 
 - The run length is a **parameter**: `scrambleSteps` (default 6) and
   `stagger` (default up to 6 steps of seeded per-cell delay, so the board
@@ -750,9 +752,12 @@ standalone case; and a `vi.resetModules` test that a fresh module graph
   intermediate letters and icons take the target cell's colour; a
   monochrome panel stays monochrome throughout (tested).
 - Under `maxFrames` the stagger is shortened first (it is the cascade; the
-  scramble is the flip), then the scramble; the last frame is always the
-  target. The Pixoo's 32 frames hold the default flip whole (14 frames); a
-  62-frame request is compressed to exactly 32.
+  scramble is the flip), then the scramble: `scrambleSteps = min(scrambleSteps,
+maxFrames − 2)`, then `stagger = min(stagger, maxFrames − 2 −
+scrambleSteps)`; the last frame is always the target. A 32-frame sequence
+  budget holds the default flip whole (14 frames); a 62-frame request is
+  compressed to exactly 32 (scramble 30, stagger 0). A set with an empty
+  scramble pool (nothing drawable) runs `scrambleSteps = 0`.
 
 The split-flap `BoardDisplay` is untouched: it imitates real Vestaboard
 hardware and keeps Vestaboard's order. Nothing in the LED path depends on
@@ -807,9 +812,12 @@ Where the setting lives in the FiestaBoard app: **per board** as the default
 
 ### 8.5 In the component and the picker
 
-`transition` accepts a registry id or a spec. Off by default: a static
-preview never schedules a frame, which matters for a dashboard of
-thumbnails. When on, the layout effect plans a transition from what the
+`transition` accepts a registry id or a spec. Unset, it is the **device
+default** (`resolveLedTransition(undefined, model)`: flip where the device
+is fast enough, else none — the owner's rule in 8.4); `"none"` opts out.
+Without a model or preset there is no device to ask and a change snaps, so
+a dashboard of size-only thumbnails never schedules a frame. When a
+transition runs, the layout effect plans a transition from what the
 canvas currently shows to the new layout and runs one `requestAnimationFrame`
 loop (one closure, which also serves DPR repaints); a message that lands
 mid-transition retargets from `layoutAt(now)` / `frameAt(now)` rather than

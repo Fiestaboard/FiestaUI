@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { DEVICE_MODELS } from "./devices";
+import { ACME_SIGN_MODEL, goldenCharacterSet } from "./charset-golden-cases";
+import { DEVICE_MODELS, type DeviceModel } from "./devices";
 import {
   defaultTransitionIdForModel,
   isLedTransitionId,
@@ -75,6 +76,45 @@ describe("the transition menu", () => {
     expect(defaultTransitionIdForModel(DEVICE_MODELS.divoom_pixoo64)).toBe("flip");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.ulanzi_tc001_awtrix)).toBe("none");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.vestaboard_flagship)).toBe("none");
+  });
+
+  it("knows only its own ids: an inherited name is not a transition, and a stale choice falls back", () => {
+    expect(isLedTransitionId("flip")).toBe(true);
+    expect(isLedTransitionId("constructor")).toBe(false);
+    expect(isLedTransitionId("__proto__")).toBe(false);
+    expect(isLedTransitionId("toString")).toBe(false);
+    // A choice that is not an id — a stale setting, a typo in a plugin's
+    // request — falls back to the default with a reason, never a crash and
+    // never a prototype lookup.
+    const hub = DEVICE_MODELS.hub75_64x32;
+    const stale = resolveLedTransition("constructor" as never, hub);
+    expect(stale).toMatchObject({ id: "flip", source: "fallback", requested: "constructor" });
+    expect(stale.reason).toMatch(/Unknown transition "constructor"/);
+    expect(resolveLedTransition({ kind: "toString" as never }, hub)).toMatchObject({
+      id: "flip",
+      source: "fallback",
+      requested: "toString",
+    });
+    // Without a model there is still nothing to run: none, as a fallback.
+    expect(resolveLedTransition("constructor" as never)).toMatchObject({
+      id: "none",
+      spec: "none",
+      source: "fallback",
+      requested: "constructor",
+    });
+    expect(() => transitionsForModel(hub)).not.toThrow();
+  });
+
+  it("honours a caller's tighter frame budget under a device's, and the device's under a looser one", () => {
+    const sign = { ...ACME_SIGN_MODEL, charset: goldenCharacterSet("acme_sign_v1") } as unknown as DeviceModel;
+    expect(resolveLedTransition({ kind: "flip", maxFrames: 6 }, sign).spec).toMatchObject({ maxFrames: 6 });
+    expect(resolveLedTransition({ kind: "flip", maxFrames: 40 }, sign).spec).toMatchObject({ maxFrames: 12 });
+    expect(resolveLedTransition({ kind: "fade", maxFrames: 4 }, sign).spec).toMatchObject({ maxFrames: 4 });
+    expect(resolveLedTransition({ kind: "flip" }, sign).spec).toMatchObject({ maxFrames: 12 });
+    // A streamed device has no budget of its own; the caller's stands.
+    expect(resolveLedTransition({ kind: "flip", maxFrames: 9 }, DEVICE_MODELS.hub75_64x32).spec).toMatchObject({
+      maxFrames: 9,
+    });
   });
 
   it("resolves with the precedence: explicit > default, falling back with a reason", () => {

@@ -371,9 +371,10 @@ interface CellScramble {
  * cell with delay `d` shows its old glyph while `f ≤ d`, its `(f − d)`th
  * scrambled glyph while `d < f ≤ d + scrambleSteps`, and its target from
  * `f = d + scrambleSteps + 1` on. The last frame, `stagger + scrambleSteps + 1`,
- * is the new layout for every cell. Under a `maxFrames` budget the stagger
- * and then the scramble are shortened until the whole fits; nothing is cut
- * from the end, so the final frame is always the target.
+ * is the new layout for every cell. Under a `maxFrames` budget the scramble
+ * keeps up to `maxFrames − 2` steps and the stagger is shortened to what is
+ * left — the stagger goes first, then the scramble; nothing is cut from the
+ * end, so the final frame is always the target.
  */
 function planFlip(
   from: LedLayout,
@@ -390,15 +391,20 @@ function planFlip(
 
   let { scrambleSteps, stagger } = spec;
   const { stepMs, halfFlap, maxFrames } = spec;
+  const pool = ledScramblePool(charsetForLayout(to));
+  // A set with nothing to scramble through (no character, tile or icon)
+  // runs no scramble: the cells go straight to their targets after their
+  // delay, rather than indexing into an empty pool.
+  if (pool.length === 0) scrambleSteps = 0;
   if (maxFrames !== null) {
-    // Fit: frames = stagger + scrambleSteps + 2. Shorten the stagger first
-    // (it is the cascade, the scramble is the flip), then the scramble.
-    stagger = Math.min(stagger, Math.max(0, maxFrames - 2 - Math.min(scrambleSteps, 1)));
-    scrambleSteps = Math.max(0, Math.min(scrambleSteps, maxFrames - 2 - stagger));
+    // Fit: frames = stagger + scrambleSteps + 2. The scramble is the flip
+    // and keeps as much of the budget as it needs; the stagger (the
+    // cascade) takes what is left, so it is what shortens first.
+    scrambleSteps = Math.max(0, Math.min(scrambleSteps, maxFrames - 2));
+    stagger = Math.max(0, Math.min(stagger, maxFrames - 2 - scrambleSteps));
   }
   const frames = stagger + scrambleSteps + 2;
   const durationMs = (frames - 1) * stepMs;
-  const pool = ledScramblePool(charsetForLayout(to));
 
   // Seeded per cell from its position and the change it makes (by stable
   // glyph key), so the same change on the same board scrambles the same way
