@@ -172,6 +172,8 @@ const DEVICE_TABLE: Array<[string, boolean, () => unknown]> = [
     () => ({ ...pixoo(), animation: { delivery: "stream", maxFps: 1, sources: [1] } }),
   ],
   ["an unknown font", false, () => ({ ...pixoo(), font: "8x8" })],
+  ["a split-flap model with a known font", true, () => ({ ...flagship(), font: "3x5" })],
+  ["a split-flap model with an unknown font", false, () => ({ ...flagship(), font: "8x8" })],
   ["an unknown appearance field", false, () => ({ ...pixoo(), appearance: { shape: "round" } })],
   ["an unknown pixel shape", false, () => ({ ...pixoo(), appearance: { pixelShape: "hex" } })],
   ["a dot ratio above 1", false, () => ({ ...pixoo(), appearance: { dotRatio: 1.2 } })],

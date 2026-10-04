@@ -19,6 +19,10 @@
  *   everything is inherited **except `version`**, so it is version 1.
  * - `ticker_mono_v2` extends nothing, so it must be complete; it has no tiles
  *   and no spans, which covers the fallbacks the other sets never reach.
+ * - `kiosk_mono_v1` extends `led_3x5` with **icons but no tiles and no
+ *   spans**: an icon it draws keeps its glyph even where its fallback would
+ *   be a tile the set cannot draw, and only the span colours around it are
+ *   lost.
  */
 
 import {
@@ -72,6 +76,16 @@ export const TICKER_MONO_CHARSET: CharacterSetInput = {
   font: "3x5",
 };
 
+export const KIOSK_MONO_CHARSET: CharacterSetInput = {
+  id: "kiosk_mono_v1",
+  label: "Kiosk (mono, icons, no tiles)",
+  extends: "led_3x5",
+  tiles: false,
+  icons: ["check", "up"],
+  colorSpans: false,
+  blockSpans: false,
+};
+
 /**
  * The device that owns the ACME set, declared as a plugin manifest would:
  * a 48×12 amber one-colour sign in the 3×5 face with a 12-frame sequence
@@ -103,6 +117,7 @@ export const GOLDEN_PLUGIN_CHARSETS: readonly CharacterSetInput[] = [
   ACME_SIGN_V2_CHARSET,
   LOBBY_FLAP_CHARSET,
   TICKER_MONO_CHARSET,
+  KIOSK_MONO_CHARSET,
 ];
 
 const materialized = new Map<string, CharacterSet>();
@@ -154,6 +169,27 @@ export const GOLDEN_FALLBACK_CASES: readonly GoldenFallbackCase[] = [
   { name: "icon to a character the set lacks, colour dropped", set: "acme_sign_v1", markup: "{red:{icon:bus}}" },
   { name: "icon to a character outside the set becomes blank", set: "ticker_mono_v2", markup: "{icon:fog}" },
   { name: "icon to a tile where the set has no tiles", set: "ticker_mono_v2", markup: "{icon:check}" },
+  {
+    name: "supported icon with a tile fallback where the set has no tiles",
+    set: "kiosk_mono_v1",
+    markup: "{icon:check}",
+  },
+  {
+    name: "supported icon with a character fallback where the set has no tiles",
+    set: "kiosk_mono_v1",
+    markup: "{icon:up}",
+  },
+  {
+    name: "supported icon loses a span colour the set cannot draw",
+    set: "kiosk_mono_v1",
+    markup: "{red:{icon:check}}",
+  },
+  {
+    name: "supported icon loses block colours the set cannot draw",
+    set: "kiosk_mono_v1",
+    markup: "{black/white:{icon:up}}",
+  },
+  { name: "supported icon keeps a span colour the set draws", set: "led_5x7", markup: "{red:{icon:sun}}" },
   { name: "tile where the set has no tiles", set: "ticker_mono_v2", markup: "{66}" },
   { name: "heart kept where the set has it", set: "ticker_mono_v2", markup: "♥" },
   { name: "degree to heart on a plugin set", set: "ticker_mono_v2", markup: "°" },
@@ -182,5 +218,10 @@ export const GOLDEN_MESSAGE_CASES: readonly GoldenMessageCase[] = [
     message: "hi {red:€} {icon:sun}\n{63}{black/white:A} {icon:up}",
   },
   { name: "no-tiles set: tile, icon, lowercase, heart", set: "ticker_mono_v2", message: "{63} ab ♥ {icon:up}" },
+  {
+    name: "icons without tiles: kept icons, a lost tile, a lost colour",
+    set: "kiosk_mono_v1",
+    message: "{icon:check} {66} {red:{icon:up}}",
+  },
   { name: "clean message has no issues", set: "led_5x7", message: "{red:HOT} {icon:sun} Now 72°" },
 ];

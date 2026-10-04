@@ -12,7 +12,7 @@
 // src/lib/led-fixtures.test.ts recomputes every fixture and fails when they
 // drift from the code; regenerate on purpose, then commit both.
 
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -24,6 +24,9 @@ const fixtures = path.join(repoRoot, "scripts/ci/tests/fixtures");
 const cacheDir = path.join(repoRoot, "node_modules", ".cache");
 mkdirSync(cacheDir, { recursive: true });
 const workDir = mkdtempSync(path.join(cacheDir, "led-fixtures-"));
+// The bundles are only needed while this runs; leave nothing behind, whether
+// the run finishes or throws.
+process.on("exit", () => rmSync(workDir, { recursive: true, force: true }));
 
 async function load(entry) {
   const outfile = path.join(workDir, path.basename(entry).replace(/\.ts$/, ".mjs"));

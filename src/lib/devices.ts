@@ -36,8 +36,8 @@ import type { DeviceType } from "./board-dimensions";
 import {
   CHARACTER_SET_IDS,
   type CharacterSet,
-  characterSetForDevice,
   type CharacterSetId,
+  type CharacterSetInput,
   isCharacterSetId,
   resolveCharacterSet,
   validateCharacterSet,
@@ -176,9 +176,9 @@ export interface DeviceModel {
    * from it with the board's `code62Glyph`. Always go through that function
    * for a split-flap model.
    */
-  charset: CharacterSetId | CharacterSet;
+  charset: CharacterSetId | CharacterSet | CharacterSetInput;
   /** For a model whose flap varies by board: the set per code-62 glyph. */
-  charsetByCode62?: Record<Code62Glyph, CharacterSetId | CharacterSet>;
+  charsetByCode62?: Record<Code62Glyph, CharacterSetId | CharacterSet | CharacterSetInput>;
   animation: DeviceAnimation;
   /** LED only. */
   font?: LedFontId;
@@ -481,12 +481,13 @@ export function validateDeviceModel(json: unknown): ValidationResult {
     if (a.notes !== undefined && typeof a.notes !== "string") errors.push("animation.notes: a string");
     if (a.sources !== undefined && !isStringArray(a.sources)) errors.push("animation.sources: an array of strings");
   }
-  if (m.technology === "led_matrix") {
-    if (m.font !== undefined && !Object.hasOwn(LED_FONTS, m.font as string)) {
-      errors.push(`font: one of ${Object.keys(LED_FONTS).join(", ")}`);
-    }
-    if (isPlainObject(g) && g.kind !== "pixels")
-      errors.push("geometry.kind: an led_matrix model is measured in pixels");
+  // `font` is checked on every model, as the schema does: a split-flap model
+  // has no use for one, but one it names must still be a face that exists.
+  if (m.font !== undefined && !Object.hasOwn(LED_FONTS, m.font as string)) {
+    errors.push(`font: one of ${Object.keys(LED_FONTS).join(", ")}`);
+  }
+  if (m.technology === "led_matrix" && isPlainObject(g) && g.kind !== "pixels") {
+    errors.push("geometry.kind: an led_matrix model is measured in pixels");
   }
   if (m.appearance !== undefined) {
     const ap = m.appearance;
@@ -547,12 +548,15 @@ export function deviceModelForDeviceType(deviceType: DeviceType): DeviceModel {
 }
 
 /**
- * The set a particular board draws. For a Flagship that is a property of
- * the board (which flap it carries), so `code62Glyph` decides between the
- * two Vestaboard versions, exactly as `resolveCode62Glyph` does.
+ * The set a particular board draws, read from the model itself: its
+ * `charsetByCode62` entry for the board's glyph when it has one, else its
+ * `charset`. For a Flagship which flap it carries is a property of the
+ * board, so `code62Glyph` decides between the two Vestaboard versions,
+ * exactly as `resolveCode62Glyph` does. `legacy.deviceType` is never
+ * consulted: a plugin model that sets it for old call sites keeps its own
+ * set, and the built-ins declare the sets their device types imply.
  */
 export function characterSetForModel(model: DeviceModel, code62Glyph?: Code62Glyph): CharacterSet {
-  if (model.legacy?.deviceType) return characterSetForDevice(model.legacy.deviceType, code62Glyph);
   if (model.charsetByCode62 && code62Glyph) return resolveCharacterSet(model.charsetByCode62[code62Glyph]);
   return resolveCharacterSet(model.charset);
 }

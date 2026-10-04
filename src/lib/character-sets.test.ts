@@ -115,6 +115,85 @@ describe("charsetSupports / charsetIssue", () => {
   });
 });
 
+describe("charsetIssue / charsetFallback with a set that draws icons but no tiles", () => {
+  // An icon the set draws as a glyph never reaches its fallback tile, so a
+  // set with `tiles: false` keeps it. Only the span colours around it can be
+  // lost, exactly as around a letter.
+  const kiosk: CharacterSetInput = {
+    id: "kiosk_mono",
+    extends: "led_3x5",
+    tiles: false,
+    icons: ["check", "up"],
+    colorSpans: false,
+    blockSpans: false,
+  };
+  const set = materializeCharacterSet(kiosk);
+
+  it("keeps a supported icon whose fallback is a tile, and one whose fallback is a character", () => {
+    expect(charsetIssue(set, tok("{icon:check}"))).toBeNull();
+    expect(charsetFallback(set, tok("{icon:check}"))).toEqual({ type: "color", code: "66", icon: "check" });
+    expect(charsetIssue(set, tok("{icon:up}"))).toBeNull();
+    expect(charsetFallback(set, tok("{icon:up}"))).toEqual({ type: "char", value: "+", icon: "up" });
+    // A plain tile is still a tile the set cannot draw.
+    expect(charsetIssue(set, tok("{66}"))).toBe("tile");
+    expect(charsetFallback(set, tok("{66}"))).toEqual({ type: "char", value: " " });
+    // An icon the set lacks degrades to its fallback, which this set cannot draw either.
+    expect(charsetIssue(set, tok("{icon:sun}"))).toBe("icon");
+    expect(charsetFallback(set, tok("{icon:sun}"))).toEqual({ type: "char", value: " " });
+  });
+
+  it("names the span colour a supported icon would lose, as it does for a letter", () => {
+    expect(charsetIssue(set, tok("{red:{icon:check}}"))).toBe("colorSpan");
+    expect(charsetFallback(set, tok("{red:{icon:check}}"))).toEqual({ type: "color", code: "66", icon: "check" });
+    expect(charsetIssue(set, tok("{black/white:{icon:up}}"))).toBe("blockSpan");
+    expect(charsetFallback(set, tok("{black/white:{icon:up}}"))).toEqual({ type: "char", value: "+", icon: "up" });
+    // Where the set draws colour spans, a coloured icon is fine as written.
+    expect(charsetIssue("led_5x7", tok("{red:{icon:sun}}"))).toBeNull();
+    expect(charsetFallback("led_5x7", tok("{red:{icon:sun}}"))).toEqual(tok("{red:{icon:sun}}"));
+  });
+});
+
+describe("an embedded partial set is materialised on resolve", () => {
+  // A device model may embed `{ id, extends: "led_3x5" }`; everything that
+  // resolves a set must hand back the whole set, never the raw declaration.
+  const partial: CharacterSetInput = { id: "kiosk_partial", extends: "led_3x5", tiles: false };
+
+  it("fills the missing fields from the parent and keeps one identity per declaration", () => {
+    const set = resolveCharacterSet(partial);
+    expect(set.id).toBe("kiosk_partial");
+    expect(set.tiles).toBe(false);
+    expect(set.font).toBe("3x5");
+    expect(set.chars).toEqual(CHARACTER_SETS.led_3x5.chars);
+    expect(set.icons).toEqual(CHARACTER_SETS.led_3x5.icons);
+    expect(set.version).toBe(1);
+    expect(validateCharacterSet(set)).toEqual({ ok: true, errors: [] });
+    // The same declaration resolves to the same object, so WeakMap-keyed
+    // lookups and memoised consumers hold.
+    expect(resolveCharacterSet(partial)).toBe(set);
+    expect(tryResolveCharacterSet(partial).set).toBe(set);
+  });
+
+  it("so the set-level helpers work on it", () => {
+    expect(charsetIssue(partial, tok("A"))).toBeNull();
+    expect(charsetIssue(partial, tok("{66}"))).toBe("tile");
+    expect(charsetDiff(partial, "led_3x5")).toMatchObject({
+      addedChars: [],
+      removedChars: [],
+      features: [["tiles", false, true]],
+    });
+    expect(charsInSet(partial, ["A", "€"])).toEqual(["A"]);
+    expect(validateMessage("A {66}", partial).issues.map((i) => i.reason)).toEqual(["tile"]);
+  });
+
+  it("still hands a whole set back as itself, and refuses an unresolvable declaration", () => {
+    const whole = materializeCharacterSet(partial);
+    expect(resolveCharacterSet(whole)).toBe(whole);
+    expect(resolveCharacterSet(CHARACTER_SETS.led_5x7)).toBe(CHARACTER_SETS.led_5x7);
+    expect(() => resolveCharacterSet({ id: "x", extends: "nope" })).toThrow(/extends unknown set "nope"/);
+    expect(tryResolveCharacterSet({ id: "x", extends: "nope" }).error).toMatch(/nope/);
+  });
+});
+
 describe("charsetFallback", () => {
   it("draws what the renderers draw: uppercased, spans dropped, icons as fallbacks, ° ↔ ♥", () => {
     expect(charsetFallback("vestaboard_v1", tok("a"))).toEqual({ type: "char", value: "A" });

@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { CHARACTER_SETS } from "./character-sets";
+import {
+  CHARACTER_SETS,
+  type CharacterSet,
+  characterSetForDevice,
+  type CharacterSetId,
+  charsetDiff,
+  charsetHasChar,
+} from "./character-sets";
 import {
   characterSetForModel,
   DEVICE_FAMILIES,
   DEVICE_MODEL_IDS,
   DEVICE_MODELS,
   type DeviceFamilyId,
+  type DeviceModel,
   deviceModelForDeviceType,
   deviceModelForPreset,
   isDeviceModelId,
@@ -24,7 +32,7 @@ describe("device taxonomy", () => {
       const m = DEVICE_MODELS[id];
       expect(m.id).toBe(id);
       expect(DEVICE_FAMILIES[m.family as DeviceFamilyId].technology, id).toBe(m.technology);
-      expect(typeof m.charset === "string" ? CHARACTER_SETS[m.charset] : m.charset, id).toBeDefined();
+      expect(typeof m.charset === "string" ? CHARACTER_SETS[m.charset as CharacterSetId] : m.charset, id).toBeDefined();
       expect(validateDeviceModel(JSON.parse(JSON.stringify(m))), id).toEqual({ ok: true, errors: [] });
       // The researched notes and sources live in the fixture, not the bundle.
       expect(m.animation, id).not.toHaveProperty("notes");
@@ -84,6 +92,71 @@ describe("device taxonomy", () => {
       /Unknown device model "flagship"\. Built-ins: vestaboard_flagship/,
     );
     expect(tryResolveDeviceModel("flagship").error).toMatch(/must be passed as an object/);
+  });
+});
+
+describe("characterSetForModel reads the model's own set", () => {
+  // A plugin may declare a split-flap model and set `legacy.deviceType` so
+  // old call sites still find a DeviceType; that must not coerce its set to
+  // a Vestaboard's.
+  const own: CharacterSet = {
+    id: "acme_flap",
+    label: "ACME flap",
+    version: 1,
+    chars: [..."ABC"],
+    tiles: false,
+    icons: [],
+    mixedCase: false,
+    colorSpans: false,
+    blockSpans: false,
+  };
+  const base: DeviceModel = {
+    id: "acme_flap_2x10",
+    label: "ACME flap 2×10",
+    technology: "split_flap",
+    family: "acme_serial",
+    geometry: { kind: "cells", rows: 2, cols: 10 },
+    color: { kind: "tiles" },
+    charset: own,
+    animation: { delivery: "none", maxFps: 0 },
+    legacy: { deviceType: "flagship" },
+  };
+
+  it("prefers the model's charset over legacy.deviceType", () => {
+    expect(characterSetForModel(base)).toBe(own);
+    expect(characterSetForModel(base, "heart")).toBe(own);
+    expect(characterSetForModel(base, "degree")).toBe(own);
+  });
+
+  it("prefers the model's charsetByCode62 over legacy.deviceType", () => {
+    const heart: CharacterSet = { ...own, id: "acme_flap_heart", chars: [..."ABC♥"] };
+    const model: DeviceModel = { ...base, charsetByCode62: { degree: own, heart } };
+    expect(characterSetForModel(model)).toBe(own);
+    expect(characterSetForModel(model, "degree")).toBe(own);
+    expect(characterSetForModel(model, "heart")).toBe(heart);
+  });
+
+  it("materialises an embedded partial set", () => {
+    const model: DeviceModel = { ...base, charset: { id: "acme_partial", extends: "vestaboard_v2", tiles: false } };
+    const set = characterSetForModel(model);
+    expect(set.id).toBe("acme_partial");
+    expect(set.tiles).toBe(false);
+    expect(set.chars).toEqual(CHARACTER_SETS.vestaboard_v2.chars);
+    expect(charsetHasChar(set, "♥")).toBe(true);
+    expect(charsetDiff(set, "vestaboard_v2").features).toEqual([["tiles", false, true]]);
+    expect(characterSetForModel(model)).toBe(set);
+  });
+
+  it("leaves every built-in exactly where its legacy device type put it", () => {
+    for (const id of DEVICE_MODEL_IDS) {
+      const model = DEVICE_MODELS[id];
+      if (!model.legacy?.deviceType) continue;
+      for (const glyph of [undefined, "degree", "heart"] as const) {
+        expect(characterSetForModel(model, glyph), `${id} / ${glyph}`).toBe(
+          characterSetForDevice(model.legacy.deviceType, glyph),
+        );
+      }
+    }
   });
 });
 

@@ -167,12 +167,49 @@ export function isCharacterSetId(value: unknown): value is CharacterSetId {
   return typeof value === "string" && Object.hasOwn(CHARACTER_SETS, value);
 }
 
+/** The fields a whole set carries; a declaration missing any is partial. */
+const WHOLE_SET_FIELDS = [
+  "label",
+  "version",
+  "chars",
+  "tiles",
+  "icons",
+  "mixedCase",
+  "colorSpans",
+  "blockSpans",
+] as const;
+
+/** Is this object a whole {@link CharacterSet}, or a declaration still to be made whole? */
+function isWholeCharacterSet(set: CharacterSetInput): set is CharacterSet {
+  return WHOLE_SET_FIELDS.every((field) => set[field] !== undefined);
+}
+
+/**
+ * Partial declarations made whole, one per declaration object: a model that
+ * embeds `{ id, extends: "led_3x5" }` resolves to the same set every time,
+ * so WeakMap-keyed lookups ({@link charsetHasChar}) and memoised consumers
+ * see one identity.
+ */
+const materializedByInput = new WeakMap<CharacterSetInput, CharacterSet>();
+
 /**
  * A set by built-in id, or the object itself (a plugin's). An unknown id is
- * an error, loudly: nothing here coerces a stranger to a Vestaboard.
+ * an error, loudly: nothing here coerces a stranger to a Vestaboard. A
+ * partial declaration (`{ id, extends }`, as a device model may embed) is
+ * made whole with {@link materializeCharacterSet} — never handed back raw,
+ * so every set-level helper can read its `chars` and `icons` — and throws
+ * as that does when it cannot be.
  */
-export function resolveCharacterSet(set: CharacterSetId | CharacterSet | string): CharacterSet {
-  if (typeof set !== "string") return set;
+export function resolveCharacterSet(set: CharacterSetId | CharacterSet | CharacterSetInput | string): CharacterSet {
+  if (typeof set !== "string") {
+    if (isWholeCharacterSet(set)) return set;
+    let whole = materializedByInput.get(set);
+    if (!whole) {
+      whole = materializeCharacterSet(set);
+      materializedByInput.set(set, whole);
+    }
+    return whole;
+  }
   if (isCharacterSetId(set)) return CHARACTER_SETS[set];
   throw new Error(
     `Unknown character set "${set}". Built-ins: ${CHARACTER_SET_IDS.join(", ")}; a plugin's set must be passed as an object.`,
@@ -181,7 +218,7 @@ export function resolveCharacterSet(set: CharacterSetId | CharacterSet | string)
 
 /** {@link resolveCharacterSet} without the throw: the set, or why not. */
 export function tryResolveCharacterSet(
-  set: CharacterSetId | CharacterSet | string,
+  set: CharacterSetId | CharacterSet | CharacterSetInput | string,
 ): { set: CharacterSet; error?: undefined } | { set?: undefined; error: string } {
   try {
     return { set: resolveCharacterSet(set) };
@@ -334,13 +371,20 @@ export function characterSetForDevice(deviceType: string, code62Glyph?: Code62Gl
 export type CharsetIssue = "char" | "case" | "tile" | "icon" | "colorSpan" | "blockSpan";
 
 /** The first reason a set cannot draw `token` as written, or `null` if it can. */
-export function charsetIssue(set: CharacterSetId | CharacterSet, token: BoardToken): CharsetIssue | null {
+export function charsetIssue(
+  set: CharacterSetId | CharacterSet | CharacterSetInput,
+  token: BoardToken,
+): CharsetIssue | null {
   const s = resolveCharacterSet(set);
   if (token.icon !== undefined && !charsetHasIcon(s, token.icon)) return "icon";
-  if (token.type === "color") return s.tiles ? null : "tile";
+  // An icon the set draws never reaches its fallback tile, so a set without
+  // tiles keeps it; only the span colours around it can be lost, as around
+  // a letter. A plain tile is a tile.
+  if (token.type === "color" && token.icon === undefined) return s.tiles ? null : "tile";
   if (token.background !== undefined && !s.blockSpans) return "blockSpan";
   if (token.color !== undefined && !s.colorSpans) return "colorSpan";
-  if (token.icon !== undefined) return null;
+  // What is left of a supported icon is its glyph, whatever its fallback.
+  if (token.type === "color" || token.icon !== undefined) return null;
   if (token.value === " ") return null;
   if (charsetHasChar(s, token.value)) return null;
   if (token.value !== token.value.toUpperCase() && charsetHasChar(s, token.value.toUpperCase())) {
@@ -349,7 +393,7 @@ export function charsetIssue(set: CharacterSetId | CharacterSet, token: BoardTok
   return "char";
 }
 
-export function charsetSupports(set: CharacterSetId | CharacterSet, token: BoardToken): boolean {
+export function charsetSupports(set: CharacterSetId | CharacterSet | CharacterSetInput, token: BoardToken): boolean {
   return charsetIssue(set, token) === null;
 }
 
@@ -365,10 +409,20 @@ export function charsetSupports(set: CharacterSetId | CharacterSet, token: Board
  * them as informational fields; a character then goes through the set's
  * span rules like any other character.
  */
-export function charsetFallback(set: CharacterSetId | CharacterSet, token: BoardToken): BoardToken {
+export function charsetFallback(set: CharacterSetId | CharacterSet | CharacterSetInput, token: BoardToken): BoardToken {
   const s = resolveCharacterSet(set);
   let t: BoardToken = token;
-  if (t.icon !== undefined && !charsetHasIcon(s, t.icon)) {
+  if (t.icon !== undefined && charsetHasIcon(s, t.icon)) {
+    // The set draws the glyph itself, so the fallback tile or character is
+    // never reached — even where the set has no tiles. Span colours the set
+    // cannot draw are dropped, as they are around a letter.
+    if ((t.color === undefined || s.colorSpans) && (t.background === undefined || s.blockSpans)) return t;
+    const kept: BoardToken = { ...t };
+    if (!s.colorSpans) delete kept.color;
+    if (!s.blockSpans) delete kept.background;
+    return kept;
+  }
+  if (t.icon !== undefined) {
     const { fallback } = BOARD_ICONS[t.icon];
     const degraded: BoardToken =
       fallback !== null && /^\d\d$/.test(fallback)
@@ -414,7 +468,10 @@ export interface CharsetValidation {
  * that spans and icons degrade. Case is preserved when the set has it, so a
  * lowercase letter on an uppercase set is reported as a `case` issue.
  */
-export function validateMessage(message: string, set: CharacterSetId | CharacterSet): CharsetValidation {
+export function validateMessage(
+  message: string,
+  set: CharacterSetId | CharacterSet | CharacterSetInput,
+): CharsetValidation {
   const s = resolveCharacterSet(set);
   const issues: CharsetValidationIssue[] = [];
   message.split("\n").forEach((line, row) => {
@@ -427,13 +484,13 @@ export function validateMessage(message: string, set: CharacterSetId | Character
 }
 
 /** The icons a set draws, in registry order. */
-export function iconsInSet(set: CharacterSetId | CharacterSet): BoardIconName[] {
+export function iconsInSet(set: CharacterSetId | CharacterSet | CharacterSetInput): BoardIconName[] {
   const s = resolveCharacterSet(set);
   return BOARD_ICON_NAMES.filter((name) => charsetHasIcon(s, name));
 }
 
 /** `chars` filtered to what the set draws, order kept. */
-export function charsInSet(set: CharacterSetId | CharacterSet, chars: readonly string[]): string[] {
+export function charsInSet(set: CharacterSetId | CharacterSet | CharacterSetInput, chars: readonly string[]): string[] {
   const s = resolveCharacterSet(set);
   return chars.filter((c) => charsetHasChar(s, c));
 }
@@ -448,7 +505,10 @@ export interface CharsetDiff {
 }
 
 /** What `set` adds to and lacks against `base`. */
-export function charsetDiff(set: CharacterSetId | CharacterSet, base: CharacterSetId | CharacterSet): CharsetDiff {
+export function charsetDiff(
+  set: CharacterSetId | CharacterSet | CharacterSetInput,
+  base: CharacterSetId | CharacterSet | CharacterSetInput,
+): CharsetDiff {
   const a = resolveCharacterSet(set);
   const b = resolveCharacterSet(base);
   const features: CharsetDiff["features"] = [];
@@ -465,7 +525,7 @@ export function charsetDiff(set: CharacterSetId | CharacterSet, base: CharacterS
 }
 
 /** The lineage of a set, root first. */
-export function charsetLineage(set: CharacterSetId | CharacterSet): CharacterSet[] {
+export function charsetLineage(set: CharacterSetId | CharacterSet | CharacterSetInput): CharacterSet[] {
   const chain: CharacterSet[] = [];
   let current: CharacterSet | undefined = resolveCharacterSet(set);
   while (current) {
