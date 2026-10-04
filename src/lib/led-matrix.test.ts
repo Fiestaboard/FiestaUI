@@ -3,17 +3,22 @@ import { describe, expect, it } from "vitest";
 import { BOARD_CHARS, parseLine } from "./board-characters";
 import { BOARD_COLORS } from "./board-colors";
 import { BOARD_ICON_NAMES, BOARD_ICONS } from "./board-icons";
+import { materializeCharacterSet } from "./character-sets";
+import { ACME_SIGN_CHARSET } from "./charset-golden-cases";
 import { LED_FONTS } from "./led-fonts";
+import { GOLDEN_LAYOUT_CASES } from "./led-golden-cases";
 import {
   DEFAULT_LED_TEXT_COLOR,
   drawLedGlyph,
   frameToAscii,
   frameToBits,
+  layoutLedCellGrid,
   layoutLedMessage,
   LED_BLANK_GLYPH,
   LED_GLYPHS,
   LED_MATRIX_PRESETS,
   ledBackgroundMask,
+  ledCellGridMismatch,
   type LedDrawOp,
   ledGlyphEntry,
   ledGlyphKey,
@@ -591,5 +596,119 @@ describe("a plugin set's glyphs", () => {
     expect(a1.cells[1].glyph).toBe(b.cells[1].glyph);
     expect(LED_GLYPHS).not.toContain("€");
     expect(LED_GLYPHS).not.toContain("¥");
+  });
+});
+
+describe("layoutLedCellGrid: a cell grid in, instead of a message", () => {
+  /** The grid `layoutLedMessage` would parse for itself, so the two paths can be compared. */
+  function parsedGrid(message: string, spec: Parameters<typeof layoutLedMessage>[1], letterCase?: "upper" | "mixed") {
+    const grid = ledGridLayout(spec);
+    const lines = message.split("\n");
+    const options = { extendedMarkup: true, preserveCase: letterCase === "mixed" };
+    return Array.from({ length: grid.rows }, (_, row) => parseLine(lines[row] || "", grid.cols, options));
+  }
+  const snapshot = (layout: ReturnType<typeof layoutLedMessage>) => ({
+    cells: layout.cells,
+    ops: layout.ops,
+    text: layout.text,
+    options: layout.options,
+    pixels: Array.from(rasterizeLedLayout(layout).pixels),
+  });
+
+  it.each(GOLDEN_LAYOUT_CASES.map((c) => [c.name, c] as const))(
+    "draws the golden case '%s' byte-identically from its parsed cells",
+    (_name, c) => {
+      const charset = c.charset ? materializeCharacterSet(c.charset) : undefined;
+      const options = { ...c.options, charset };
+      const fromMessage = layoutLedMessage(c.message, c.spec, options);
+      const fromCells = layoutLedCellGrid(parsedGrid(c.message, c.spec, c.options?.letterCase), c.spec, options);
+      expect(snapshot(fromCells)).toEqual(snapshot(fromMessage));
+    },
+  );
+
+  it("draws a tile the same whether the token spells it by name or by number", () => {
+    const spec = { width: 16, height: 8, font: "3x5" as const };
+    const named = layoutLedCellGrid(
+      [
+        [
+          { type: "color", code: "red" },
+          { type: "color", code: "black" },
+        ],
+      ],
+      spec,
+    );
+    const numeric = layoutLedCellGrid(
+      [
+        [
+          { type: "color", code: "63" },
+          { type: "color", code: "70" },
+        ],
+      ],
+      spec,
+    );
+    expect(snapshot(numeric)).toEqual(snapshot(named));
+    expect(named.cells.map((cell) => cell.glyph)).toEqual(["tile:63", "tile:70", " ", " "]);
+    // The filled tile is the black one on an emissive display.
+    const filled = layoutLedCellGrid([[{ type: "color", code: "71" }]], spec);
+    expect(filled.cells[0].glyph).toBe("tile:70");
+  });
+
+  it("keeps a cell's identity: lowercase, the degree sign and the heart draw as given, whatever letterCase says", () => {
+    const spec = { width: 24, height: 8, font: "3x5" as const };
+    const cells = [
+      [
+        { type: "char" as const, value: "a" },
+        { type: "char" as const, value: "°" },
+        { type: "char" as const, value: "♥" },
+      ],
+    ];
+    const upper = layoutLedCellGrid(cells, spec, { letterCase: "upper" });
+    const mixed = layoutLedCellGrid(cells, spec, { letterCase: "mixed" });
+    expect(upper.cells.map((c) => c.glyph)).toEqual(["a", "°", "♥", " ", " ", " "]);
+    expect(snapshot(mixed)).toEqual(snapshot(upper));
+    expect(upper.text).toBe("a°♥");
+  });
+
+  it("pads a short grid with blanks and clips a long one to the device grid, in both axes", () => {
+    const spec = { width: 16, height: 11, font: "3x5" as const }; // 4 cols × 2 rows... (16+1)/4 = 4, (11+1)/6 = 2
+    const grid = ledGridLayout(spec);
+    expect(grid).toMatchObject({ rows: 2, cols: 4 });
+    const A = { type: "char" as const, value: "A" };
+    const short = layoutLedCellGrid([[A]], spec);
+    expect(short.cells).toHaveLength(8);
+    expect(short.cells.map((c) => c.glyph)).toEqual(["A", " ", " ", " ", " ", " ", " ", " "]);
+    const long = layoutLedCellGrid([[A, A, A, A, A, A], [A], [A, A]], spec);
+    expect(long.cells.map((c) => c.glyph)).toEqual(["A", "A", "A", "A", "A", " ", " ", " "]);
+    expect(long.text).toBe("AAAA A");
+    // Clipping and padding are what the message path does too.
+    expect(snapshot(long)).toEqual(snapshot(layoutLedMessage("AAAAAA\nA\nAA", spec)));
+    // An empty grid is an empty layout, like an empty message.
+    expect(snapshot(layoutLedCellGrid([], spec))).toEqual(snapshot(layoutLedMessage("", spec)));
+  });
+
+  it("reports whether a cell grid fits the device grid", () => {
+    const grid = ledGridLayout({ width: 16, height: 11, font: "3x5" });
+    const A = { type: "char" as const, value: "A" };
+    expect(
+      ledCellGridMismatch(
+        [
+          [A, A, A, A],
+          [A, A, A, A],
+        ],
+        grid,
+      ),
+    ).toBeNull();
+    expect(ledCellGridMismatch([[A]], grid)).toBe("1×1 cells on a 2×4 grid");
+    expect(ledCellGridMismatch([[A, A, A, A, A], [A], [A]], grid)).toBe("3×5 cells on a 2×4 grid");
+    expect(ledCellGridMismatch([], grid)).toBe("0×0 cells on a 2×4 grid");
+  });
+
+  it("carries the layout options a transition needs: monochrome, the set and its glyphs", () => {
+    const charset = materializeCharacterSet(ACME_SIGN_CHARSET);
+    const spec = { width: 48, height: 12, font: "3x5" as const };
+    const layout = layoutLedCellGrid([[{ type: "char", value: "€" }]], spec, { monochrome: "#ffb000", charset });
+    expect(layout.options).toEqual({ monochrome: "#ffb000", glyphs: charset.glyphs, charset });
+    expect(layout.cells[0]).toEqual({ glyph: "€", color: "#ffb000" });
+    expect(layout.text).toBe("€");
   });
 });

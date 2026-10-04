@@ -79,8 +79,10 @@ export type DeviceGeometry =
   | { kind: "cells"; rows: number; cols: number }
   /** A grid of Notes; `notesWide × notesTall` is chosen per board. */
   | { kind: "note_array" }
-  /** A virtual board; `gridRows × gridCols` is chosen per board. */
-  | { kind: "panel" }
+  /** A virtual board; `gridRows × gridCols` is chosen per board. A plugin
+   *  may declare the size its device renders at (`rows × cols`), which a
+   *  board's own `gridRows` / `gridCols` still override. */
+  | { kind: "panel"; rows?: number; cols?: number }
   | { kind: "pixels"; width: number; height: number };
 
 export type DeviceColor =
@@ -459,8 +461,13 @@ export function validateDeviceModel(json: unknown): ValidationResult {
     ) {
       errors.push("geometry.width/height: positive integers");
     }
-  } else if (g.kind !== "note_array" && g.kind !== "panel")
-    errors.push('geometry.kind: "cells" | "note_array" | "panel" | "pixels"');
+  } else if (g.kind === "panel") {
+    for (const axis of ["rows", "cols"]) {
+      if (g[axis] !== undefined && (!Number.isInteger(g[axis]) || (g[axis] as number) < 1)) {
+        errors.push(`geometry.${axis}: a positive integer, when declared`);
+      }
+    }
+  } else if (g.kind !== "note_array") errors.push('geometry.kind: "cells" | "note_array" | "panel" | "pixels"');
   const c = m.color;
   if (!isPlainObject(c)) errors.push("color: an object");
   else if (c.kind === "rgb") {

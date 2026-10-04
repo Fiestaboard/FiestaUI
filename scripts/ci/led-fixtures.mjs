@@ -52,6 +52,7 @@ const transitions = await load("src/lib/led-transitions.ts");
 const registry = await load("src/lib/led-transition-registry.ts");
 const golden = await load("src/lib/led-golden-cases.ts");
 const charsetGolden = await load("src/lib/charset-golden-cases.ts");
+const pluginModels = await load("src/lib/plugin-model-fixtures.ts");
 
 // Written through prettier so `format:check` accepts the fixtures as committed.
 const write = async (name, data) => {
@@ -178,4 +179,13 @@ await write("charset-golden.json", {
   sets: charsetSets,
   fallbacks,
   messages,
+});
+
+// 6. Plugin-declared device models, as an output plugin's manifest declares
+// them (spec §6.1): the ACME sign and FiestaBoard's two FiestaPanel styles.
+// Examples for plugin authors, validated against device-model.schema.json.
+await write("plugin-models.json", {
+  about:
+    "Example device models declared the way an output plugin's output/device-models.json declares them: plain JSON, validated by validateDeviceModel and device-model.schema.json, never built in (resolveDeviceModel throws for their ids; pass the object). acme_sign_48x12 embeds a character set of its own; fiestapanel_split_flap is a panel with its size declared (a board's own gridRows/gridCols still win); fiestapanel_led_matrix is measured in pixels. Regenerate with `node scripts/ci/led-fixtures.mjs`.",
+  models: pluginModels.PLUGIN_MODEL_FIXTURES,
 });

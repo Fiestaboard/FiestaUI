@@ -70,6 +70,7 @@ import { BoardDisplay } from "../components/board/board-display";
 import { BoardTeaser } from "../components/board/board-teaser";
 import { CharacterGlyph } from "../components/board/character-glyph";
 import { CharacterSetSpecimen } from "../components/board/character-set-specimen";
+import { DisplayPreview } from "../components/board/display-preview";
 import { LedMatrixDisplay } from "../components/board/led-matrix-display";
 import { LedTransitionPicker } from "../components/board/led-transition-picker";
 import { ScaledBoardDisplay } from "../components/board/scaled-board-display";
@@ -1611,6 +1612,12 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
   LedMatrixDisplay: () => (
     <LedMatrixDisplay message={"72° SUNNY\nAQI 42\n{66}{66} GOOD"} preset="hub75_64x32" size="sm" />
+  ),
+  DisplayPreview: () => (
+    <div className="flex flex-col items-center gap-3">
+      <DisplayPreview model="vestaboard_note" message={"72° SUNNY\nAQI 42 GOOD"} size="sm" />
+      <DisplayPreview model="ulanzi_tc001_awtrix" message="72° {66}OK" size="sm" />
+    </div>
   ),
 
   /* ---- Data ---- */

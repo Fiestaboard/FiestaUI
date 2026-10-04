@@ -255,6 +255,11 @@ export const INVENTORY = [
         name: "LedMatrixDisplay",
         summary: "An LED matrix (AWTRIX, HUB75, Pixoo…) — the same message set in a bitmap font, painted on a canvas.",
       },
+      {
+        name: "DisplayPreview",
+        summary:
+          "One entry point for any device model — picks the split-flap or LED renderer from the model's declared technology.",
+      },
     ],
   },
   {

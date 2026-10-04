@@ -133,6 +133,11 @@ export {
   type LedMatrixDisplayProps,
   type LedPixelShape,
 } from "./components/board/led-matrix-display";
+// One preview entry point for any device model: dispatches on the model's
+// declared technology to the split-flap or the LED renderer, so previews
+// of plugin-declared devices are derived from their data, never shipped as
+// plugin React. The override gate is pure data and stays internal.
+export { DisplayPreview, type DisplayPreviewFrame, type DisplayPreviewProps } from "./components/board/display-preview";
 // The transition menu as a settings control: one card per entry, judged
 // against a device model, with what the device cannot run kept reachable.
 export {
@@ -200,9 +205,11 @@ export {
 } from "./lib/devices";
 export { LED_FONTS, type LedFont, type LedFontId } from "./lib/led-fonts";
 export {
+  type BoardCellGrid,
   DEFAULT_LED_TEXT_COLOR,
   frameToAscii,
   frameToBits,
+  layoutLedCellGrid,
   layoutLedMessage,
   LED_MATRIX_PRESETS,
   LED_MONO_COLORS,

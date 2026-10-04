@@ -27,6 +27,9 @@ import { type CSSProperties, memo, useCallback, useEffect, useMemo, useRef, useS
 import {
   BOARD_CHARS,
   type BoardToken,
+  cellsAreBlank,
+  cellsToGrid,
+  cellsToText,
   type Code62Glyph,
   EXTRA_CHARS,
   getCharFromToken,
@@ -1220,7 +1223,18 @@ const CharTile = memo(
 );
 
 export interface BoardDisplayProps {
-  message: string | null;
+  /** Board markup. Ignored when `cells` is given. */
+  message?: string | null;
+  /**
+   * A grid of parsed cells (`BoardToken[][]`, row-major) in place of
+   * `message` — what FiestaBoard core hands a preview after parsing the
+   * markup once. Wins over `message` when both are given. Drawn as given
+   * (nothing is re-parsed, so `extendedMarkup` does not apply), fitted to
+   * the board like a message's lines (`cellsToGrid`), with code 62 drawn as
+   * this board's flap. A new grid animates exactly as a new message does. A
+   * grid that draws nothing announces `emptyLabel`.
+   */
+  cells?: readonly (readonly BoardToken[])[];
   isLoading?: boolean;
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -1300,6 +1314,7 @@ const NO_TEXT_LABEL = "Board display";
 export const BoardDisplay = memo(
   function BoardDisplay({
     message,
+    cells,
     isLoading = false,
     size = "md",
     className = "",
@@ -1369,9 +1384,10 @@ export const BoardDisplay = memo(
 
     // Memoize grid calculation to avoid recalculating on every render
     const grid = useMemo(() => {
+      if (cells !== undefined) return cellsToGrid(cells, dims.rows, dims.cols, deviceType, code62Glyph);
       const messageForGrid = message ?? "";
       return messageToGrid(messageForGrid, dims.rows, dims.cols, deviceType, code62Glyph, { extendedMarkup });
-    }, [message, dims.rows, dims.cols, deviceType, code62Glyph, extendedMarkup]);
+    }, [cells, message, dims.rows, dims.cols, deviceType, code62Glyph, extendedMarkup]);
 
     // White board has light bezel and border
     const isWhiteBoard = boardType === "white";
@@ -1391,16 +1407,19 @@ export const BoardDisplay = memo(
 
     const boardText = useMemo(() => {
       if (isLoading) return loadingLabel;
-      if (!message) return emptyLabel;
+      if (cells !== undefined ? cellsAreBlank(cells) : !message) return emptyLabel;
       // `messageToText` rather than a local regex (issue #205): it reads the
       // message with the same parser the tiles do, so the name says what is
       // actually on the board, and all three renderers now derive it one way.
-      const text = messageToText(message, deviceType, code62Glyph, { extendedMarkup });
+      const text =
+        cells !== undefined
+          ? cellsToText(cells, deviceType, code62Glyph)
+          : messageToText(message!, deviceType, code62Glyph, { extendedMarkup });
       // A board of nothing but color tiles draws no text; it is not empty, so
       // it gets the generic name rather than `emptyLabel` or a dangling
       // "Board display: " with nothing after it.
       return text ? messageLabel(text) : NO_TEXT_LABEL;
-    }, [message, deviceType, code62Glyph, extendedMarkup, isLoading, loadingLabel, emptyLabel, messageLabel]);
+    }, [cells, message, deviceType, code62Glyph, extendedMarkup, isLoading, loadingLabel, emptyLabel, messageLabel]);
 
     // What the live region says, when one is asked for (issue #206).
     //
@@ -1539,6 +1558,7 @@ export const BoardDisplay = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.message === nextProps.message &&
+      prevProps.cells === nextProps.cells &&
       prevProps.isLoading === nextProps.isLoading &&
       prevProps.size === nextProps.size &&
       prevProps.className === nextProps.className &&
