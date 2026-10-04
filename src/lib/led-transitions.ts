@@ -8,8 +8,10 @@
  * device's own character set, then lands on its target, with the
  * half-turned flap between glyphs. It does not walk Vestaboard's character
  * order (it did until revision 7); the scramble is FiestaBoard's, seeded
- * from the cell and the change so it is the same on every run, in the
- * preview, in `ledTransitionFrames` and in the frames a device receives.
+ * from the cell and the change — by stable glyph key ({@link ledFlipSeed}),
+ * never by anything numbered per process — so it is the same on every run,
+ * in the preview, in `ledTransitionFrames`, in the frames a device receives
+ * and in FiestaBoard's Python port of this engine.
  * Beside it sit the moves LED firmware already has (AWTRIX's app
  * transitions are Slide, Dim, Zoom, Rotate, Pixelate, Curtain, Ripple,
  * Blink, Reload and Fade; MD_Parola's text effects include wipe, dissolve
@@ -50,7 +52,6 @@ import {
   drawLedGlyph,
   layoutLedCells,
   LED_BLANK_GLYPH,
-  LED_GLYPHS,
   type LedCell,
   type LedDrawOp,
   type LedFrame,
@@ -200,15 +201,52 @@ function settled(kind: LedTransitionKind, from: LedLayout, to: LedLayout, fromFr
  * The FiestaBoard flip: a seeded scramble from the device's character set.
  * ---------------------------------------------------------------------- */
 
-/** 32-bit mix of a few integers — the seed of a cell's scramble. */
-function hash32(...parts: number[]): number {
+/** FNV-1a, 32-bit, over bytes: offset basis 0x811c9dc5, prime 0x01000193. */
+function fnv1a32(bytes: Uint8Array): number {
   let h = 0x811c9dc5;
-  for (const part of parts) {
-    h ^= part | 0;
+  for (let i = 0; i < bytes.length; i++) {
+    h ^= bytes[i];
     h = Math.imul(h, 0x01000193);
-    h ^= h >>> 15;
   }
   return h >>> 0;
+}
+
+const utf8 = new TextEncoder();
+
+/**
+ * The seed of one cell's scramble, from its position and its change — the
+ * same number in every process, because it hashes the glyphs' **stable keys**
+ * ({@link LedGlyphKey}: `"A"`, `"€"`, `"tile:63"`, `"icon:sun"`, `" "` for
+ * blank), never anything numbered per process. It is FNV-1a (32-bit) over
+ * exactly these bytes, in this order:
+ *
+ *     u32le(cellIndex) ‖ u32le(cols) ‖ u32le(rows) ‖ utf8(fromKey) ‖ 0x00 ‖ utf8(toKey) ‖ 0x00
+ *
+ * — three unsigned 32-bit little-endian integers, then each key as UTF-8
+ * followed by one NUL (keys never contain NUL, so the layout is
+ * unambiguous). `cellIndex` is row-major (`row × cols + col`). The seed
+ * feeds mulberry32. Exported so a port (FiestaBoard's Python) can prove its
+ * seeds match before it compares frames.
+ */
+export function ledFlipSeed(
+  cellIndex: number,
+  fromKey: LedGlyphKey,
+  toKey: LedGlyphKey,
+  cols: number,
+  rows: number,
+): number {
+  const a = utf8.encode(fromKey);
+  const b = utf8.encode(toKey);
+  const bytes = new Uint8Array(12 + a.length + 1 + b.length + 1);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(0, cellIndex >>> 0, true);
+  view.setUint32(4, cols >>> 0, true);
+  view.setUint32(8, rows >>> 0, true);
+  bytes.set(a, 12);
+  bytes[12 + a.length] = 0;
+  bytes.set(b, 13 + a.length);
+  bytes[13 + a.length + b.length] = 0;
+  return fnv1a32(bytes);
 }
 
 /** mulberry32: a small, fast, seedable generator — the same sequence on every device. */
@@ -233,32 +271,42 @@ function charsetForLayout(layout: LedLayout): CharacterSet {
   return CHARACTER_SETS[id];
 }
 
+// A pure memo: the pool is a function of the set alone, cached per set object.
 const scramblePools = new WeakMap<CharacterSet, LedGlyphKey[]>();
+
+/** Code-point order — the order of the keys' UTF-8 bytes, which a port sorting `bytes` gets for free. */
+function compareGlyphKeys(a: LedGlyphKey, b: LedGlyphKey): number {
+  const ca = Array.from(a, (c) => c.codePointAt(0)!);
+  const cb = Array.from(b, (c) => c.codePointAt(0)!);
+  const n = Math.min(ca.length, cb.length);
+  for (let i = 0; i < n; i++) if (ca[i] !== cb[i]) return ca[i] - cb[i];
+  return ca.length - cb.length;
+}
 
 /**
  * The glyphs a scramble may draw on a device: every printable character its
  * set contains (uppercase, lowercase when the set has it, digits,
- * punctuation), its colour tiles, and its icons. Never blank, and never
- * anything the set cannot draw. A character the set carries its own bitmap
- * for (`glyphs`, a plugin's `€`) is registered as a glyph here, so it is in
- * the pool whether or not a layout has drawn it yet. Stable order, so the
- * seeded pick is too.
+ * punctuation), its colour tiles (codes 63–69 when the set has tiles), and
+ * its icons. Never blank, and never anything the set cannot draw. A
+ * character the set carries its own bitmap for (`glyphs`, a plugin's `€`)
+ * is in the pool whether or not a layout has drawn it yet.
+ *
+ * The pool is **sorted by glyph key in code-point order** (the order of the
+ * keys' UTF-8 bytes) and deduplicated, so it is a function of the set's
+ * contents alone — not of the order a manifest lists its characters in,
+ * nor of anything this process laid out before — and a seeded pick lands on
+ * the same glyph in every process.
  */
 export function ledScramblePool(set: CharacterSet): readonly LedGlyphKey[] {
   let pool = scramblePools.get(set);
   if (pool) return pool;
-  const seen = new Set<LedGlyphKey>();
-  pool = [];
-  const add = (glyph: LedGlyphKey) => {
-    if (glyph !== LED_BLANK_GLYPH && !seen.has(glyph)) {
-      seen.add(glyph);
-      pool!.push(glyph);
-    }
-  };
-  for (const c of set.chars) add(ledGlyphKey({ type: "char", value: c }, set.glyphs));
+  const keys = new Set<LedGlyphKey>();
+  for (const c of set.chars) keys.add(ledGlyphKey({ type: "char", value: c }, set.glyphs));
   if (set.tiles)
-    for (const code of ["63", "64", "65", "66", "67", "68", "69"]) add(ledGlyphKey({ type: "color", code }));
-  for (const name of set.icons) add(ledGlyphKey({ type: "char", value: " ", icon: name }));
+    for (const code of ["63", "64", "65", "66", "67", "68", "69"]) keys.add(ledGlyphKey({ type: "color", code }));
+  for (const name of set.icons) keys.add(ledGlyphKey({ type: "char", value: " ", icon: name }));
+  keys.delete(LED_BLANK_GLYPH);
+  pool = [...keys].sort(compareGlyphKeys);
   scramblePools.set(set, pool);
   return pool;
 }
@@ -351,24 +399,12 @@ function planFlip(
   const frames = stagger + scrambleSteps + 2;
   const durationMs = (frames - 1) * stepMs;
   const pool = ledScramblePool(charsetForLayout(to));
-  // A glyph's ordinal: its place in the face table, or, for a character the
-  // layout's own set adds, after the table in the set's order.
-  const extra = Object.keys(to.options.glyphs ?? {}).filter((k) => !LED_GLYPHS.includes(k));
-  const ordinal = (key: LedGlyphKey) => {
-    const i = LED_GLYPHS.indexOf(key);
-    return i >= 0 ? i : LED_GLYPHS.length + extra.indexOf(key);
-  };
 
-  // Seeded per cell from its position and the change it makes, so the same
-  // change on the same board scrambles the same way everywhere, every time.
+  // Seeded per cell from its position and the change it makes (by stable
+  // glyph key), so the same change on the same board scrambles the same way
+  // everywhere, every time — in another process or another language too.
   const plans: CellScramble[] = changing.map((index) => {
-    const seed = hash32(
-      index,
-      ordinal(from.cells[index].glyph),
-      ordinal(to.cells[index].glyph),
-      to.grid.cols,
-      to.grid.rows,
-    );
+    const seed = ledFlipSeed(index, from.cells[index].glyph, to.cells[index].glyph, to.grid.cols, to.grid.rows);
     const rng = mulberry32(seed);
     const delay = stagger === 0 ? 0 : Math.floor(rng() * (stagger + 1));
     const sequence: LedGlyphKey[] = [];

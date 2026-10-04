@@ -201,7 +201,8 @@ export {
 // LED transitions: the engine (a pure function of time between two layouts,
 // sampled by the preview and by device adapters) and the menu a device model
 // is judged against. The seeded scramble's hash and generator stay internal;
-// `ledScramblePool` is exported so a port can prove its pool matches.
+// `ledScramblePool` and `ledFlipSeed` are exported so a port can prove its
+// pool and its seeds match before it compares frames.
 export {
   defaultTransitionIdForModel,
   isLedTransitionId,
@@ -221,6 +222,7 @@ export {
   DEFAULT_LED_SCRAMBLE_STEPS,
   DEFAULT_LED_TRANSITION_MS,
   LED_TRANSITION_KINDS,
+  ledFlipSeed,
   ledScramblePool,
   type LedTransition,
   ledTransitionFrames,

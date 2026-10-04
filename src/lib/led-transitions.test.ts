@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { CHARACTER_SETS, materializeCharacterSet } from "./character-sets";
 import { ACME_EURO_GLYPH, ACME_SIGN_CHARSET } from "./charset-golden-cases";
+import { ACME_SIGN_YEN_CHARSET, GOLDEN_TRANSITION_CASES } from "./led-golden-cases";
 import {
   frameToAscii,
   layoutLedMessage,
@@ -13,6 +14,7 @@ import {
 import {
   DEFAULT_LED_FLIP_STEP_MS,
   LED_TRANSITION_KINDS,
+  ledFlipSeed,
   ledScramblePool,
   ledTransitionFrames,
   MIN_CASCADE_SLOT_MS,
@@ -207,6 +209,139 @@ describe("flip — FiestaBoard's scramble", () => {
     const plain = planLedTransition(lay("A"), lay("B"), { kind: "flip", stepMs: 10, stagger: 0 });
     const facePool = new Set(ledScramblePool(CHARACTER_SETS.led_3x5));
     for (let t = 10; t < plain.durationMs; t += 10) expect(facePool.has(plain.layoutAt(t).cells[0].glyph)).toBe(true);
+  });
+
+  it("seeds a cell from its stable glyph keys with a documented byte layout: FNV-1a over u32le(index, cols, rows) then NUL-terminated UTF-8 keys", () => {
+    // A reference implementation of the layout in spec §8.2, written out
+    // byte by byte, and values computed independently in Python
+    // (`int.to_bytes(4, "little")`, `str.encode()`, FNV-1a 32) — what
+    // FiestaBoard's port must reproduce before it compares frames.
+    const reference = (index: number, from: string, to: string, cols: number, rows: number) => {
+      const u32 = (n: number) => [n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff];
+      const bytes = [
+        ...u32(index),
+        ...u32(cols),
+        ...u32(rows),
+        ...Buffer.from(from, "utf8"),
+        0,
+        ...Buffer.from(to, "utf8"),
+        0,
+      ];
+      let h = 0x811c9dc5;
+      for (const b of bytes) h = Math.imul(h ^ b, 0x01000193);
+      return h >>> 0;
+    };
+    const pinned: [number, string, string, number, number, number][] = [
+      [0, "A", "B", 6, 1, 3714565441],
+      [3, "A", "€", 6, 2, 990692943],
+      [0, " ", "tile:63", 8, 1, 2711017083],
+      [5, "icon:sun", "¥", 12, 2, 2318610564],
+      [7, "€", " ", 12, 2, 3119250676],
+    ];
+    for (const [index, from, to, cols, rows, seed] of pinned) {
+      expect(ledFlipSeed(index, from, to, cols, rows), `${index} ${from}→${to}`).toBe(seed);
+      expect(reference(index, from, to, cols, rows)).toBe(seed);
+    }
+    // Every input is in the hash: position, change (either direction), grid.
+    expect(ledFlipSeed(0, "A", "B", 6, 1)).not.toBe(ledFlipSeed(1, "A", "B", 6, 1));
+    expect(ledFlipSeed(0, "A", "B", 6, 1)).not.toBe(ledFlipSeed(0, "B", "A", 6, 1));
+    expect(ledFlipSeed(0, "A", "B", 6, 1)).not.toBe(ledFlipSeed(0, "A", "B", 7, 1));
+    expect(ledFlipSeed(0, "A", "B", 6, 1)).not.toBe(ledFlipSeed(0, "A", "B", 6, 2));
+    // The seed is a function of the keys alone: a tile by its canonical code,
+    // an icon by its canonical name, so `{red}` and `{63}` seed alike.
+    const key = (markup: string, custom?: Record<string, readonly string[]>) =>
+      layoutLedMessage(
+        markup,
+        { width: 4, height: 5, font: "3x5" },
+        custom ? { charset: { ...CHARACTER_SETS.led_3x5, glyphs: custom } } : {},
+      ).cells[0].glyph;
+    expect(ledFlipSeed(0, key("{red}"), "A", 1, 1)).toBe(ledFlipSeed(0, key("{63}"), "A", 1, 1));
+    expect(ledFlipSeed(0, key("{icon:storm}"), "A", 1, 1)).toBe(ledFlipSeed(0, "icon:bolt", "A", 1, 1));
+  });
+
+  it("orders its pool by glyph key alone: not by the set's declared order, not by what ran first", () => {
+    const base = {
+      ...ACME_SIGN_CHARSET,
+      id: "order_a",
+      chars: ["B", "¥", "A", "€", "0"],
+      icons: ["up", "check"] as const,
+    };
+    const a = materializeCharacterSet({
+      ...base,
+      glyphs: { "¥": ["#.#", ".#.", "###", ".#.", ".#."], "€": ACME_EURO_GLYPH },
+    });
+    const b = materializeCharacterSet({
+      ...base,
+      id: "order_b",
+      chars: [...base.chars].reverse(),
+      icons: ["check", "up"],
+      glyphs: { "€": ACME_EURO_GLYPH, "¥": ["#.#", ".#.", "###", ".#.", ".#."] },
+    });
+    expect(ledScramblePool(a)).toEqual(ledScramblePool(b));
+    // Code-point order: digits, uppercase, then `icon:…`, `tile:…`, then ¥ (U+00A5) and € (U+20AC).
+    expect(ledScramblePool(a)).toEqual([
+      "0",
+      "A",
+      "B",
+      "icon:check",
+      "icon:up",
+      ...["63", "64", "65", "66", "67", "68", "69"].map((c) => `tile:${c}`),
+      "¥",
+      "€",
+    ]);
+    const sorted = [...ledScramblePool(CHARACTER_SETS.led_5x7)];
+    const byCodePoint = (x: string, y: string) => {
+      const cx = Array.from(x, (ch) => ch.codePointAt(0)!);
+      const cy = Array.from(y, (ch) => ch.codePointAt(0)!);
+      for (let i = 0; i < Math.min(cx.length, cy.length); i++) if (cx[i] !== cy[i]) return cx[i] - cy[i];
+      return cx.length - cy.length;
+    };
+    expect(sorted).toEqual([...sorted].sort(byCodePoint));
+    expect(new Set(sorted).size).toBe(sorted.length);
+    expect(sorted).not.toContain(" ");
+  });
+
+  it("two independent processes agree: a fresh module graph that never saw the other set scrambles the ACME flip identically", async () => {
+    // "Process 1" lays out another plugin set (with its own ¥ and €) first,
+    // then the ACME flip; "process 2" is a fresh import that only ever sees
+    // the ACME set. On a process-global glyph registry the ¥ took the
+    // number € would otherwise get and the two disagreed; with stable keys
+    // they are byte-identical.
+    const c = GOLDEN_TRANSITION_CASES.find((t) => t.name === "acme sign 12-frame budget, own charset")!;
+    const run = async (primeFirst: boolean) => {
+      vi.resetModules();
+      const led = await import("./led-matrix");
+      const tr = await import("./led-transitions");
+      const sets = await import("./character-sets");
+      const registry = await import("./led-transition-registry");
+      if (primeFirst) {
+        const yen = sets.materializeCharacterSet(ACME_SIGN_YEN_CHARSET);
+        const primed = led.layoutLedMessage("¥€", c.spec, { charset: yen });
+        expect(primed.cells.slice(0, 2).map((cell) => cell.glyph)).toEqual(["¥", "€"]);
+        tr.ledScramblePool(yen);
+      }
+      const charset = sets.materializeCharacterSet(c.pluginModel!.charset);
+      const model = { ...c.pluginModel, charset } as unknown as Parameters<typeof registry.resolveLedTransition>[1];
+      const spec = registry.resolveLedTransition(c.transition, model).spec;
+      const from = led.layoutLedMessage(c.from, c.spec, { ...c.options, charset });
+      const to = led.layoutLedMessage(c.to, c.spec, { ...c.options, charset });
+      const plan = tr.planLedTransition(from, to, spec as Exclude<typeof spec, "none">);
+      return tr.ledTransitionFrames(plan).map((f) => Buffer.from(f.pixels).toString("base64"));
+    };
+    const primed = await run(true);
+    const fresh = await run(false);
+    expect(primed).toHaveLength(12);
+    expect(primed).toEqual(fresh);
+    // And both agree with this module graph, which ran every other test first.
+    expect(primed).toEqual(
+      ledTransitionFrames(
+        planLedTransition(
+          layoutLedMessage(c.from, c.spec, { ...c.options, charset: materializeCharacterSet(c.pluginModel!.charset) }),
+          layoutLedMessage(c.to, c.spec, { ...c.options, charset: materializeCharacterSet(c.pluginModel!.charset) }),
+          { kind: "flip", stepMs: 100, halfFlap: false, maxFrames: 12 },
+        ),
+      ).map((f) => Buffer.from(f.pixels).toString("base64")),
+    );
   });
 
   it("shows a half-turned flap in the second half of a step: next glyph on top, current below", () => {

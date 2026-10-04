@@ -125,6 +125,10 @@ const seqs = golden.GOLDEN_TRANSITION_CASES.map((c) => {
   const spec = model ? registry.resolveLedTransition(c.transition, model).spec : c.transition;
   if (spec === "none") throw new Error(`transition case "${c.name}" resolves to none`);
   const layoutOptions = { ...c.options, ...(plugin ? { charset: plugin.charset } : {}) };
+  // A `before` layout is drawn with its own set and discarded: the case's
+  // frames must not depend on it (no process-global glyph state).
+  if (c.before)
+    led.layoutLedMessage(c.before.message, c.before.spec, { charset: sets.materializeCharacterSet(c.before.charset) });
   const from = led.layoutLedMessage(c.from, c.spec, layoutOptions);
   const to = led.layoutLedMessage(c.to, c.spec, layoutOptions);
   const tr = transitions.planLedTransition(from, to, spec);
@@ -141,7 +145,7 @@ const seqs = golden.GOLDEN_TRANSITION_CASES.map((c) => {
 });
 await write("led-golden.json", {
   about:
-    "Golden cases for ports of FiestaUI's LED layout, raster and transitions. Frames are RGB888, row-major, origin top-left, base64. A layout case with `charset` lays out with that plugin set materialised (materializeCharacterSet) over the built-in it extends. A transition case's `resolvedSpec` is `transition` as written, or resolved through `model`'s (a built-in id) or `pluginModel`'s (a plugin declaration, its set inline and materialised) animation capability (resolveLedTransition) so the device's frame budget applies; with `pluginModel` both messages lay out with its set, so the flip's scramble draws only from it; `frames` is ledTransitionFrames(planLedTransition(from, to, resolvedSpec), fps ?? 30) — exactly the sequence a device receives, the last frame always the settled `to`. Regenerate with `node scripts/ci/led-fixtures.mjs`.",
+    "Golden cases for ports of FiestaUI's LED layout, raster and transitions. Frames are RGB888, row-major, origin top-left, base64. A layout case with `charset` lays out with that plugin set materialised (materializeCharacterSet) over the built-in it extends. A transition case's `resolvedSpec` is `transition` as written, or resolved through `model`'s (a built-in id) or `pluginModel`'s (a plugin declaration, its set inline and materialised) animation capability (resolveLedTransition) so the device's frame budget applies; with `pluginModel` both messages lay out with its set, so the flip's scramble draws only from it; a case with `before` first lays that message out with that set (materialised) and discards it, and its frames must be byte-identical to the same case without it — glyph identity is a stable key (the character, `tile:<numeric code>`, `icon:<name>`, `\" \"` blank), the flip seed is FNV-1a over u32le(cellIndex) ‖ u32le(cols) ‖ u32le(rows) ‖ utf8(fromKey) ‖ 0x00 ‖ utf8(toKey) ‖ 0x00 into mulberry32, and the scramble pool is the set's glyph keys sorted in code-point order; `frames` is ledTransitionFrames(planLedTransition(from, to, resolvedSpec), fps ?? 30) — exactly the sequence a device receives, the last frame always the settled `to`. Regenerate with `node scripts/ci/led-fixtures.mjs`.",
   layouts,
   transitions: seqs,
 });

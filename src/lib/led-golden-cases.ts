@@ -42,7 +42,28 @@ export interface GoldenTransitionCase {
   pluginModel?: GoldenPluginModel;
   /** Sampling rate for a continuous transition; a sequenced one ignores it. */
   fps?: number;
+  /**
+   * A layout to draw first and throw away — with its own plugin set and its
+   * own custom glyphs — before this case's layouts. The frames must be
+   * byte-identical to the same case without it: glyph identity is a stable
+   * key, not a process-local number, so nothing laid out earlier (in this
+   * process, or in a port's) can change how a cell scrambles.
+   */
+  before?: { message: string; spec: LedMatrixSpec; charset: CharacterSetInput };
 }
+
+/**
+ * Another plugin set with its own custom glyphs — a `¥` the ACME sign lacks,
+ * declared (and laid out) before the sign's `€` — for the golden that proves
+ * the flip does not depend on what was laid out first.
+ */
+export const ACME_SIGN_YEN_CHARSET: CharacterSetInput = {
+  ...ACME_SIGN_CHARSET,
+  id: "acme_sign_yen",
+  label: "ACME sign (yen)",
+  chars: [...ACME_SIGN_CHARSET.chars!, "¥"],
+  glyphs: { "¥": ["#.#", ".#.", "###", ".#.", ".#."], "€": ACME_SIGN_CHARSET.glyphs!["€"] },
+};
 
 /** A plugin device-model declaration: JSON, with its character set inline. */
 export type GoldenPluginModel = Readonly<Record<string, unknown>> & { readonly charset: CharacterSetInput };
@@ -184,6 +205,21 @@ export const GOLDEN_TRANSITION_CASES: readonly GoldenTransitionCase[] = [
     // scrambled glyph is one the sign has — no lowercase, no sun; its € (a
     // custom bitmap) is in the pool and shows mid-scramble, drawn with it.
     name: "acme sign 12-frame budget, own charset",
+    from: "OPEN 9-5 {icon:up}\n{black/white:OK} €12",
+    to: "SHUT 5-9 {icon:down}\n{black/white:NO} €99",
+    spec: { width: 48, height: 12, font: "3x5" },
+    options: { monochrome: "#ffb000" },
+    transition: "flip",
+    pluginModel: ACME_SIGN_MODEL,
+  },
+  {
+    // The same flip after a different plugin set (with its own ¥ and €) was
+    // laid out first: every frame must be byte-identical to the case above.
+    // On a process-global glyph registry the ¥ would have taken the €'s
+    // number and every cell changing to or from € would scramble
+    // differently; with stable keys nothing laid out earlier matters.
+    name: "acme sign flip after another set laid out first (no global glyph state)",
+    before: { message: "¥€", spec: { width: 48, height: 12, font: "3x5" }, charset: ACME_SIGN_YEN_CHARSET },
     from: "OPEN 9-5 {icon:up}\n{black/white:OK} €12",
     to: "SHUT 5-9 {icon:down}\n{black/white:NO} €99",
     spec: { width: 48, height: 12, font: "3x5" },

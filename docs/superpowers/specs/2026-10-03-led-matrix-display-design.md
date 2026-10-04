@@ -691,11 +691,51 @@ requirement; the flip is FiestaBoard's, not an imitation:
   was given, the built-in set of the layout's face. A plugin sign with no
   lowercase never scrambles through lowercase; one with a `€` scrambles
   through it (golden: the ACME sign under its 12-frame budget).
-- It is **deterministic**: each cell is seeded from its position and its
-  change (`hash32(cellIndex, fromGlyph, toGlyph, cols, rows)` into
-  mulberry32), so the preview, `ledTransitionFrames` and the frames a device
-  receives are identical and repeatable; a different change scrambles
-  differently (tested).
+- **The pool**, precisely: the set of glyph keys (section 7.2) of every
+  entry in `chars` (a character is itself when the face or the set's
+  `glyphs` draws it, else blank), of `tile:63` … `tile:69` when the set has
+  `tiles`, and of `icon:<name>` for every entry in `icons`; blank removed;
+  deduplicated; **sorted by key in code-point order** (the order of the
+  keys' UTF-8 bytes — a port that sorts the encoded bytes gets it for
+  free). So the pool is a function of the set's contents alone: not of the
+  order a manifest lists its characters in, and not of anything laid out
+  earlier in the process. `ledScramblePool` is exported so a port can
+  compare its pool before it compares frames.
+- It is **deterministic across processes**: each changing cell is seeded
+  from its position and its change by **stable glyph key**, never by any
+  per-process number. `ledFlipSeed(cellIndex, fromKey, toKey, cols, rows)`
+  is FNV-1a (32-bit; offset basis `0x811c9dc5`, prime `0x01000193`, `h ^=
+byte; h = (h × prime) mod 2³²` per byte) over exactly these bytes, in this
+  order:
+
+  ```
+  u32le(cellIndex) ‖ u32le(cols) ‖ u32le(rows) ‖ utf8(fromKey) ‖ 0x00 ‖ utf8(toKey) ‖ 0x00
+  ```
+
+  — three unsigned 32-bit little-endian integers (`cellIndex` is row-major,
+  `row × cols + col`), then each key as UTF-8 followed by one NUL byte (keys
+  never contain NUL, so the layout is unambiguous). The seed feeds
+  mulberry32 (`a += 0x6d2b79f5; t = imul(a ^ (a >>> 15), 1 | a); t = (t +
+imul(t ^ (t >>> 7), 61 | t)) ^ t; (t ^ (t >>> 14)) >>> 0) / 2³²`), and the
+  cell's plan is read from it in this order: its delay, `floor(r × (stagger
+  - 1))`when`stagger > 0`(no draw otherwise); then, per scramble step,`pool[floor(r × n)]`, and if that glyph equals the previous one shown (the
+cell's old glyph for the first step) or the target, and `n > 2`, one more
+draw: `pool[(i + 1 + floor(r × (n − 1))) mod n]`where`i`is the first
+pick's index. Pinned seeds:`(0, "A", "B", 6, 1) = 3714565441`,
+`(3, "A", "€", 6, 2) = 990692943`, `(0, " ", "tile:63", 8, 1) =
+    2711017083`, `(5, "icon:sun", "¥", 12, 2) = 2318610564`— computed
+independently in Python and asserted in`led-transitions.test.ts`. So the
+preview, `ledTransitionFrames`, the frames a device receives and the
+Python port's are identical and repeatable; a different change scrambles
+differently (tested); laying out another set first changes nothing
+(golden: the ACME flip after another set's `¥€`, byte-identical to the
+standalone case; and a `vi.resetModules` test that a fresh module graph
+    agrees with a primed one). Hashing glyph _keys_ is the point: an earlier
+    revision hashed the glyph's index in a process-local table that custom
+    glyphs were appended to on first sight (FiestaBoard #2170), so two
+    processes could scramble a cell changing to or from a plugin's glyph
+    differently.
+
 - The run length is a **parameter**: `scrambleSteps` (default 6) and
   `stagger` (default up to 6 steps of seeded per-cell delay, so the board
   settles as a cascade; `0` runs every cell in step). Frames =
@@ -974,7 +1014,10 @@ tests) that fail when the TypeScript and the files disagree:
   Pixoo 32-frame budget resolved through the model, the default flip whole
   on a Pixoo in monochrome, the ACME plugin sign under its 12-frame budget
   (`pluginModel`: the declaration with its set inline, so the scramble
-  draws only the sign's characters, `€` included), a fade quantised to 8
+  draws only the sign's characters, `€` included), the same ACME flip
+  **after another plugin set was laid out first** (`before`: a `¥€` message
+  in a set with its own `¥` — the frames are byte-identical to the standalone
+  case, which is what proves glyph identity carries no process state), a fade quantised to 8
   frames over 777 ms, a continuous fade at 10 fps, a wipe quantised to 6
   frames and a continuous dissolve at 20 fps → the exact frame sequence,
   `ledTransitionFrames(plan, fps)`) land with Task 4. The cases

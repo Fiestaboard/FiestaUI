@@ -128,7 +128,10 @@ describe("LED golden cases", () => {
       ...(expected.model ? { model: expected.model } : {}),
       ...(expected.pluginModel ? { pluginModel: expected.pluginModel } : {}),
       ...(expected.fps ? { fps: expected.fps } : {}),
+      ...(expected.before ? { before: expected.before } : {}),
     });
+    if (c.before)
+      layoutLedMessage(c.before.message, c.before.spec, { charset: materializeCharacterSet(c.before.charset) });
     const pluginCharset = c.pluginModel ? materializeCharacterSet(c.pluginModel.charset) : undefined;
     const plugin = pluginCharset ? ({ ...c.pluginModel, charset: pluginCharset } as unknown as DeviceModel) : null;
     const model = plugin ?? (c.model ? DEVICE_MODELS[c.model] : null);
@@ -209,6 +212,20 @@ describe("LED golden cases", () => {
         if (px[i] || px[i + 1] || px[i + 2]) expect([px[i], px[i + 1], px[i + 2]]).toEqual([0xff, 0xb0, 0x00]);
       }
     }
+  });
+
+  it("the acme flip after another set was laid out first is byte-identical to the standalone acme flip", () => {
+    const alone = golden.transitions.find((t: { name: string }) => t.name === "acme sign 12-frame budget, own charset");
+    const after = golden.transitions.find((t: { name: string }) =>
+      t.name.startsWith("acme sign flip after another set laid out first"),
+    );
+    expect(after.before.charset.glyphs).toHaveProperty("¥");
+    expect(after.before.message).toBe("¥€");
+    const { name: _n, before: _b, ...afterRest } = after;
+    const { name: _m, ...aloneRest } = alone;
+    expect(afterRest).toEqual(aloneRest);
+    expect(after.frames).toEqual(alone.frames);
+    expect(after.frames).toHaveLength(12);
   });
 
   it("the fades blend per channel: a quantised one holds exactly maxFrames, a continuous one samples at fps", () => {
