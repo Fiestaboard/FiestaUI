@@ -79,7 +79,7 @@ describe("LED data fixtures", () => {
     }
     expect(f.divoom_pixoo64.animation.notes).toMatch(/LOADING/);
     expect(f.divoom_pixoo64.animation.notes).toMatch(/SNAPS/);
-    expect(f.divoom_pixoo64.animation.sources[0]).toMatch(/hardware test on a Pixoo 64/);
+    expect(f.divoom_pixoo64.animation.sources[0]).toMatch(/hardware lab on a Pixoo 64, 2026-10-04/);
     expect(f.ulanzi_tc001_awtrix.animation.notes).toMatch(/UNMEASURED/);
   });
 });
