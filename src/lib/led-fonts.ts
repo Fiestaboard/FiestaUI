@@ -260,7 +260,28 @@ const ICONS_5X7: Partial<Record<BoardIconName, readonly string[]>> = {
   partly: ["...#.", "..#.#", "...#.", ".##..", "#..#.", "#...#", ".####"],
 };
 
-export const LED_FONTS: Readonly<Record<LedFontId, LedFont>> = {
-  "3x5": { id: "3x5", glyphWidth: 3, glyphHeight: 5, spacingX: 1, spacingY: 1, glyphs: GLYPHS_3X5, icons: ICONS_3X5 },
-  "5x7": { id: "5x7", glyphWidth: 5, glyphHeight: 7, spacingX: 1, spacingY: 1, glyphs: GLYPHS_5X7, icons: ICONS_5X7 },
-};
+// The faces are static data, frozen so nothing can register into them: a
+// plugin set's own bitmaps are drawn from the set (carried on each layout),
+// never written into a face.
+for (const table of [GLYPHS_3X5, ICONS_3X5, GLYPHS_5X7, ICONS_5X7]) Object.freeze(table);
+
+export const LED_FONTS: Readonly<Record<LedFontId, LedFont>> = Object.freeze({
+  "3x5": Object.freeze({
+    id: "3x5",
+    glyphWidth: 3,
+    glyphHeight: 5,
+    spacingX: 1,
+    spacingY: 1,
+    glyphs: GLYPHS_3X5,
+    icons: ICONS_3X5,
+  }),
+  "5x7": Object.freeze({
+    id: "5x7",
+    glyphWidth: 5,
+    glyphHeight: 7,
+    spacingX: 1,
+    spacingY: 1,
+    glyphs: GLYPHS_5X7,
+    icons: ICONS_5X7,
+  }),
+});

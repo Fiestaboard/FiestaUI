@@ -10,12 +10,15 @@ import {
   frameToAscii,
   frameToBits,
   layoutLedMessage,
+  LED_BLANK_GLYPH,
   LED_GLYPHS,
   LED_MATRIX_PRESETS,
   ledBackgroundMask,
   type LedDrawOp,
-  ledGlyphIndex,
+  ledGlyphEntry,
+  ledGlyphKey,
   ledGridLayout,
+  rasterizeLedLayout,
   renderLedFrame,
   renderLedGlyph,
   resolveHexOption,
@@ -88,26 +91,54 @@ describe("LED glyph table", () => {
     for (const code of ["63", "64", "65", "66", "67", "68", "69", "70", "71"])
       expect(LED_GLYPHS).toContain(`tile:${code}`);
     for (const name of BOARD_ICON_NAMES) expect(LED_GLYPHS).toContain(`icon:${name}`);
-    expect(LED_GLYPHS[0]).toBe(" ");
+    expect(LED_GLYPHS[0]).toBe(LED_BLANK_GLYPH);
     expect(new Set(LED_GLYPHS).size).toBe(LED_GLYPHS.length);
     // Not BOARD_CHARS' order: digits run 0–9 here, 1–9,0 there.
     expect(LED_GLYPHS.slice(0, 72)).not.toEqual(BOARD_CHARS);
+    // Static: nothing can register into the table or the faces.
+    expect(Object.isFrozen(LED_GLYPHS)).toBe(true);
+    for (const font of Object.values(LED_FONTS)) {
+      expect(Object.isFrozen(font)).toBe(true);
+      expect(Object.isFrozen(font.glyphs)).toBe(true);
+      expect(Object.isFrozen(font.icons)).toBe(true);
+    }
   });
 
-  it("gives every token one glyph, aliases included, and blank for the unknown", () => {
-    const idx = ledGlyphIndex;
-    expect(idx({ type: "char", value: "A" })).toBe(LED_GLYPHS.indexOf("A"));
-    expect(idx({ type: "char", value: "°" })).toBe(LED_GLYPHS.indexOf("°"));
-    expect(idx({ type: "char", value: "♥" })).toBe(LED_GLYPHS.indexOf("♥"));
-    expect(idx({ type: "color", code: "66" })).toBe(LED_GLYPHS.indexOf("tile:66"));
+  it("gives every token one stable key, aliases included, and blank for the unknown", () => {
+    const key = ledGlyphKey;
+    // A character is keyed by itself; a tile by its canonical numeric code;
+    // an icon by its canonical name. The same strings in every process.
+    expect(key({ type: "char", value: "A" })).toBe("A");
+    expect(key({ type: "char", value: "°" })).toBe("°");
+    expect(key({ type: "char", value: "♥" })).toBe("♥");
+    expect(key({ type: "color", code: "66" })).toBe("tile:66");
     // One glyph per tile whatever its spelling — the token itself is not rewritten.
-    expect(idx({ type: "color", code: "green" })).toBe(idx({ type: "color", code: "66" }));
-    expect(idx({ type: "color", code: "purple" })).toBe(idx({ type: "color", code: "68" }));
-    expect(idx({ type: "color", code: "black" })).toBe(LED_GLYPHS.indexOf("tile:70"));
-    expect(idx({ type: "char", value: "b" })).toBe(LED_GLYPHS.indexOf("b"));
-    expect(idx({ type: "color", code: "65", icon: "sun" })).toBe(LED_GLYPHS.indexOf("icon:sun"));
-    expect(idx({ type: "char", value: "~" })).toBe(0);
-    expect(idx({ type: "char", value: " " })).toBe(0);
+    expect(key({ type: "color", code: "green" })).toBe("tile:66");
+    expect(key({ type: "color", code: "red" })).toBe("tile:63");
+    expect(key({ type: "color", code: "purple" })).toBe(key({ type: "color", code: "68" }));
+    expect(key({ type: "color", code: "black" })).toBe("tile:70");
+    expect(key({ type: "color", code: "71" })).toBe("tile:70");
+    expect(key({ type: "char", value: "b" })).toBe("b");
+    expect(key({ type: "color", code: "65", icon: "sun" })).toBe("icon:sun");
+    expect(key(parseLine("{icon:storm}", 1, { extendedMarkup: true })[0])).toBe("icon:bolt");
+    expect(key({ type: "char", value: "~" })).toBe(LED_BLANK_GLYPH);
+    expect(key({ type: "char", value: " " })).toBe(LED_BLANK_GLYPH);
+    for (const k of LED_GLYPHS) {
+      const kind = k === " " ? "blank" : k.startsWith("tile:") ? "tile" : k.startsWith("icon:") ? "icon" : "char";
+      expect(ledGlyphEntry(k).kind, k).toBe(kind);
+    }
+    expect(ledGlyphEntry("tile:63")).toEqual({ kind: "tile", code: "63" });
+    expect(ledGlyphEntry("icon:sun")).toEqual({ kind: "icon", name: "sun" });
+    expect(ledGlyphEntry("€")).toEqual({ kind: "char", char: "€" });
+  });
+
+  it("keys a set's own character by the character, only for a layout drawn with that set", () => {
+    const custom = { "€": [".##", "##.", "#..", "##.", ".##"] };
+    expect(ledGlyphKey({ type: "char", value: "€" }, custom)).toBe("€");
+    expect(ledGlyphKey({ type: "char", value: "€" })).toBe(LED_BLANK_GLYPH);
+    expect(ledGlyphKey({ type: "char", value: "€" }, {})).toBe(LED_BLANK_GLYPH);
+    // The face's characters are themselves with or without a set.
+    expect(ledGlyphKey({ type: "char", value: "A" }, custom)).toBe("A");
   });
 });
 
@@ -252,7 +283,7 @@ describe("colour spans, icons, case and monochrome", () => {
       layoutLedMessage("{/white:A}", spec)
         .cells.slice(0, 2)
         .map((c) => c.glyph),
-    ).toEqual([0, LED_GLYPHS.indexOf("/")]);
+    ).toEqual([LED_BLANK_GLYPH, "/"]);
     expect(renderLedFrame("{/white:A}", spec).pixels).toEqual(renderLedFrame("{/WHITE:A}", spec).pixels);
     expect(renderLedFrame("{/white:A}", spec).pixels).not.toEqual(renderLedFrame("/WHITE:A", spec).pixels);
   });
@@ -392,7 +423,7 @@ describe("colour spans, icons, case and monochrome", () => {
     // fog), so the path is exercised against a face stripped of its icons.
     const face = { ...LED_FONTS["3x5"], icons: {} };
     const ops: LedDrawOp[] = [];
-    drawLedGlyph(ops, ledGlyphIndex({ type: "char", value: "+", icon: "up" }), 0, 0, face, "#ffffff", {
+    drawLedGlyph(ops, ledGlyphKey({ type: "char", value: "+", icon: "up" }), 0, 0, face, "#ffffff", {
       monochrome: undefined,
     });
     expect(ops).toEqual([{ kind: "glyph", x: 0, y: 0, rows: LED_FONTS["3x5"].glyphs["+"], color: "#ffffff" }]);
@@ -511,5 +542,54 @@ describe("a plugin set's glyphs", () => {
     expect(frameToAscii(renderLedGlyph({ type: "char", value: "A" }, "3x5", { charset })).split("\n")).toEqual(
       LED_FONTS["3x5"].glyphs.A,
     );
+  });
+
+  it("never leak: a layout drawn after another set drew its custom glyph is unaffected", () => {
+    // Lay the set's € out first — on a process-global registry this is what
+    // "registered" it — then the same message with no set, and with a set
+    // that lacks the character: both must be blank cells, not a glyph that
+    // happens to draw nothing (a flip would count that as a change).
+    const withSet = layoutLedMessage("€", spec, { charset });
+    expect(withSet.cells[0].glyph).toBe("€");
+    const bare = layoutLedMessage("€", spec);
+    expect(bare.cells[0].glyph).toBe(LED_BLANK_GLYPH);
+    expect(bare.text).toBe("");
+    expect(litCount(rasterizeLedLayout(bare))).toBe(0);
+    const other = { ...charset, id: "plugin_v2", chars: ["A"], glyphs: {} };
+    const withOther = layoutLedMessage("€", spec, { charset: other });
+    expect(withOther.cells[0].glyph).toBe(LED_BLANK_GLYPH);
+    expect(withOther.ops).toEqual([]);
+    expect(renderLedGlyph({ type: "char", value: "€" }, "3x5", { charset: other }).pixels).toEqual(
+      renderLedGlyph({ type: "char", value: "€" }, "3x5").pixels,
+    );
+  });
+
+  it("keep no module-level state across layouts: A, then B, then A again are identical", () => {
+    const yen = {
+      ...charset,
+      id: "plugin_yen",
+      chars: ["¥", "€"],
+      glyphs: { "¥": ["#.#", ".#.", "###", ".#.", ".#."], "€": charset.glyphs["€"] },
+    };
+    const snapshot = (layout: ReturnType<typeof layoutLedMessage>) => ({
+      cells: layout.cells,
+      ops: layout.ops,
+      text: layout.text,
+      pixels: Array.from(rasterizeLedLayout(layout).pixels),
+    });
+    const plainBefore = snapshot(layoutLedMessage("0€¥", spec));
+    const a1 = snapshot(layoutLedMessage("0€¥", spec, { charset }));
+    const b = snapshot(layoutLedMessage("¥€0", spec, { charset: yen }));
+    const a2 = snapshot(layoutLedMessage("0€¥", spec, { charset }));
+    const plainAfter = snapshot(layoutLedMessage("0€¥", spec));
+    expect(a2).toEqual(a1);
+    expect(plainAfter).toEqual(plainBefore);
+    expect(a1.cells.map((c) => c.glyph)).toEqual(["0", "€", LED_BLANK_GLYPH]);
+    expect(b.cells.map((c) => c.glyph)).toEqual(["¥", "€", "0"]);
+    expect(plainBefore.cells.map((c) => c.glyph)).toEqual(["0", LED_BLANK_GLYPH, LED_BLANK_GLYPH]);
+    // The same glyph key means the same thing under either set.
+    expect(a1.cells[1].glyph).toBe(b.cells[1].glyph);
+    expect(LED_GLYPHS).not.toContain("€");
+    expect(LED_GLYPHS).not.toContain("¥");
   });
 });

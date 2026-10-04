@@ -493,9 +493,32 @@ Layout and raster are separate stages so that everything planned for later
 `Uint8ClampedArray` of `width × height × 3` bytes, row-major, origin
 top-left, no serpentine order; a 128×64 frame is 24.6 KB.
 
-Each `LedCell` is `{ glyph, color, background? }`; `LED_GLYPHS` (internal)
-is an identity table for membership only — nothing reads meaning into its
-order. A cell with no glyph draws blank. Text is one colour per board
+Each `LedCell` is `{ glyph, color, background? }`. **`glyph` is a stable
+key**, a string that means the same thing in every process — the browser
+preview, a second browser session, FiestaBoard's Python port — so any two of
+them agree on which cells changed and (section 8.2) seed a flip the same
+way:
+
+| Glyph         | Key           | Rule                                                                                                                                                       |
+| ------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| blank         | `" "`         | An unlit cell; also every character nothing can draw.                                                                                                      |
+| a character   | the character | One Unicode character, exactly as spelled (`"A"`, `"€"`, `"♥"`, `"°"`). It is itself when the face has it **or** the layout's own set has a bitmap for it. |
+| a colour tile | `tile:<code>` | The canonical **numeric** code: `{red}` and `{63}` are `tile:63`; `{black}`, `{70}` and `{71}` are `tile:70`. The token keeps its spelling.                |
+| an icon       | `icon:<name>` | The canonical name after alias resolution (`{icon:storm}` is `icon:bolt`).                                                                                 |
+
+Nothing is numbered. `LED_GLYPHS` (internal) is a **frozen membership
+table** of the keys the built-in faces draw — nothing reads meaning into its
+order, and nothing is ever added to it. **Custom glyphs are per layout**: a
+plugin set's own bitmaps (`CharacterSet.glyphs`, section 5) travel on the
+layout as its own table, `LedLayout.options.glyphs`, which is the only
+place a character beyond the face is resolved and drawn from. There is no
+process-global registry of custom glyphs, so a layout drawn without a set
+(or with another set) after one drew `€` still has a blank `€` cell — a
+cell that is blank, not a non-blank glyph that happens to draw nothing —
+and laying out A, then B, then A again gives identical cells, ops and
+frames (tested). The face tables (`LED_FONTS`) are frozen for the same
+reason. Precedence is unchanged: a set's bitmap wins over the face's for
+the same character. A cell with no glyph draws blank. Text is one colour per board
 (`textColor`, default `#ffffff`, AWTRIX's own default, not tinted in the
 frame). `textColor` and `monochrome` are normalised to lowercase `#rrggbb` —
 trimmed, the `#` optional, so a settings screen's `FFB000` and a picker's
@@ -896,7 +919,7 @@ resolveLedTransition(choice, ref) → ResolvedLedTransition { id, spec, source: 
 <LedTransitionPicker model? value? defaultValue? onValueChange? … />
 ```
 
-Not exported, deliberately: `LED_GLYPHS`, `ledGlyphIndex`, `drawLedGlyph`,
+Not exported, deliberately: `LED_GLYPHS`, `ledGlyphKey`, `drawLedGlyph`,
 `layoutLedCells`, `rasterizeLedOps`, `ledCellForToken` — renderer plumbing.
 
 **Storybook coverage** (`App/Board/LedMatrixDisplay`, `CharacterGlyph`,

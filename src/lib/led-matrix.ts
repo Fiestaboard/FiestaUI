@@ -19,12 +19,14 @@
  * panel can draw both. Only a flap board, with one flap for the two, has to
  * choose (`applyCode62Glyph`).
  *
- * Between the tokens and the pixels sits the glyph table: every glyph an LED
- * cell can show has an index in {@link LED_GLYPHS} (membership only; the
- * order means nothing). A layout remembers each cell's glyph, which is what
- * lets a transition turn one layout into another — FiestaBoard's own flip
- * scrambles each changing cell through its device's character set and lands
- * it on its target.
+ * Between the tokens and the pixels sits glyph identity: every cell holds a
+ * stable glyph key ({@link LedGlyphKey} — the character, `tile:63`,
+ * `icon:sun`), the same in every process, with {@link LED_GLYPHS} as the
+ * frozen membership table of what the faces draw and a layout's own set
+ * supplying any character beyond it. A layout remembers each cell's glyph,
+ * which is what lets a transition turn one layout into another —
+ * FiestaBoard's own flip scrambles each changing cell through its device's
+ * character set and lands it on its target.
  */
 
 import { type BoardToken, parseLine } from "./board-characters";
@@ -222,18 +224,44 @@ export type LedDrawOp =
   | { kind: "rect"; x: number; y: number; w: number; h: number; color: string };
 
 /**
+ * The identity of a glyph, as a **stable key** that means the same thing in
+ * every process — the browser preview, a second browser session, and
+ * FiestaBoard's Python port of this renderer — so two of them seed a flip
+ * the same way and agree on which cells changed:
+ *
+ * - `" "` — blank (an unlit cell; also what an undrawable character becomes).
+ * - the character itself (`"A"`, `"€"`, `"♥"`, `"°"`) — one Unicode
+ *   character, exactly as the set or the message spells it.
+ * - `tile:<code>` — a colour tile by its canonical **numeric** code, so
+ *   `{red}` and `{63}` are one glyph (`tile:63`); `{black}`, `{70}` and
+ *   `{71}` are all `tile:70`. The token keeps its spelling; only the key is
+ *   canonical.
+ * - `icon:<name>` — an icon by its canonical name, aliases resolved
+ *   (`{icon:storm}` is `icon:bolt`).
+ *
+ * Nothing is ever numbered: a plugin set's own character is keyed by the
+ * character, whichever set declared it and whatever was laid out before.
+ */
+export type LedGlyphKey = string;
+
+/** The blank glyph's key. */
+export const LED_BLANK_GLYPH: LedGlyphKey = " ";
+
+/**
  * @internal Renderer plumbing — the public surface is `layoutLedMessage`,
  * `rasterizeLedLayout`, `renderLedFrame`, the presets and the frame helpers.
  *
- * Every glyph an LED cell can show, as an **identity table**: a cell stores
- * the index of its glyph, and nothing reads meaning into the order. (Until
- * revision 7 this was a "drum" in Vestaboard's character order and the flip
- * walked it; FiestaBoard's LED flip is its own thing now — see
- * ./led-transitions — so the table is just membership. Blank is 0 so an
- * unknown character resolves to it, as it does on a flap.)
+ * Every glyph the built-in faces can show, as a frozen **membership table**
+ * of glyph keys: a character in it resolves to itself, one outside it is
+ * blank unless the layout's own set draws it. Nothing reads meaning into
+ * the order. (Until revision 7 this was a "drum" in Vestaboard's character
+ * order and the flip walked it; FiestaBoard's LED flip is its own thing now
+ * — see ./led-transitions — so the table is just membership.) It is never
+ * added to: a plugin set's characters live in that set's `glyphs`, carried
+ * on each layout as its own table, so no layout can see another set's.
  */
-export const LED_GLYPHS: readonly string[] = [
-  " ",
+export const LED_GLYPHS: readonly LedGlyphKey[] = Object.freeze([
+  LED_BLANK_GLYPH,
   ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ",
   ..."0123456789",
   ..."!@#$()-+&=;:'\"%,./?°",
@@ -243,22 +271,8 @@ export const LED_GLYPHS: readonly string[] = [
   "♥",
   ...["63", "64", "65", "66", "67", "68", "69", "70", "71"].map((code) => `tile:${code}`),
   ...BOARD_ICON_NAMES.map((name) => `icon:${name}`),
-];
-const GLYPH_INDEX = new Map<string, number>();
-LED_GLYPHS.forEach((key, i) => GLYPH_INDEX.set(key, i));
-// Characters a plugin's set adds (with bitmaps in `CharacterSet.glyphs`) are
-// appended here on first sight. The index is a process-local handle; what
-// crosses to a device is the frame's bytes, never an index.
-const EXTRA_GLYPHS: string[] = [];
-function glyphIndexOf(key: string, register: boolean): number {
-  const known = GLYPH_INDEX.get(key);
-  if (known !== undefined) return known;
-  if (!register) return 0;
-  const index = LED_GLYPHS.length + EXTRA_GLYPHS.length;
-  EXTRA_GLYPHS.push(key);
-  GLYPH_INDEX.set(key, index);
-  return index;
-}
+]);
+const BUILTIN_GLYPH_KEYS: ReadonlySet<LedGlyphKey> = new Set(LED_GLYPHS);
 
 /**
  * Numeric tile code for a colour's hex, so `{red}` and `{63}` share one
@@ -270,38 +284,43 @@ for (const [code, hex] of Object.entries(COLOR_CODE_MAP))
   if (!TILE_CODE_BY_HEX.has(hex)) TILE_CODE_BY_HEX.set(hex, code);
 
 /**
- * @internal Glyph index of a parsed cell. Unknown characters sit at 0
- * (blank), as on a flap — unless `custom` (a set's own bitmaps) has the
- * character, which registers it.
+ * @internal The glyph key of a parsed cell ({@link LedGlyphKey}). An unknown
+ * character is blank, as on a flap — unless `custom` (the layout's set's own
+ * bitmaps) draws it, in which case it is itself. Pure: nothing is registered
+ * anywhere, so the answer is the same whatever was laid out before.
  */
-export function ledGlyphIndex(token: BoardToken, custom?: Readonly<Record<string, readonly string[]>>): number {
-  if (token.icon) return GLYPH_INDEX.get(`icon:${token.icon}`) ?? 0;
+export function ledGlyphKey(token: BoardToken, custom?: Readonly<Record<string, readonly string[]>>): LedGlyphKey {
+  if (token.icon) {
+    const key = `icon:${token.icon}`;
+    return BUILTIN_GLYPH_KEYS.has(key) ? key : LED_BLANK_GLYPH;
+  }
   if (token.type === "color") {
     const code = TILE_CODE_BY_HEX.get(resolveColorCode(token.code, false));
-    return code ? (GLYPH_INDEX.get(`tile:${code}`) ?? 0) : 0;
+    return code ? `tile:${code}` : LED_BLANK_GLYPH;
   }
-  return glyphIndexOf(token.value, custom !== undefined && Object.hasOwn(custom, token.value));
+  const key = token.value;
+  if (BUILTIN_GLYPH_KEYS.has(key)) return key;
+  return custom !== undefined && Object.hasOwn(custom, key) ? key : LED_BLANK_GLYPH;
 }
 
-/** @internal What a glyph index is. */
+/** @internal What a glyph key is. */
 export function ledGlyphEntry(
-  glyph: number,
+  glyph: LedGlyphKey,
 ):
   | { kind: "blank" }
   | { kind: "char"; char: string }
   | { kind: "tile"; code: string }
   | { kind: "icon"; name: BoardIconName } {
-  const entry = glyph < LED_GLYPHS.length ? LED_GLYPHS[glyph] : EXTRA_GLYPHS[glyph - LED_GLYPHS.length];
-  if (entry === undefined || entry === " ") return { kind: "blank" };
-  if (entry.startsWith("icon:")) return { kind: "icon", name: entry.slice(5) as BoardIconName };
-  if (entry.startsWith("tile:")) return { kind: "tile", code: entry.slice(5) };
-  return { kind: "char", char: entry };
+  if (glyph === LED_BLANK_GLYPH || glyph === "") return { kind: "blank" };
+  if (glyph.startsWith("icon:")) return { kind: "icon", name: glyph.slice(5) as BoardIconName };
+  if (glyph.startsWith("tile:")) return { kind: "tile", code: glyph.slice(5) };
+  return { kind: "char", char: glyph };
 }
 
 /** One cell of a layout: what it shows and the colour its text draws in. */
 export interface LedCell {
-  /** Index into {@link LED_GLYPHS}. */
-  glyph: number;
+  /** The cell's glyph, by its stable key ({@link LedGlyphKey}). */
+  glyph: LedGlyphKey;
   /** `#rrggbb` the cell's text draws in: its span colour, else `textColor`,
    *  else the panel's `monochrome`. Tiles and icons bring their own colour
    *  (unless the panel is monochrome), so this is informational for them. */
@@ -328,7 +347,9 @@ export interface LedLayout {
   /** `rows × cols` cells, row-major. Empty when the grid is 0×0. */
   cells: LedCell[];
   /** The options the cells were resolved with — needed to draw any other
-   *  glyph into the same cells, which is what a transition does. */
+   *  glyph into the same cells, which is what a transition does. `glyphs` is
+   *  this layout's own custom-glyph table (its set's bitmaps, keyed by
+   *  character): the only place a character the face lacks is drawn from. */
   options: Readonly<Pick<LedLayoutOptions, "monochrome"> & { glyphs?: CharacterSet["glyphs"] }>;
   ops: LedDrawOp[];
   /**
@@ -371,7 +392,7 @@ function glyphRows(
  */
 export function drawLedGlyph(
   ops: LedDrawOp[],
-  glyph: number,
+  glyph: LedGlyphKey,
   x: number,
   y: number,
   font: LedFont,
@@ -393,7 +414,7 @@ export function drawLedGlyph(
   if (entry.kind === "icon") {
     if (!rows) {
       const { fallback } = BOARD_ICONS[entry.name];
-      if (fallback !== null) drawLedGlyph(ops, ledGlyphIndex(fallbackToken(fallback)), x, y, font, color, options);
+      if (fallback !== null) drawLedGlyph(ops, ledGlyphKey(fallbackToken(fallback)), x, y, font, color, options);
       return;
     }
     // On a monochrome panel every glyph is `color` — the panel colour, or
@@ -416,7 +437,7 @@ function fallbackToken(fallback: string): BoardToken {
  * an icon's label (an icon is content, where a tile is decoration), or a
  * blank. Padded with spaces so a label never fuses with its neighbours.
  */
-function glyphText(glyph: number, font: LedFont, custom?: CharacterSet["glyphs"]): string {
+function glyphText(glyph: LedGlyphKey, font: LedFont, custom?: CharacterSet["glyphs"]): string {
   const entry = ledGlyphEntry(glyph);
   if (entry.kind === "icon") return ` ${BOARD_ICONS[entry.name].label} `;
   if (entry.kind !== "char") return " ";
@@ -532,7 +553,7 @@ export function ledCellForToken(
   // block span on a monochrome panel is always inverse video — lit
   // background, unlit glyph — since one colour cannot show two.
   const color = background && monochrome ? "#000000" : (monochrome ?? span ?? (spanned ? "#000000" : textColor));
-  const cell: LedCell = { glyph: ledGlyphIndex(token, custom), color };
+  const cell: LedCell = { glyph: ledGlyphKey(token, custom), color };
   if (background) cell.background = monochrome ?? background;
   return cell;
 }
