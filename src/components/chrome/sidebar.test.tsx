@@ -237,6 +237,66 @@ describe("Sidebar footer", () => {
   });
 });
 
+describe("Sidebar menu notice", () => {
+  const mobileHeader = () => document.querySelector<HTMLElement>("header")!;
+  const hamburgerDot = () => mobileHeader().querySelector('[data-slot="sidebar-menu-notice"]');
+
+  it("puts no dot on the hamburger by default", () => {
+    renderSidebar();
+    expect(hamburgerDot()).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: LABELS.openMenu })).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("dots the closed hamburger and describes why", () => {
+    // In the drawer the account menu's rows are inline, so there is no
+    // trigger to wear the dot; the hamburger is the only thing on screen.
+    renderSidebar({ menuNotice: "Update available" });
+    const button = screen.getByRole("button", { name: LABELS.openMenu });
+    expect(button).toHaveAccessibleDescription("Update available");
+    expect(button).toContainElement(hamburgerDot() as HTMLElement);
+  });
+
+  it("drops the dot while the drawer is open, where the glyph is a close X", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ menuNotice: "Update available" });
+    expect(hamburgerDot()).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    const close = within(mobileHeader()).getByRole("button", { name: LABELS.closeMenu });
+    expect(close).not.toHaveAttribute("aria-describedby");
+    expect(hamburgerDot()).not.toBeInTheDocument();
+  });
+
+  it("hands the notice to the account menu, and draws no dot of its own on the rail", () => {
+    // The rail's dot belongs on the app's trigger, which gets the words
+    // through the slot; a second dot from the Sidebar would be a double.
+    const seen: Array<string | undefined> = [];
+    renderSidebar({
+      menuNotice: "Update available",
+      renderSettingsMenu: ({ variant, notice }) => {
+        if (variant === "desktop") seen.push(notice);
+        return <button type="button">casa</button>;
+      },
+    });
+    expect(seen.at(-1)).toBe("Update available");
+    expect(desktopRail().querySelector('[data-slot="sidebar-menu-notice"]')).not.toBeInTheDocument();
+  });
+
+  it("hands over no notice when there is none", () => {
+    const seen: Array<string | undefined> = [];
+    renderSidebar({
+      menuNotice: "",
+      renderSettingsMenu: ({ notice }) => {
+        seen.push(notice);
+        return null;
+      },
+    });
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((n) => n === undefined)).toBe(true);
+    expect(hamburgerDot()).not.toBeInTheDocument();
+  });
+});
+
 describe("Sidebar settings shortcut", () => {
   const SETTINGS: SidebarProps["settings"] = { href: "#settings", label: "Settings" };
   const shortcut = () => within(desktopFooter()).queryByRole("link", { name: "Settings" });

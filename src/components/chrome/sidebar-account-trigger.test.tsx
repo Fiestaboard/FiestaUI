@@ -6,6 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { SidebarAccountTrigger } from "./sidebar-account-trigger";
 
 const avatarOf = (button: HTMLElement) => button.querySelector<HTMLElement>('[data-slot="avatar"]');
+const noticeOf = (button: HTMLElement) => button.querySelector<HTMLElement>('[data-slot="sidebar-account-notice"]');
 
 describe("SidebarAccountTrigger", () => {
   it("shows the name beside its avatar when the rail is expanded", () => {
@@ -56,6 +57,45 @@ describe("SidebarAccountTrigger", () => {
 
     render(<SidebarAccountTrigger label="More" anonymous />);
     expect(screen.getByRole("button").querySelector("svg.lucide-chevrons-up-down")).not.toBeInTheDocument();
+  });
+
+  it("shows no notice dot unless there is something to say", () => {
+    const { unmount } = render(<SidebarAccountTrigger label="casa" />);
+    expect(noticeOf(screen.getByRole("button"))).not.toBeInTheDocument();
+    unmount();
+
+    // An empty sentence is no notice: a dot nobody can name fails 1.4.1.
+    render(<SidebarAccountTrigger label="casa" notice="" />);
+    expect(noticeOf(screen.getByRole("button"))).not.toBeInTheDocument();
+    expect(screen.getByRole("button")).toHaveAccessibleName("casa");
+    expect(screen.getByRole("button")).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("wears a dot on the avatar and describes it when a notice is passed", () => {
+    // The update row is inside the menu; the closed trigger was the only
+    // thing on screen and said nothing about it.
+    render(<SidebarAccountTrigger label="casa" notice="Update available" />);
+    const button = screen.getByRole("button", { name: "casa" });
+    // State, not identity: the name stays the person's.
+    expect(button).toHaveAccessibleDescription("Update available");
+    const dot = noticeOf(button)!;
+    expect(dot).toHaveAttribute("aria-hidden", "true");
+    // On the avatar's corner, not the button's.
+    expect(dot.parentElement).toContainElement(avatarOf(button));
+  });
+
+  it("describes the notice when collapsed, where the avatar is all that renders", () => {
+    render(<SidebarAccountTrigger label="casa" collapsed notice="Update available" />);
+    const button = screen.getByRole("button", { name: "casa" });
+    expect(button).toHaveAccessibleDescription("Update available");
+    expect(noticeOf(button)).toBeInTheDocument();
+  });
+
+  it("puts the notice on the ellipsis when nobody is signed in", () => {
+    render(<SidebarAccountTrigger label="More" anonymous notice="Update available" />);
+    const button = screen.getByRole("button", { name: "More" });
+    expect(button).toHaveAccessibleDescription("Update available");
+    expect(noticeOf(button)).toBeInTheDocument();
   });
 
   it("keeps its own data-slot when used as a menu trigger", () => {
@@ -126,6 +166,14 @@ describe("SidebarAccountTrigger collapsed tooltip", () => {
     expect(button).toHaveAttribute("data-slot", "sidebar-account-trigger");
     await user.click(button);
     expect(await screen.findByRole("menuitem", { name: "Sign out" })).toBeInTheDocument();
+  });
+
+  it("says what the dot means in the collapsed tooltip", async () => {
+    const user = userEvent.setup();
+    render(<SidebarAccountTrigger label="casa" collapsed notice="Update available" />);
+
+    await user.hover(screen.getByRole("button", { name: "casa" }));
+    expect(await screen.findByText("Update available")).toBeInTheDocument();
   });
 
   // NOT tested here: that the tooltip stands down while the menu is open
