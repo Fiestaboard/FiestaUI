@@ -81,9 +81,9 @@ export const Pixoo64: Story = {
     <Stack gap="6">
       <Intro title="Pixoo 64, from its plugin">
         The <Code>divoom_pixoo64</Code> model as <Code>{PIXOO_PLUGIN.name}</Code> publishes it: 64 × 64 RGB pixels, the{" "}
-        <Code>led_3x5</Code> set in the 3×5 face, square diffused dots, and a 32-frame sequence budget with the device's
-        push limits and their sources in the plugin's notes. The package is a devDependency; the model is passed as the
-        object, not by id.
+        <Code>led_3x5</Code> set in the 3×5 face, square diffused dots, and a still push rate of 2 a second — the device
+        snaps; its camera-timed hardware lab notes and their sources are in the plugin's declaration. The package is a
+        devDependency; the model is passed as the object, not by id.
       </Intro>
       <FromPackage plugin={PIXOO_PLUGIN}>
         <DisplayPreview model={PIXOO_FROM_PLUGIN} message={PIXOO_PAGES[0]} />
@@ -96,7 +96,10 @@ function FlipDemo() {
   const [index, setIndex] = useState(0);
   return (
     <Stack gap="4" className="items-center">
-      <FromPackage plugin={PIXOO_PLUGIN} note="flip, compressed into the declared 32-frame budget">
+      <FromPackage
+        plugin={PIXOO_PLUGIN}
+        note="flip asked for; the declaration resolves it to none, so the change snaps"
+      >
         <DisplayPreview model={PIXOO_FROM_PLUGIN} message={PIXOO_PAGES[index]} transition="flip" />
       </FromPackage>
       <Button variant="outline" size="sm" data-testid="next-message" onClick={() => setIndex((i) => (i + 1) % 2)}>
@@ -106,15 +109,16 @@ function FlipDemo() {
   );
 }
 
-/** A flip on the plugin's Pixoo: the model's `animation` is what sizes the sequence. Reduced motion snaps it. */
+/** A flip asked of the plugin's Pixoo: the model's `animation` decides, and it says the device snaps. */
 export const Pixoo64Flip: Story = {
   name: "Pixoo 64, flip transition",
   render: () => (
     <Stack gap="6">
-      <Intro title="Flip, within the plugin's budget">
-        The plugin declares <Code>sequence</Code> delivery, 32 frames at 80 ms, so the flip is compressed to land on the
-        final frame inside that budget — the same frames the plugin will upload. Press Next message to flip between two
-        pages.
+      <Intro title="Flip, as the plugin's declaration resolves it">
+        The plugin declares <Code>stream</Code> delivery at 2 frames a second — the verified safe still-push rate, after
+        its hardware lab found uploaded animations loop forever behind a loading overlay — so an asked-for flip falls
+        back to <Code>none</Code> with that reason, and the change cuts straight to the next page, exactly as the device
+        does. Press Next message to see it.
       </Intro>
       <FlipDemo />
     </Stack>
@@ -151,9 +155,9 @@ export const Pixoo64TransitionPicker: Story = {
   render: () => (
     <Stack gap="6">
       <Intro title="The menu the plugin's model earns">
-        <Code>LedTransitionPicker</Code> reads the same declaration: each entry says whether the device can run it and
-        how it is compressed into the 32-frame sequence; the previews show exactly the frames a sequence will contain.
-        The choice drives the board on the right.
+        <Code>LedTransitionPicker</Code> reads the same declaration: at 2 frames a second only None is available, and
+        every other entry says why, in its card and in the list under the group. The choice drives the board on the
+        right.
       </Intro>
       <PickerDemo />
     </Stack>

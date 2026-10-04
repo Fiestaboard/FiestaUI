@@ -124,6 +124,9 @@ describe("the output-plugin devDependencies", () => {
       const pkg = readJson(resolve(p.dir, "package.json")) as Record<string, unknown>;
       expect(pkg.name).toBe(p.name);
       expect(pkg.main ?? pkg.exports ?? pkg.module, `${p.name} ships code`).toBeUndefined();
+      // No lifecycle hooks either: a data package pinned from git must not
+      // run anything on install.
+      expect(pkg.scripts, `${p.name} declares scripts`).toBeUndefined();
       expect(existsSync(resolve(p.dir, "output/device-models.json")), `${p.name}: no output/device-models.json`).toBe(
         true,
       );
@@ -203,7 +206,10 @@ describe("@fiestaboard/output-divoom-pixoo", () => {
     expect(declared!.animation.sources?.length).toBeGreaterThan(0);
   });
 
-  it("is the Pixoo FiestaUI renders: 64×64 RGB, led_3x5 in the 3×5 face, a 32-frame sequence budget, square dots", () => {
+  it("is the Pixoo FiestaUI renders: 64×64 RGB, led_3x5 in the 3×5 face, snapping at 2 fps, square dots", () => {
+    // v0.2.0 (PR #1, commit 0b99e5b): the camera-timed hardware lab found
+    // uploaded animations loop and overlay, so the plugin declares a still
+    // push rate of 2 a second and no sequence budget — the Pixoo snaps.
     expect(declared).toMatchObject({
       technology: "led_matrix",
       family: "divoom",
@@ -211,10 +217,13 @@ describe("@fiestaboard/output-divoom-pixoo", () => {
       color: { kind: "rgb", bitDepth: 24 },
       charset: "led_3x5",
       font: "3x5",
-      animation: { delivery: "sequence", maxFps: 12.5, maxFrames: 32, minFrameMs: 80 },
+      animation: { delivery: "stream", maxFps: 2 },
       appearance: { pixelShape: "square" },
       legacy: { preset: "pixoo64" },
     });
+    expect(declared!.animation).not.toHaveProperty("maxFrames");
+    expect(declared!.animation).not.toHaveProperty("minFrameMs");
     expect(declared).not.toHaveProperty("pixelShape");
+    expect(defaultTransitionIdForModel(declared!)).toBe("none");
   });
 });
