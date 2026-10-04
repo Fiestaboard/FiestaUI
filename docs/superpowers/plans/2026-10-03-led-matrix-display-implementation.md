@@ -434,9 +434,35 @@ FiestaPanel is a board shown on a TV, so its previews sit on one. `TvFrame` is t
 
 ### Task 10: Storybook showcase (new)
 
-**PR title:** `docs(storybook): LED matrix showcase`
+**PR title:** `feat(board): Storybook display-outputs showcase; DisplayPreview letterCase`
 
-Stub: the owner scopes this. The intent: one showcase page that walks the shipped pieces end to end — every built-in and plugin model through `DisplayPreview`, the editor beside its preview (Task 8's story as a starting point), the character-set specimens and the transition picker — as the entry point for output-plugin authors and the FiestaBoard team.
+The owner's requirement: "We should be able to demonstrate everything from this effort including RCE in storybook." This layer is the shelf a reviewer, a plugin author or the FiestaBoard team goes to for the whole effort working end to end. It composes what Tasks 0–9 shipped; it re-implements nothing.
+
+**What was built** — `Showcase/Display Outputs` (`src/stories/display-outputs-showcase.stories.tsx`, with the device catalogue and seed templates in `display-outputs-showcase-support.tsx`; `"Showcase"` added to the story sort after Foundations). Eight stories:
+
+- **Overview** — three paragraphs on what the effort is, a hero `DisplayPreview`, and links to every story and to each component's own stories. A captioned story, not an MDX page: the Storybook has no docs addon, and none was added.
+- **Playground** (the centrepiece) — a device picker over every built-in (Flagship v1 degree and v2 heart, Note, a 2 × 1 Note array, a 4 × 20 panel, Pixoo 64, HUB75 64×32 / 64×64 / 128×64, AWTRIX, WLED 32×32, MAX7219, P10, Tronbyt), the two FiestaPanel models (on their `TvFrame`) and the ACME plugin sign. For the chosen device: the `TemplateEditor` with `deviceModel` (its toolbar offers only that set's forms; unsupported cells are underlined and summarised), a live `DisplayPreview` of the editor's value (variables substituted with sample values; `fill_space` padded to the device's columns by the parser's own cell count; mixed case kept on faces that have it), a `LedTransitionPicker` whose choice drives the preview on every edit and on **Next message** (which swaps in the device's second seed template), the device card (technology, family, geometry, colour, set, animation delivery / fps / frame budget, the default transition and the registry's reason, appearance) and the `CharacterSetSpecimen` in a collapsible. A split-flap device gets the animated flap renderer and a switch between what the board draws today and the post-release degradation. Each device is seeded with a realistic FiestaBoard template (weather, transit, agenda, stocks, departures) that shows off its set.
+- **One template, every board** — one message with an icon, a degree, lowercase, a block span, a tile bar and a heart on all seventeen devices through `DisplayPreview`, grouped split-flap / LED / plugin-declared, each captioned with its set.
+- **Character sets** — the lineage `vestaboard_v1 → vestaboard_v2 → led_5x7 → led_3x5 → acme_sign_v1`, each specimen compared with its parent and a one-line diff from `charsetDiff`.
+- **Transitions** — the six kinds on a HUB75 128×64 behind a Next message button; the per-device defaults table from `transitionsForModel` for every built-in and plugin model (delivery, rate or budget, default, reason); the Pixoo's menu with every entry compressed into its 32-frame budget.
+- **Colour, blocks and icons** — the grammar as a table; one message on an RGB panel, a mono P10, and a Note twice (today's literal rendering and the `extendedMarkup` degradation); the sixteen icons on the 5×7 face, the 3×5 face and a flap with each fallback named.
+- **Plugin-declared devices** — the ACME sign and both FiestaPanel models rendered from their JSON (the ACME set materialised first, as FiestaBoard does), with `validateDeviceModel`'s verdict and the declaration as a `JsonTree`; plus a deliberately broken declaration (top-level `pixelShape`, no label) showing the validator naming both errors.
+- **TV panels** — both FiestaPanel models through `DisplayPreview frame="tv"`: 55″ on its stand, 65″, dimmed on a wall mount, and offline. The captions describe the flaps on the TV, as the Apple TV app shows them, and nothing in the layout depends on the flap board's own housing inside the set.
+
+**Gaps filled on the way** (both additive, default-off, tested):
+
+- `DisplayPreview.letterCase` (`"upper"` | `"mixed"`, LED only, passed through to `LedMatrixDisplay`). Without it a Pixoo template the editor keeps in lowercase previewed in uppercase, and the playground would have contradicted itself.
+- `LedMatrixDisplay`: a dot is never thinner than one device pixel. At a 1 px pitch on a 1× screen (the picker's preview of a 128-wide panel, every CI shot) a 0.72 px round dot rasterised to a 28 %-alpha haze and the preview read as off.
+
+**Not exported:** the showcase's helpers (`FitToWidth`, the catalogue, `previewFromTemplate`) live in `src/stories/` and are not part of the package; the inventory and story-variant coverage tests need nothing new.
+
+**Checks:** a11y runner on all eight stories in both themes; each story shot twice under reduced motion at both VRT viewports and both themes and pixel-compared (no `vrt/skip.json` entry needed); no horizontal overflow at 390 px (panels stack; tile boards scale through a story-only `FitToWidth`); screenshots at desktop and mobile, dark and light, in `.playwright-mcp/stack-10-*.png`, plus mid-flip and mid-dissolve frames of the playground.
+
+**Steps:**
+
+- [x] The showcase stories, the two gap-fills, the plan.
+- [x] Checks, a11y, VRT stability, screenshots looked at.
+- [ ] Rebase onto the Task 9 bezel change, open and merge the PR.
 
 ---
 
