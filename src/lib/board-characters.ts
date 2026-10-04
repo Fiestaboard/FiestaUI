@@ -142,6 +142,9 @@ for (let i = 0; i < BOARD_CHARS.length; i++) {
   const char = BOARD_CHARS[i];
   if (!CHAR_INDEX.has(char)) CHAR_INDEX.set(char, i);
 }
+// A typed heart is code 62, the same flap as a typed degree sign:
+// FiestaBoard's board_chars maps `°`, `♥` and `❤` all to 62.
+CHAR_INDEX.set("♥", 62);
 
 /** Find a character's index in BOARD_CHARS; unknown characters map to blank (0). */
 export function getCharIndex(char: string): number {
@@ -186,13 +189,15 @@ function isEndTag(content: string): boolean {
 }
 
 /**
- * A typed heart is code 62, the same flap as a typed degree sign: the board
- * draws whichever glyph its code-62 flap carries (FiestaBoard's board_chars
- * maps `°`, `♥` and `❤` all to 62). So a typed heart becomes `°` here, and
- * {@link applyCode62Glyph} turns it back into a heart on boards that have one.
+ * Characters keep their Unicode identity in a token: a typed heart stays a
+ * heart, so a renderer that can draw one (an LED) draws one. Only the
+ * split-flap projection collapses it, `♥` and `°` both being code 62
+ * ({@link getCharIndex}), drawn as whichever glyph the board's flap carries
+ * ({@link applyCode62Glyph}). `❤` (U+2764) is normalised to `♥` (U+2665) so a
+ * heart is one character everywhere downstream.
  */
 function typedCharToBoard(ch: string): string {
-  return ch === "♥" || ch === "❤" ? "°" : ch;
+  return ch === "❤" ? "♥" : ch;
 }
 
 export function parseLine(line: string, maxTokens: number = Infinity): BoardToken[] {
@@ -292,7 +297,10 @@ export function resolveCode62Glyph(deviceType: string, code62Glyph?: Code62Glyph
  * this substitution (FiestaBoard#1666).
  */
 export function applyCode62Glyph(token: BoardToken, glyph: Code62Glyph): BoardToken {
-  if (glyph === "heart" && token.type === "char" && token.value === "°") return { type: "char", value: "♥" };
+  if (token.type !== "char") return token;
+  if (glyph === "heart" && token.value === "°") return { type: "char", value: "♥" };
+  // A typed heart is code 62 too; a degree-flap board draws its flap.
+  if (glyph === "degree" && token.value === "♥") return { type: "char", value: "°" };
   return token;
 }
 

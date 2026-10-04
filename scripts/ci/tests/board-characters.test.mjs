@@ -72,7 +72,8 @@ test("getCharIndex: known characters map to their board codes", () => {
 test("getCharIndex: unknown characters default to blank (0)", () => {
   assert.equal(getCharIndex("~"), 0);
   assert.equal(getCharIndex("a"), 0); // board is uppercase-only
-  assert.equal(getCharIndex("♥"), 0); // EXTRA_CHARS are displayable but have no code
+  // A typed heart is NOT unknown: like `°` it is code 62, the flap the board
+  // turns to (FiestaBoard board_chars); see the parity tests below.
   assert.equal(getCharIndex(""), 0);
 });
 
@@ -301,12 +302,17 @@ test("parity: an astral character (emoji) is one cell, not two", () => {
 });
 
 test("parity: a typed ♥ or ❤ is code 62, drawn by the board's own flap", () => {
-  assert.deepEqual(parseLine("♥"), [char("°")]);
-  assert.deepEqual(parseLine("❤"), [char("°")]);
+  // The token keeps the heart (Unicode identity; ❤ normalises to ♥) …
+  assert.deepEqual(parseLine("♥"), [char("♥")]);
+  assert.deepEqual(parseLine("❤"), [char("♥")]);
+  // … the flap projection is code 62, like a typed °.
+  assert.equal(getCharIndex("♥"), 62);
+  assert.equal(getCharIndex("°"), 62);
   // A degree-flap Flagship draws a degree for it; a heart-flap board a heart.
   assert.equal(messageToGrid("I♥NY", 1, 4, "flagship")[0][1].value, "°");
   assert.equal(messageToGrid("I♥NY", 1, 4, "flagship", "heart")[0][1].value, "♥");
   assert.equal(messageToGrid("I❤NY", 1, 4, "note")[0][1].value, "♥");
-  // …and the accessible name says what the board draws.
+  // … and the accessible name says what the board draws.
   assert.equal(messageToText("I♥NY", "flagship"), "I°NY");
+  assert.equal(messageToText("I♥NY", "note"), "I♥NY");
 });
