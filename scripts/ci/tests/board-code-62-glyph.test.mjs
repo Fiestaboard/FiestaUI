@@ -257,8 +257,12 @@ test("a note board draws a heart whatever the flagship setting says", async () =
  * drum reports, and the text the flap halves actually draw) while it runs.
  * Returns the set of drum glyphs and the set of drawn glyphs seen *while a tile
  * was animating or transitioning* — the static landing is covered above.
+ *
+ * Sampling stops as soon as the drum has passed code 62 (either glyph), or
+ * after `sampleMs`: jsdom's timers drift under load, so a fixed window would
+ * make the pass depend on the machine.
  */
-async function sampleDrum(props, { nextProps = null, sampleMs = 600 } = {}) {
+async function sampleDrum(props, { nextProps = null, sampleMs = 4000 } = {}) {
   const dom = installDom();
   try {
     const harness = await import(`${bundleUrl}?run=${++runCounter}`);
@@ -273,6 +277,8 @@ async function sampleDrum(props, { nextProps = null, sampleMs = 600 } = {}) {
     const drum = new Set();
     const drawn = new Set();
     const startedAt = Date.now();
+    const passedCode62 = () => drum.has("♥") || drum.has("°") || drawn.has("♥") || drawn.has("°");
+    let lastSample = 0;
     while (Date.now() - startedAt < sampleMs) {
       await new Promise((r) => setTimeout(r, 3));
       for (const tile of container.querySelectorAll("[data-current-char]")) {
@@ -281,6 +287,12 @@ async function sampleDrum(props, { nextProps = null, sampleMs = 600 } = {}) {
         if (!moving) continue;
         drum.add(tile.getAttribute("data-current-char"));
         for (const span of tile.querySelectorAll("span")) drawn.add(span.textContent);
+      }
+      // One more step after code 62 is seen, so the halves of the next flip
+      // (which show the departing glyph) are sampled too.
+      if (passedCode62()) {
+        if (lastSample === 0) lastSample = Date.now();
+        else if (Date.now() - lastSample > 60) break;
       }
     }
 
@@ -327,7 +339,7 @@ test("a tile leaving ♥ on a heart board folds a ♥ flap down, not a °", asyn
   // leaving. Leaving code 62 on a heart board, that glyph is ♥.
   const { drawn } = await sampleDrum(
     { message: "♥", deviceType: "note", flapSpeed: "standard" },
-    { nextProps: { message: "A" }, sampleMs: 400 },
+    { nextProps: { message: "A" } },
   );
   assert.ok(drawn.has("♥"), `the departing flap never drew ♥; drew ${JSON.stringify([...drawn])}`);
   assert.ok(!drawn.has("°"), "the departing flap drew a degree sign on a heart board");
