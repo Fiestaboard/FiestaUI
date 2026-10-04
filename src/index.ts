@@ -133,6 +133,14 @@ export {
   type LedMatrixDisplayProps,
   type LedPixelShape,
 } from "./components/board/led-matrix-display";
+// The transition menu as a settings control: one card per entry, judged
+// against a device model, with what the device cannot run kept reachable.
+export {
+  DEFAULT_LED_TRANSITION_PICKER_LABELS,
+  LedTransitionPicker,
+  type LedTransitionPickerLabels,
+  type LedTransitionPickerProps,
+} from "./components/board/led-transition-picker";
 // The LED data layer: bitmap fonts, character sets, device models and the
 // layout → raster pipeline. Curated named exports — the glyph table and the
 // cell-level drawing functions are renderer plumbing (`@internal`) and stay

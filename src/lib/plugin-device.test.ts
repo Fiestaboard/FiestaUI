@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   type CharacterSet,
   charsetFallback,
+  charsetHasChar,
+  charsInSet,
+  iconsInSet,
+  LOWERCASE_CHARS,
   materializeCharacterSet,
   validateCharacterSet,
   validateMessage,
@@ -195,5 +199,33 @@ describe("a plugin-declared device, end to end", () => {
     });
     expect(transitionsForModel(tight).find((a) => a.id === "fade")!.available).toBe(true);
     expect(resolveLedTransition("flip", tight)).toMatchObject({ id: "none", source: "fallback", requested: "flip" });
+  });
+
+  it("tells the pickers what to offer: its stamps, its icons, no lowercase, no text colours", () => {
+    // What ColorPickerContent and DrawCharPickerContent read from the set
+    // (the component-level assertions are in
+    // ../components/editor/charset-pickers.test.tsx, with the same set).
+    expect(iconsInSet(charset)).toEqual(["check", "up", "down"]); // registry order
+    expect(charsInSet(charset, LOWERCASE_CHARS)).toEqual([]);
+    expect(charset.mixedCase).toBe(false);
+    expect(charset.colorSpans).toBe(false);
+    expect(charset.blockSpans).toBe(true);
+    expect(charset.code62Glyph).toBeUndefined();
+    expect(charsetHasChar(charset, "°")).toBe(false);
+    expect(charsetHasChar(charset, "♥")).toBe(false);
+    expect(charsInSet(charset, ["A", "€", "a", "!", "-", "0"])).toEqual(["A", "€", "-", "0"]);
+    // And LedTransitionPicker: every entry runs under the 12-frame budget,
+    // flip the default; nothing to mark aria-disabled.
+    const menu = transitionsForModel(model);
+    expect(menu.every((a) => a.available)).toBe(true);
+    expect(menu.filter((a) => a.degraded).map((a) => a.id)).toEqual([
+      "flip",
+      "cascade",
+      "slide",
+      "wipe",
+      "fade",
+      "dissolve",
+    ]);
+    expect(defaultTransitionIdForModel(model)).toBe("flip");
   });
 });

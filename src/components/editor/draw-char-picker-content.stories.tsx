@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { goldenCharacterSet } from "../../lib/charset-golden-cases";
 import { DrawCharPickerContent } from "./draw-char-picker-content";
 
 const meta = {
@@ -57,5 +58,34 @@ export const NoteDegreeDrawsHeart: Story = {
   args: {
     current: { kind: "char", char: "°" },
     deviceType: "note",
+  },
+};
+
+/**
+ * An LED character set: the same stamps drawn as the set's dots, plus a
+ * lowercase row because the set has mixed case. The board decides what it
+ * can draw; the picker offers only that.
+ */
+export const LedCharset: Story = {
+  args: {
+    current: { kind: "char", char: "a" },
+    charset: "led_5x7",
+  },
+};
+
+/** A plugin's own set, as an object: the ACME sign's 3×5 face, uppercase only, no `°` or `♥`, so no code-62 stamp. */
+export const PluginCharset: Story = {
+  args: {
+    current: { kind: "char", char: "A" },
+    charset: goldenCharacterSet("acme_sign_v1"),
+  },
+};
+
+/** A heart-flap Vestaboard set decides the code-62 glyph itself. */
+export const HeartFlapCharset: Story = {
+  args: {
+    current: { kind: "eraser" },
+    deviceType: "flagship",
+    charset: "vestaboard_v2",
   },
 };
