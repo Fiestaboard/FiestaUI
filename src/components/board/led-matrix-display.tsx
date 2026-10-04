@@ -219,7 +219,12 @@ function paintLedFrame(
   const step = pitch * dpr;
   const backingW = Math.round(frame.width * step);
   const backingH = Math.round(frame.height * step);
-  const dot = step * look.dotRatio;
+  // A dot is never thinner than one device pixel: at a 1px pitch on a 1x
+  // screen (the picker's preview of a 128-wide panel, CI's shots) a 0.72px
+  // dot rasterises to a 28%-alpha haze and the preview reads as off. Filling
+  // the whole pixel there keeps it a legible bitmap; above that the model's
+  // ratio applies as before.
+  const dot = Math.max(step * look.dotRatio, Math.min(step, 1));
   const round = look.shape === "round" && dot >= MIN_ROUND_DOT;
   const { pixels, width, height } = frame;
 
