@@ -31,7 +31,8 @@ export const FIESTAPANEL_SPLIT_FLAP_MODEL = {
   geometry: { kind: "panel", rows: 12, cols: 29 },
   color: { kind: "tiles" },
   charset: "vestaboard_v2",
-  animation: { delivery: "none", maxFps: 0 },
+  // The TV app polls frames about every 2 s, like the legacy virtual panel.
+  animation: { delivery: "stream", maxFps: 0.5 },
   appearance: {
     boardColors: ["black", "white"],
     options: { board_color: ["black", "white"] },
