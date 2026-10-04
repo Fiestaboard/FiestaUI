@@ -199,10 +199,11 @@ describe("what 'fast enough' means, through the transition menu", () => {
     expect(defaultTransitionIdForModel(DEVICE_MODELS.wled_32x32)).toBe("flip");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.max7219_4in1)).toBe("flip");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.p10_hub12_32x16)).toBe("flip");
-    expect(flipFor(DEVICE_MODELS.divoom_pixoo64.animation)).toMatchObject({
-      spec: { kind: "flip", stepMs: 80, halfFlap: false, maxFrames: 32 },
-    });
-    expect(defaultTransitionIdForModel(DEVICE_MODELS.divoom_pixoo64)).toBe("flip");
+    // The Pixoo 64 snaps: its hardware test (2026-10-04) found uploaded
+    // animations loop and show a "LOADING…" overlay, so it is held at its
+    // verified safe still-push rate, 2 fps, below every entry's minimum.
+    expect(flipFor(DEVICE_MODELS.divoom_pixoo64.animation)).toBeNull();
+    expect(defaultTransitionIdForModel(DEVICE_MODELS.divoom_pixoo64)).toBe("none");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.tidbyt_tronbyt)).toBe("flip");
     // UNMEASURED: held at a nominal 2 fps, below every animated entry's minimum.
     expect(DEVICE_MODELS.ulanzi_tc001_awtrix.animation).toEqual({ delivery: "stream", maxFps: 2 });

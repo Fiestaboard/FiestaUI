@@ -725,7 +725,7 @@ imul(t ^ (t >>> 7), 61 | t)) ^ t; (t ^ (t >>> 14)) >>> 0) / 2³²`), and the
   draw: `pool[(i + 1 + floor(r × (n − 1))) mod n]`where`i`is the first
   pick's index. Pinned seeds:`(0, "A", "B", 6, 1) = 3714565441`,
   `(3, "A", "€", 6, 2) = 990692943`, `(0, " ", "tile:63", 8, 1) =
-  2711017083`, `(5, "icon:sun", "¥", 12, 2) = 2318610564`— computed
+2711017083`, `(5, "icon:sun", "¥", 12, 2) = 2318610564`— computed
   independently in Python and asserted in`led-transitions.test.ts`. So the
   preview, `ledTransitionFrames`, the frames a device receives and the
   Python port's are identical and repeatable; a different change scrambles
@@ -787,11 +787,11 @@ rest, `none`). The coarse, budgeted flip is _derived_ from "flip" by the
 device (`transitionSpecForDevice`), never a separate entry: a user picks
 Flip; the device decides how many frames that is.
 
-| Capability                                 | Default                                               | Devices                                                                   |
-| ------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------------------- |
-| stream at ≥ 25 fps, or sequence ≥ 8 frames | `flip`: 80 ms, half-flaps, budget applied             | HUB75 (60), WLED DDP (40), MAX7219 / P10 (50), Pixoo (32 frames), Tronbyt |
-| stream at 5–25 fps                         | coarse flip: `stepMs = max(80, frame)`, no half-flaps | —                                                                         |
-| < 5 fps, unmeasured, or no frame interface | `none` (snap)                                         | AWTRIX (unmeasured), split-flap (the hardware cascades itself)            |
+| Capability                                 | Default                                               | Devices                                                                |
+| ------------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| stream at ≥ 25 fps, or sequence ≥ 8 frames | `flip`: 80 ms, half-flaps, budget applied             | HUB75 (60), WLED DDP (40), MAX7219 / P10 (50), Tronbyt (sequence)      |
+| stream at 5–25 fps                         | coarse flip: `stepMs = max(80, frame)`, no half-flaps | —                                                                      |
+| < 5 fps, unmeasured, or no frame interface | `none` (snap)                                         | Pixoo 64 (2 fps, measured — it snaps), AWTRIX (unmeasured), split-flap |
 
 `transitionsForModel(ref)` lists the menu judged against a device — a
 streamed device by push rate, a sequence player by its frame budget, a
@@ -984,7 +984,7 @@ Not exported, deliberately: `LED_GLYPHS`, `ledGlyphKey`, `drawLedGlyph`,
 `CharacterSetSpecimen`, `LedTransitionPicker`; `Editor/*PickerContent`):
 every preset, colour text and icons beside split-flap, mixed case,
 monochrome, block text, each transition kind, `Pixoo64Featured`,
-`Pixoo64Budget`, `DefaultTransitionByDevice`, `OnePluginEveryBoard`,
+`SequenceDeviceBudget`, `DefaultTransitionByDevice`, `OnePluginEveryBoard`,
 `OneMessageEveryCharset`, `SmallMatrixVsFlagship`, `TodaysSplitFlap`, the
 specimen comparisons and the pickers with LED sets — 70 stories, all in the
 component inventory.

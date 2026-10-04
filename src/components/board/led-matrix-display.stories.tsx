@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { type ReactNode, useEffect, useState } from "react";
 
-import { deviceModelForPreset } from "../../lib/devices";
+import { type DeviceModel, deviceModelForPreset } from "../../lib/devices";
+import { SEQUENCE_PANEL_MODEL } from "../../lib/led-golden-cases";
 import { LED_MATRIX_PRESETS, LED_MONO_COLORS, type LedMatrixPresetId } from "../../lib/led-matrix";
 import { transitionsForModel } from "../../lib/led-transition-registry";
 import { LED_TRANSITION_KINDS, type LedTransitionKind } from "../../lib/led-transitions";
@@ -460,11 +461,11 @@ const PIXOO_PAGES = [
 /**
  * The first test device: a Pixoo 64, a 64×64 diffused face (square pixels,
  * from the model's `appearance`) in the 3×5 font, with mixed case, colour
- * spans, icons and inverse-video pills on one page. It takes a whole
- * animation (`Draw/SendHttpGif`, ≤ 32 frames at `PicSpeed` ms) and plays it
- * locally, so its default is a coarse flip: 80 ms a step, one frame per
- * step, no half-flaps — exactly what the uploaded sequence will show. Press
- * "Next message" to see it.
+ * spans, icons and inverse-video pills on one page. Its hardware test
+ * (2026-10-04) found that an uploaded animation loops forever and shows a
+ * "LOADING…" overlay first, while a single-frame push is clean in half a
+ * second — so the Pixoo **snaps**: its default transition is None, and
+ * "Next message" cuts straight to the next page, exactly as the device does.
  */
 export const Pixoo64Featured: Story = {
   args: { message: PIXOO_PAGES[0], preset: "pixoo64", letterCase: "mixed", size: "md" },
@@ -559,7 +560,7 @@ export const OneMessageEveryCharset: Story = {
 const LED_MODEL_IDS = Object.keys(LED_MATRIX_PRESETS) as LedMatrixPresetId[];
 const describeDefault = (id: LedMatrixPresetId) => {
   const flip = transitionsForModel(deviceModelForPreset(id)).find((t) => t.id === "flip")!;
-  if (!flip.available || flip.spec === null || flip.spec === "none") return "snap";
+  if (!flip.available || flip.spec === null || flip.spec === "none") return `none — ${flip.reason ?? "snap"}`;
   const spec = flip.spec;
   const how = spec.maxFrames ? `${spec.maxFrames} frames` : spec.halfFlap === false ? "coarse" : "half-flaps";
   return `flip, ${spec.stepMs ?? 80} ms, ${how}`;
@@ -568,8 +569,9 @@ const describeDefault = (id: LedMatrixPresetId) => {
 /**
  * Every LED model with the transition its API earns by default: full flip
  * for streams at ≥ 25 fps (HUB75, WLED, local MAX7219/P10), a coarse flip for
- * sequence players (Pixoo 64, Tronbyt), a snap for AWTRIX. Press "Next
- * message" and compare.
+ * a sequence player (Tronbyt), none for the Pixoo 64 (it snaps — hardware
+ * test, 2026-10-04) and for AWTRIX, each captioned with the registry's
+ * reason. Press "Next message" and compare.
  */
 export const DefaultTransitionByDevice: Story = {
   args: { message: "72° {66}OK", size: "sm" },
@@ -605,15 +607,20 @@ export const BlockFlip: Story = {
   ),
 };
 
+/** A plugin-style 64×64 sequence player with a 32-frame budget — the device the transition goldens pin. */
+const SEQUENCE_MODEL = SEQUENCE_PANEL_MODEL as unknown as DeviceModel;
+
 /**
- * The Pixoo's hard 32-frame budget: a long flip (`scrambleSteps: 40`,
- * `stagger: 20` would be 62 frames) is compressed into exactly 32 — stagger
- * first, then scramble — and still lands on the final frame.
+ * A sequence player's hard 32-frame budget: a long flip (`scrambleSteps: 40`,
+ * `stagger: 20` would be 62 frames) is compressed into exactly 32 — the
+ * stagger goes first, the scramble keeps 30 steps — and still lands on the
+ * final frame. The device is the generic `sequence_panel_64` fixture model
+ * (the Pixoo 64 used to stand here, until its hardware test showed it snaps).
  */
-export const Pixoo64Budget: Story = {
+export const SequenceDeviceBudget: Story = {
   args: {
     message: PIXOO_PAGES[0],
-    preset: "pixoo64",
+    model: SEQUENCE_MODEL,
     letterCase: "mixed",
     size: "md",
     transition: { kind: "flip", scrambleSteps: 40, stagger: 20 },

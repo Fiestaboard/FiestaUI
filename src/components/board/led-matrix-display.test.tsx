@@ -2,6 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEVICE_MODELS, type DeviceModel } from "../../lib/devices";
+import { SEQUENCE_PANEL_MODEL } from "../../lib/led-golden-cases";
 import * as transitions from "../../lib/led-transitions";
 import { LedMatrixDisplay } from "./led-matrix-display";
 import { reducedMotionQuery } from "./reduced-motion";
@@ -193,8 +194,9 @@ describe("LedMatrixDisplay", () => {
       expect(screen.getByRole("img")).toHaveAttribute("data-transition", "flip");
       expect(screen.getByRole("img")).toHaveAttribute("data-transition-source", "default");
       cleanup();
+      // The Pixoo 64 snaps (its hardware test showed uploads loop and overlay).
       render(<LedMatrixDisplay message="HI" preset="pixoo64" />);
-      expect(screen.getByRole("img")).toHaveAttribute("data-transition", "flip");
+      expect(screen.getByRole("img")).toHaveAttribute("data-transition", "none");
       cleanup();
       render(<LedMatrixDisplay message="HI" preset="awtrix" />);
       expect(screen.getByRole("img")).toHaveAttribute("data-transition", "none");
@@ -226,16 +228,24 @@ describe("LedMatrixDisplay", () => {
       expect(screen.getByRole("img")).not.toHaveAttribute("data-transition-fallback");
     });
 
-    it("applies the device frame budget, by model id or object, and takes a spec object", () => {
-      render(<LedMatrixDisplay message="HI" model="divoom_pixoo64" />);
-      const pixoo = screen.getByRole("img");
-      expect(pixoo).toHaveAttribute("data-transition", "flip");
-      expect(pixoo).toHaveAttribute("data-transition-frames", "32");
-      expect(pixoo).toHaveAttribute("data-matrix-width", "64");
+    it("applies the device frame budget from a model object, and takes a spec object", () => {
+      // A plugin-style 64×64 sequence player with a 32-frame budget (the one
+      // the goldens pin); its partial charset is materialised on resolve.
+      const sequence = SEQUENCE_PANEL_MODEL as unknown as DeviceModel;
+      render(<LedMatrixDisplay message="HI" model={sequence} />);
+      const panel = screen.getByRole("img");
+      expect(panel).toHaveAttribute("data-transition", "flip");
+      expect(panel).toHaveAttribute("data-transition-frames", "32");
+      expect(panel).toHaveAttribute("data-matrix-width", "64");
+      expect(panel).toHaveAttribute("data-model", "sequence_panel_64");
       cleanup();
-      render(<LedMatrixDisplay message="HI" model={DEVICE_MODELS.divoom_pixoo64} transition={{ kind: "fade" }} />);
+      render(<LedMatrixDisplay message="HI" model={sequence} transition={{ kind: "fade" }} />);
       expect(screen.getByRole("img")).toHaveAttribute("data-transition", "fade");
       expect(screen.getByRole("img")).toHaveAttribute("data-transition-frames", "32");
+      cleanup();
+      // A caller's tighter budget stands under the device's.
+      render(<LedMatrixDisplay message="HI" model={sequence} transition={{ kind: "fade", maxFrames: 6 }} />);
+      expect(screen.getByRole("img")).toHaveAttribute("data-transition-frames", "6");
       cleanup();
       render(<LedMatrixDisplay message="HI" preset="hub75_64x32" transition={{ kind: "flip", stepMs: 40 }} />);
       expect(screen.getByRole("img")).toHaveAttribute("data-transition", "flip");
@@ -306,9 +316,10 @@ describe("LedMatrixDisplay", () => {
       expect(screen.getByRole("img", { name: "LED matrix preview: CD" })).toBeInTheDocument();
     });
 
-    it("plans the flip from the device's resolved spec: a Pixoo gets one frame per step under its budget", () => {
-      const { rerender } = render(<LedMatrixDisplay message="AB" model="divoom_pixoo64" />);
-      rerender(<LedMatrixDisplay message="CD" model="divoom_pixoo64" />);
+    it("plans the flip from the device's resolved spec: a sequence player gets one frame per step under its budget", () => {
+      const sequence = SEQUENCE_PANEL_MODEL as unknown as DeviceModel;
+      const { rerender } = render(<LedMatrixDisplay message="AB" model={sequence} />);
+      rerender(<LedMatrixDisplay message="CD" model={sequence} />);
       expect(planSpy).toHaveBeenCalledTimes(1);
       expect(planSpy.mock.calls[0][2]).toEqual({ kind: "flip", stepMs: 80, halfFlap: false, maxFrames: 32 });
       const plan = planSpy.mock.results[0].value as transitions.LedTransition;

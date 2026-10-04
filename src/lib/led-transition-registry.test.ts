@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ACME_SIGN_MODEL, goldenCharacterSet } from "./charset-golden-cases";
 import { DEVICE_MODELS, type DeviceModel } from "./devices";
+import { SEQUENCE_PANEL_MODEL } from "./led-golden-cases";
 import {
   defaultTransitionIdForModel,
   isLedTransitionId,
@@ -11,6 +12,9 @@ import {
   transitionsForModel,
   transitionSpecForDevice,
 } from "./led-transition-registry";
+
+/** The generic 32-frame sequence player the goldens pin; its partial set resolves to led_3x5's contents. */
+const SEQUENCE_MODEL = SEQUENCE_PANEL_MODEL as unknown as DeviceModel;
 
 describe("the transition menu", () => {
   it("has 'none' as a real entry beside every animated kind, each with label, description and requirements", () => {
@@ -42,16 +46,16 @@ describe("the transition menu", () => {
   });
 
   it("judges a sequence player by its frame budget and compresses every entry into it", () => {
-    const pixoo = DEVICE_MODELS.divoom_pixoo64.animation;
-    expect(transitionSpecForDevice("flip", pixoo)).toMatchObject({
+    const sequence = SEQUENCE_PANEL_MODEL.animation;
+    expect(transitionSpecForDevice("flip", sequence)).toMatchObject({
       spec: { kind: "flip", stepMs: 80, halfFlap: false, maxFrames: 32 },
       degraded: true,
     });
-    expect(transitionSpecForDevice("fade", pixoo)).toMatchObject({
+    expect(transitionSpecForDevice("fade", sequence)).toMatchObject({
       spec: { kind: "fade", maxFrames: 32 },
       degraded: true,
     });
-    const tiny = { ...pixoo, maxFrames: 4 };
+    const tiny = { ...sequence, maxFrames: 4 };
     expect(transitionSpecForDevice("flip", tiny)).toBeNull();
     expect(transitionSpecForDevice("fade", tiny)).not.toBeNull();
   });
@@ -60,20 +64,26 @@ describe("the transition menu", () => {
     const awtrix = transitionsForModel(DEVICE_MODELS.ulanzi_tc001_awtrix);
     expect(awtrix.find((a) => a.id === "none")!.available).toBe(true);
     expect(awtrix.filter((a) => a.available).map((a) => a.id)).toEqual(["none"]);
-    expect(awtrix.find((a) => a.id === "flip")!.reason).toMatch(/unmeasured/);
+    expect(awtrix.find((a) => a.id === "flip")!.reason).toMatch(/push rate is 2\./);
     const flap = transitionsForModel(DEVICE_MODELS.vestaboard_note);
     expect(flap.filter((a) => a.available).map((a) => a.id)).toEqual(["none"]);
     const hub = transitionsForModel(DEVICE_MODELS.hub75_64x32);
     expect(hub.every((a) => a.available)).toBe(true);
     expect(hub.every((a) => !a.degraded)).toBe(true);
+    const sequence = transitionsForModel(SEQUENCE_MODEL);
+    expect(sequence.every((a) => a.available)).toBe(true);
+    expect(sequence.filter((a) => a.id !== "none").every((a) => a.degraded && /32 frames/.test(a.reason!))).toBe(true);
+    // The Pixoo 64 snaps (hardware test, 2026-10-04): its verified safe
+    // still-push rate is 2 a second, so only None is on its menu.
     const pixoo = transitionsForModel(DEVICE_MODELS.divoom_pixoo64);
-    expect(pixoo.every((a) => a.available)).toBe(true);
-    expect(pixoo.filter((a) => a.id !== "none").every((a) => a.degraded && /32 frames/.test(a.reason!))).toBe(true);
+    expect(pixoo.filter((a) => a.available).map((a) => a.id)).toEqual(["none"]);
+    expect(pixoo.find((a) => a.id === "flip")!.reason).toMatch(/push rate is 2\./);
   });
 
   it("defaults to flip when the device can show it, otherwise none — nothing else", () => {
     expect(defaultTransitionIdForModel(DEVICE_MODELS.hub75_128x64)).toBe("flip");
-    expect(defaultTransitionIdForModel(DEVICE_MODELS.divoom_pixoo64)).toBe("flip");
+    expect(defaultTransitionIdForModel(SEQUENCE_MODEL)).toBe("flip");
+    expect(defaultTransitionIdForModel(DEVICE_MODELS.divoom_pixoo64)).toBe("none");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.ulanzi_tc001_awtrix)).toBe("none");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.vestaboard_flagship)).toBe("none");
   });
@@ -133,14 +143,13 @@ describe("the transition menu", () => {
     // A caller's own timings survive, but never past the device: the budget
     // applies, a slow stream still loses its half-flap, a sequence player
     // still holds each frame at least its minimum, and `reason` says so.
-    const pixoo = DEVICE_MODELS.divoom_pixoo64;
-    expect(resolveLedTransition({ kind: "flip", stepMs: 120, halfFlap: true }, pixoo)).toMatchObject({
+    expect(resolveLedTransition({ kind: "flip", stepMs: 120, halfFlap: true }, SEQUENCE_MODEL)).toMatchObject({
       id: "flip",
       spec: { kind: "flip", stepMs: 120, maxFrames: 32, halfFlap: false },
       source: "explicit",
       reason: expect.stringMatching(/32 frames/),
     });
-    expect(resolveLedTransition({ kind: "flip", stepMs: 20 }, pixoo).spec).toMatchObject({ stepMs: 80 });
+    expect(resolveLedTransition({ kind: "flip", stepMs: 20 }, SEQUENCE_MODEL).spec).toMatchObject({ stepMs: 80 });
     const slow = { ...DEVICE_MODELS.hub75_64x32, animation: { ...DEVICE_MODELS.hub75_64x32.animation, maxFps: 10 } };
     expect(resolveLedTransition({ kind: "flip", stepMs: 40, halfFlap: true }, slow)).toMatchObject({
       spec: { kind: "flip", stepMs: 100, halfFlap: false },

@@ -191,7 +191,7 @@ function unavailableReason(id: LedTransitionId, animation: DeviceAnimation): str
   if (animation.delivery === "sequence") {
     return `Needs at least ${entry.requires.minFrames} frames; this device plays sequences of up to ${animation.maxFrames}.`;
   }
-  return `Needs about ${entry.requires.minFps} frames a second; this device's push rate is ${animation.maxFps} (${animation.maxFps < 5 ? "unmeasured" : "measured"}).`;
+  return `Needs about ${entry.requires.minFps} frames a second; this device's push rate is ${animation.maxFps}.`;
 }
 
 /** The whole menu, judged against a device model (an id or a plugin's object). "none" is always available. */
