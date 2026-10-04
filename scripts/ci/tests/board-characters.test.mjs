@@ -537,13 +537,20 @@ test("parseLine: pathological brace runs parse in linear time, with and without 
   const siblings = "{red:X}".repeat(50000);
   const closers = "{red:".repeat(100000) + "}";
   const icons = "{icon:".repeat(100000) + "}";
+  parseLine(siblings, Infinity, EXT); // warm the JIT before timing anything
   for (const [name, line] of Object.entries({ deep, openers, bareOpeners, siblings, closers, icons })) {
     for (const options of [EXT, {}]) {
       for (const cap of [Infinity, 132]) {
         const started = performance.now();
         const tokens = parseLine(line, cap, options);
         const elapsed = performance.now() - started;
-        assert.ok(elapsed < 200, `${name} (${JSON.stringify(options)}, cap ${cap}) took ${elapsed.toFixed(0)}ms`);
+        // Under a board-sized cap the parse must be quick outright. Without
+        // one it still has to allocate up to half a million tokens, which is
+        // the floor of any parser; the bound is loose enough for a loaded CI
+        // box and still an order of magnitude under what the quadratic scan
+        // took (seconds, or a stack overflow).
+        const budget = cap === Infinity ? 1000 : 200;
+        assert.ok(elapsed < budget, `${name} (${JSON.stringify(options)}, cap ${cap}) took ${elapsed.toFixed(0)}ms`);
         assert.ok(tokens.length <= Math.min(cap, line.length), name);
       }
     }
