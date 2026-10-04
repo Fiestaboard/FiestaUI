@@ -16,8 +16,8 @@ import { TvFrame } from "./tv-frame";
  * A split-flap board on the TV is bare flaps on the black — no board frame —
  * as the Apple TV app shows FiestaPanel: `bezel={false}` when a `TvFrame` is
  * given the board directly, automatic through `DisplayPreview frame="tv"`.
- * The LED board keeps its housing, with the bare alternative shown as the
- * open question it is (spec §7.5).
+ * The LED board keeps its housing on the TV (owner decision, spec §7.5);
+ * `bezel={false}` remains an option, shown in its own story.
  */
 
 const SPLIT_FLAP = FIESTAPANEL_SPLIT_FLAP_MODEL as DeviceModel;
@@ -76,13 +76,12 @@ export const LedMatrix65: Story = {
 };
 
 /**
- * Open question (spec §7.5): should an LED board inside the TV go bare too —
- * the substrate and its dots on the screen's black, as the flaps do — or keep
- * its housing, as `DisplayPreview frame="tv"` does today? This is the bare
- * alternative, `bezel={false}` on the LED renderer, for the owner to decide.
+ * The LED board without its housing (`bezel={false}`). It's an option a host
+ * can choose. The default on the TV keeps the housing (owner decision, spec
+ * §7.5); only split-flap boards go bare there.
  */
 export const LedMatrixBare: Story = {
-  name: "FiestaPanel LED matrix, bare (open question)",
+  name: "FiestaPanel LED matrix, bare (bezel={false} option)",
   args: { diagonalInches: 65, children: <LedBoard bezel={false} /> },
 };
 

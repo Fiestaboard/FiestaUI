@@ -689,12 +689,12 @@ had been rendering the housed board and cropping the bezel away behind an
 `overflow: hidden` window with measured offsets; with this it passes
 `frame="tv"` (or `bezel={false}`) and the crop goes.
 
-_Open: LED boards inside the TV — housing or bare substrate?_ The Apple TV
-app's rule was stated for the flaps. `DisplayPreview frame="tv"` keeps the
-LED housing until the owner decides; the bare alternative (`bezel={false}`
-on `LedMatrixDisplay`: the substrate and its dots alone) is built and shown
-in the TvFrame stories ("FiestaPanel LED matrix, bare") so the two can be
-compared. See §17.
+_Decided (owner, 2026-10-04): LED boards inside the TV keep their housing_
+("keep the LED board's housing in a TV shape"). The Apple TV app's bare rule
+is for the flaps alone. `DisplayPreview frame="tv"` therefore only goes bare
+for split-flap models. `LedMatrixDisplay bezel={false}` (the substrate and its
+dots alone) stays available for a host that wants it, and the TvFrame stories
+show it ("FiestaPanel LED matrix, bare").
 
 ## 8. Transitions
 
@@ -1340,10 +1340,6 @@ The owner delegated this question with "whatever is best for scaling". The decis
   the same thing.
 - Should a page-level transition override be allowed to pick an entry the
   board's model lists as degraded?
-- LED boards inside the TV: housing or bare substrate? A split-flap board on
-  the TV is bare flaps, after the Apple TV app (§7.5). The LED board keeps
-  its housing there until decided; `LedMatrixDisplay bezel={false}` is the
-  bare alternative, shown beside it in the TvFrame stories.
 
 ## 18. Deferred / later
 
