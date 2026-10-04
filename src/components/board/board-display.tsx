@@ -1237,6 +1237,9 @@ export interface BoardDisplayProps {
    *
    *  Display-only: both glyphs are character code 62 on the wire. */
   code62Glyph?: Code62Glyph;
+  /** Parse colour spans and icons (future state; off until the Python
+   *  renderer has parity). Same contract as `StaticBoardDisplay`. */
+  extendedMarkup?: boolean;
   /** Skip animation infrastructure and render plain divs per tile. Much
    *  cheaper for static previews that never animate. */
   isStatic?: boolean;
@@ -1303,6 +1306,7 @@ export const BoardDisplay = memo(
     boardType = "black",
     deviceType = "flagship",
     code62Glyph,
+    extendedMarkup = false,
     isStatic = false,
     notesWide = 1,
     notesTall = 1,
@@ -1366,8 +1370,8 @@ export const BoardDisplay = memo(
     // Memoize grid calculation to avoid recalculating on every render
     const grid = useMemo(() => {
       const messageForGrid = message ?? "";
-      return messageToGrid(messageForGrid, dims.rows, dims.cols, deviceType, code62Glyph);
-    }, [message, dims.rows, dims.cols, deviceType, code62Glyph]);
+      return messageToGrid(messageForGrid, dims.rows, dims.cols, deviceType, code62Glyph, { extendedMarkup });
+    }, [message, dims.rows, dims.cols, deviceType, code62Glyph, extendedMarkup]);
 
     // White board has light bezel and border
     const isWhiteBoard = boardType === "white";
@@ -1391,12 +1395,12 @@ export const BoardDisplay = memo(
       // `messageToText` rather than a local regex (issue #205): it reads the
       // message with the same parser the tiles do, so the name says what is
       // actually on the board, and all three renderers now derive it one way.
-      const text = messageToText(message, deviceType, code62Glyph);
+      const text = messageToText(message, deviceType, code62Glyph, { extendedMarkup });
       // A board of nothing but color tiles draws no text; it is not empty, so
       // it gets the generic name rather than `emptyLabel` or a dangling
       // "Board display: " with nothing after it.
       return text ? messageLabel(text) : NO_TEXT_LABEL;
-    }, [message, deviceType, code62Glyph, isLoading, loadingLabel, emptyLabel, messageLabel]);
+    }, [message, deviceType, code62Glyph, extendedMarkup, isLoading, loadingLabel, emptyLabel, messageLabel]);
 
     // What the live region says, when one is asked for (issue #206).
     //

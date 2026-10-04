@@ -50,6 +50,15 @@ export interface StaticBoardDisplayProps {
   messageLabel?: (message: string) => string;
   /** Accessible label when the board has no message. */
   emptyLabel?: string;
+  /**
+   * Parse the extended markup — `{red:HOT}` colour spans (drawn as plain
+   * letters) and `{icon:sun}` icons (drawn as their fallback tile or
+   * character). **Future state:** off by default because FiestaBoard's Python
+   * renderer does not know this grammar yet, and a preview must show what
+   * the hardware draws today. It flips to default-on in one commit, with a
+   * fixture, once the Python side has parity. See `ParseLineOptions`.
+   */
+  extendedMarkup?: boolean;
 }
 
 // Module-scope so the memoized component sees a stable prop identity, and the
@@ -73,6 +82,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   previewLabel,
   messageLabel = defaultMessageLabel,
   emptyLabel = "Empty board display",
+  extendedMarkup = false,
 }: StaticBoardDisplayProps) {
   const dims = resolveDimensions(deviceType, notesWide, notesTall, gridRows, gridCols);
   // Seams mark physical Note boundaries, so only a note_array has them — a
@@ -83,8 +93,8 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   const textColor = isWhiteBoard ? "var(--color-board-text-on-light)" : "var(--color-board-text-on-dark)";
 
   const grid = useMemo(
-    () => messageToGrid(message ?? "", dims.rows, dims.cols, deviceType, code62Glyph),
-    [message, dims.rows, dims.cols, deviceType, code62Glyph],
+    () => messageToGrid(message ?? "", dims.rows, dims.cols, deviceType, code62Glyph, { extendedMarkup }),
+    [message, dims.rows, dims.cols, deviceType, code62Glyph, extendedMarkup],
   );
 
   // The board's whole accessible name: the tiles below are aria-hidden, so
@@ -97,9 +107,9 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
     if (previewLabel !== undefined) return previewLabel;
     // The code-62 glyph matters: where a `°` draws as a heart, the name has to
     // say what the tiles draw.
-    const text = messageToText(message, deviceType, code62Glyph);
+    const text = messageToText(message, deviceType, code62Glyph, { extendedMarkup });
     return text ? messageLabel(text) : NO_TEXT_LABEL;
-  }, [message, deviceType, code62Glyph, previewLabel, messageLabel, emptyLabel]);
+  }, [message, deviceType, code62Glyph, extendedMarkup, previewLabel, messageLabel, emptyLabel]);
 
   // Seam gap: additional left/top margin applied at Note physical boundaries
   const seamGap = size === "sm" ? "6px" : size === "md" ? "8px" : "10px";

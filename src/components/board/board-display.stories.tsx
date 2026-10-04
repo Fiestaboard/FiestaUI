@@ -69,6 +69,11 @@ const meta = {
       description:
         "Which glyph this board's code-62 flap carries. Flagship only — Note hardware always draws the heart. Vestaboard replaced the Flagship's degree flap with a heart on units built from 2026, and nothing queryable tells them apart, so the owner has to say. Defaults to `degree`. Display-only: both are code 62 on the wire.",
     },
+    extendedMarkup: {
+      control: "boolean",
+      description:
+        "Parse the extended markup (`{red:HOT}` spans as plain letters, `{icon:sun}` icons as their fallback tile). Off by default until FiestaBoard's Python renderer has parity; same contract as `StaticBoardDisplay`.",
+    },
     isStatic: {
       control: "boolean",
       description: "Render the cheap static path (no animation infrastructure per tile)",
