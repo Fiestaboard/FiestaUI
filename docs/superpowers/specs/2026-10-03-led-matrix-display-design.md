@@ -796,7 +796,12 @@ Flip; the device decides how many frames that is.
 `transitionsForModel(ref)` lists the menu judged against a device — a
 streamed device by push rate, a sequence player by its frame budget, a
 device with no frame interface gives "None" only — with a `reason` for every
-unavailable entry and a "runs as" note for every degraded one.
+unavailable entry and a "runs as" note for every degraded one. A
+`split_flap` model gives "None" only whatever its `animation` says (the
+built-in Vestaboards stream at ~1 fps, written frame by frame by
+FiestaBoard core; the virtual panel at 0.5): LED transitions do not apply
+to a board whose own flap cascade animates every change, and the reason
+says so rather than talking about push rates.
 `defaultTransitionIdForModel(ref)` is flip when the device can show it, else
 none. `resolveLedTransition(choice, ref)`: an explicit choice (a board or
 page setting; later a plugin's request) wins over the model's default; an

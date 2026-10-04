@@ -184,6 +184,14 @@ export function transitionSpecForDevice(
   return { spec: id === "flip" ? { kind: "flip" } : { kind: id }, degraded: false };
 }
 
+/**
+ * Why no LED transition applies to a split-flap board. Its frames are
+ * written one at a time and its own flap cascade animates every change —
+ * the menu is not a matter of push rate there.
+ */
+const SPLIT_FLAP_REASON =
+  "A split-flap board animates each change with its own flap cascade; LED transitions do not apply.";
+
 /** Why an entry is off the menu for a device. */
 function unavailableReason(id: LedTransitionId, animation: DeviceAnimation): string {
   const entry = LED_TRANSITIONS[id];
@@ -197,8 +205,13 @@ function unavailableReason(id: LedTransitionId, animation: DeviceAnimation): str
 /** The whole menu, judged against a device model (an id or a plugin's object). "none" is always available. */
 export function transitionsForModel(ref: DeviceModelRef): LedTransitionAvailability[] {
   const model = resolveDeviceModel(ref);
+  const flap = model.technology === "split_flap";
   return LED_TRANSITION_IDS.map((id) => {
     const entry = LED_TRANSITIONS[id];
+    // A split-flap board runs "none" only, whatever its frame rate says: the
+    // flap cascade is the animation.
+    if (flap && id !== "none")
+      return { id, entry, available: false, reason: SPLIT_FLAP_REASON, spec: null, degraded: false };
     const result = transitionSpecForDevice(id, model.animation);
     if (!result) {
       return {
@@ -219,7 +232,9 @@ export function transitionsForModel(ref: DeviceModelRef): LedTransitionAvailabil
  * and snaps otherwise. Nothing else is ever a default.
  */
 export function defaultTransitionIdForModel(ref: DeviceModelRef): LedTransitionId {
-  return transitionSpecForDevice("flip", resolveDeviceModel(ref).animation) ? "flip" : "none";
+  const model = resolveDeviceModel(ref);
+  if (model.technology === "split_flap") return "none";
+  return transitionSpecForDevice("flip", model.animation) ? "flip" : "none";
 }
 
 export interface ResolvedLedTransition {
@@ -272,6 +287,9 @@ export function resolveLedTransition(
     return { id: requested!, spec: typeof choice === "string" ? { kind: choice } : choice, source: "explicit" };
   }
   if (requested !== undefined) {
+    if (model.technology === "split_flap" && requested !== "none") {
+      return { id: "none", spec: "none", source: "fallback", requested, reason: SPLIT_FLAP_REASON };
+    }
     const result = transitionSpecForDevice(requested, model.animation);
     if (result) {
       // A caller's own timings are kept, but never past what the device can

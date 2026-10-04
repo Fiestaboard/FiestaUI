@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ACME_SIGN_MODEL, goldenCharacterSet } from "./charset-golden-cases";
-import { DEVICE_MODELS, type DeviceModel } from "./devices";
+import { DEVICE_MODELS, type DeviceModel, modelsByTechnology } from "./devices";
 import { SEQUENCE_PANEL_MODEL } from "./led-golden-cases";
 import {
   defaultTransitionIdForModel,
@@ -65,8 +65,25 @@ describe("the transition menu", () => {
     expect(awtrix.find((a) => a.id === "none")!.available).toBe(true);
     expect(awtrix.filter((a) => a.available).map((a) => a.id)).toEqual(["none"]);
     expect(awtrix.find((a) => a.id === "flip")!.reason).toMatch(/push rate is 2\./);
-    const flap = transitionsForModel(DEVICE_MODELS.vestaboard_note);
-    expect(flap.filter((a) => a.available).map((a) => a.id)).toEqual(["none"]);
+    // A split-flap board is driven frame by frame (~1 fps), but LED
+    // transitions do not apply to it at all: its own flap cascade animates
+    // every change, and the menu says exactly that rather than talking
+    // about push rates.
+    for (const flapModel of modelsByTechnology("split_flap")) {
+      const flap = transitionsForModel(flapModel);
+      expect(
+        flap.filter((a) => a.available).map((a) => a.id),
+        flapModel.id,
+      ).toEqual(["none"]);
+      for (const entry of flap.filter((a) => !a.available)) {
+        expect(entry.reason, `${flapModel.id} ${entry.id}`).toMatch(/flap cascade/);
+        expect(entry.reason, `${flapModel.id} ${entry.id}`).not.toMatch(/push rate/);
+      }
+      expect(defaultTransitionIdForModel(flapModel), flapModel.id).toBe("none");
+      const fell = resolveLedTransition("flip", flapModel);
+      expect(fell).toMatchObject({ id: "none", spec: "none", source: "fallback", requested: "flip" });
+      expect(fell.reason).toMatch(/flap cascade/);
+    }
     const hub = transitionsForModel(DEVICE_MODELS.hub75_64x32);
     expect(hub.every((a) => a.available)).toBe(true);
     expect(hub.every((a) => !a.degraded)).toBe(true);
