@@ -54,6 +54,8 @@ import {
   FitToWidth,
   gridFor,
   letterCaseFor,
+  PIXOO_FROM_PLUGIN,
+  PIXOO_PLUGIN,
   previewFromTemplate,
   SHOWCASE_DEVICES,
   SHOWCASE_GROUPS,
@@ -979,7 +981,9 @@ function DeclaredDevice({
  * Three devices the package does not know: their JSON as a plugin's
  * `output/device-models.json` carries it, the validator's verdict, and the
  * board rendered from the declaration alone. The fourth is a declaration
- * with mistakes, to show that the validator names them.
+ * with mistakes, to show that the validator names them. The fifth is a real
+ * plugin's file — the Pixoo 64 from `@fiestaboard/output-divoom-pixoo`, a
+ * pinned devDependency (Showcase/Output Plugin Devices has more of it).
  */
 export const PluginDeclaredDevices: Story = {
   name: "Plugin-declared devices",
@@ -1004,6 +1008,13 @@ export const PluginDeclaredDevices: Story = {
           message={"€12 {icon:up}\n{black/white:OPEN}"}
           caption="The same sign declared wrongly: no label, and pixelShape at the top level where appearance.pixelShape belongs. The validator says so; the board drawn here is the good declaration's."
           size="lg"
+        />
+        <DeclaredDevice
+          declaration={PIXOO_FROM_PLUGIN}
+          model={PIXOO_FROM_PLUGIN}
+          message={"MON OCT 3\n\n09:30 STANDUP\n12:00 LUNCH\n\n{icon:sun} 72° SUNNY\n{black/white:3 LEFT}"}
+          caption={`A real plugin's device, read from the package it publishes: ${PIXOO_PLUGIN.caption}, pinned as a devDependency. The same declaration the Pixoo plugin ships to FiestaBoard, with the push limits and sources the runtime built-in leaves out; the contract test checks it against the current schemas.`}
+          size="sm"
         />
         <DeclaredDevice
           declaration={FIESTAPANEL_SPLIT_FLAP_MODEL}

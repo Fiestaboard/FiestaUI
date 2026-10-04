@@ -44,6 +44,8 @@ export const ACME_MODEL: DeviceModel = {
 };
 export const FIESTAPANEL_SPLIT_FLAP = FIESTAPANEL_SPLIT_FLAP_MODEL as DeviceModel;
 export const FIESTAPANEL_LED = FIESTAPANEL_LED_MATRIX_MODEL as DeviceModel;
+/** The Pixoo 64 as its output plugin publishes it (a pinned devDependency; see ./output-plugin-data). */
+export { PIXOO_FROM_PLUGIN, PIXOO_PLUGIN } from "./output-plugin-data";
 
 /* ---- The template toolbar's inputs --------------------------------------- */
 
