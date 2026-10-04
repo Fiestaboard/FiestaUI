@@ -89,7 +89,10 @@ import { DisplayPreview, LedMatrixDisplay, parseLine } from "@fiestaboard/ui";
 // (or the animated BoardDisplay when `transition` is set); an LED matrix through
 // LedMatrixDisplay. An unknown id throws — it is never silently a Flagship.
 <DisplayPreview model="vestaboard_flagship" message="72° SUNNY" code62Glyph="heart" />
-<DisplayPreview model="divoom_pixoo64" message="72° SUNNY" transition="flip" />
+<DisplayPreview model="hub75_64x32" message="72° SUNNY" transition="flip" />
+// The Pixoo 64 snaps (its hardware test showed uploaded animations loop), so
+// its default transition is "none"; a "flip" asked of it falls back with a reason.
+<DisplayPreview model="divoom_pixoo64" message="72° SUNNY" />
 
 // A plugin's model, passed as the object its manifest declares.
 <DisplayPreview model={pluginModel} message="€12 {icon:up}" />

@@ -30,7 +30,13 @@
 import { useEffect } from "react";
 
 import { type Code62Glyph } from "../../lib/board-characters";
-import { type DeviceType } from "../../lib/board-dimensions";
+import {
+  type DeviceType,
+  MAX_GRID_COLS,
+  MAX_GRID_ROWS,
+  MIN_GRID_COLS,
+  MIN_GRID_ROWS,
+} from "../../lib/board-dimensions";
 import { isDevBuild } from "../../lib/dev";
 import { type DeviceModel, type DeviceModelRef, resolveDeviceModel } from "../../lib/devices";
 import { type BoardCellGrid } from "../../lib/led-matrix";
@@ -134,20 +140,40 @@ export function resolveAppearanceOverrides(
   return { applied, ignored };
 }
 
-/** The split-flap renderer props a model's geometry maps onto. */
+const clampGrid = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
+
+/**
+ * The split-flap renderer props a model's geometry maps onto. `clamped` is
+ * set when a `cells` geometry lies outside the panel bounds the renderers
+ * draw (3×15 to 96×128): the board is drawn at the clamped size, and the
+ * housing says so (`data-geometry-clamped`) rather than letting a 2×10 sign
+ * silently come out as 3×15.
+ */
 function splitFlapGeometry(
   model: DeviceModel,
   props: Pick<DisplayPreviewProps, "notesWide" | "notesTall" | "gridRows" | "gridCols">,
-): { deviceType: DeviceType; notesWide?: number; notesTall?: number; gridRows?: number; gridCols?: number } {
+): {
+  deviceType: DeviceType;
+  notesWide?: number;
+  notesTall?: number;
+  gridRows?: number;
+  gridCols?: number;
+  clamped?: string;
+} {
   const legacy = model.legacy?.deviceType;
   if (legacy) return { deviceType: legacy, ...props };
   const g = model.geometry;
   switch (g.kind) {
-    // A plugin's fixed grid draws as a panel of exactly that size (within
-    // the panel bounds; a flap sign smaller than a Note is not a thing
-    // the split-flap renderers draw).
-    case "cells":
-      return { deviceType: "panel", gridRows: g.rows, gridCols: g.cols };
+    // A plugin's fixed grid draws as a panel of exactly that size, within
+    // the panel bounds: a flap sign smaller than a Note (or larger than the
+    // biggest panel) is not a thing the split-flap renderers draw, so it is
+    // clamped — and reported, so the caller can tell.
+    case "cells": {
+      const rows = clampGrid(g.rows, MIN_GRID_ROWS, MAX_GRID_ROWS);
+      const cols = clampGrid(g.cols, MIN_GRID_COLS, MAX_GRID_COLS);
+      const clamped = rows !== g.rows || cols !== g.cols ? `${g.rows}×${g.cols} → ${rows}×${cols}` : undefined;
+      return { deviceType: "panel", gridRows: rows, gridCols: cols, ...(clamped ? { clamped } : {}) };
+    }
     case "panel":
       return { deviceType: "panel", gridRows: props.gridRows ?? g.rows, gridCols: props.gridCols ?? g.cols };
     case "note_array":
@@ -201,6 +227,7 @@ export function DisplayPreview({
     Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 
   let board: React.ReactNode;
+  let geometryClamped: string | undefined;
   if (model.technology === "led_matrix") {
     const pixelShape = applied.pixel_shape;
     board = (
@@ -211,7 +238,8 @@ export function DisplayPreview({
       />
     );
   } else {
-    const geometry = splitFlapGeometry(model, { notesWide, notesTall, gridRows, gridCols });
+    const { clamped, ...geometry } = splitFlapGeometry(model, { notesWide, notesTall, gridRows, gridCols });
+    geometryClamped = clamped;
     const defaultColor = model.appearance?.boardColors?.[0];
     const chosen = applied.board_color;
     const boardType = isBoardColor(chosen) ? chosen : isBoardColor(defaultColor) ? defaultColor : "black";
@@ -224,6 +252,17 @@ export function DisplayPreview({
       );
   }
 
+  // A split-flap model whose `cells` geometry the renderers cannot draw at
+  // size is drawn clamped: the housing marks it (as the LED renderer marks a
+  // cells mismatch), and a dev build says so once.
+  useEffect(() => {
+    if (geometryClamped && isDevBuild()) {
+      console.warn(
+        `DisplayPreview: split_flap model "${model.id}" declares a ${geometryClamped.replace(" → ", " grid; the split-flap renderers draw 3×15 to 96×128, so it is drawn at ")}.`,
+      );
+    }
+  }, [geometryClamped, model.id]);
+
   // `display: contents`: the housing carries the dispatch facts for the app
   // and for tests, and takes no part in layout — the renderer's own outer
   // box still centres the board exactly as it does on its own.
@@ -234,6 +273,7 @@ export function DisplayPreview({
       data-model={model.id}
       data-technology={model.technology}
       data-frame={frame}
+      data-geometry-clamped={geometryClamped}
     >
       {board}
     </div>

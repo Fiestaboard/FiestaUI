@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type BoardToken, parseLine } from "../../lib/board-characters";
 import { materializeCharacterSet } from "../../lib/character-sets";
 import { ACME_SIGN_CHARSET, ACME_SIGN_MODEL } from "../../lib/charset-golden-cases";
-import { DEVICE_MODELS, type DeviceModel, validateDeviceModel } from "../../lib/devices";
+import { DEVICE_MODELS, type DeviceModel, ledSpecForModel, validateDeviceModel } from "../../lib/devices";
+import { SEQUENCE_PANEL_MODEL } from "../../lib/led-golden-cases";
+import { ledGridLayout } from "../../lib/led-matrix";
 import { FIESTAPANEL_LED_MATRIX_MODEL, FIESTAPANEL_SPLIT_FLAP_MODEL } from "../../lib/plugin-model-fixtures";
 import { DisplayPreview, resolveAppearanceOverrides } from "./display-preview";
 
@@ -77,9 +79,19 @@ describe("DisplayPreview", () => {
       expect(board).toHaveAttribute("data-model", "divoom_pixoo64");
       expect(board).toHaveAttribute("data-matrix-width", "64");
       expect(board).toHaveAttribute("data-font", "3x5");
-      expect(board).toHaveAttribute("data-transition", "dissolve");
-      expect(board).toHaveAttribute("data-transition-frames", "32");
+      // The Pixoo 64 snaps (hardware test, 2026-10-04): an asked-for
+      // dissolve falls back to its default, none, with the reason attached.
+      expect(board).toHaveAttribute("data-transition", "none");
+      expect(board).toHaveAttribute("data-transition-source", "fallback");
+      expect(board).toHaveAttribute("data-transition-fallback", "dissolve");
       expect(housing()).toHaveAttribute("data-technology", "led_matrix");
+      cleanup();
+      // A sequence player carries its frame budget into the transition.
+      render(
+        <DisplayPreview model={SEQUENCE_PANEL_MODEL as unknown as DeviceModel} message="HELLO" transition="dissolve" />,
+      );
+      expect(screen.getByRole("img")).toHaveAttribute("data-transition", "dissolve");
+      expect(screen.getByRole("img")).toHaveAttribute("data-transition-frames", "32");
       cleanup();
       render(<DisplayPreview model={DEVICE_MODELS.max7219_4in1} message="HI" />);
       expect(screen.getByRole("img")).toHaveAttribute("data-monochrome", "");
@@ -292,8 +304,63 @@ describe("DisplayPreview", () => {
     render(<DisplayPreview model="vestaboard_note" message={null} emptyLabel="Nothing yet" />);
     expect(screen.getByRole("img", { name: "Nothing yet" })).toBeInTheDocument();
     cleanup();
-    const cells: BoardToken[][] = [];
+    // A blank grid of the device's own size: no mismatch, so nothing for the
+    // LED renderer to shout about, and the empty label stands.
+    const grid = ledGridLayout(ledSpecForModel(DEVICE_MODELS.hub75_64x32)!);
+    const blank: BoardToken = { type: "char", value: " " };
+    const cells: BoardToken[][] = Array.from({ length: grid.rows }, () =>
+      Array.from({ length: grid.cols }, () => blank),
+    );
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     render(<DisplayPreview model="hub75_64x32" cells={cells} emptyLabel="Nothing yet" />);
     expect(screen.getByRole("img", { name: "Nothing yet" })).toBeInTheDocument();
+    expect(screen.getByRole("img")).not.toHaveAttribute("data-cells-mismatch");
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  describe("a cells geometry outside the panel bounds", () => {
+    const tiny: DeviceModel = {
+      ...FIESTAPANEL_SPLIT_FLAP_MODEL,
+      id: "tiny_flap",
+      geometry: { kind: "cells", rows: 2, cols: 10 },
+    };
+    const huge: DeviceModel = {
+      ...FIESTAPANEL_SPLIT_FLAP_MODEL,
+      id: "huge_flap",
+      geometry: { kind: "cells", rows: 100, cols: 130 },
+    };
+
+    it("is drawn at the clamped size, marked on the housing, and warned about in dev", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      render(<DisplayPreview model={tiny} message="HI" />);
+      // The split-flap renderers draw nothing smaller than a Note: 3 × 15.
+      expect(tiles()).toBe(3 * 15);
+      expect(housing()).toHaveAttribute("data-geometry-clamped", "2×10 → 3×15");
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toMatch(/tiny_flap.*2×10.*3×15/);
+      warn.mockClear();
+      cleanup();
+      render(<DisplayPreview model={huge} message="HI" />);
+      expect(housing()).toHaveAttribute("data-geometry-clamped", "100×130 → 96×128");
+      expect(warn).toHaveBeenCalledTimes(1);
+      warn.mockClear();
+      cleanup();
+      // A grid inside the bounds is not marked.
+      render(<DisplayPreview model={FIESTAPANEL_SPLIT_FLAP_MODEL} message="HI" />);
+      expect(housing()).not.toHaveAttribute("data-geometry-clamped");
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it("says nothing in a production build, but still marks the housing", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      vi.stubEnv("NODE_ENV", "production");
+      try {
+        render(<DisplayPreview model={tiny} message="HI" />);
+        expect(housing()).toHaveAttribute("data-geometry-clamped");
+        expect(warn).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
   });
 });
