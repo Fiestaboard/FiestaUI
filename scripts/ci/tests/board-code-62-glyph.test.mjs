@@ -136,10 +136,9 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 60));
 /**
  * What the tiles actually drew, in reading order, with padding collapsed.
  *
- * Read as rendered text rather than from `data-current-char`: that attribute
- * carries `BOARD_CHARS[index]`, and ♥ has no board index (it is an EXTRA_CHAR),
- * so it reports blank for the very glyph under test. The glyph a sighted user
- * sees is the tile's text content.
+ * Read as rendered text rather than from `data-current-char`: the glyph a
+ * sighted user sees is the tile's text content, and that is what has to agree
+ * with the accessible name.
  */
 function drawnText(container) {
   return [...container.querySelectorAll('[data-testid^="char-tile-"]')]
@@ -242,4 +241,94 @@ test("a note board draws a heart whatever the flagship setting says", async () =
   const { first } = await renderBoard({ message: "LOVE °", deviceType: "note", code62Glyph: "degree" });
   assert.equal(first.drawn, "LOVE ♥");
   assert.match(first.name, /LOVE ♥/, `a Note announced ${JSON.stringify(first.name)} for a board drawing "LOVE ♥"`);
+});
+
+// ── The drum, not just the landing ──────────────────────────────────────────
+//
+// `getCharIndex("♥")` and `getCharIndex("°")` are both 62, so a heart board's
+// tiles cascade through index 62 like any other. The flap halves used to draw
+// `BOARD_CHARS[62]` ("°") for that position regardless of the board, so a heart
+// board flashed a degree sign on the way past code 62, and a tile leaving ♥
+// folded a "°" flap down over it. The halves have to draw the board's own
+// code-62 glyph.
+
+/**
+ * Mount a board and sample what every tile shows (the `data-current-char` the
+ * drum reports, and the text the flap halves actually draw) while it runs.
+ * Returns the set of drum glyphs and the set of drawn glyphs seen *while a tile
+ * was animating or transitioning* — the static landing is covered above.
+ */
+async function sampleDrum(props, { nextProps = null, sampleMs = 600 } = {}) {
+  const dom = installDom();
+  try {
+    const harness = await import(`${bundleUrl}?run=${++runCounter}`);
+    const container = dom.window.document.getElementById("root");
+    const root = harness.mount(container);
+    const base = { size: "sm", flapSpeed: "hardware", ...props };
+
+    root.render(base);
+    await settle();
+    if (nextProps) root.render({ ...base, ...nextProps });
+
+    const drum = new Set();
+    const drawn = new Set();
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < sampleMs) {
+      await new Promise((r) => setTimeout(r, 3));
+      for (const tile of container.querySelectorAll("[data-current-char]")) {
+        const moving =
+          tile.getAttribute("data-is-animating") === "true" || tile.getAttribute("data-is-transitioning") === "true";
+        if (!moving) continue;
+        drum.add(tile.getAttribute("data-current-char"));
+        for (const span of tile.querySelectorAll("span")) drawn.add(span.textContent);
+      }
+    }
+
+    root.unmount();
+    await settle();
+    return { drum, drawn };
+  } finally {
+    dom.restore();
+  }
+}
+
+test("a loading heart board cycles its drum through ♥, never °", async () => {
+  // Note hardware carries the heart flap. The drum starts from the target,
+  // and "?" is code 61, so the first loading tick lands on code 62 — which on
+  // this board is a heart.
+  const { drum, drawn } = await sampleDrum({ message: "?", deviceType: "note", isLoading: true });
+  assert.ok(drum.has("♥"), `the drum never reported ♥ at code 62; saw ${JSON.stringify([...drum])}`);
+  assert.ok(!drum.has("°"), "a heart board's drum reported a degree sign at code 62");
+  assert.ok(drawn.has("♥"), "the flap halves never drew the heart while cycling");
+  assert.ok(!drawn.has("°"), "the flap halves drew a degree sign on a heart board");
+});
+
+test("a loading flagship with a heart flap cycles through ♥ too", async () => {
+  const { drum, drawn } = await sampleDrum({
+    message: "?",
+    deviceType: "flagship",
+    code62Glyph: "heart",
+    isLoading: true,
+  });
+  assert.ok(drum.has("♥"), `the drum never reported ♥ at code 62; saw ${JSON.stringify([...drum])}`);
+  assert.ok(!drawn.has("°"), "the flap halves drew a degree sign on a heart-flap flagship");
+});
+
+test("a loading degree board cycles its drum through °, never ♥", async () => {
+  const { drum, drawn } = await sampleDrum({ message: "?", deviceType: "flagship", isLoading: true });
+  assert.ok(drum.has("°"), `the drum never reported ° at code 62; saw ${JSON.stringify([...drum])}`);
+  assert.ok(!drum.has("♥"), "a degree board's drum reported a heart at code 62");
+  assert.ok(drawn.has("°"), "the flap halves never drew the degree sign while cycling");
+  assert.ok(!drawn.has("♥"), "the flap halves drew a heart on a degree board");
+});
+
+test("a tile leaving ♥ on a heart board folds a ♥ flap down, not a °", async () => {
+  // The old-character halves of the first flip draw the glyph the tile is
+  // leaving. Leaving code 62 on a heart board, that glyph is ♥.
+  const { drawn } = await sampleDrum(
+    { message: "♥", deviceType: "note", flapSpeed: "standard" },
+    { nextProps: { message: "A" }, sampleMs: 400 },
+  );
+  assert.ok(drawn.has("♥"), `the departing flap never drew ♥; drew ${JSON.stringify([...drawn])}`);
+  assert.ok(!drawn.has("°"), "the departing flap drew a degree sign on a heart board");
 });

@@ -34,6 +34,7 @@ import {
   isColorTile,
   messageToGrid,
   messageToText,
+  resolveCode62Glyph,
   tokensEqual,
 } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
@@ -41,6 +42,20 @@ import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions }
 import { gapClasses, paddingClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
 import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
 import { reducedMotionQuery, useReducedMotion } from "./reduced-motion";
+
+/** The drum position both ♥ and ° share — see {@link resolveCode62Glyph}. */
+const CODE_62_INDEX = getCharIndex("°");
+
+/**
+ * The glyph a flap draws at a drum position. `BOARD_CHARS[62]` is written as
+ * "°", but a heart board's flap at that position carries ♥: the drum passes
+ * code 62 on every loading cycle and on the way to or from a heart, and the
+ * halves must draw the board's own flap, not the table's spelling of it.
+ */
+function drumChar(index: number, code62Glyph: Code62Glyph): string {
+  if (index === CODE_62_INDEX) return code62Glyph === "heart" ? "♥" : "°";
+  return BOARD_CHARS[index];
+}
 
 // Shared split-flap keyframes. Rendered once from BoardDisplay as a
 // <style href precedence> element — React 19 dedupes it by href and hoists it
@@ -509,6 +524,7 @@ const GridRow = memo(
     isRowSeam = false,
     seamGap = "6px",
     emitCellMetadata = false,
+    code62Glyph,
   }: {
     row: BoardToken[];
     rowIdx: number;
@@ -522,6 +538,8 @@ const GridRow = memo(
     isRowSeam?: boolean;
     seamGap?: string;
     emitCellMetadata?: boolean;
+    /** Resolved glyph of this board's code-62 flap; see {@link drumChar}. */
+    code62Glyph: Code62Glyph;
   }) {
     return (
       <div
@@ -554,6 +572,7 @@ const GridRow = memo(
                 flapStepMs={flapStepMs}
                 rowIdx={rowIdx}
                 colIdx={colIdx}
+                code62Glyph={code62Glyph}
               />
             </div>
           );
@@ -574,6 +593,7 @@ const GridRow = memo(
     if (prevProps.isRowSeam !== nextProps.isRowSeam) return false;
     if (prevProps.seamGap !== nextProps.seamGap) return false;
     if (prevProps.emitCellMetadata !== nextProps.emitCellMetadata) return false;
+    if (prevProps.code62Glyph !== nextProps.code62Glyph) return false;
 
     // Deep compare tokens
     for (let i = 0; i < prevProps.row.length; i++) {
@@ -683,6 +703,7 @@ const CharTile = memo(
     flapStepMs,
     rowIdx = 0,
     colIdx = 0,
+    code62Glyph = "degree",
   }: {
     token: BoardToken;
     size?: "sm" | "md" | "lg";
@@ -693,6 +714,8 @@ const CharTile = memo(
     flapStepMs: number;
     rowIdx?: number;
     colIdx?: number;
+    /** Resolved glyph of this board's code-62 flap; see {@link drumChar}. */
+    code62Glyph?: Code62Glyph;
   }) {
     // When the user disables board animations (or reduce_motion is on),
     // collapse isAnimating so the loading rotation never starts and the
@@ -985,9 +1008,9 @@ const CharTile = memo(
     // Color tiles also animate - they cycle through all characters during loading
     // No special handling needed - they go through the same animation logic below
 
-    const currentChar = BOARD_CHARS[currentCharIndex];
+    const currentChar = drumChar(currentCharIndex, code62Glyph);
     const prevCharIndex = (currentCharIndex - 1 + BOARD_CHARS.length) % BOARD_CHARS.length;
-    const prevChar = BOARD_CHARS[prevCharIndex];
+    const prevChar = drumChar(prevCharIndex, code62Glyph);
 
     return (
       <>
@@ -1190,7 +1213,8 @@ const CharTile = memo(
       prevProps.boardType === nextProps.boardType &&
       prevProps.isAnimating === nextProps.isAnimating &&
       prevProps.animationsEnabled === nextProps.animationsEnabled &&
-      prevProps.flapStepMs === nextProps.flapStepMs
+      prevProps.flapStepMs === nextProps.flapStepMs &&
+      prevProps.code62Glyph === nextProps.code62Glyph
     );
   },
 );
@@ -1334,6 +1358,10 @@ export const BoardDisplay = memo(
     const showSeams = isNoteArray(deviceType);
     // Seam gap: additional left/top margin applied at Note physical boundaries
     const seamGap = size === "sm" ? "6px" : size === "md" ? "8px" : "10px";
+    // What this board's code-62 flap carries. The grid below substitutes it
+    // into the landed tokens; the tiles need it too, for the drum position
+    // their flaps pass through on the way (see drumChar).
+    const drumGlyph = resolveCode62Glyph(deviceType, code62Glyph);
 
     // Memoize grid calculation to avoid recalculating on every render
     const grid = useMemo(() => {
@@ -1494,6 +1522,7 @@ export const BoardDisplay = memo(
                     isRowSeam={isRowSeam}
                     seamGap={seamGap}
                     emitCellMetadata={emitCellMetadata}
+                    code62Glyph={drumGlyph}
                   />
                 );
               })}
