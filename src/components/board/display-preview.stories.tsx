@@ -40,6 +40,11 @@ const meta = {
       options: ["none", "tv"],
       description: "The housing: none is the bare board, tv puts it on an OLED television (TvFrame), set by `tv`",
     },
+    bezel: {
+      control: "boolean",
+      description:
+        "The board's own housing. Unset: drawn, except for a split-flap board inside frame=tv, which is bare flaps on the TV's black (the Apple TV app's look). An explicit value wins.",
+    },
   },
 } satisfies Meta<typeof DisplayPreview>;
 
@@ -121,8 +126,9 @@ export const Max7219: Story = {
 
 /**
  * FiestaPanel in its split-flap style, declared by FiestaBoard's plugin as
- * a `panel` with its size (12 × 29, a 55" TV) — not a built-in. The bare
- * board; `frame="tv"` puts it on the television (see the TvFrame stories).
+ * a `panel` with its size (12 × 29, a 55" TV) — not a built-in. The board
+ * with its housing; `frame="tv"` puts it on the television as bare flaps
+ * (see the TvFrame stories).
  */
 export const FiestaPanelSplitFlap: Story = {
   name: "FiestaPanel (split-flap, plugin-declared)",

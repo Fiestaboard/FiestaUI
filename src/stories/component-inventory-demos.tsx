@@ -1623,7 +1623,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   TvFrame: () => (
     <div className="w-[480px] max-w-full">
       <TvFrame diagonalInches={55}>
-        <DisplayPreview model="vestaboard_note" message={"72° SUNNY\nAQI 42 GOOD"} size="sm" />
+        <DisplayPreview model="vestaboard_note" message={"72° SUNNY\nAQI 42 GOOD"} size="sm" bezel={false} />
       </TvFrame>
     </div>
   ),

@@ -115,10 +115,15 @@ The cell grid should be the device grid's size (`ledGridLayout(spec)` for an LED
 
 **FiestaPanel's television.** FiestaPanel shows a board on a TV, so its previews sit on one: `frame="tv"` wraps whichever renderer the model gets in `TvFrame`, an OLED set (thin bezel, chin with a standby LED, centre stand or wall mount, true-black screen) that fills the width it is given and scales the board to fit its screen. The set is described by `tv`, from what the viewer knows: `diagonalInches` (`screen_diagonal_inches`, 3–200, default 55) sizes the bezel and the stand relative to the screen; `aspect` (`screen_aspect_w` / `_h`, a number or `{ w, h }`, default 16/9) shapes the screen; `dimmed` (0–1, the viewer's auto-dim level) veils the screen only; `offline` (a frame-fetch failure) turns the screen off, lights the standby LED and announces a status in place of the board. The viewer's `calibration_scale` is a physical-size calibration and does not reach the frame. `TvFrame` takes any children, and `frame="tv"` is allowed for any model.
 
+A split-flap board on the TV draws no housing of its own — only its flaps on the screen's black, as FiestaPanel's Apple TV app shows them — and the flaps are what is fitted to the screen. That is the renderers' `bezel` prop (`StaticBoardDisplay`, `BoardDisplay`, `ScaledBoardDisplay`, `LedMatrixDisplay`; default `true`, the board as before; `false` is the tile grid alone, transparent, still `role="img"` with its name, marked `data-bezel="false"`), which `DisplayPreview frame="tv"` sets for a split-flap model and exposes as `bezel` for an explicit choice. An LED board on the TV keeps its housing until that is decided.
+
 ```tsx
 <DisplayPreview model={fiestaPanelModel} message="DEPARTURES" frame="tv" tv={{ diagonalInches: 65, dimmed: 0.2 }} />
 <TvFrame aspect={{ w: 9, h: 16 }} stand={false} offline>
   <LedMatrixDisplay model="hub75_128x64" message="HELLO" />
+</TvFrame>
+<TvFrame>
+  <BoardDisplay deviceType="panel" gridRows={12} gridCols={29} message="DEPARTURES" bezel={false} />
 </TvFrame>
 ```
 

@@ -12,6 +12,12 @@ import { TvFrame } from "./tv-frame";
  * `DisplayPreview` for `frame="tv"` directly. The TV fills its container,
  * so each story sits in a sized column: at desktop a comfortable set, on a
  * 390px phone the same set shrunk to the page, with nothing overflowing.
+ *
+ * A split-flap board on the TV is bare flaps on the black — no board frame —
+ * as the Apple TV app shows FiestaPanel: `bezel={false}` when a `TvFrame` is
+ * given the board directly, automatic through `DisplayPreview frame="tv"`.
+ * The LED board keeps its housing, with the bare alternative shown as the
+ * open question it is (spec §7.5).
  */
 
 const SPLIT_FLAP = FIESTAPANEL_SPLIT_FLAP_MODEL as DeviceModel;
@@ -22,8 +28,10 @@ const DEPARTURES_FLAP =
 const DEPARTURES_LED =
   "DEPARTURES\n\nN JUDAH      2 MIN\n{red:N JUDAH     14 MIN}\nKT INGLESIDE 6 MIN\n\n{icon:sun} 72° SUNNY\n{black/white:AQI 42} GOOD";
 
-const SplitFlapBoard = () => <DisplayPreview model={SPLIT_FLAP} message={DEPARTURES_FLAP} />;
-const LedBoard = () => <DisplayPreview model={LED} message={DEPARTURES_LED} size="sm" />;
+const SplitFlapBoard = () => <DisplayPreview model={SPLIT_FLAP} message={DEPARTURES_FLAP} bezel={false} />;
+const LedBoard = ({ bezel }: { bezel?: boolean }) => (
+  <DisplayPreview model={LED} message={DEPARTURES_LED} size="sm" bezel={bezel} />
+);
 
 const meta = {
   title: "App/Board/TvFrame",
@@ -55,16 +63,27 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** FiestaPanel in its split-flap style on the default set: 55", 16:9, on its stand. */
+/** FiestaPanel in its split-flap style on the default set: 55", 16:9, on its stand. Bare flaps on the screen's black, no board frame, filling the screen to its margin — the Apple TV app's look. */
 export const SplitFlap55: Story = {
   name: "FiestaPanel split-flap, 55″ 16:9",
   args: { diagonalInches: 55, aspect: 16 / 9 },
 };
 
-/** FiestaPanel in its LED-matrix style on a 65" set: a slightly thinner bezel, a slightly smaller stand. */
+/** FiestaPanel in its LED-matrix style on a 65" set: a slightly thinner bezel, a slightly smaller stand. The LED board keeps its housing on the screen for now. */
 export const LedMatrix65: Story = {
   name: "FiestaPanel LED matrix, 65″",
   args: { diagonalInches: 65, children: <LedBoard /> },
+};
+
+/**
+ * Open question (spec §7.5): should an LED board inside the TV go bare too —
+ * the substrate and its dots on the screen's black, as the flaps do — or keep
+ * its housing, as `DisplayPreview frame="tv"` does today? This is the bare
+ * alternative, `bezel={false}` on the LED renderer, for the owner to decide.
+ */
+export const LedMatrixBare: Story = {
+  name: "FiestaPanel LED matrix, bare (open question)",
+  args: { diagonalInches: 65, children: <LedBoard bezel={false} /> },
 };
 
 /** A portrait set (9:16): the board fills the width and the screen's height is left black above and below. */
@@ -112,7 +131,7 @@ export const WallMount: Story = {
   args: { stand: false },
 };
 
-/** `DisplayPreview frame="tv"`: the dispatcher wraps the split-flap renderer itself, with the set in `tv`. */
+/** `DisplayPreview frame="tv"`: the dispatcher wraps the split-flap renderer itself, with the set in `tv`, and turns the board's housing off — bare flaps on the black, nothing passed. */
 export const DisplayPreviewSplitFlap: Story = {
   name: "DisplayPreview frame=tv, split-flap",
   render: () => <DisplayPreview model={SPLIT_FLAP} message={DEPARTURES_FLAP} frame="tv" tv={{ diagonalInches: 55 }} />,

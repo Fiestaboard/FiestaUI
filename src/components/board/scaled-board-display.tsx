@@ -187,6 +187,10 @@ function ScaledBoardDisplayImpl({
     props.notesTall,
     props.gridRows,
     props.gridCols,
+    // The housing's border and padding are part of the natural width the
+    // scale is computed from; without them (`bezel={false}`) the board is
+    // its grid, and the measurement is of the grid alone.
+    props.bezel,
     mode,
   ]);
 

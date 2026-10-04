@@ -671,6 +671,31 @@ name; offline, the board is hidden from everyone (nothing is showing) and
 a `role="status"` region on the screen carries the status, so the frame
 never names or re-names the board.
 
+**No board frame on the TV (split-flap).** FiestaPanel's Apple TV app shows
+the flaps on the set's black with no board housing around them, and the
+preview matches it: inside `frame="tv"` a split-flap board draws only its
+tile grid — gutters, note seams and the tiles' own leaf, hinge and colour
+materials intact — on a transparent background, with no bezel, border,
+shadow, padding or surface gradient, and it is the grid that `fitToScreen`
+fits to the screen's margin. This is a first-class renderer option, not a
+crop: `StaticBoardDisplay`, `BoardDisplay` (and `ScaledBoardDisplay`
+through it) and `LedMatrixDisplay` take `bezel?: boolean` (default `true`,
+the DOM unchanged for every existing caller; `false` keeps `role="img"`,
+the name and `data-slot`, and adds `data-bezel="false"`), and
+`DisplayPreview` exposes `bezel` with a default of `true` outside a TV and
+`false` for a split-flap board inside one — an explicit value wins. The
+flap animation is unaffected. FiestaBoard's web viewer (`panel-board.tsx`)
+had been rendering the housed board and cropping the bezel away behind an
+`overflow: hidden` window with measured offsets; with this it passes
+`frame="tv"` (or `bezel={false}`) and the crop goes.
+
+_Open: LED boards inside the TV — housing or bare substrate?_ The Apple TV
+app's rule was stated for the flaps. `DisplayPreview frame="tv"` keeps the
+LED housing until the owner decides; the bare alternative (`bezel={false}`
+on `LedMatrixDisplay`: the substrate and its dots alone) is built and shown
+in the TvFrame stories ("FiestaPanel LED matrix, bare") so the two can be
+compared. See §17.
+
 ## 8. Transitions
 
 ### 8.1 The engine
@@ -1315,6 +1340,10 @@ The owner delegated this question with "whatever is best for scaling". The decis
   the same thing.
 - Should a page-level transition override be allowed to pick an entry the
   board's model lists as degraded?
+- LED boards inside the TV: housing or bare substrate? A split-flap board on
+  the TV is bare flaps, after the Apple TV app (§7.5). The LED board keeps
+  its housing there until decided; `LedMatrixDisplay bezel={false}` is the
+  bare alternative, shown beside it in the TvFrame stories.
 
 ## 18. Deferred / later
 

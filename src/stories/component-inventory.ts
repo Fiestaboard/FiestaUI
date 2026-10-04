@@ -263,7 +263,7 @@ export const INVENTORY = [
       {
         name: "TvFrame",
         summary:
-          "An OLED television around a board renderer — FiestaPanel's housing, sized by diagonal and aspect, dimmable, with an offline state.",
+          "An OLED television around a board renderer — FiestaPanel's housing, sized by diagonal and aspect, dimmable, with an offline state. A split-flap board on it is bare flaps on the black.",
       },
     ],
   },

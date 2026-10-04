@@ -77,6 +77,17 @@ export interface StaticBoardDisplayProps {
    * fixture, once the Python side has parity. See `ParseLineOptions`.
    */
   extendedMarkup?: boolean;
+  /**
+   * Draw the board's housing — the bezel, its border and shadow, the padded
+   * surface the tiles sit on. Default `true`, the board as it has always
+   * drawn. `false` draws only the tile grid (gutters, note seams and the
+   * tiles' own materials intact) on a transparent background, with no
+   * bezel, border, shadow, padding or surface: what FiestaPanel's Apple TV
+   * app shows — flaps on the TV's black, no frame — and what `TvFrame` wants
+   * from a split-flap board (`DisplayPreview frame="tv"` passes it). The
+   * housing records it on `data-bezel="false"`; the role and name are kept.
+   */
+  bezel?: boolean;
 }
 
 // Module-scope so the memoized component sees a stable prop identity, and the
@@ -102,6 +113,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   messageLabel = defaultMessageLabel,
   emptyLabel = "Empty board display",
   extendedMarkup = false,
+  bezel = true,
 }: StaticBoardDisplayProps) {
   const dims = resolveDimensions(deviceType, notesWide, notesTall, gridRows, gridCols);
   // Seams mark physical Note boundaries, so only a note_array has them — a
@@ -171,21 +183,33 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
           clamp it below that and let the rows escape it on both sides. A
           consumer whose slot is narrower than a board wants
           `ScaledBoardDisplay`. */}
+      {/* `bezel={false}`: the same two boxes with nothing drawn on them — no
+          border, colour, shadow, padding or surface — so the board is its
+          tile grid, transparent, and a consumer that measures the housing
+          (ScaledBoardDisplay, TvFrame's fit) measures the grid. The attribute
+          and style branches leave the default DOM byte-identical. */}
       <div
         role="img"
         aria-label={label}
         data-slot="static-board-display"
-        className={`${borderClasses} ${className}`}
-        style={{ backgroundColor: bezelBg, borderColor, boxShadow, width: "fit-content" }}
+        {...(bezel ? {} : { "data-bezel": "false" })}
+        className={bezel ? `${borderClasses} ${className}` : className}
+        style={
+          bezel ? { backgroundColor: bezelBg, borderColor, boxShadow, width: "fit-content" } : { width: "fit-content" }
+        }
       >
         <div
-          className={`${paddingClasses[size]} relative`}
+          className={bezel ? `${paddingClasses[size]} relative` : "relative"}
           aria-hidden="true"
-          style={{
-            background: isWhiteBoard
-              ? "linear-gradient(135deg, var(--color-board-surface-light) 0%, var(--color-board-bezel-border-light) 100%)"
-              : "linear-gradient(135deg, var(--color-board-surface-dark) 0%, var(--color-board-black) 100%)",
-          }}
+          style={
+            bezel
+              ? {
+                  background: isWhiteBoard
+                    ? "linear-gradient(135deg, var(--color-board-surface-light) 0%, var(--color-board-bezel-border-light) 100%)"
+                    : "linear-gradient(135deg, var(--color-board-surface-dark) 0%, var(--color-board-black) 100%)",
+                }
+              : undefined
+          }
         >
           <div className={`flex flex-col ${gapClasses[size]}`}>
             {grid.map((row, rowIdx) => {

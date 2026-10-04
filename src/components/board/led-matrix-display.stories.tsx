@@ -31,6 +31,11 @@ const meta = {
     },
     pixelShape: { control: "select", options: ["round", "square"] },
     glow: { control: "boolean" },
+    bezel: {
+      control: "boolean",
+      description:
+        "Draw the housing (default). Off: only the LED substrate and its dots. Whether an LED board inside TvFrame should go bare is open (spec §7.5).",
+    },
     textColor: { control: "color" },
     monochrome: { control: "color", description: "Set for a single-colour panel: every lit LED is this colour" },
     letterCase: { control: "select", options: ["upper", "mixed"] },

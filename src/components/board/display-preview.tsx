@@ -25,7 +25,10 @@
  * `fiestapanel_led_matrix`, measured in pixels) and is dispatched like any
  * other device. `frame="tv"` wraps whichever renderer the model gets in
  * `TvFrame`, the OLED television FiestaPanel shows on, with the viewer's
- * facts about the set in `tv` (diagonal, aspect, dimming, offline).
+ * facts about the set in `tv` (diagonal, aspect, dimming, offline). On the
+ * TV a split-flap board draws no housing of its own — only its flaps, as
+ * the Apple TV app shows them — so the flaps are what is fitted to the
+ * screen (`bezel`).
  */
 
 import { useEffect } from "react";
@@ -116,6 +119,15 @@ export interface DisplayPreviewProps {
    * 55" 16:9 set on its stand, showing. Ignored for any other `frame`.
    */
   tv?: TvFrameOptions;
+  /**
+   * Draw the board's own housing (the renderer's `bezel`). Unset, the board
+   * has its housing — except a split-flap board inside `frame="tv"`, which
+   * draws only its flaps on the TV's black, as FiestaPanel's Apple TV app
+   * does, and is fitted to the screen by its tile grid. An LED board inside
+   * the TV keeps its housing until that is decided (spec §7.5). An explicit
+   * value wins either way.
+   */
+  bezel?: boolean;
   /** Passed to the renderer's housing (the board, not the television). */
   className?: string;
 }
@@ -218,6 +230,7 @@ export function DisplayPreview({
   emptyLabel,
   frame = "none",
   tv,
+  bezel,
   className,
 }: DisplayPreviewProps) {
   // Throws for an unknown id, with the list of built-ins: never a flagship.
@@ -232,8 +245,14 @@ export function DisplayPreview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ignoredKey]);
 
+  // The housing: a split-flap board on the TV is bare flaps (the owner's
+  // call, after the Apple TV app); an LED board on the TV keeps its housing
+  // for now (open, spec §7.5); any board elsewhere has one. Explicit wins.
+  const bare = frame === "tv" && model.technology === "split_flap";
+  const housingShown = bezel ?? !bare;
+
   // Shared by every renderer; each adds its own defaults for what is unset.
-  const content = { message, cells, className, previewLabel, messageLabel, emptyLabel };
+  const content = { message, cells, className, previewLabel, messageLabel, emptyLabel, bezel: housingShown };
   const defined = <T extends object>(o: T): T =>
     Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 

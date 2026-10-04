@@ -295,10 +295,14 @@ describe("DisplayPreview", () => {
       const board = screen.getByRole("img", { name: "Board preview: HI" });
       expect(board).toHaveAttribute("data-slot", "static-board-display");
       expect(tv.querySelector("[data-slot=tv-frame-screen]")!.contains(board)).toBe(true);
+      // On the TV a split-flap board is bare flaps (bezel.test.tsx has the rest).
+      expect(board).toHaveAttribute("data-bezel", "false");
       cleanup();
       render(<DisplayPreview model={FIESTAPANEL_LED_MATRIX_MODEL} message="HI" frame="tv" />);
       const led = screen.getByRole("img", { name: "LED matrix preview: HI" });
       expect(housing().querySelector("[data-slot=tv-frame-screen]")!.contains(led)).toBe(true);
+      // An LED board keeps its housing on the TV until that is decided (spec §7.5).
+      expect(led).not.toHaveAttribute("data-bezel");
       // Unset `tv` is the default set.
       expect(housing().querySelector("[data-slot=tv-frame]")).toHaveAttribute("data-diagonal", "55");
     });

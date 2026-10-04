@@ -8,8 +8,11 @@
  * ../../lib/plugin-model-fixtures). Its previews are the board as the TV
  * shows it, so the app wraps the renderer in the television itself —
  * a thin near-black bezel with a slim chin, a centre stand (or none, for a
- * wall mount), and a screen of OLED black on which the board's own bezel
- * sits as it does on the real panel.
+ * wall mount), and a screen of OLED black. A split-flap board on it draws
+ * no housing of its own — only its flaps on the black, as the Apple TV app
+ * shows FiestaPanel (the renderers' `bezel={false}`, which `DisplayPreview
+ * frame="tv"` passes), so the fit below is of the flaps. Whether an LED
+ * board should go bare too is open (spec §7.5); it keeps its housing.
  *
  * The frame draws from four facts FiestaBoard holds per panel (spec §14):
  * the screen diagonal (`screen_diagonal_inches` → `diagonalInches`), the
