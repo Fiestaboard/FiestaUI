@@ -143,6 +143,8 @@ interface PaintCache {
   key: string;
   grid: Path2D;
   small: HTMLCanvasElement;
+  /** The bloom source, `small`'s size; allocated once per size and refilled every paint. */
+  image: ImageData | null;
 }
 const paintCaches = new WeakMap<HTMLCanvasElement, PaintCache>();
 
@@ -185,7 +187,7 @@ function paintLedFrame(
     const small = document.createElement("canvas");
     small.width = width;
     small.height = height;
-    cache = { key, grid, small };
+    cache = { key, grid, small, image: null };
     paintCaches.set(canvas, cache);
   }
   // Setting the size clears the canvas; only do it when it changes, so a
@@ -234,7 +236,7 @@ function paintLedFrame(
       // The bloom source is the lit glyph and tile pixels only: a block
       // span's field is masked out, so the unlit glyph pixels inside it
       // (inverse video) stay crisp instead of greying under the field's glow.
-      const image = sctx.createImageData(width, height);
+      const image = (cache.image ??= sctx.createImageData(width, height));
       for (let p = 0, i = 0; p < width * height; p++, i += 3) {
         const masked = bloomMask !== null && bloomMask[p] === 1;
         image.data[p * 4] = masked ? 0 : pixels[i];
@@ -330,15 +332,27 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
   // shows it, so there is no blank-panel frame and VRT never races the paint.
   // It repaints when the device pixel ratio changes too — a window dragged
   // from a 1x to a 2x monitor would otherwise keep a soft 1x backing store.
+  // A `(resolution: Ndppx)` query only reports leaving N, so after each
+  // change the query is re-armed for the new ratio: 1 → 2 → 1.5 repaints
+  // every time, not just the first.
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const look: LedLook = { shape, dotRatio, offColor, substrateColor };
     const paint = () => paintLedFrame(canvas, frame, pitch, look, glow, blockMask);
-    const query = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
-    query.addEventListener("change", paint);
+    let query: MediaQueryList | null = null;
+    const onChange = () => {
+      paint();
+      watch();
+    };
+    const watch = () => {
+      query?.removeEventListener("change", onChange);
+      query = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+      query.addEventListener("change", onChange);
+    };
+    watch();
     paint();
-    return () => query.removeEventListener("change", paint);
+    return () => query?.removeEventListener("change", onChange);
   }, [frame, blockMask, pitch, shape, dotRatio, offColor, substrateColor, glow]);
 
   return (

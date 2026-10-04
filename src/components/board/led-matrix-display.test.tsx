@@ -169,3 +169,111 @@ describe("LedMatrixDisplay", () => {
     }
   });
 });
+
+describe("LedMatrixDisplay painting", () => {
+  /** A matchMedia stub that records every query and lets a test fire its change. */
+  function installMatchMedia() {
+    const queries: Array<{ media: string; listeners: Set<() => void> }> = [];
+    const original = window.matchMedia;
+    window.matchMedia = (media: string) => {
+      const listeners = new Set<() => void>();
+      queries.push({ media, listeners });
+      return {
+        media,
+        matches: false,
+        onchange: null,
+        addEventListener: (_type: string, fn: () => void) => listeners.add(fn),
+        removeEventListener: (_type: string, fn: () => void) => listeners.delete(fn),
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      } as unknown as MediaQueryList;
+    };
+    return { queries, restore: () => void (window.matchMedia = original) };
+  }
+
+  const setDpr = (value: number) => Object.defineProperty(window, "devicePixelRatio", { value, configurable: true });
+
+  it("re-arms the resolution query after every change, so 1 → 2 → 1.5 repaints each time", () => {
+    const mm = installMatchMedia();
+    const getContext = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+    try {
+      setDpr(1);
+      const { unmount } = render(<LedMatrixDisplay message="AB" preset="hub75_64x32" />);
+      expect(mm.queries.map((q) => q.media)).toEqual(["(resolution: 1dppx)"]);
+      const paintsAtMount = getContext.mock.calls.length;
+      expect(paintsAtMount).toBeGreaterThan(0);
+
+      // The window moves to a 2x monitor: the 1x query stops matching.
+      setDpr(2);
+      for (const fn of mm.queries[0].listeners) fn();
+      expect(getContext.mock.calls.length).toBe(paintsAtMount + 1);
+      // The old query is released and one for the new ratio is armed.
+      expect(mm.queries[0].listeners.size).toBe(0);
+      expect(mm.queries.map((q) => q.media)).toEqual(["(resolution: 1dppx)", "(resolution: 2dppx)"]);
+
+      // And again, to 1.5x: only the live query is listened to, and it fires a paint.
+      setDpr(1.5);
+      for (const fn of mm.queries[1].listeners) fn();
+      expect(getContext.mock.calls.length).toBe(paintsAtMount + 2);
+      expect(mm.queries[1].listeners.size).toBe(0);
+      expect(mm.queries.at(-1)?.media).toBe("(resolution: 1.5dppx)");
+
+      unmount();
+      expect(mm.queries.every((q) => q.listeners.size === 0)).toBe(true);
+    } finally {
+      getContext.mockRestore();
+      mm.restore();
+      setDpr(1);
+    }
+  });
+
+  it("allocates the bloom ImageData once per matrix size, not on every paint", () => {
+    // A 2D context with just what paintLedFrame calls, counting ImageData allocations.
+    const createImageData = vi.fn((w: number, h: number) => ({
+      width: w,
+      height: h,
+      data: new Uint8ClampedArray(w * h * 4),
+    }));
+    const ctx = {
+      fillStyle: "",
+      globalAlpha: 1,
+      globalCompositeOperation: "source-over",
+      imageSmoothingEnabled: false,
+      imageSmoothingQuality: "low",
+      fillRect() {},
+      fill() {},
+      save() {},
+      restore() {},
+      drawImage() {},
+      putImageData() {},
+      createImageData,
+    };
+    const getContext = vi
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+    const hadPath2D = "Path2D" in globalThis;
+    if (!hadPath2D) {
+      (globalThis as { Path2D?: unknown }).Path2D = class {
+        moveTo() {}
+        arc() {}
+        rect() {}
+        roundRect() {}
+      };
+    }
+    try {
+      const { rerender } = render(<LedMatrixDisplay message="AB" matrixWidth={16} matrixHeight={8} font="3x5" />);
+      expect(createImageData).toHaveBeenCalledTimes(1);
+      rerender(<LedMatrixDisplay message="CD" matrixWidth={16} matrixHeight={8} font="3x5" />);
+      rerender(<LedMatrixDisplay message="EF" matrixWidth={16} matrixHeight={8} font="3x5" />);
+      expect(createImageData).toHaveBeenCalledTimes(1);
+      // A different matrix size needs a new buffer.
+      rerender(<LedMatrixDisplay message="EF" matrixWidth={24} matrixHeight={8} font="3x5" />);
+      expect(createImageData).toHaveBeenCalledTimes(2);
+      expect(createImageData).toHaveBeenLastCalledWith(24, 8);
+    } finally {
+      getContext.mockRestore();
+      if (!hadPath2D) delete (globalThis as { Path2D?: unknown }).Path2D;
+    }
+  });
+});
