@@ -121,11 +121,15 @@ export function DrawCharPickerContent({
   const selectedChar = current.kind === "char" ? current.char : null;
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   // Roving tabindex: exactly one button is in the tab order (the selected
-  // character if any, otherwise the first), arrow keys move focus.
-  const [focusedIndex, setFocusedIndex] = useState(() => {
+  // character if any, otherwise the first), arrow keys move focus. The
+  // index is clamped to the current list at render: a set change can
+  // shorten the list under it (a mixed-case set to an uppercase one), and
+  // an index past the end would leave no tab stop at all.
+  const [rawFocusedIndex, setFocusedIndex] = useState(() => {
     const selectedIndex = selectedChar ? chars.indexOf(selectedChar) : -1;
     return selectedIndex >= 0 ? selectedIndex : 0;
   });
+  const focusedIndex = Math.min(rawFocusedIndex, chars.length - 1);
 
   const moveFocus = (index: number) => {
     const wrapped = ((index % chars.length) + chars.length) % chars.length;

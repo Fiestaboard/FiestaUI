@@ -14,8 +14,9 @@ import { DRAW_CHARS } from "./utils/draw-mode";
  * editor is shipped, FiestaBoard's production pickers are local copies of
  * this behaviour, and the flap set is its only set today. The snapshots in
  * ./__snapshots__ were generated against the pickers BEFORE `charset`
- * existed (commit 30467c5, the parent of this change) and are never updated
- * from the charset-aware code: a diff here is a regression, not a change.
+ * existed (this change's parent commit, the tip of feat/character-glyph)
+ * and are never updated from the charset-aware code: a diff here is a
+ * regression, not a change.
  *
  * The one normalisation: Base UI stamps each tooltip trigger with a React
  * `useId` (`base-ui-_r_1_`), a per-process counter that depends on how
@@ -300,6 +301,26 @@ describe("DrawCharPickerContent with a charset", () => {
     a.click();
     expect(onSelect).toHaveBeenCalledWith({ kind: "char", char: "a" });
     expect(screen.getByRole("group")).toHaveAttribute("data-charset", "led_5x7");
+  });
+
+  it("keeps a tab stop when the set shrinks under the focused stamp", () => {
+    // Focus parked on the last lowercase stamp of a mixed-case set, then the
+    // set changes to one with no lowercase: the index is past the end of the
+    // new list, and nothing would be reachable by Tab.
+    const { rerender } = render(
+      <DrawCharPickerContent current={{ kind: "eraser" }} onSelect={vi.fn()} charset="led_5x7" />,
+    );
+    const z = screen.getByRole("button", { name: "z" });
+    fireEvent.keyDown(screen.getByRole("button", { name: "A" }), { key: "End" });
+    expect(z).toHaveFocus();
+    expect(z).toHaveAttribute("tabindex", "0");
+    rerender(<DrawCharPickerContent current={{ kind: "eraser" }} onSelect={vi.fn()} charset="vestaboard_v1" />);
+    const stops = screen.getAllByRole("button").filter((b) => b.getAttribute("tabindex") === "0");
+    expect(stops).toHaveLength(1);
+    expect(stops[0]).toHaveAttribute("data-draw-char", DRAW_CHARS[DRAW_CHARS.length - 1]);
+    // And the arrows still walk from there.
+    fireEvent.keyDown(stops[0], { key: "ArrowRight" });
+    expect(screen.getByRole("button", { name: "A" })).toHaveFocus();
   });
 
   it("walks both rows with one roving focus", () => {

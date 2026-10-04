@@ -6,19 +6,28 @@
  * One card per entry of the transition menu (../../lib/led-transition-registry),
  * "None" included, as a real radiogroup (`ToggleCardGroup`). Given a device
  * model, entries the device cannot run are marked `aria-disabled` and say
- * why; entries it runs degraded (a coarse or budgeted flip) say how. Each
- * card can carry a tiny live preview — a small `LedMatrixDisplay` looping
- * that transition on the model's own geometry, the whole device scaled to
- * fit — which stands still under reduced motion.
+ * why; entries it runs degraded (a coarse or budgeted flip) say how. An
+ * `aria-disabled` radio is skipped by the keyboard (Base UI's composite
+ * never focuses one), so every unavailable entry's reason is also given
+ * outside the radios, as a list the group is described by. Each card can
+ * carry a tiny live preview — a small `LedMatrixDisplay` looping that
+ * transition on the model's own geometry, the whole device scaled to fit —
+ * which stands still under reduced motion.
  *
  * Models are open data: `model` takes a built-in id or a model object (an
  * output plugin's). An unknown id is no device — every entry is offered as
  * is and the id is reported on `data-unknown-model` — never a Vestaboard.
  */
 
-import { useState, useSyncExternalStore } from "react";
+import { useId, useState, useSyncExternalStore } from "react";
 
-import { type DeviceModel, type DeviceModelRef, ledSpecForModel, tryResolveDeviceModel } from "../../lib/devices";
+import {
+  type DeviceModel,
+  type DeviceModelRef,
+  ledSpecForModel,
+  tryResolveDeviceModel,
+  validateDeviceModel,
+} from "../../lib/devices";
 import {
   defaultTransitionIdForModel,
   LED_TRANSITION_IDS,
@@ -107,6 +116,8 @@ function subscribePreviewClock(listener: () => void) {
 }
 const getPreviewTick = () => previewTick;
 const getPreviewTickServer = () => 0;
+/** A still preview needs no clock: nothing subscribed, no interval started. */
+const subscribeNothing = () => () => {};
 
 /** A small board that alternates its message on the shared clock — stilled under reduced motion. */
 function TransitionPreview({
@@ -121,7 +132,11 @@ function TransitionPreview({
   label: string;
 }) {
   const reduced = useReducedMotion();
-  const tick = useSyncExternalStore(subscribePreviewClock, getPreviewTick, getPreviewTickServer);
+  const tick = useSyncExternalStore(
+    reduced ? subscribeNothing : subscribePreviewClock,
+    getPreviewTick,
+    getPreviewTickServer,
+  );
   const spec = availability.spec;
   const geometry = model ? ledSpecForModel(model) : null;
   const width = geometry?.width ?? 64;
@@ -162,9 +177,17 @@ export function LedTransitionPicker({
   className,
 }: LedTransitionPickerProps) {
   const l = { ...DEFAULT_LED_TRANSITION_PICKER_LABELS, ...labels };
+  const reasonsId = useId();
   const lookup = model !== undefined ? tryResolveDeviceModel(model) : undefined;
-  const resolvedModel = lookup?.model;
-  const unknownModel = lookup?.error !== undefined ? String(model) : undefined;
+  // An object is a plugin's model; one that is not a well-formed model is
+  // no device either, and is reported by its id — never "[object Object]".
+  const resolvedModel = lookup?.model && validateDeviceModel(lookup.model).ok ? lookup.model : undefined;
+  const unknownModel =
+    model !== undefined && resolvedModel === undefined
+      ? typeof model === "string"
+        ? model
+        : String((model as { id?: unknown })?.id ?? "")
+      : undefined;
   const availability: LedTransitionAvailability[] = resolvedModel
     ? transitionsForModel(resolvedModel)
     : LED_TRANSITION_IDS.map((id) => ({
@@ -177,78 +200,111 @@ export function LedTransitionPicker({
   const defaultId = resolvedModel ? defaultTransitionIdForModel(resolvedModel) : "none";
   const shown = hideUnavailable ? availability.filter((a) => a.available) : availability;
   const unavailable = new Set(availability.filter((a) => !a.available).map((a) => a.id));
-  // Unavailable entries stay in the group as real, focusable radios marked
-  // `aria-disabled`, so a keyboard or screen-reader user can reach the card
-  // and read why it is off the menu; selecting one is refused here. The
-  // group is therefore controlled internally, so a refused arrow-key move
-  // snaps back to the current value.
-  const [internal, setInternal] = useState<LedTransitionId>(value ?? defaultValue ?? defaultId);
-  const current = value ?? internal;
+  const unavailableEntries = hideUnavailable ? [] : availability.filter((a) => !a.available);
+  // Unavailable entries stay in the group as radios marked `aria-disabled`,
+  // so their cards and reasons are in the accessibility tree (and listed
+  // again below the group); selecting one is refused here. The group is
+  // controlled internally, so a refused move snaps back to the current
+  // value.
+  const [internal, setInternal] = useState<{ value: LedTransitionId; chosen: boolean; defaultId: LedTransitionId }>(
+    () => ({ value: value ?? defaultValue ?? defaultId, chosen: defaultValue !== undefined, defaultId }),
+  );
+  // Uncontrolled, the value is re-derived when the model changes under it:
+  // a default that was never overridden follows the new device's default,
+  // and a choice the new device cannot run gives way to that default too —
+  // a stale "flip" must not survive a switch to a device that only snaps.
+  if (internal.defaultId !== defaultId) {
+    const keep = internal.chosen && !unavailable.has(internal.value);
+    const next = keep ? internal.value : defaultId;
+    setInternal({ value: next, chosen: keep, defaultId });
+    if (value === undefined && next !== internal.value) onValueChange?.(next);
+  }
+  const current = value ?? internal.value;
   const select = (id: LedTransitionId) => {
     if (unavailable.has(id)) return;
-    setInternal(id);
+    setInternal((s) => ({ ...s, value: id, chosen: true }));
     onValueChange?.(id);
   };
 
   return (
-    <ToggleCardGroup
-      aria-label={l.transitions}
-      data-slot="led-transition-picker"
-      data-model={resolvedModel?.id}
-      data-unknown-model={unknownModel}
-      value={current}
-      onValueChange={(v) => select(v as LedTransitionId)}
-      columns={columns}
-      size="sm"
-      indicator="trailing"
-      className={cn("w-full", className)}
-    >
-      {shown.map((a) => (
-        <ToggleCard
-          key={a.id}
-          value={a.id}
-          aria-disabled={!a.available || undefined}
-          data-transition={a.id}
-          data-available={a.available ? "" : undefined}
-          data-degraded={a.degraded ? "" : undefined}
-          // A flex column of full height, so the preview can pin itself to
-          // the bottom. An unavailable card keeps its text at full contrast
-          // (the reason has to be read) and shows its state by the border.
-          className={cn("flex h-full flex-col", !a.available && "border-dashed")}
-          title={a.entry.label}
-          meta={
-            a.id === defaultId ? (
-              <span className="text-xs text-muted-foreground" data-slot="led-transition-default">
-                {l.deviceDefault}
-              </span>
-            ) : undefined
-          }
-          description={
-            <>
-              {a.entry.description}
-              {!a.available && a.reason && (
-                <span className="mt-1 block text-xs" data-slot="led-transition-reason">
-                  {l.unavailable}: {a.reason}
+    <div className={cn("flex w-full flex-col gap-3", className)} data-slot="led-transition-picker-root">
+      <ToggleCardGroup
+        aria-label={l.transitions}
+        aria-describedby={unavailableEntries.length > 0 ? reasonsId : undefined}
+        data-slot="led-transition-picker"
+        data-model={resolvedModel?.id}
+        data-unknown-model={unknownModel}
+        value={current}
+        onValueChange={(v) => select(v as LedTransitionId)}
+        columns={columns}
+        size="sm"
+        indicator="trailing"
+        className="w-full"
+      >
+        {shown.map((a) => (
+          <ToggleCard
+            key={a.id}
+            value={a.id}
+            aria-disabled={!a.available || undefined}
+            data-transition={a.id}
+            data-available={a.available ? "" : undefined}
+            data-degraded={a.degraded ? "" : undefined}
+            // A flex column of full height, so the preview can pin itself to
+            // the bottom. An unavailable card keeps its text at full contrast
+            // (the reason has to be read) and shows its state by the border.
+            className={cn("flex h-full flex-col", !a.available && "border-dashed")}
+            title={a.entry.label}
+            meta={
+              a.id === defaultId ? (
+                <span className="text-xs text-muted-foreground" data-slot="led-transition-default">
+                  {l.deviceDefault}
                 </span>
-              )}
-              {a.available && a.degraded && a.reason && (
-                <span className="mt-1 block text-xs" data-slot="led-transition-reason">
-                  {l.runsAs}: {a.reason}
-                </span>
-              )}
-            </>
-          }
+              ) : undefined
+            }
+            description={
+              <>
+                {a.entry.description}
+                {!a.available && a.reason && (
+                  <span className="mt-1 block text-xs" data-slot="led-transition-reason">
+                    {l.unavailable}: {a.reason}
+                  </span>
+                )}
+                {a.available && a.degraded && a.reason && (
+                  <span className="mt-1 block text-xs" data-slot="led-transition-reason">
+                    {l.runsAs}: {a.reason}
+                  </span>
+                )}
+              </>
+            }
+          >
+            {preview && a.available && (
+              <TransitionPreview
+                availability={a}
+                model={resolvedModel}
+                messages={previewMessages}
+                label={l.previewLabel(a.entry.label)}
+              />
+            )}
+          </ToggleCard>
+        ))}
+      </ToggleCardGroup>
+      {/* The keyboard never lands on an aria-disabled radio, so the reasons
+          are listed here too — in browse order after the cards, and read
+          with the group's name through aria-describedby. */}
+      {unavailableEntries.length > 0 && (
+        <ul
+          id={reasonsId}
+          aria-label={l.unavailable}
+          data-slot="led-transition-unavailable"
+          className="list-disc space-y-0.5 pl-5 text-xs text-muted-foreground"
         >
-          {preview && a.available && (
-            <TransitionPreview
-              availability={a}
-              model={resolvedModel}
-              messages={previewMessages}
-              label={l.previewLabel(a.entry.label)}
-            />
-          )}
-        </ToggleCard>
-      ))}
-    </ToggleCardGroup>
+          {unavailableEntries.map((a) => (
+            <li key={a.id} data-transition={a.id}>
+              {a.entry.label}: {a.reason}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

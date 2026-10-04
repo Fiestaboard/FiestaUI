@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { ACME_SIGN_MODEL, goldenCharacterSet } from "../../lib/charset-golden-cases";
 import { DEVICE_MODEL_IDS, type DeviceModel, type DeviceModelId } from "../../lib/devices";
+import { SEQUENCE_PANEL_MODEL } from "../../lib/led-golden-cases";
 import type { LedTransitionId } from "../../lib/led-transition-registry";
 import { LedMatrixDisplay } from "./led-matrix-display";
 import { LedTransitionPicker } from "./led-transition-picker";
@@ -28,12 +29,17 @@ export const Hub75: Story = {
   args: { model: "hub75_64x32", columns: "2" },
 };
 
-/** The Pixoo 64 runs everything compressed into its 32-frame budget; each preview is the whole 64×64 face scaled, not cropped. */
+/** The Pixoo 64 snaps (its hardware test showed uploaded animations loop and overlay): only None is available, and Flip's card and the list under the group say why. */
 export const Pixoo64: Story = {
   args: { model: "divoom_pixoo64", columns: "2" },
 };
 
-/** The AWTRIX's push rate is unmeasured: only None is available. The others stay reachable, marked `aria-disabled`, and each says why. */
+/** A generic 64×64 sequence player (the fixture model the goldens pin) runs everything compressed into its 32-frame budget; each preview is the whole face scaled, not cropped. */
+export const SequenceDevice: Story = {
+  args: { model: SEQUENCE_PANEL_MODEL as unknown as DeviceModel, columns: "2" },
+};
+
+/** The AWTRIX's push rate is unmeasured: only None is available. The others are marked `aria-disabled` — the keyboard skips them — so each reason is also listed under the group, which it describes. */
 export const AwtrixUnmeasured: Story = {
   args: { model: "ulanzi_tc001_awtrix", columns: "2" },
 };
