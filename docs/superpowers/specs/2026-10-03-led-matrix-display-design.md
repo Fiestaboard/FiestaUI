@@ -296,7 +296,7 @@ interface CharacterSet {
   blockSpans: boolean;
   code62Glyph?: Code62Glyph; // fixed by hardware (flap sets); unset = caller's choice (LED)
   font?: LedFontId; // the face an LED set is drawn with
-  glyphs?: Record<string, readonly string[]>; // a plugin's own bitmaps, `#`/`.` rows in the face's size
+  glyphs?: Record<string, readonly string[]>; // a plugin's own bitmaps, `#`/`.` rows in the face's size; wins over the face's glyph for the same char
 }
 ```
 
@@ -320,7 +320,11 @@ on an unknown id with the list of built-ins, `tryResolveCharacterSet` returns
 the reason, `materializeCharacterSet(input, known?)` resolves `extends`
 (fields left out are inherited; `chars`, `icons`, `glyphs` given replace the
 parent's), and `validateCharacterSet(json) → { ok, errors[] }` never throws
-and accepts a partial declaration when it `extends` a known set.
+and accepts a partial declaration when it `extends` a known set. Both
+reject a key that is not a set field, partial declaration or not — the
+schema's `additionalProperties: false`, and a typo is a field the author
+meant; `materializeCharacterSet` validates the declaration as given before
+it inherits anything, and the whole result after.
 
 **The `extends` merge rule** (Task 2, mirrored in the schema's description):
 
@@ -334,6 +338,14 @@ and accepts a partial declaration when it `extends` a known set.
   consumers cache by (`id`, `version`).
 - A set that extends nothing must be complete; the schema enforces the same
   with `if`/`else` on `extends`.
+- A key that is not a set field is an **error**, never dropped — in a
+  partial declaration too (`materializeCharacterSet` throws, the schema's
+  `additionalProperties: false` agrees).
+
+**Glyph precedence.** A set's own `glyphs` entry **wins** over the shared
+face's glyph for the same character (FiestaBoard D17 rule 5): a sign that
+redraws `0` gets its zero, and the face still draws everything the set
+leaves alone. The `acme_sign_v2` golden pins it.
 
 **Tile spelling.** Tokens are never rewritten in FiestaUI: a colour tile
 keeps the spelling it was parsed with (`"red"` stays `"red"`, `"63"` stays
@@ -485,8 +497,12 @@ Each `LedCell` is `{ glyph, color, background? }`; `LED_GLYPHS` (internal)
 is an identity table for membership only — nothing reads meaning into its
 order. A cell with no glyph draws blank. Text is one colour per board
 (`textColor`, default `#ffffff`, AWTRIX's own default, not tinted in the
-frame); an unparseable colour falls back to the default rather than
-rasterising to invisible black.
+frame). `textColor` and `monochrome` are normalised to lowercase `#rrggbb` —
+trimmed, the `#` optional, so a settings screen's `FFB000` and a picker's
+`#ffb000` are one colour in the cells and in `LedLayout.options` — and
+anything that is not six hex digits (`#fff`, `rgba(…)`, a colour name) is
+the fallback: the default text colour, or unset for `monochrome`, rather
+than rasterising to invisible black.
 
 **Identity, not projection.** The layout parses each line with `parseLine`
 (extended markup on, case per `letterCase`) and fills the grid itself; it
@@ -496,7 +512,7 @@ split-flap projection. So a typed `°` draws a degree sign and a typed `♥`,
 written for — the panel can draw both, and FiestaBoard core hands LED
 outputs rich cells with their identity intact. There is no `code62Glyph`
 layout option; `LedLayout.options` carries only `monochrome` and a plugin
-set's `glyphs`.
+set's `glyphs`, which win over the face's for the same character (section 5).
 
 **Block colour.** `{fg/bg:TEXT}` lights the glyph box in `bg` and draws the
 glyph in `fg` over it; where the next cell is in the same block the column
@@ -507,8 +523,14 @@ unlit: the gutter is 1 px and cannot be split, lighting it in either colour
 would claim a row the other block does not own, and an unlit line between
 two differently coloured fields is what a split-flap board draws between any
 two tiles. A tile inside a block on a mono panel draws as an unlit square
-(inverse), not nothing. `ledBackgroundMask(layout)` reports the block fields
-so the preview can keep its bloom off them.
+(inverse), not nothing. An **icon inside a block** is a block cell whatever
+its split-flap fallback: `parseLine` keeps the span's colours on the tile
+token it emits for `{black/white:{icon:sun}}` (section 15, 5), and the
+layout reads them off any token type — the field lights first, gutter
+joined, then the icon's glyph draws over it in its own colour, or, on a face
+without the icon, its fallback tile fills the glyph box (an unlit square on
+a mono panel). `ledBackgroundMask(layout)` reports the block fields so the
+preview can keep its bloom off them.
 
 **Monochrome.** `monochrome: "#rrggbb"` is a `LedLayoutOptions` field, so it
 is in the frame: every lit pixel — text, spans, tiles, icons, the heart —
@@ -909,8 +931,12 @@ tests) that fail when the TypeScript and the files disagree:
 - `led-golden.json` — **golden layout cases** (message + spec + options, or
   a plugin set → `LedLayout.text` + RGB888 frame as base64) covering both
   faces, mixed case, monochrome, spans, blocks, icons, aliases, the degree
-  sign and typed hearts, the Pixoo grid, and the ACME set's `€` glyph over
-  `led_3x5`. Frames are RGB888, row-major, origin top-left. The transition
+  sign and typed hearts, the Pixoo grid, the ACME set's `€` glyph over
+  `led_3x5`, the ACME v2 set's `0` **overriding the face's**, icon fallbacks
+  **drawn** — tile fallbacks (snow, partly) and blank fallbacks (bus, bell)
+  on the 3×5 face, each bare, in a colour span and in a block — a block
+  behind a drawn icon, and the same fallbacks in a block on a monochrome
+  panel. Frames are RGB888, row-major, origin top-left. The transition
   cases (a seeded-scramble flip, one with half-flaps sampled at 25 fps, the
   Pixoo 32-frame budget resolved through the model, a fade quantised to 8
   frames over 777 ms, a continuous fade at 10 fps → the exact frame
@@ -918,10 +944,14 @@ tests) that fail when the TypeScript and the files disagree:
   are data (`src/lib/led-golden-cases.ts`); the generator and the drift test
   read one list.
 - `charset-golden.json` — **golden character-set cases**
-  (`src/lib/charset-golden-cases.ts`): two plugin-style sets as declared and
+  (`src/lib/charset-golden-cases.ts`): four plugin-style sets as declared and
   as `materializeCharacterSet` makes them — `acme_sign_v1` **extends
   `led_3x5` and carries its own `€` bitmap** (FiestaBoard D17's required
-  case), `ticker_mono_v2` extends nothing and has no tiles; a
+  case), `acme_sign_v2` bumps `version` and **overrides the face's `0`**
+  (`glyphs` replace wholesale, so it carries `€` again), `lobby_flap`
+  extends `vestaboard_v2` (version 2) and says nothing else, so it inherits
+  everything **except `version`** and is version 1, `ticker_mono_v2`
+  extends nothing and has no tiles; a
   `charsetFallback` table with every branch (identity, uppercase, span
   colours kept or dropped, blocks kept without colour spans, `°` ↔ `♥`,
   icons to a tile or a character with their colours kept, tiles and icons
@@ -994,6 +1024,36 @@ under `extendedMarkup`), so both parsers read the message the same way:
    them too when it degrades an icon to a tile: the degraded tile carries
    the span's `color` / `background` as informational fields, as a parsed
    tile does, and the golden fixtures pin it.
+
+From FiestaBoard #2165, the Python port of the Task 2 data layer, six more,
+fixed on the Task 2 layer with a golden or a unit test each so no port can
+miss them again:
+
+6. A set's `glyphs` entry **wins** over the face's glyph for the same
+   character (D17 rule 5). The code checked the face first; the docs were
+   right. Golden: `plugin glyph overrides the face's` (`acme_sign_v2`).
+7. Icon fallbacks were described but never **drawn** in a golden. Goldens
+   now draw tile fallbacks and blank fallbacks bare, in a colour span and in
+   a block, in colour and monochrome. (Both built-in faces carry every icon
+   whose fallback is a character — `up`, `down`, `fog` — so that branch is
+   pinned by a unit test against a face stripped of its icons.)
+8. `{black/white:{icon:sun}}` drew **no block field**, while
+   `{black/white:{icon:bus}}` did: the layout read a span's colours only off
+   a `char` token, and a tile-fallback icon is a `color` token (5 above).
+   It reads them off any token now; the field lights, gutter joined, and the
+   icon or its tile draws over it. Goldens: `block behind a drawn icon`,
+   `tile-fallback icons bare, in a colour span, in a block`, `icon fallbacks
+in a block, monochrome`.
+9. `textColor` / `monochrome` are **normalised**: trimmed, `#` optional,
+   lowercase `#rrggbb`; anything else is the documented fallback. Before,
+   `ffb000` passed validation but was carried unnormalised.
+10. A partial `extends` declaration with an unknown key is **rejected**
+    (`materializeCharacterSet` throws, as the schema's
+    `additionalProperties: false` does); it used to be dropped silently. The
+    device-model validator already rejected unknown keys, at the top level
+    and in an embedded set; the agreement tables now say so.
+11. `version` is **not inherited**: the `lobby_flap` golden materialises a
+    child of `vestaboard_v2` (version 2) as version 1.
 
 ## 16. Risks
 

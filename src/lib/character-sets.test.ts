@@ -6,6 +6,7 @@ import {
   CHARACTER_SET_IDS,
   CHARACTER_SETS,
   characterSetForDevice,
+  type CharacterSetInput,
   charsetDiff,
   charsetFallback,
   charsetIssue,
@@ -236,6 +237,30 @@ describe("plugin sets: validate, materialise, refuse", () => {
     expect(chained.version).toBe(7);
     expect(chained.glyphs).toBe(over.glyphs);
     expect(materializeCharacterSet({ id: "c", extends: "vestaboard_v2" }).version).toBe(1);
+  });
+
+  it("never inherits version: a child of a version-2 parent that says nothing is version 1", () => {
+    expect(CHARACTER_SETS.vestaboard_v2.version).toBe(2);
+    const child = materializeCharacterSet({ id: "lobby", extends: "vestaboard_v2" });
+    expect(child.version).toBe(1);
+    expect(child.chars).toEqual(CHARACTER_SETS.vestaboard_v2.chars);
+    const ticker = materializeCharacterSet({ id: "ticker", extends: "led_3x5", version: 3 });
+    expect(materializeCharacterSet({ id: "ticker_child", extends: "ticker" }, [ticker]).version).toBe(1);
+  });
+
+  it("rejects an unknown key in a partial declaration instead of dropping it", () => {
+    // A typo'd key is a field the author meant; the schema says
+    // additionalProperties: false, and materialising must not silently lose it.
+    const partial = { id: "x", extends: "led_3x5", colour: "no" } as CharacterSetInput;
+    expect(validateCharacterSet(partial)).toEqual({ ok: false, errors: ["colour: not a character set field"] });
+    expect(() => materializeCharacterSet(partial)).toThrow(/colour: not a character set field/);
+    const typo = { id: "x", extends: "led_3x5", glyph: { A: ["###", "#.#", "###", "#.#", "#.#"] } };
+    expect(() => materializeCharacterSet(typo as CharacterSetInput)).toThrow(/glyph: not a character set field/);
+    // …and a given field that is malformed is reported too, before inheritance.
+    expect(() => materializeCharacterSet({ id: "x", extends: "led_3x5", tiles: 1 } as never)).toThrow(
+      /tiles: a boolean/,
+    );
+    expect(() => materializeCharacterSet({ id: "Bad Id", extends: "led_3x5" })).toThrow(/id: a lowercase identifier/);
   });
 
   it("refuses nonsense with reasons", () => {

@@ -11,6 +11,12 @@
  * - `acme_sign_v1` **extends a built-in and carries custom `glyphs`** (a 48×12
  *   amber sign's set with its own `€` bitmap) — FiestaBoard D17's required
  *   case, so the inheritance and custom-glyph paths are pinned exactly.
+ * - `acme_sign_v2` is the same sign one version on: it **overrides a glyph
+ *   the face also has** (a rounded `0`), and since `glyphs` replace wholesale
+ *   it carries the `€` again. The set's bitmap wins over the face's (D17
+ *   rule 5), and the layout golden draws it.
+ * - `lobby_flap` extends `vestaboard_v2` (version 2) and says nothing else:
+ *   everything is inherited **except `version`**, so it is version 1.
  * - `ticker_mono_v2` extends nothing, so it must be complete; it has no tiles
  *   and no spans, which covers the fallbacks the other sets never reach.
  */
@@ -35,6 +41,22 @@ export const ACME_SIGN_CHARSET: CharacterSetInput = {
   colorSpans: false,
   blockSpans: true,
   glyphs: { "€": ACME_EURO_GLYPH },
+};
+
+/** The ACME sign's own zero: rounded, where the 3×5 face draws it square. */
+export const ACME_ZERO_GLYPH: readonly string[] = [".#.", "#.#", "#.#", "#.#", ".#."];
+
+export const ACME_SIGN_V2_CHARSET: CharacterSetInput = {
+  ...ACME_SIGN_CHARSET,
+  id: "acme_sign_v2",
+  version: 2,
+  glyphs: { "€": ACME_EURO_GLYPH, "0": ACME_ZERO_GLYPH },
+};
+
+export const LOBBY_FLAP_CHARSET: CharacterSetInput = {
+  id: "lobby_flap",
+  label: "Lobby flap board",
+  extends: "vestaboard_v2",
 };
 
 export const TICKER_MONO_CHARSET: CharacterSetInput = {
@@ -76,7 +98,12 @@ export const ACME_SIGN_MODEL = {
 } as const;
 
 /** Every plugin-style set the goldens use, as declared. */
-export const GOLDEN_PLUGIN_CHARSETS: readonly CharacterSetInput[] = [ACME_SIGN_CHARSET, TICKER_MONO_CHARSET];
+export const GOLDEN_PLUGIN_CHARSETS: readonly CharacterSetInput[] = [
+  ACME_SIGN_CHARSET,
+  ACME_SIGN_V2_CHARSET,
+  LOBBY_FLAP_CHARSET,
+  TICKER_MONO_CHARSET,
+];
 
 const materialized = new Map<string, CharacterSet>();
 /** A golden set by id: a built-in, or one of {@link GOLDEN_PLUGIN_CHARSETS} made whole. */
@@ -131,6 +158,8 @@ export const GOLDEN_FALLBACK_CASES: readonly GoldenFallbackCase[] = [
   { name: "heart kept where the set has it", set: "ticker_mono_v2", markup: "♥" },
   { name: "degree to heart on a plugin set", set: "ticker_mono_v2", markup: "°" },
   { name: "plugin glyph is itself", set: "acme_sign_v1", markup: "€" },
+  { name: "plugin glyph overriding the face's is itself", set: "acme_sign_v2", markup: "0" },
+  { name: "inherited flap set: lowercase uppercased", set: "lobby_flap", markup: "a" },
   { name: "unknown character becomes blank", set: "vestaboard_v1", markup: "~" },
   { name: "a character outside a plugin set becomes blank", set: "acme_sign_v1", markup: "$" },
   { name: "blank is itself", set: "acme_sign_v1", markup: " " },

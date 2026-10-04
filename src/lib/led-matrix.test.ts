@@ -6,16 +6,19 @@ import { BOARD_ICON_NAMES, BOARD_ICONS } from "./board-icons";
 import { LED_FONTS } from "./led-fonts";
 import {
   DEFAULT_LED_TEXT_COLOR,
+  drawLedGlyph,
   frameToAscii,
   frameToBits,
   layoutLedMessage,
   LED_GLYPHS,
   LED_MATRIX_PRESETS,
   ledBackgroundMask,
+  type LedDrawOp,
   ledGlyphIndex,
   ledGridLayout,
   renderLedFrame,
   renderLedGlyph,
+  resolveHexOption,
 } from "./led-matrix";
 
 /*
@@ -347,6 +350,54 @@ describe("colour spans, icons, case and monochrome", () => {
     expect([...bits].reduce((a, b) => a + b, 0)).toBe(15);
   });
 
+  it("lights the block background behind a tile-fallback icon, then the icon or its tile on top", () => {
+    const VIOLET = [0x9b, 0x59, 0xb6];
+    const spec = { width: 12, height: 5, font: "3x5" } as const;
+    // The face has no snow, so the cell is its violet tile — but it is still
+    // a block cell: the field lights and joins the gutter to the next cell.
+    const tile = renderLedFrame("{black/white:{icon:snow}A}", spec);
+    expect(pixel(tile, 0, 0)).toEqual(VIOLET); // the tile fills the glyph box…
+    expect(pixel(tile, 2, 4)).toEqual(VIOLET);
+    expect(pixel(tile, 3, 0)).toEqual(WHITE); // …and the joined gutter is the block's
+    expect(pixel(tile, 4, 0)).toEqual(WHITE); // "A" row 0 is ".#." → x=4 is background
+    expect(pixel(tile, 5, 0)).toEqual([0, 0, 0]); // the glyph pixel, black
+    expect(ledBackgroundMask(layoutLedMessage("{black/white:{icon:snow}A}", spec))!.subarray(0, 8)).toEqual(
+      new Uint8Array([1, 1, 1, 1, 1, 1, 1, 0]),
+    );
+    // A face that has the icon draws it over the block field, in its own colour.
+    // (The 5x7 grid on 64×32 starts at x=2; sun row 0 is "..#.." → pixel (4,0).)
+    const sun = renderLedFrame("{black/white:{icon:sun}}", { width: 64, height: 32 });
+    expect(pixel(sun, 4, 0)).toEqual(YELLOW);
+    expect(pixel(sun, 2, 0)).toEqual(WHITE);
+    // A blank-fallback icon is an empty block cell, as before.
+    const blank = renderLedFrame("{black/white:{icon:bus}A}", spec);
+    expect(pixel(blank, 0, 0)).toEqual(WHITE);
+    expect(pixel(blank, 3, 0)).toEqual(WHITE);
+    // Monochrome: inverse video — the tile is an unlit square in the lit slab,
+    // and a drawn icon's pixels are unlit too.
+    const mono = "#ffb000";
+    const monoTile = renderLedFrame("{black/white:{icon:snow}A}", spec, { monochrome: mono });
+    expect(pixel(monoTile, 0, 0)).toEqual([0, 0, 0]);
+    expect(pixel(monoTile, 3, 0)).toEqual([0xff, 0xb0, 0x00]);
+    const monoSun = renderLedFrame("{black/white:{icon:sun}}", { width: 64, height: 32 }, { monochrome: mono });
+    expect(pixel(monoSun, 4, 0)).toEqual([0, 0, 0]);
+    expect(pixel(monoSun, 2, 0)).toEqual([0xff, 0xb0, 0x00]);
+    // A colour span around a tile-fallback icon changes nothing it draws: the
+    // tile is its own colour, as a tile inside a span always is.
+    expect(renderLedFrame("{red:{icon:snow}}", spec).pixels).toEqual(renderLedFrame("{icon:snow}", spec).pixels);
+  });
+
+  it("draws an icon's character fallback when a face lacks the icon", () => {
+    // Both built-in faces carry every character-fallback icon (up, down,
+    // fog), so the path is exercised against a face stripped of its icons.
+    const face = { ...LED_FONTS["3x5"], icons: {} };
+    const ops: LedDrawOp[] = [];
+    drawLedGlyph(ops, ledGlyphIndex({ type: "char", value: "+", icon: "up" }), 0, 0, face, "#ffffff", {
+      monochrome: undefined,
+    });
+    expect(ops).toEqual([{ kind: "glyph", x: 0, y: 0, rows: LED_FONTS["3x5"].glyphs["+"], color: "#ffffff" }]);
+  });
+
   it("mono presets carry their LED colour; presets carry no appearance", () => {
     expect(LED_MATRIX_PRESETS.max7219.monochrome).toBe("#ff3b1f");
     expect(LED_MATRIX_PRESETS.p10_32x16.monochrome).toBe("#ff3b1f");
@@ -383,5 +434,82 @@ describe("layoutLedMessage text", () => {
     expect(layoutLedMessage("A", { width: 12, height: 5, font: "3x5" }, { monochrome: "#FFB000" }).options).toEqual({
       monochrome: "#ffb000",
     });
+  });
+});
+
+describe("resolveHexOption", () => {
+  it("normalises to lowercase #rrggbb: trimmed, with or without the #", () => {
+    expect(resolveHexOption("#ffb000", undefined)).toBe("#ffb000");
+    expect(resolveHexOption("#FFB000", undefined)).toBe("#ffb000");
+    expect(resolveHexOption("ffb000", undefined)).toBe("#ffb000");
+    expect(resolveHexOption("  #FfB000\n", undefined)).toBe("#ffb000");
+    expect(resolveHexOption("FFB000 ", "#000000")).toBe("#ffb000");
+  });
+
+  it("falls back for anything that is not six hex digits", () => {
+    for (const bad of ["", " ", "#", "#fff", "fff", "#ffb0000", "#ffb00g", "rgba(255, 176, 0, 1)", "red", "#ff b000"]) {
+      expect(resolveHexOption(bad, "#123456"), JSON.stringify(bad)).toBe("#123456");
+      expect(resolveHexOption(bad, undefined), JSON.stringify(bad)).toBeUndefined();
+    }
+    expect(resolveHexOption(undefined, "#123456")).toBe("#123456");
+    expect(resolveHexOption(undefined, undefined)).toBeUndefined();
+  });
+
+  it("is what the layout carries: a bare or shouted colour lands in the cells and options normalised", () => {
+    const spec = { width: 12, height: 5, font: "3x5" } as const;
+    expect(layoutLedMessage("A", spec, { monochrome: " FFB000 " }).options).toEqual({ monochrome: "#ffb000" });
+    expect(layoutLedMessage("A", spec, { textColor: "FFB000" }).cells[0].color).toBe("#ffb000");
+    expect(layoutLedMessage("A", spec, { textColor: "#fff" }).cells[0].color).toBe(DEFAULT_LED_TEXT_COLOR);
+    expect(layoutLedMessage("A", spec, { monochrome: "#fff" }).options).toEqual({ monochrome: undefined });
+    expect(renderLedFrame("A", spec, { textColor: "ffb000" }).pixels).toEqual(
+      renderLedFrame("A", spec, { textColor: "#FFB000" }).pixels,
+    );
+  });
+});
+
+describe("a plugin set's glyphs", () => {
+  const spec = { width: 12, height: 5, font: "3x5" } as const;
+  const ROUNDED_ZERO = [".#.", "#.#", "#.#", "#.#", ".#."];
+  const charset = {
+    id: "plugin_v1",
+    label: "plugin",
+    version: 1,
+    extends: "led_3x5",
+    chars: ["0", "€"],
+    tiles: true,
+    icons: [],
+    mixedCase: false,
+    colorSpans: true,
+    blockSpans: true,
+    font: "3x5",
+    glyphs: { "0": ROUNDED_ZERO, "€": [".##", "##.", "#..", "##.", ".##"] },
+  } as const;
+
+  it("win over the face's glyph for the same character", () => {
+    expect(LED_FONTS["3x5"].glyphs["0"]).not.toEqual(ROUNDED_ZERO);
+    expect(frameToAscii(renderLedGlyph({ type: "char", value: "0" }, "3x5", { charset })).split("\n")).toEqual(
+      ROUNDED_ZERO,
+    );
+    expect(
+      frameToAscii(renderLedFrame("0", spec, { charset }))
+        .split("\n")
+        .map((r) => r.slice(0, 3)),
+    ).toEqual(ROUNDED_ZERO);
+    expect(
+      frameToAscii(renderLedFrame("0", spec))
+        .split("\n")
+        .map((r) => r.slice(0, 3)),
+    ).toEqual(LED_FONTS["3x5"].glyphs["0"]);
+    expect(layoutLedMessage("0€", spec, { charset }).text).toBe("0€");
+  });
+
+  it("draw where the face has none, and the face still draws what the set leaves alone", () => {
+    expect(frameToAscii(renderLedGlyph({ type: "char", value: "€" }, "3x5", { charset })).split("\n")).toEqual(
+      charset.glyphs["€"],
+    );
+    expect(litCount(renderLedGlyph({ type: "char", value: "€" }, "3x5"))).toBe(0);
+    expect(frameToAscii(renderLedGlyph({ type: "char", value: "A" }, "3x5", { charset })).split("\n")).toEqual(
+      LED_FONTS["3x5"].glyphs.A,
+    );
   });
 });

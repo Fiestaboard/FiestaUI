@@ -117,7 +117,7 @@ describe("charset golden cases", () => {
   const golden = fixture("charset-golden.json");
   const EXT = { extendedMarkup: true, preserveCase: true };
 
-  it("materialises every plugin set exactly as declared, one of them over a built-in with its own glyphs", () => {
+  it("materialises every plugin set exactly as declared: over a built-in with its own glyphs, one overriding the face's, one inheriting all but version", () => {
     expect(golden.sets.map((s: { input: { id: string } }) => s.input.id)).toEqual(
       GOLDEN_PLUGIN_CHARSETS.map((s) => s.id),
     );
@@ -130,6 +130,26 @@ describe("charset golden cases", () => {
     expect(acme.input.extends).toBe("led_3x5");
     expect(acme.input.glyphs["€"]).toHaveLength(5);
     expect(acme.materialized).toMatchObject({ font: "3x5", tiles: true, version: 1, glyphs: acme.input.glyphs });
+    // A set's bitmap for a character the face also has: the set's wins.
+    const acme2 = golden.sets.find((s: { input: { id: string } }) => s.input.id === "acme_sign_v2");
+    expect(acme2.input.glyphs["0"]).toHaveLength(5);
+    expect(acme2.input.glyphs["0"]).not.toEqual(LED_FONTS["3x5"].glyphs["0"]);
+    expect(acme2.materialized).toMatchObject({
+      version: 2,
+      glyphs: { "€": acme.input.glyphs["€"], "0": acme2.input.glyphs["0"] },
+    });
+    // `version` is never inherited: the parent is version 2, the child says
+    // nothing, the child is version 1 — everything else is the parent's.
+    const lobby = golden.sets.find((s: { input: { id: string } }) => s.input.id === "lobby_flap");
+    expect(lobby.input).toEqual({ id: "lobby_flap", label: "Lobby flap board", extends: "vestaboard_v2" });
+    expect(CHARACTER_SETS.vestaboard_v2.version).toBe(2);
+    expect(lobby.materialized).toEqual({
+      ...json(CHARACTER_SETS.vestaboard_v2),
+      id: "lobby_flap",
+      label: "Lobby flap board",
+      extends: "vestaboard_v2",
+      version: 1,
+    });
   });
 
   it("lists every fallback and message case once", () => {

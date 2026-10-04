@@ -7,7 +7,7 @@
  */
 
 import type { CharacterSetInput } from "./character-sets";
-import { ACME_SIGN_CHARSET } from "./charset-golden-cases";
+import { ACME_SIGN_CHARSET, ACME_SIGN_V2_CHARSET } from "./charset-golden-cases";
 import type { LedLayoutOptions, LedMatrixSpec } from "./led-matrix";
 
 export interface GoldenLayoutCase {
@@ -62,5 +62,48 @@ export const GOLDEN_LAYOUT_CASES: readonly GoldenLayoutCase[] = [
     spec: { width: 48, height: 12, font: "3x5" },
     options: { monochrome: "#ffb000" },
     charset: ACME_SIGN_CHARSET,
+  },
+  {
+    // A set's own bitmap wins over the face's for the same character (D17
+    // rule 5): the ACME v2 zero is rounded where the 3×5 face's is square,
+    // and its € still draws. In colour this time.
+    name: "plugin glyph overrides the face's",
+    message: "€100",
+    spec: { width: 16, height: 5, font: "3x5" },
+    charset: ACME_SIGN_V2_CHARSET,
+  },
+  {
+    // The 3×5 face has no snow (tile 68) and no partly (tile 69), so each
+    // draws its tile: bare, inside a colour span (a tile is its own colour,
+    // the span changes nothing) and inside a block — where the block field
+    // lights first, gutter joined, and the tile fills its glyph box over it.
+    name: "tile-fallback icons bare, in a colour span, in a block",
+    message: "{icon:snow}{icon:partly}\n{red:{icon:snow}{icon:partly}}\n{black/white:{icon:snow}{icon:partly}}",
+    spec: { width: 8, height: 17, font: "3x5" },
+  },
+  {
+    // The 3×5 face has no bus and no bell, and their fallback is null: the
+    // cell is blank, bare or in a colour span, and inside a block it is an
+    // empty block cell whose field still lights and joins the next cell's.
+    name: "blank-fallback icons bare, in a colour span, in a block",
+    message: "{icon:bus}A\n{red:{icon:bell}A}\n{black/white:{icon:bus}A}",
+    spec: { width: 8, height: 17, font: "3x5" },
+  },
+  {
+    // An icon the face draws, inside a block: the field lights behind it and
+    // the icon draws over it in its own colour; a colour span around an icon
+    // leaves the icon's colour alone.
+    name: "block behind a drawn icon",
+    message: "{black/white:{icon:sun}OK} {red:{icon:up}}",
+    spec: { width: 30, height: 7, font: "5x7" },
+  },
+  {
+    // The same on a monochrome panel: inverse video. The tile-fallback icon
+    // in the block is an unlit square in the lit slab, the drawn icon's pixels
+    // are unlit over it, and the bare ones light in the panel colour.
+    name: "icon fallbacks in a block, monochrome",
+    message: "{black/white:{icon:snow}{icon:sun}}{icon:snow}{icon:sun}",
+    spec: { width: 16, height: 5, font: "3x5" },
+    options: { monochrome: "#ffb000" },
   },
 ];

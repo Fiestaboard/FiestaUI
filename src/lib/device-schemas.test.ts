@@ -115,6 +115,11 @@ const DEVICE_TABLE: Array<[string, boolean, () => unknown]> = [
   ],
   ["not an object", false, () => "divoom_pixoo64"],
   ["an unknown top-level field", false, () => ({ ...pixoo(), pixelShape: "square" })],
+  [
+    "an embedded partial set with an unknown field",
+    false,
+    () => ({ ...json(ACME_SIGN_MODEL), charset: { ...json(ACME_SIGN_CHARSET), colour: true } }),
+  ],
   ["an uppercase id", false, () => ({ ...pixoo(), id: "Pixoo64" })],
   ["an empty label", false, () => ({ ...pixoo(), label: "" })],
   ["an unknown technology", false, () => ({ ...pixoo(), technology: "eink" })],
@@ -192,6 +197,8 @@ const CHARSET_TABLE: Array<[string, boolean, () => unknown]> = [
   ["an astral character in chars", true, () => ({ ...led5x7(), chars: ["😀"] })],
   ["not an object", false, () => "led_5x7"],
   ["an unknown field", false, () => ({ ...led5x7(), colour: true })],
+  ["a partial set over a built-in with an unknown field", false, () => ({ id: "x", extends: "led_3x5", colour: true })],
+  ["a partial set with a typo'd field", false, () => ({ ...json(ACME_SIGN_CHARSET), glyph: { "€": [".##"] } })],
   ["an id with a space", false, () => ({ ...led5x7(), id: "led 5x7" })],
   [
     "a set that extends nothing, missing a flag",
@@ -267,5 +274,12 @@ describe("validateCharacterSet agrees with character-set.schema.json", () => {
     const notInChars = { ...json(ACME_SIGN_CHARSET), glyphs: { "£": [".##", "##.", "#..", "##.", ".##"] } };
     expect(validCharset(notInChars)).toBe(true);
     expect(validateCharacterSet(notInChars).ok).toBe(false);
+  });
+
+  it("materialising a partial set rejects what the schema rejects: an unknown key is an error, not dropped", () => {
+    const typo = { ...ACME_SIGN_CHARSET, colour: true };
+    expect(validCharset(json(typo))).toBe(false);
+    expect(validateCharacterSet(typo).ok).toBe(false);
+    expect(() => materializeCharacterSet(typo)).toThrow(/colour: not a character set field/);
   });
 });

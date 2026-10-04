@@ -208,17 +208,20 @@ export type CharacterSetInput = Partial<Omit<CharacterSet, "id">> & { id: string
  * - `extends` is kept on the result as lineage; the chain is one level deep
  *   at materialisation (the parent is already whole).
  *
- * Throws on an unknown or circular `extends`; a set that extends nothing
- * must be complete.
+ * Throws on an invalid declaration — a malformed field, or a key that is not
+ * a set field (a typo is a field the author meant, never silently dropped;
+ * the schema's `additionalProperties: false` says the same) — on an unknown
+ * or circular `extends`, and when the whole result does not validate. A set
+ * that extends nothing must be complete.
  */
 export function materializeCharacterSet(input: CharacterSetInput, known: readonly CharacterSet[] = []): CharacterSet {
+  // The declaration is checked as given — whole when it extends nothing,
+  // partial over `extends` — before anything is inherited.
+  const declared = validateCharacterSet(input);
+  if (!declared.ok) throw new Error(`Character set "${input.id}" is invalid: ${declared.errors.join("; ")}`);
   const seen = new Set<string>([input.id]);
   let parent: CharacterSet | undefined;
-  if (input.extends === undefined) {
-    // Nothing to inherit from, so the declaration itself must be whole.
-    const { ok, errors } = validateCharacterSet(input);
-    if (!ok) throw new Error(`Character set "${input.id}" is invalid: ${errors.join("; ")}`);
-  } else {
+  if (input.extends !== undefined) {
     const found =
       known.find((k) => k.id === input.extends) ??
       (isCharacterSetId(input.extends) ? CHARACTER_SETS[input.extends] : undefined);

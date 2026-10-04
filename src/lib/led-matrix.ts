@@ -210,7 +210,8 @@ export interface LedLayoutOptions {
   /**
    * The character set the panel draws — a plugin's, when it adds characters
    * of its own: their bitmaps (`CharacterSet.glyphs`) are drawn where the
-   * face has none. The built-in sets add nothing beyond the face.
+   * face has none, and win over the face's where it has one. The built-in
+   * sets add nothing beyond the face.
    */
   charset?: CharacterSet;
 }
@@ -341,13 +342,17 @@ export interface LedLayout {
   text: string;
 }
 
-/** The glyph rows an entry draws in a font, or `null` for nothing. */
+/**
+ * The glyph rows an entry draws in a font, or `null` for nothing. A set's
+ * own bitmap (`CharacterSet.glyphs`) wins over the face's for the same
+ * character — a plugin that redraws `0` gets its zero.
+ */
 function glyphRows(
   entry: ReturnType<typeof ledGlyphEntry>,
   font: LedFont,
   custom?: CharacterSet["glyphs"],
 ): readonly string[] | null {
-  if (entry.kind === "char") return font.glyphs[entry.char] ?? custom?.[entry.char] ?? null;
+  if (entry.kind === "char") return custom?.[entry.char] ?? font.glyphs[entry.char] ?? null;
   if (entry.kind === "icon") return font.icons[entry.name] ?? null;
   return null;
 }
@@ -356,11 +361,12 @@ function glyphRows(
  * @internal Draw one glyph into a cell. Exported for the transition engine,
  * which draws the glyphs a cell passes through on its way to its target.
  *
- * Text is set in `color` (the heart is always red, as on the flap). A colour
- * tile fills its cell's glyph box — not the gutter, so a run of tiles still
- * reads as cells. An icon draws in its own colour; a font without the icon's
- * glyph draws the icon's split-flap fallback. On a monochrome panel every one
- * of these is the panel's colour. An entry the font cannot draw draws blank,
+ * Text is set in `color` (the heart is always red, as on the flap); a set's
+ * own bitmap wins over the face's for the same character. A colour tile
+ * fills its cell's glyph box — not the gutter, so a run of tiles still reads
+ * as cells. An icon draws in its own colour; a font without the icon's glyph
+ * draws the icon's split-flap fallback. On a monochrome panel every one of
+ * these is the panel's colour. An entry the font cannot draw draws blank,
  * the way an unknown character becomes code 0 on a flap.
  */
 export function drawLedGlyph(
@@ -505,6 +511,12 @@ export function layoutLedMessage(message: string, spec: LedMatrixSpec, options: 
 /**
  * @internal Resolve one parsed token to a cell: its glyph and the
  * colours it draws in. `textColor` and `monochrome` are already validated hex.
+ *
+ * A span's `color` / `background` are read off the token whatever its type:
+ * a parsed tile never carries them, but an icon whose split-flap fallback is
+ * a tile does (`{black/white:{icon:sun}}` parses to a tile token tagged
+ * `icon`, colours kept), and that cell is a block cell like any other — its
+ * field lights, and the icon's glyph or its tile draws over it.
  */
 export function ledCellForToken(
   token: BoardToken,
@@ -512,9 +524,9 @@ export function ledCellForToken(
   monochrome: string | undefined,
   custom?: CharacterSet["glyphs"],
 ): LedCell {
-  const spanned = token.type === "char" && token.color !== undefined;
+  const spanned = token.color !== undefined;
   const span = spanned ? colorCodeToHex(token.color!) : null;
-  const background = token.type === "char" && token.background ? colorCodeToHex(token.background) : null;
+  const background = token.background ? colorCodeToHex(token.background) : null;
   // A span in an "off" colour (`{black:X}`) draws unlit letters: black
   // means off on an emissive display, and the author asked for it. A
   // block span on a monochrome panel is always inverse video — lit
@@ -525,9 +537,17 @@ export function ledCellForToken(
   return cell;
 }
 
-/** Validated lowercase hex for a layout option, or the fallback. */
-function resolveHexOption(value: string | undefined, fallback: string | undefined): string | undefined {
-  return value !== undefined && parseHexColor(value) ? value.toLowerCase() : fallback;
+/**
+ * @internal A layout colour option normalised to lowercase `#rrggbb`, or the
+ * fallback. Whitespace is trimmed and a missing `#` supplied, so a settings
+ * screen's `FFB000` and a picker's `#ffb000` are one colour in the layout's
+ * cells and options; anything that is not six hex digits (`#fff`, `rgba(…)`,
+ * a name) is the fallback.
+ */
+export function resolveHexOption(value: string | undefined, fallback: string | undefined): string | undefined {
+  if (value === undefined) return fallback;
+  const m = /^#?([0-9a-f]{6})$/i.exec(value.trim());
+  return m ? `#${m[1].toLowerCase()}` : fallback;
 }
 
 /**
