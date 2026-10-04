@@ -140,39 +140,48 @@ export const ColorText: Story = {
 };
 
 /**
- * The span degrades: on the flap the letters stay, the colour goes. The flap
- * side passes `extendedMarkup` explicitly — the **future state**, once
- * FiestaBoard's Python renderer parses spans. Today's hardware would draw the
- * braces literally; see `TodaysSplitFlap`.
+ * The span degrades: on the flap the letters stay, the colour goes. That is
+ * the flap renderer's default since the coordinated major that shipped with
+ * FiestaBoard's Python parser parity; `TodaysSplitFlap` shows the opt-out
+ * beside it.
  */
 export const ColorTextBesideSplitFlap: Story = {
   args: { message: "{red:RED} ALERT {red}\n{green:ALL CLEAR}", preset: "hub75_64x32", size: "lg" },
   render: (args) => (
     <div className="flex flex-col items-center gap-6">
       <figure className="flex flex-col items-center gap-2">
-        <StaticBoardDisplay message={args.message} size="md" deviceType="note" extendedMarkup />
-        <figcaption className="text-xs text-muted-foreground">Note, extendedMarkup (future state)</figcaption>
+        <StaticBoardDisplay message={args.message} size="md" deviceType="note" />
+        <figcaption className="text-xs text-muted-foreground">
+          Note (default): the letters stay, the colour goes
+        </figcaption>
       </figure>
       <LedMatrixDisplay {...args} />
     </div>
   ),
 };
 
-/** What a split-flap board draws for the new markup *today*: literal text. */
+/**
+ * What a split-flap board draws for the new markup, and the opt-out. Since
+ * the coordinated major that shipped with FiestaBoard's Python parser parity
+ * the default is the degradation; `extendedMarkup={false}` keeps the literal
+ * text a board driven by an older FiestaBoard draws. (The export keeps its
+ * name so the story id and its VRT baselines stay put.)
+ */
 export const TodaysSplitFlap: Story = {
+  name: "Split-flap default and opt-out",
   args: { message: "{red:RED} ALERT\n{icon:sun} 72°", preset: "hub75_64x32", size: "lg" },
   render: (args) => (
     <div className="flex flex-col items-center gap-6">
       <figure className="flex flex-col items-center gap-2">
         <StaticBoardDisplay message={args.message} size="md" deviceType="note" />
         <figcaption className="text-xs text-muted-foreground">
-          Note today: the Python renderer has no span or icon grammar yet
+          Note (default, extendedMarkup): plain letters, a yellow tile for the sun
         </figcaption>
       </figure>
       <figure className="flex flex-col items-center gap-2">
-        <StaticBoardDisplay message={args.message} size="md" deviceType="note" extendedMarkup />
+        <StaticBoardDisplay message={args.message} size="md" deviceType="note" extendedMarkup={false} />
         <figcaption className="text-xs text-muted-foreground">
-          Note with extendedMarkup: the planned degradation
+          Note with extendedMarkup={"{false}"}: the opt-out for a FiestaBoard older than parser parity — literal text
         </figcaption>
       </figure>
       <LedMatrixDisplay {...args} />
@@ -194,7 +203,7 @@ export const Icons: Story = {
 
 /**
  * On the flap, every icon becomes its fallback: a tile that means the same
- * thing, or a character. The flap side passes `extendedMarkup` (future state).
+ * thing, or a character. That is the flap renderer's default.
  */
 export const IconsBesideSplitFlap: Story = {
   args: {
@@ -205,8 +214,8 @@ export const IconsBesideSplitFlap: Story = {
   render: (args) => (
     <div className="flex flex-col items-center gap-6">
       <figure className="flex flex-col items-center gap-2">
-        <StaticBoardDisplay message={args.message} size="md" deviceType="note" extendedMarkup />
-        <figcaption className="text-xs text-muted-foreground">Note, extendedMarkup (future state)</figcaption>
+        <StaticBoardDisplay message={args.message} size="md" deviceType="note" />
+        <figcaption className="text-xs text-muted-foreground">Note (default): each icon as its fallback</figcaption>
       </figure>
       <LedMatrixDisplay {...args} />
     </div>
@@ -449,12 +458,12 @@ export const SmallMatrixVsFlagship: Story = {
   ),
 };
 
-/** One plugin message, every board FiestaBoard drives. The Note passes `extendedMarkup` (future state). */
+/** One plugin message, every board FiestaBoard drives. The Note draws the sun's tile and the span's letters by default. */
 export const OnePluginEveryBoard: Story = {
   args: { message: "{icon:sun} 72° SUNNY\nUV {65}{65}{65} 6\nAQI {green:42}", preset: "hub75_64x32" },
   render: (args) => (
     <div className="flex flex-col items-center gap-6">
-      <StaticBoardDisplay message={args.message} size="md" deviceType="note" extendedMarkup />
+      <StaticBoardDisplay message={args.message} size="md" deviceType="note" />
       <div className="flex flex-wrap items-start justify-center gap-6">
         <LedMatrixDisplay {...args} />
         <LedMatrixDisplay {...args} preset="pixoo64" font="3x5" size="sm" />
@@ -569,14 +578,16 @@ export const TileGapAndBlockPaddingMonochrome: Story = {
   render: () => <TileGapGrid monochrome={LED_MONO_COLORS.amber} />,
 };
 
-/** Block text beside the flap: the letters survive, the block does not (future state). */
+/** Block text beside the flap: the letters survive, the block does not — the flap renderer's default. */
 export const BlockTextBesideSplitFlap: Story = {
   args: { message: "{black/white: ON AIR } 2\n{white/red:LATE} 22", preset: "hub75_64x32", size: "lg" },
   render: (args) => (
     <div className="flex flex-col items-center gap-6">
       <figure className="flex flex-col items-center gap-2">
-        <StaticBoardDisplay message={args.message} size="md" deviceType="note" extendedMarkup />
-        <figcaption className="text-xs text-muted-foreground">Note, extendedMarkup (future state)</figcaption>
+        <StaticBoardDisplay message={args.message} size="md" deviceType="note" />
+        <figcaption className="text-xs text-muted-foreground">
+          Note (default): the letters survive, the block does not
+        </figcaption>
       </figure>
       <LedMatrixDisplay {...args} />
     </div>
@@ -588,22 +599,22 @@ const CHARSET_MESSAGE = "{icon:sun} 72° Sunny\n{red:HOT} {black/white:UV 6}\nAQ
 /**
  * One message across device models with their character sets applied:
  * Flagship v1 draws °, Note draws ♥ (and both drop spans and icons to their
- * fallbacks, shown as the future state behind `extendedMarkup`); the Pixoo
- * draws everything; the AWTRIX 3×5 face has fewer icons; the MAX7219 is one
- * colour and inverse video for the block.
+ * fallbacks, the flap renderer's default); the Pixoo draws everything; the
+ * AWTRIX 3×5 face has fewer icons; the MAX7219 is one colour and inverse
+ * video for the block.
  */
 export const OneMessageEveryCharset: Story = {
   args: { message: CHARSET_MESSAGE, preset: "pixoo64", letterCase: "mixed", size: "md" },
   render: (args) => (
     <div className="flex flex-col items-center gap-5">
       <figure className="flex flex-col items-center gap-1">
-        <StaticBoardDisplay message={args.message} size="sm" deviceType="flagship" extendedMarkup />
+        <StaticBoardDisplay message={args.message} size="sm" deviceType="flagship" />
         <figcaption className="text-xs text-muted-foreground">
-          Flagship · vestaboard_v1 (° flap) · extendedMarkup, future state
+          Flagship · vestaboard_v1 (° flap) · spans and icons to their fallbacks
         </figcaption>
       </figure>
       <figure className="flex flex-col items-center gap-1">
-        <StaticBoardDisplay message={args.message} size="sm" deviceType="note" extendedMarkup />
+        <StaticBoardDisplay message={args.message} size="sm" deviceType="note" />
         <figcaption className="text-xs text-muted-foreground">Note · vestaboard_v2 (♥ flap)</figcaption>
       </figure>
       <div className="flex flex-wrap items-start justify-center gap-5">

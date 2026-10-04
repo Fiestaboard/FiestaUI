@@ -143,12 +143,24 @@ export interface ParseLineOptions {
   preserveCase?: boolean;
   /**
    * Parse the extended markup — colour spans `{red:HOT}`, block spans
-   * `{black/white:OPEN}` and icons `{icon:sun}`. Off by default: this parser
-   * is a parity contract with FiestaBoard's Python renderer, which does not
-   * know the extended grammar yet, and a split-flap preview must show what the
-   * hardware will draw today (`{RED:HOT}` as literal characters, braces as
-   * blanks). The LED renderer turns it on. Split-flap boards get it in one
-   * coordinated release, once the Python side has parity.
+   * `{black/white:OPEN}` and icons `{icon:sun}`.
+   *
+   * **The parser defaults it off; every renderer defaults it on.** `parseLine`,
+   * `messageToGrid` and `messageToText` are the parity contract FiestaBoard's
+   * Python renderer is checked against, with shared fixtures that pin both
+   * modes, so a bare call is an explicit parse of the base grammar and the new
+   * markers stay literal text. The renderers decide the mode: the LED layout
+   * always turns it on, and since the coordinated major that shipped alongside
+   * Python parser parity the split-flap renderers (`BoardDisplay`,
+   * `StaticBoardDisplay`, `BoardTeaser`, and `DisplayPreview` through them)
+   * turn it on too — `{red:HOT}` draws `HOT` uncoloured and `{icon:sun}` its
+   * yellow tile — with `extendedMarkup={false}` as the opt-out for a board
+   * still driven by an older FiestaBoard.
+   *
+   * FiestaBoard's legacy single-brace shortcuts (`{sun}`, `{x}`…) are not
+   * markup: its template engine expands them before any message reaches a
+   * renderer, so this parser never sees them. They resolve to icons through
+   * the one registry (`resolveBoardIconName`), never a second table.
    *
    * It changes nothing else: case, code points, end tags and a typed heart
    * all parse the same with or without it.
@@ -401,7 +413,8 @@ function iconToken(name: BoardIconName, span: SpanColors | undefined): BoardToke
  * a line's width never depends on who renders it, and all are *additive*:
  * every message that parsed before parses to the same tokens now, and without
  * the flag every message parses exactly as before — the new markers are
- * literal text, which is what the Python renderer draws today.
+ * literal text, which is what a FiestaBoard older than parser parity draws.
+ * The flag is off here and on in every renderer (see `ParseLineOptions`).
  *
  * - **Colour span** `{red:HOT}`, `{63:HOT}`, `{#ff8800:HOT}`: the characters
  *   inside carry `color`. A renderer that cannot colour letters draws them

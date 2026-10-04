@@ -89,9 +89,12 @@ export interface DisplayPreviewProps {
   animated?: boolean;
   /** Which glyph a Flagship's code-62 flap carries. See `StaticBoardDisplay`. */
   code62Glyph?: Code62Glyph;
-  /** Split-flap: parse the extended markup (default off, the parity contract
-   *  `StaticBoardDisplay` documents). `cells` are already parsed, so it does
-   *  not apply to them; an LED matrix always reads it. */
+  /** Split-flap: parse the extended markup. Unset means the renderer's own
+   *  default, `true` since the coordinated major that shipped with
+   *  FiestaBoard's Python parser parity; `false` is the opt-out for a board
+   *  driven by an older FiestaBoard (the contract `StaticBoardDisplay`
+   *  documents). `cells` are already parsed, so it does not apply to them;
+   *  an LED matrix always reads it. */
   extendedMarkup?: boolean;
   /** Renderer size. Defaults to each renderer's own. */
   size?: "sm" | "md" | "lg";

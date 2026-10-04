@@ -307,14 +307,20 @@ describe("unsupported-character warnings", () => {
     expect(summary).not.toHaveTextContent(/split-flap/);
   });
 
-  it("says that spans and icons render literally on a split-flap set", async () => {
+  it("names the split-flap fallbacks for spans and icons: letters without the colour, the icon's tile", async () => {
+    // Since the coordinated major shipped with FiestaBoard's parser parity, a
+    // flap draws the degradation rather than the markers as text, so the
+    // warnings say what draws — never "renders literally".
     const { textbox } = await mount({ value: "{{red:HI}} {{icon:sun}}", charset: "vestaboard_v2" });
     const summary = document.getElementById(textbox.getAttribute("aria-describedby")!)!;
-    expect(summary).toHaveTextContent(/render literally on a split-flap board/);
-    expect(textbox.querySelector(".charset-warning")).toHaveAttribute(
-      "title",
-      "Renders literally on a split-flap board until FiestaBoard's coordinated release",
-    );
+    expect(summary).toHaveTextContent(/3 cells won't draw as written/);
+    expect(summary).not.toHaveTextContent(/literal|split-flap|coordinated/);
+    const titles = [...textbox.querySelectorAll(".charset-warning")].map((el) => el.getAttribute("title"));
+    expect(titles).toEqual([
+      "This board can't colour text — drawn without the colour", // H
+      "This board can't colour text — drawn without the colour", // I
+      "This board has no glyph for this icon — drawn as yellow tile", // sun
+    ]);
   });
 
   it("names the other flap for a degree sign on a heart board, and nothing on a clean template", async () => {
@@ -368,7 +374,7 @@ describe("case follows the set", () => {
     expect(flap.textbox).not.toHaveAttribute("data-preserve-case");
     expect(flap.textbox.className).toContain("[&_.ProseMirror]:uppercase");
     // The lowercase is uppercased on the way to the board, so no `case` warning —
-    // only the span, which a flap renders literally.
+    // only the span, which a flap draws without its colour.
     const reasons = [...flap.textbox.querySelectorAll(".charset-warning")].map((el) =>
       el.getAttribute("data-charset-issue"),
     );

@@ -1251,8 +1251,10 @@ export interface BoardDisplayProps {
    *
    *  Display-only: both glyphs are character code 62 on the wire. */
   code62Glyph?: Code62Glyph;
-  /** Parse colour spans and icons (future state; off until the Python
-   *  renderer has parity). Same contract as `StaticBoardDisplay`. */
+  /** Parse colour spans, block spans and icons. Default `true` since the
+   *  coordinated major that shipped with FiestaBoard's Python parser parity;
+   *  `false` opts a board driven by an older FiestaBoard back to literal
+   *  markers. Same contract as `StaticBoardDisplay`. */
   extendedMarkup?: boolean;
   /** Skip animation infrastructure and render plain divs per tile. Much
    *  cheaper for static previews that never animate. */
@@ -1332,7 +1334,7 @@ export const BoardDisplay = memo(
     boardType = "black",
     deviceType = "flagship",
     code62Glyph,
-    extendedMarkup = false,
+    extendedMarkup = true,
     isStatic = false,
     notesWide = 1,
     notesTall = 1,
