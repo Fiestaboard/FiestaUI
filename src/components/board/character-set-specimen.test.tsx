@@ -37,9 +37,15 @@ describe("CharacterSetSpecimen", () => {
     render(<CharacterSetSpecimen charset="led_5x7" compareTo="vestaboard_v2" />);
     const sheet = screen.getByRole("group", { name: "LED matrix, 5×7 face" });
     const letterItems = within(within(sheet).getByRole("list", { name: "Letters" })).getAllByRole("listitem");
-    const a = letterItems.find((li) => li.textContent === "lowercase a")!;
+    const name = (li: HTMLElement) => li.querySelector(".sr-only")!.textContent;
+    const a = letterItems.find((li) => name(li) === "lowercase a")!;
     expect(a).toHaveAttribute("data-added", "");
-    expect(letterItems.find((li) => li.textContent === "capital A")).not.toHaveAttribute("data-added");
+    // The marker is not colour alone: the item also says so, off screen.
+    expect(a).toHaveTextContent("lowercase a (added)");
+    expect(a.querySelector('[data-slot="character-set-added"]')).toHaveClass("sr-only");
+    const capitalA = letterItems.find((li) => name(li) === "capital A")!;
+    expect(capitalA).not.toHaveAttribute("data-added");
+    expect(capitalA).not.toHaveTextContent("(added)");
     expect(itemNames(sheet, "Icons")).toHaveLength(BOARD_ICON_NAMES.length);
     expect(itemNames(sheet, "Icons")).toContain("sun icon");
     expect(sheet.querySelector('[data-slot="character-glyph"][data-renderer="led"] svg')).not.toBeNull();
@@ -68,6 +74,7 @@ describe("CharacterSetSpecimen", () => {
     expect(sheet).toHaveAttribute("data-charset", "acme_sign_v1");
     expect(itemNames(sheet, "Added characters")).toEqual(["euro sign"]);
     expect(sheet.querySelector('[data-section="extra"] [data-added]')).not.toBeNull();
+    expect(sheet.querySelector('[data-section="extra"] [data-added]')).toHaveTextContent("euro sign (added)");
     expect(itemNames(sheet, "Letters")).not.toContain("lowercase a");
     expect(itemNames(sheet, "Icons")).toEqual(["check icon", "up icon", "down icon"]); // registry order
     expect(sheet).toHaveTextContent("Uppercase only");

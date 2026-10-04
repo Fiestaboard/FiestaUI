@@ -218,7 +218,8 @@ export function characterGlyphToken(input: BoardToken | string): BoardToken {
 
 function colorName(code: string, l: CharacterGlyphLabels): string {
   const name = Object.hasOwn(TILE_CODE_NAME, code) ? TILE_CODE_NAME[code] : code.toLowerCase();
-  return l.colorNames[name] ?? name;
+  // Own keys only: a token saying `constructor` must not read the prototype.
+  return Object.hasOwn(l.colorNames, name) ? l.colorNames[name] : name;
 }
 
 /** The human name of a token: "sun icon", "red tile", "degree sign", "lowercase a". Never raw markup. */
@@ -232,7 +233,7 @@ export function characterGlyphName(token: BoardToken, labels?: Partial<Character
   else if (/^[0-9]$/.test(c)) name = l.digit(c);
   else if (/^[a-z]$/.test(c)) name = l.lowercase(c);
   else if (/^[A-Z]$/.test(c)) name = l.capital(c);
-  else name = l.symbols[c] ?? c;
+  else name = Object.hasOwn(l.symbols, c) ? l.symbols[c] : c;
   if (token.color !== undefined) name = l.inColor(name, colorName(token.color, l));
   if (token.background !== undefined) name = l.onBackground(name, colorName(token.background, l));
   return name;
@@ -401,7 +402,10 @@ export const CharacterGlyph = memo(function CharacterGlyph({
       : resolveCharacterSet("vestaboard_v1");
   const token = useMemo(() => characterGlyphToken(input), [input]);
   const supported = charsetSupports(set, token);
-  const drawn = supported ? token : charsetFallback(set, token);
+  // Memoised on the set and the token: `charsetFallback` builds a fresh
+  // object, and LedGlyph's frame memo keys on the token's identity, so an
+  // unsupported glyph would otherwise be re-rendered on every render.
+  const drawn = useMemo(() => (supported ? token : charsetFallback(set, token)), [supported, set, token]);
   const renderer = characterGlyphRenderer(set);
   const mono = monochrome ?? (resolvedModel?.color.kind === "monochrome" ? resolvedModel.color.color : undefined);
   const name =

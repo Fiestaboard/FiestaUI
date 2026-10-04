@@ -1,12 +1,21 @@
 import { render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { BOARD_ICON_NAMES } from "../../lib/board-icons";
 import { CHARACTER_SETS } from "../../lib/character-sets";
 import { ACME_EURO_GLYPH, ACME_SIGN_MODEL, ACME_ZERO_GLYPH, goldenCharacterSet } from "../../lib/charset-golden-cases";
 import { type DeviceModel } from "../../lib/devices";
+import * as ledMatrix from "../../lib/led-matrix";
 import { CharacterGlyph, characterGlyphName, characterGlyphRenderer, characterGlyphToken } from "./character-glyph";
+
+// The component draws through `renderLedGlyph`; wrapping it in a spy counts
+// the draws a render causes without changing what is drawn.
+vi.mock("../../lib/led-matrix", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../../lib/led-matrix")>();
+  return { ...mod, renderLedGlyph: vi.fn(mod.renderLedGlyph) };
+});
+const renderLedGlyph = vi.mocked(ledMatrix.renderLedGlyph);
 
 const ACME_SET = goldenCharacterSet("acme_sign_v1");
 const ACME_SET_V2 = goldenCharacterSet("acme_sign_v2");
@@ -90,6 +99,17 @@ describe("characterGlyphName", () => {
     expect(characterGlyphName({ type: "char", value: "!" }, { symbols: { "€": "euro sign" } })).toBe(
       "exclamation mark",
     );
+  });
+
+  it("never reads an inherited property as a name", () => {
+    // A hostile or malformed token must not pull `Object.prototype` members
+    // out of the label tables: the value is named by itself.
+    expect(characterGlyphName({ type: "char", value: "A", color: "constructor" })).toBe("capital A in constructor");
+    expect(characterGlyphName({ type: "char", value: "A", background: "__proto__", color: "red" })).toBe(
+      "capital A in red on __proto__",
+    );
+    expect(characterGlyphName({ type: "char", value: "toString" })).toBe("toString");
+    expect(characterGlyphName({ type: "color", code: "hasOwnProperty" })).toBe("hasownproperty tile");
   });
 });
 
@@ -265,6 +285,20 @@ describe("<CharacterGlyph>", () => {
         unmount();
       }
     }
+  });
+
+  it("keeps the fallback token's identity across renders, so the LED frame memo holds", () => {
+    renderLedGlyph.mockClear();
+    const { rerender } = render(<CharacterGlyph token="a" charset={ACME_SET} className="one" />);
+    const calls = renderLedGlyph.mock.calls.length;
+    expect(calls).toBeGreaterThan(0);
+    // A render that changes nothing the drawing depends on must not draw again.
+    rerender(<CharacterGlyph token="a" charset={ACME_SET} className="two" />);
+    rerender(<CharacterGlyph token="a" charset={ACME_SET} className="three" />);
+    expect(renderLedGlyph.mock.calls.length).toBe(calls);
+    // A different token does.
+    rerender(<CharacterGlyph token="b" charset={ACME_SET} className="three" />);
+    expect(renderLedGlyph.mock.calls.length).toBeGreaterThan(calls);
   });
 
   it("renders to static markup on the server", () => {

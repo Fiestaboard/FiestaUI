@@ -53,6 +53,8 @@ export interface CharacterSetSpecimenLabels {
   code62: (glyph: "degree" | "heart" | "either") => string;
   /** Caption for the "added versus" marker. */
   adds: (base: string) => string;
+  /** Read out (off screen) after an added item's name, so the marker is not colour alone. */
+  added: string;
   lacks: (base: string) => string;
   lineage: string;
   /** "{n} characters" for the adds line. */
@@ -75,6 +77,7 @@ export const DEFAULT_CHARACTER_SET_SPECIMEN_LABELS: CharacterSetSpecimenLabels =
   tilesFeature: "Colour tiles",
   code62: (glyph) => (glyph === "either" ? "Code 62: ° or ♥" : glyph === "heart" ? "Code 62: ♥" : "Code 62: °"),
   adds: (base) => `Adds over ${base}`,
+  added: "added",
   lacks: (base) => `Lacks from ${base}`,
   lineage: "Lineage",
   characters: (n) => `${n} ${n === 1 ? "character" : "characters"}`,
@@ -153,6 +156,12 @@ export const CharacterSetSpecimen = memo(function CharacterSetSpecimen({
               className={cn(cellClass, added.has(item.key) && "ring-2 ring-board-green")}
             >
               <span className="sr-only">{item.name}</span>
+              {added.has(item.key) && (
+                <span className="sr-only" data-slot="character-set-added">
+                  {" "}
+                  ({l.added})
+                </span>
+              )}
               <CharacterGlyph token={item.token} charset={drawn} size={glyphSize} decorative labels={glyphLabels} />
             </li>
           ))}
