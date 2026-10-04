@@ -642,6 +642,35 @@ board renderer in the repo is flat. The housing exposes `data-model`,
 `data-unknown-model`, `data-monochrome`, `data-transition-source`,
 `data-transition-fallback` and `data-transition-frames`.
 
+### 7.5 The television: `TvFrame`
+
+FiestaPanel shows a board on a TV, so its preview sits on one. `TvFrame`
+is an OLED set around any renderer — a thin bezel with a chin and a
+standby LED, a centre stand or none, and a true-black screen — and
+`DisplayPreview frame="tv"` wraps whichever renderer the model gets in it,
+for any model (it is a preview frame, not a device). The set fills the
+width it is given and the screen follows from the aspect; the board is laid
+out at its natural size and scaled to fit the screen inside a small margin,
+filling the width or the height as the aspect dictates. The frame is
+preview-only in the sense of §3: nothing about it reaches device bytes.
+
+Its inputs are what FiestaBoard's viewer knows about the panel
+(`src/panels/models.py`), passed through `DisplayPreview`'s `tv` prop:
+
+| FiestaBoard                           | `TvFrameOptions`              | Effect                                                                     |
+| ------------------------------------- | ----------------------------- | -------------------------------------------------------------------------- |
+| `screen_diagonal_inches` (3–200)      | `diagonalInches` (default 55) | Bezel and stand proportions, subtly; never the board's size beyond the fit |
+| `screen_aspect_w` / `screen_aspect_h` | `aspect` (number or `{w, h}`) | The screen's shape (default 16/9)                                          |
+| the viewer's auto-dim overlay level   | `dimmed` (0–1)                | A veil over the screen only                                                |
+| the viewer's frame-fetch failure      | `offline`                     | Screen off, standby LED amber, the board hidden, a status announced        |
+| (viewer setting)                      | `stand`                       | `false` for a wall mount                                                   |
+| `calibration_scale`                   | —                             | Physical-size calibration of the viewer; the frame does not read it        |
+
+The chrome is `aria-hidden` and the board keeps its own `role="img"` and
+name; offline, the board is hidden from everyone (nothing is showing) and
+a `role="status"` region on the screen carries the status, so the frame
+never names or re-names the board.
+
 ## 8. Transitions
 
 ### 8.1 The engine
@@ -1163,15 +1192,16 @@ never forks it:
 
 **Dependency map:**
 
-| FiestaUI PR (plan task)                                              | Unblocks in FiestaBoard                                                                           |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Task 0: parser parity fixes (patch)                                  | B1 flips its five "board disagrees with preview" tests                                            |
-| Task 1: gated markup + icons                                         | B1 parser parity, pinning the shared fixtures                                                     |
-| Task 2: fonts, character sets, layout/raster, device models, schemas | schema vendoring, B3 rich-cell projection, manifest validation, Pixoo repo v0.1.0, layout goldens |
-| Task 4: transitions + transition goldens                             | B2 `src/led/` port (needs Tasks 2 and 4, not the canvas in Task 3)                                |
-| Task 7: cells-in + `DisplayPreview`                                  | app previews of rich cells                                                                        |
-| Task 8: device-aware `TemplateEditor`                                | the app's editor, with `deviceModel` threaded from the board; B5 `feat/template-extended-syntax`  |
-| Task 12: coordinated `extendedMarkup` default flip (major)           | released together with core parser parity                                                         |
+| FiestaUI PR (plan task)                                              | Unblocks in FiestaBoard                                                                                                       |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Task 0: parser parity fixes (patch)                                  | B1 flips its five "board disagrees with preview" tests                                                                        |
+| Task 1: gated markup + icons                                         | B1 parser parity, pinning the shared fixtures                                                                                 |
+| Task 2: fonts, character sets, layout/raster, device models, schemas | schema vendoring, B3 rich-cell projection, manifest validation, Pixoo repo v0.1.0, layout goldens                             |
+| Task 4: transitions + transition goldens                             | B2 `src/led/` port (needs Tasks 2 and 4, not the canvas in Task 3)                                                            |
+| Task 7: cells-in + `DisplayPreview`                                  | app previews of rich cells                                                                                                    |
+| Task 8: device-aware `TemplateEditor`                                | the app's editor, with `deviceModel` threaded from the board; B5 `feat/template-extended-syntax`                              |
+| Task 9: `TvFrame` + `DisplayPreview frame="tv"`                      | the web viewer's panel preview on a TV, from `screen_diagonal_inches`, `screen_aspect_w/h`, auto-dim and fetch failure (§7.5) |
+| Task 12: coordinated `extendedMarkup` default flip (major)           | released together with core parser parity                                                                                     |
 
 Repos: `fiestaboard-output--divoom-pixoo` (first; a data-only skeleton to
 start), `fiestaboard-output--vestaboard`, `fiestaboard-output--fiestapanel`.

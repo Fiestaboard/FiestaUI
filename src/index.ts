@@ -138,6 +138,10 @@ export {
 // of plugin-declared devices are derived from their data, never shipped as
 // plugin React. The override gate is pure data and stays internal.
 export { DisplayPreview, type DisplayPreviewFrame, type DisplayPreviewProps } from "./components/board/display-preview";
+// The OLED television FiestaPanel shows on, around any board renderer:
+// `DisplayPreview frame="tv"` uses it, with the set in `tv`. The geometry
+// and fit helpers stay internal.
+export { type TvAspect, TvFrame, type TvFrameOptions, type TvFrameProps } from "./components/board/tv-frame";
 // The transition menu as a settings control: one card per entry, judged
 // against a device model, with what the device cannot run kept reachable.
 export {

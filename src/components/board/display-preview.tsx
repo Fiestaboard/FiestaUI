@@ -23,8 +23,9 @@
  * FiestaPanel — FiestaBoard's TV board — declares one model per render
  * style (`fiestapanel_split_flap`, a `panel` with its size declared;
  * `fiestapanel_led_matrix`, measured in pixels) and is dispatched like any
- * other device. The TV bezel around it is FiestaBoard's to define; `frame`
- * reserves the prop and draws nothing yet.
+ * other device. `frame="tv"` wraps whichever renderer the model gets in
+ * `TvFrame`, the OLED television FiestaPanel shows on, with the viewer's
+ * facts about the set in `tv` (diagonal, aspect, dimming, offline).
  */
 
 import { useEffect } from "react";
@@ -45,12 +46,13 @@ import { type LedTransitionSpec } from "../../lib/led-transitions";
 import { BoardDisplay } from "./board-display";
 import { LedMatrixDisplay, type LedPixelShape } from "./led-matrix-display";
 import { StaticBoardDisplay } from "./static-board-display";
+import { TvFrame, type TvFrameOptions } from "./tv-frame";
 
 /**
- * The housing around the board. `"none"` is the bare renderer. `"tv"` is
- * reserved for FiestaPanel's television bezel, once FiestaBoard defines
- * it; today it renders exactly as `"none"` and only marks the housing
- * (`data-frame`), so a consumer can already ask for it.
+ * The housing around the board. `"none"` is the bare renderer. `"tv"` puts
+ * the renderer on the screen of an OLED television (`TvFrame`) — the way
+ * FiestaPanel shows a board — for any model, with the set described by the
+ * `tv` prop. The housing records the choice on `data-frame` either way.
  */
 export type DisplayPreviewFrame = "none" | "tv";
 
@@ -106,7 +108,15 @@ export interface DisplayPreviewProps {
   emptyLabel?: string;
   /** The housing. See {@link DisplayPreviewFrame}. Defaults to `"none"`. */
   frame?: DisplayPreviewFrame;
-  /** Passed to the renderer's housing. */
+  /**
+   * The television, when `frame` is `"tv"`: FiestaBoard's
+   * `screen_diagonal_inches` as `diagonalInches`, `screen_aspect_w` / `_h`
+   * as `aspect`, the viewer's auto-dim level as `dimmed`, its frame-fetch
+   * failure as `offline`, and `stand: false` for a wall mount. Unset is a
+   * 55" 16:9 set on its stand, showing. Ignored for any other `frame`.
+   */
+  tv?: TvFrameOptions;
+  /** Passed to the renderer's housing (the board, not the television). */
   className?: string;
 }
 
@@ -207,6 +217,7 @@ export function DisplayPreview({
   messageLabel,
   emptyLabel,
   frame = "none",
+  tv,
   className,
 }: DisplayPreviewProps) {
   // Throws for an unknown id, with the list of built-ins: never a flagship.
@@ -265,7 +276,8 @@ export function DisplayPreview({
 
   // `display: contents`: the housing carries the dispatch facts for the app
   // and for tests, and takes no part in layout — the renderer's own outer
-  // box still centres the board exactly as it does on its own.
+  // box still centres the board exactly as it does on its own, and the
+  // television, when there is one, fills the width it is given.
   return (
     <div
       className="contents"
@@ -275,7 +287,7 @@ export function DisplayPreview({
       data-frame={frame}
       data-geometry-clamped={geometryClamped}
     >
-      {board}
+      {frame === "tv" ? <TvFrame {...tv}>{board}</TvFrame> : board}
     </div>
   );
 }

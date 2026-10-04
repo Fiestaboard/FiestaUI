@@ -75,6 +75,7 @@ import { LedMatrixDisplay } from "../components/board/led-matrix-display";
 import { LedTransitionPicker } from "../components/board/led-transition-picker";
 import { ScaledBoardDisplay } from "../components/board/scaled-board-display";
 import { StaticBoardDisplay } from "../components/board/static-board-display";
+import { TvFrame } from "../components/board/tv-frame";
 import { BoardIcon } from "../components/chrome/board-icon";
 import { BoardSelector } from "../components/chrome/board-selector";
 import {
@@ -1617,6 +1618,13 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     <div className="flex flex-col items-center gap-3">
       <DisplayPreview model="vestaboard_note" message={"72° SUNNY\nAQI 42 GOOD"} size="sm" />
       <DisplayPreview model="ulanzi_tc001_awtrix" message="72° {66}OK" size="sm" />
+    </div>
+  ),
+  TvFrame: () => (
+    <div className="w-[480px] max-w-full">
+      <TvFrame diagonalInches={55}>
+        <DisplayPreview model="vestaboard_note" message={"72° SUNNY\nAQI 42 GOOD"} size="sm" />
+      </TvFrame>
     </div>
   ),
 
