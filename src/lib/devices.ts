@@ -213,7 +213,20 @@ const APPEARANCE_KEYS = new Set([
   "options",
 ]);
 
-const SPLIT_FLAP_ANIMATION: DeviceAnimation = { delivery: "none", maxFps: 0 };
+/**
+ * A Vestaboard is driven frame by frame: FiestaBoard core writes one frame at
+ * a time (its transition plugins step frame-by-frame), and the board's own
+ * flap cascade animates each write. ~1 frame/s is the practical ceiling for
+ * legible flap motion on the local API — a placeholder pending FiestaBoard's
+ * exact number, kept in one place so it is easy to change. Cloud connections
+ * are additionally floored by FiestaBoard at one write per 15 s (transport
+ * policy, not device capability). Well under every LED transition's minimum,
+ * so the default stays "none": the flap cascade is the animation.
+ * (fiestaboard#2190)
+ */
+const VESTABOARD_ANIMATION: DeviceAnimation = { delivery: "stream", maxFps: 1 };
+/** A virtual board shown by a browser or TV app that polls frames every ~2 s. */
+const PANEL_ANIMATION: DeviceAnimation = { delivery: "stream", maxFps: 0.5 };
 
 /** Vestaboard housings come in black or white; the board setting picks. */
 const VESTABOARD_APPEARANCE: DeviceAppearance = {
@@ -271,7 +284,7 @@ export const DEVICE_MODELS: Readonly<Record<DeviceModelId, DeviceModel>> = {
     color: { kind: "tiles" },
     charset: "vestaboard_v1",
     charsetByCode62: { degree: "vestaboard_v1", heart: "vestaboard_v2" },
-    animation: SPLIT_FLAP_ANIMATION,
+    animation: VESTABOARD_ANIMATION,
     appearance: VESTABOARD_APPEARANCE,
     legacy: { deviceType: "flagship" },
   },
@@ -283,7 +296,7 @@ export const DEVICE_MODELS: Readonly<Record<DeviceModelId, DeviceModel>> = {
     geometry: { kind: "cells", rows: 3, cols: 15 },
     color: { kind: "tiles" },
     charset: "vestaboard_v2",
-    animation: SPLIT_FLAP_ANIMATION,
+    animation: VESTABOARD_ANIMATION,
     appearance: VESTABOARD_APPEARANCE,
     legacy: { deviceType: "note" },
   },
@@ -295,7 +308,7 @@ export const DEVICE_MODELS: Readonly<Record<DeviceModelId, DeviceModel>> = {
     geometry: { kind: "note_array" },
     color: { kind: "tiles" },
     charset: "vestaboard_v2",
-    animation: SPLIT_FLAP_ANIMATION,
+    animation: VESTABOARD_ANIMATION,
     appearance: VESTABOARD_APPEARANCE,
     legacy: { deviceType: "note_array" },
   },
@@ -307,7 +320,7 @@ export const DEVICE_MODELS: Readonly<Record<DeviceModelId, DeviceModel>> = {
     geometry: { kind: "panel" },
     color: { kind: "tiles" },
     charset: "vestaboard_v2",
-    animation: SPLIT_FLAP_ANIMATION,
+    animation: PANEL_ANIMATION,
     appearance: VESTABOARD_APPEARANCE,
     legacy: { deviceType: "panel" },
   },

@@ -9,10 +9,10 @@
     "charset": "vestaboard_v1",
     "charsetByCode62": { "degree": "vestaboard_v1", "heart": "vestaboard_v2" },
     "animation": {
-      "delivery": "none",
-      "maxFps": 0,
-      "notes": "The hardware cascades by itself (~16 ms per flap at 60 RPM); a client sends one message, never frames.",
-      "sources": []
+      "delivery": "stream",
+      "maxFps": 1,
+      "notes": "Frames are written by FiestaBoard one at a time (transition plugins step frame-by-frame); the board's own flap cascade animates each write. ~1 frame/s is the practical ceiling for legible flap motion on the local API. Cloud connections are additionally floored by FiestaBoard at one write per 15 s (transport policy, not device capability).",
+      "sources": ["FiestaBoard core transition runner and send floor (fiestaboard#2190)"]
     },
     "appearance": { "boardColors": ["black", "white"], "options": { "board_color": ["black", "white"] } },
     "legacy": { "deviceType": "flagship" }
@@ -26,10 +26,10 @@
     "color": { "kind": "tiles" },
     "charset": "vestaboard_v2",
     "animation": {
-      "delivery": "none",
-      "maxFps": 0,
-      "notes": "The hardware cascades by itself (~16 ms per flap at 60 RPM); a client sends one message, never frames.",
-      "sources": []
+      "delivery": "stream",
+      "maxFps": 1,
+      "notes": "Frames are written by FiestaBoard one at a time (transition plugins step frame-by-frame); the board's own flap cascade animates each write. ~1 frame/s is the practical ceiling for legible flap motion on the local API. Cloud connections are additionally floored by FiestaBoard at one write per 15 s (transport policy, not device capability).",
+      "sources": ["FiestaBoard core transition runner and send floor (fiestaboard#2190)"]
     },
     "appearance": { "boardColors": ["black", "white"], "options": { "board_color": ["black", "white"] } },
     "legacy": { "deviceType": "note" }
@@ -43,10 +43,10 @@
     "color": { "kind": "tiles" },
     "charset": "vestaboard_v2",
     "animation": {
-      "delivery": "none",
-      "maxFps": 0,
-      "notes": "The hardware cascades by itself (~16 ms per flap at 60 RPM); a client sends one message, never frames.",
-      "sources": []
+      "delivery": "stream",
+      "maxFps": 1,
+      "notes": "Frames are written by FiestaBoard one at a time (transition plugins step frame-by-frame); the board's own flap cascade animates each write. ~1 frame/s is the practical ceiling for legible flap motion on the local API. Cloud connections are additionally floored by FiestaBoard at one write per 15 s (transport policy, not device capability).",
+      "sources": ["FiestaBoard core transition runner and send floor (fiestaboard#2190)"]
     },
     "appearance": { "boardColors": ["black", "white"], "options": { "board_color": ["black", "white"] } },
     "legacy": { "deviceType": "note_array" }
@@ -60,10 +60,10 @@
     "color": { "kind": "tiles" },
     "charset": "vestaboard_v2",
     "animation": {
-      "delivery": "none",
-      "maxFps": 0,
-      "notes": "A virtual board that imitates Note hardware; a client sends one message, never frames.",
-      "sources": []
+      "delivery": "stream",
+      "maxFps": 0.5,
+      "notes": "Virtual board shown by a browser or TV app that polls frames every ~2 s. A client sends one message at a time; the virtual flaps cascade each change.",
+      "sources": ["FiestaBoard core transition runner and send floor (fiestaboard#2190)"]
     },
     "appearance": { "boardColors": ["black", "white"], "options": { "board_color": ["black", "white"] } },
     "legacy": { "deviceType": "panel" }

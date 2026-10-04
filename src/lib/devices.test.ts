@@ -73,6 +73,14 @@ describe("device taxonomy", () => {
     expect(characterSetForModel(DEVICE_MODELS.vestaboard_note, "degree").id).toBe("vestaboard_v2");
     expect(flagship.charsetByCode62).toEqual({ degree: "vestaboard_v1", heart: "vestaboard_v2" });
     expect(ledSpecForModel(flagship)).toBeNull();
+    // Driven frame by frame by FiestaBoard core (fiestaboard#2190): a stream
+    // at ~1 frame/s, the practical ceiling for legible flap motion; the
+    // virtual panel is polled every ~2 s. Both far below any LED transition's
+    // minimum, so the flap cascade stays the only animation.
+    for (const id of ["vestaboard_flagship", "vestaboard_note", "vestaboard_note_array"] as const) {
+      expect(DEVICE_MODELS[id].animation, id).toEqual({ delivery: "stream", maxFps: 1 });
+    }
+    expect(DEVICE_MODELS.vestaboard_panel.animation).toEqual({ delivery: "stream", maxFps: 0.5 });
   });
 
   it("maps every old preset id onto a manufacturer-qualified model", () => {
