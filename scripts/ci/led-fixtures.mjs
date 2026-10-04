@@ -2,10 +2,11 @@
 // output plugins, so a port can prove it reads and renders a message exactly
 // like FiestaUI: the icon registry, the font tables, the built-in character
 // sets and device models (with the research prose the runtime leaves out),
-// GOLDEN layout cases (message + spec → accessible text + RGB888 frame) and
-// GOLDEN character-set cases (plugin sets materialised over built-ins,
-// `validateMessage` issues, the `charsetFallback` table). The transition
-// layer adds its frame sequences to this same script.
+// GOLDEN layout cases (message + spec → accessible text + RGB888 frame),
+// GOLDEN transition cases (from + to + spec or model → the exact frame
+// sequence a device receives) and GOLDEN character-set cases (plugin sets
+// materialised over built-ins, `validateMessage` issues, the
+// `charsetFallback` table).
 //
 //   node scripts/ci/led-fixtures.mjs          # regenerate scripts/ci/tests/fixtures/*.json
 //
@@ -47,6 +48,8 @@ const fonts = await load("src/lib/led-fonts.ts");
 const sets = await load("src/lib/character-sets.ts");
 const devices = await load("src/lib/devices.ts");
 const led = await load("src/lib/led-matrix.ts");
+const transitions = await load("src/lib/led-transitions.ts");
+const registry = await load("src/lib/led-transition-registry.ts");
 const golden = await load("src/lib/led-golden-cases.ts");
 const charsetGolden = await load("src/lib/charset-golden-cases.ts");
 
@@ -109,11 +112,38 @@ const layouts = golden.GOLDEN_LAYOUT_CASES.map((c) => {
   const frame = led.rasterizeLedLayout(layout);
   return { ...c, text: layout.text, width: frame.width, height: frame.height, frame: b64(frame) };
 });
+// Transition cases: a spec as written, or an id/spec resolved through a
+// built-in model's animation capability (its frame budget), planned between
+// the two layouts and sampled exactly as a device adapter would.
+const seqs = golden.GOLDEN_TRANSITION_CASES.map((c) => {
+  // A plugin model is declared with its set inline; materialised, it is the
+  // model the transition resolves against and the set the layouts draw with.
+  const plugin = c.pluginModel
+    ? { ...c.pluginModel, charset: sets.materializeCharacterSet(c.pluginModel.charset) }
+    : null;
+  const model = plugin ?? (c.model ? devices.DEVICE_MODELS[c.model] : null);
+  const spec = model ? registry.resolveLedTransition(c.transition, model).spec : c.transition;
+  if (spec === "none") throw new Error(`transition case "${c.name}" resolves to none`);
+  const layoutOptions = { ...c.options, ...(plugin ? { charset: plugin.charset } : {}) };
+  const from = led.layoutLedMessage(c.from, c.spec, layoutOptions);
+  const to = led.layoutLedMessage(c.to, c.spec, layoutOptions);
+  const tr = transitions.planLedTransition(from, to, spec);
+  const frames = transitions.ledTransitionFrames(tr, c.fps ?? 30);
+  return {
+    ...c,
+    resolvedSpec: spec,
+    durationMs: tr.durationMs,
+    frameCount: tr.frameCount,
+    width: tr.to.width,
+    height: tr.to.height,
+    frames: frames.map(b64),
+  };
+});
 await write("led-golden.json", {
   about:
-    "Golden cases for ports of FiestaUI's LED layout and raster. Frames are RGB888, row-major, origin top-left, base64. A case with `charset` lays out with that plugin set materialised (materializeCharacterSet) over the built-in it extends. `transitions` is filled by the transition layer. Regenerate with `node scripts/ci/led-fixtures.mjs`.",
+    "Golden cases for ports of FiestaUI's LED layout, raster and transitions. Frames are RGB888, row-major, origin top-left, base64. A layout case with `charset` lays out with that plugin set materialised (materializeCharacterSet) over the built-in it extends. A transition case's `resolvedSpec` is `transition` as written, or resolved through `model`'s (a built-in id) or `pluginModel`'s (a plugin declaration, its set inline and materialised) animation capability (resolveLedTransition) so the device's frame budget applies; with `pluginModel` both messages lay out with its set, so the flip's scramble draws only from it; `frames` is ledTransitionFrames(planLedTransition(from, to, resolvedSpec), fps ?? 30) — exactly the sequence a device receives, the last frame always the settled `to`. Regenerate with `node scripts/ci/led-fixtures.mjs`.",
   layouts,
-  transitions: [],
+  transitions: seqs,
 });
 
 // 5. Golden character-set cases: plugin sets made whole, every fallback

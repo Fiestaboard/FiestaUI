@@ -25,6 +25,7 @@ import {
   validateDeviceModel,
 } from "./devices";
 import { LED_MATRIX_PRESETS, type LedMatrixPresetId } from "./led-matrix";
+import { defaultTransitionIdForModel, transitionSpecForDevice } from "./led-transition-registry";
 
 describe("device taxonomy", () => {
   it("every model belongs to a family of its own technology, validates, and carries no research prose", () => {
@@ -165,6 +166,48 @@ describe("characterSetForModel reads the model's own set", () => {
         );
       }
     }
+  });
+});
+
+describe("what 'fast enough' means, through the transition menu", () => {
+  const flipFor = (animation: Parameters<typeof transitionSpecForDevice>[1]) =>
+    transitionSpecForDevice("flip", animation);
+
+  it("streams: full flip at ≥ 25 fps, coarse flip from 5 fps, nothing below or with no animation", () => {
+    expect(flipFor({ delivery: "stream", maxFps: 60 })).toEqual({ spec: { kind: "flip" }, degraded: false });
+    expect(flipFor({ delivery: "stream", maxFps: 25 })).toEqual({ spec: { kind: "flip" }, degraded: false });
+    expect(flipFor({ delivery: "stream", maxFps: 10 })).toMatchObject({
+      spec: { kind: "flip", stepMs: 100, halfFlap: false },
+      degraded: true,
+    });
+    expect(flipFor({ delivery: "stream", maxFps: 4 })).toBeNull();
+    expect(flipFor({ delivery: "none", maxFps: 0 })).toBeNull();
+  });
+
+  it("sequences are judged by their frame budget, never by an invented frame rate", () => {
+    expect(flipFor({ delivery: "sequence", maxFps: 1, maxFrames: 32, minFrameMs: 80 })).toMatchObject({
+      spec: { kind: "flip", stepMs: 80, halfFlap: false, maxFrames: 32 },
+    });
+    expect(flipFor({ delivery: "sequence", maxFps: 1000, maxFrames: 4 })).toBeNull();
+    expect(flipFor({ delivery: "sequence", maxFps: 20, minFrameMs: 50 })).toMatchObject({
+      spec: { kind: "flip", stepMs: 80, halfFlap: false },
+    });
+  });
+
+  it("gives each model the default its API can carry", () => {
+    expect(defaultTransitionIdForModel(DEVICE_MODELS.hub75_128x64)).toBe("flip");
+    expect(defaultTransitionIdForModel(DEVICE_MODELS.wled_32x32)).toBe("flip");
+    expect(defaultTransitionIdForModel(DEVICE_MODELS.max7219_4in1)).toBe("flip");
+    expect(defaultTransitionIdForModel(DEVICE_MODELS.p10_hub12_32x16)).toBe("flip");
+    expect(flipFor(DEVICE_MODELS.divoom_pixoo64.animation)).toMatchObject({
+      spec: { kind: "flip", stepMs: 80, halfFlap: false, maxFrames: 32 },
+    });
+    expect(defaultTransitionIdForModel(DEVICE_MODELS.divoom_pixoo64)).toBe("flip");
+    expect(defaultTransitionIdForModel(DEVICE_MODELS.tidbyt_tronbyt)).toBe("flip");
+    // UNMEASURED: held at a nominal 2 fps, below every animated entry's minimum.
+    expect(DEVICE_MODELS.ulanzi_tc001_awtrix.animation).toEqual({ delivery: "stream", maxFps: 2 });
+    expect(defaultTransitionIdForModel(DEVICE_MODELS.ulanzi_tc001_awtrix)).toBe("none");
+    for (const m of modelsByTechnology("split_flap")) expect(defaultTransitionIdForModel(m), m.id).toBe("none");
   });
 });
 

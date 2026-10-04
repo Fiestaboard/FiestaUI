@@ -7,8 +7,11 @@
  */
 
 import type { CharacterSetInput } from "./character-sets";
-import { ACME_SIGN_CHARSET, ACME_SIGN_V2_CHARSET } from "./charset-golden-cases";
+import { ACME_SIGN_CHARSET, ACME_SIGN_MODEL, ACME_SIGN_V2_CHARSET } from "./charset-golden-cases";
+import type { DeviceModelId } from "./devices";
 import type { LedLayoutOptions, LedMatrixSpec } from "./led-matrix";
+import type { LedTransitionId } from "./led-transition-registry";
+import type { LedTransitionSpec } from "./led-transitions";
 
 export interface GoldenLayoutCase {
   name: string;
@@ -18,6 +21,31 @@ export interface GoldenLayoutCase {
   /** A plugin's set, as declared; the generator and the test materialise it. */
   charset?: CharacterSetInput;
 }
+
+export interface GoldenTransitionCase {
+  name: string;
+  from: string;
+  to: string;
+  spec: LedMatrixSpec;
+  options?: Omit<LedLayoutOptions, "charset">;
+  /** A spec as written, or an id resolved through `model`'s capabilities. */
+  transition: LedTransitionId | LedTransitionSpec;
+  /** A built-in model: `transition` is resolved against its animation
+   *  capability (`resolveLedTransition`), so its frame budget applies. */
+  model?: DeviceModelId;
+  /**
+   * A plugin's model, declared as its manifest would (plain JSON, the set
+   * inline). The generator and the test materialise the set, resolve
+   * `transition` against the model, and lay both messages out with that set
+   * — so the flip scrambles only through the plugin's own characters.
+   */
+  pluginModel?: GoldenPluginModel;
+  /** Sampling rate for a continuous transition; a sequenced one ignores it. */
+  fps?: number;
+}
+
+/** A plugin device-model declaration: JSON, with its character set inline. */
+export type GoldenPluginModel = Readonly<Record<string, unknown>> & { readonly charset: CharacterSetInput };
 
 export const GOLDEN_LAYOUT_CASES: readonly GoldenLayoutCase[] = [
   { name: "awtrix 3x5 clip", message: "72° {66}OK TOO LONG", spec: { width: 32, height: 8, font: "3x5" } },
@@ -105,5 +133,92 @@ export const GOLDEN_LAYOUT_CASES: readonly GoldenLayoutCase[] = [
     message: "{black/white:{icon:snow}{icon:sun}}{icon:snow}{icon:sun}",
     spec: { width: 16, height: 5, font: "3x5" },
     options: { monochrome: "#ffb000" },
+  },
+];
+
+/**
+ * Transition cases: from, to and a spec (or a model whose budget resolves it)
+ * → `ledTransitionFrames`, exactly the frame sequence a device receives. The
+ * flip's scramble is seeded, so these pin FiestaBoard's own scramble, not
+ * Vestaboard's character order.
+ */
+export const GOLDEN_TRANSITION_CASES: readonly GoldenTransitionCase[] = [
+  {
+    name: "flip, seeded scramble, 3x5",
+    from: "AB 12",
+    to: "CD 99",
+    spec: { width: 24, height: 5, font: "3x5" },
+    transition: { kind: "flip", stepMs: 80, scrambleSteps: 4, stagger: 2, halfFlap: false },
+  },
+  {
+    name: "flip with half-flaps, sampled at 25 fps",
+    from: "{black/white:ON}",
+    to: "{black/white:OK}",
+    spec: { width: 12, height: 5, font: "3x5" },
+    transition: { kind: "flip", stepMs: 80, scrambleSteps: 3, stagger: 0 },
+    fps: 25,
+  },
+  {
+    // Compressed to the Pixoo's hard budget: stagger first, then scramble,
+    // one frame per step and no half-flaps; the last frame is the target.
+    name: "pixoo 32-frame budget",
+    from: "72° SUNNY\n{66} AQI 42",
+    to: "61° RAIN\n{63} AQI 90",
+    spec: { width: 32, height: 16, font: "3x5" },
+    transition: { kind: "flip", scrambleSteps: 40, stagger: 20 },
+    model: "divoom_pixoo64",
+  },
+  {
+    // The default flip on the Pixoo fits whole: 6 + 6 + 2 = 14 frames.
+    name: "pixoo default flip, monochrome amber",
+    from: "{black/white:OPEN} 9-5",
+    to: "{black/white:SHUT} 5-9",
+    spec: { width: 32, height: 16, font: "3x5" },
+    options: { monochrome: "#ffb000" },
+    transition: "flip",
+    model: "divoom_pixoo64",
+  },
+  {
+    // A plugin sign under its own 12-frame sequence budget, amber, in its
+    // own set: the default flip (14 frames) is compressed to 12, and every
+    // scrambled glyph is one the sign has — no lowercase, no sun; its € (a
+    // custom bitmap) is in the pool and shows mid-scramble, drawn with it.
+    name: "acme sign 12-frame budget, own charset",
+    from: "OPEN 9-5 {icon:up}\n{black/white:OK} €12",
+    to: "SHUT 5-9 {icon:down}\n{black/white:NO} €99",
+    spec: { width: 48, height: 12, font: "3x5" },
+    options: { monochrome: "#ffb000" },
+    transition: "flip",
+    pluginModel: ACME_SIGN_MODEL,
+  },
+  {
+    name: "fade quantised to 8 frames",
+    from: "AB",
+    to: "CA",
+    spec: { width: 12, height: 5, font: "3x5" },
+    transition: { kind: "fade", durationMs: 777, maxFrames: 8 },
+  },
+  {
+    name: "fade continuous at 10 fps",
+    from: "HI",
+    to: "YO",
+    spec: { width: 12, height: 5, font: "3x5" },
+    transition: { kind: "fade", durationMs: 300 },
+    fps: 10,
+  },
+  {
+    name: "wipe quantised to 6 frames, 5x7 with a tile",
+    from: "HI {63}",
+    to: "YO {66}",
+    spec: { width: 32, height: 8, font: "5x7" },
+    transition: { kind: "wipe", durationMs: 480, maxFrames: 6 },
+  },
+  {
+    name: "dissolve continuous at 20 fps",
+    from: "{red:AB}",
+    to: "{blue:CD}",
+    spec: { width: 12, height: 5, font: "3x5" },
+    transition: { kind: "dissolve", durationMs: 200 },
+    fps: 20,
   },
 ];

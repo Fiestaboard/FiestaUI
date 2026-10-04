@@ -537,8 +537,10 @@ split-flap projection. So a typed `°` draws a degree sign and a typed `♥`,
 `❤` or `{icon:heart}` draws the red heart, whatever board the message was
 written for — the panel can draw both, and FiestaBoard core hands LED
 outputs rich cells with their identity intact. There is no `code62Glyph`
-layout option; `LedLayout.options` carries only `monochrome` and a plugin
-set's `glyphs`, which win over the face's for the same character (section 5).
+layout option; `LedLayout.options` carries only `monochrome`, a plugin
+set's `glyphs`, which win over the face's for the same character (section 5),
+and the `charset` the layout was drawn with, when one was given — the pool
+a flip's scramble draws from (section 8.2).
 
 **Block colour.** `{fg/bg:TEXT}` lights the glyph box in `bg` and draws the
 glyph in `fg` over it; where the next cell is in the same block the column
@@ -683,7 +685,12 @@ requirement; the flip is FiestaBoard's, not an imitation:
   from the **device's own character set** — uppercase, lowercase when the set
   has it, digits, punctuation, its icons and its colour tiles
   (`ledScramblePool(set)`; never blank, never anything the set cannot draw)
-  — then lands on its target.
+  — then lands on its target. The set is the one the layout was drawn with
+  (`LedLayout.options.charset`, from the `charset` layout option — a plugin
+  device's own, its custom glyphs drawn with their bitmaps), or, when none
+  was given, the built-in set of the layout's face. A plugin sign with no
+  lowercase never scrambles through lowercase; one with a `€` scrambles
+  through it (golden: the ACME sign under its 12-frame budget).
 - It is **deterministic**: each cell is seeded from its position and its
   change (`hash32(cellIndex, fromGlyph, toGlyph, cols, rows)` into
   mulberry32), so the preview, `ledTransitionFrames` and the frames a device
@@ -964,9 +971,13 @@ tests) that fail when the TypeScript and the files disagree:
   behind a drawn icon, and the same fallbacks in a block on a monochrome
   panel. Frames are RGB888, row-major, origin top-left. The transition
   cases (a seeded-scramble flip, one with half-flaps sampled at 25 fps, the
-  Pixoo 32-frame budget resolved through the model, a fade quantised to 8
-  frames over 777 ms, a continuous fade at 10 fps → the exact frame
-  sequence, `ledTransitionFrames(plan, fps)`) land with Task 4. The cases
+  Pixoo 32-frame budget resolved through the model, the default flip whole
+  on a Pixoo in monochrome, the ACME plugin sign under its 12-frame budget
+  (`pluginModel`: the declaration with its set inline, so the scramble
+  draws only the sign's characters, `€` included), a fade quantised to 8
+  frames over 777 ms, a continuous fade at 10 fps, a wipe quantised to 6
+  frames and a continuous dissolve at 20 fps → the exact frame sequence,
+  `ledTransitionFrames(plan, fps)`) land with Task 4. The cases
   are data (`src/lib/led-golden-cases.ts`); the generator and the drift test
   read one list.
 - `charset-golden.json` — **golden character-set cases**
