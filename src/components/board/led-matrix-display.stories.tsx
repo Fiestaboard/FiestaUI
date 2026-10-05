@@ -39,6 +39,18 @@ const meta = {
     textColor: { control: "color" },
     monochrome: { control: "color", description: "Set for a single-colour panel: every lit LED is this colour" },
     letterCase: { control: "select", options: ["upper", "mixed"] },
+    tileGap: {
+      control: "select",
+      options: ["gap", "fill"],
+      description:
+        "Device bytes: fill lights the 1-px gutter between same-colour tiles and block cells so a run reads as one field; gap (default) keeps it unlit. The model gates it.",
+    },
+    blockPadding: {
+      control: "select",
+      options: [0, 1],
+      description:
+        "Device bytes: 1 extends a block span's field one pixel into the gutters and margin, so inverse text keeps a bookend of its background. The model gates it.",
+    },
     transition: {
       control: "select",
       options: [undefined, "none", ...LED_TRANSITION_KINDS],
@@ -505,6 +517,56 @@ export const BlockTextMonochrome: Story = {
       <LedMatrixDisplay {...args} preset="max7219" monochrome={LED_MONO_COLORS.red} message="{red/blue:HOT} 72°" />
     </div>
   ),
+};
+
+const FILL_PAGE =
+  "Mon Oct 3  {icon:sun}\n{black/white: 09:30 } Standup\n{white/blue: 11:00 } Review\n\nAQI {66}{66}{66}{66}{65}{65}{63}\nUV  {65}{65}{65}{64}\n\n{red/yellow: HOT } 72° {red:HI}\n{63}{63}{66}{66}{67}{67}{68}{68}";
+
+function TileGapGrid({ monochrome, size = "md" }: { monochrome?: string; size?: LedMatrixDisplayProps["size"] }) {
+  const common: LedMatrixDisplayProps = monochrome
+    ? { message: FILL_PAGE, preset: "pixoo64", letterCase: "mixed", monochrome, size }
+    : { message: FILL_PAGE, preset: "pixoo64", letterCase: "mixed", size };
+  return (
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      {(["gap", "fill"] as const).map((tileGap) =>
+        ([0, 1] as const).map((blockPadding) => (
+          <figure key={`${tileGap}-${blockPadding}`} className="flex flex-col items-center gap-2">
+            <LedMatrixDisplay {...common} tileGap={tileGap} blockPadding={blockPadding} />
+            <figcaption className="text-xs text-muted-foreground">
+              tileGap=&quot;{tileGap}&quot; · blockPadding={blockPadding}
+              {tileGap === "gap" && blockPadding === 0 ? " (default)" : ""}
+            </figcaption>
+          </figure>
+        )),
+      )}
+    </div>
+  );
+}
+
+/**
+ * The two byte-changing layout options the owner asked for after a Pixoo 64
+ * test, on the Pixoo's 3×5 grid: colour tiles and block text in each
+ * combination. `tileGap="fill"` lights the gutter between same-colour tiles
+ * (the AQI bar reads as one bar, not seven squares) and between a tile and
+ * a same-colour block; different colours never merge. `blockPadding={1}`
+ * grows each block's field one pixel into the gutters and margin, so the
+ * inverse text has a bookend of its background on every side.
+ */
+export const TileGapAndBlockPadding: Story = {
+  name: "Tile gap and block padding (2×2)",
+  args: { message: FILL_PAGE, preset: "pixoo64", letterCase: "mixed", size: "md" },
+  render: () => <TileGapGrid />,
+};
+
+/**
+ * The same four on a monochrome panel: every field is the panel colour, so
+ * with `"fill"` every lit neighbour merges, and the padded block keeps its
+ * inverse glyphs crisp inside a one-pixel border.
+ */
+export const TileGapAndBlockPaddingMonochrome: Story = {
+  name: "Tile gap and block padding (monochrome)",
+  args: { message: FILL_PAGE, preset: "pixoo64", letterCase: "mixed", monochrome: LED_MONO_COLORS.amber, size: "md" },
+  render: () => <TileGapGrid monochrome={LED_MONO_COLORS.amber} />,
 };
 
 /** Block text beside the flap: the letters survive, the block does not (future state). */

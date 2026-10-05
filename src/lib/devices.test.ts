@@ -18,6 +18,8 @@ import {
   deviceModelForDeviceType,
   deviceModelForPreset,
   isDeviceModelId,
+  layoutPolicyForModel,
+  ledLayoutOptionsForModel,
   ledSpecForModel,
   modelsByTechnology,
   resolveDeviceModel,
@@ -59,7 +61,15 @@ describe("device taxonomy", () => {
       expect(m.font).toBe(p.font);
       expect(m.color.kind).toBe(p.monochrome ? "monochrome" : "rgb");
       expect(m.charset).toBe(p.font === "3x5" ? "led_3x5" : "led_5x7");
-      expect(ledSpecForModel(m)).toEqual({ width: p.width, height: p.height, font: p.font });
+      // The spec carries the model's defaults for the byte-changing layout
+      // options — today's, for every built-in.
+      expect(ledSpecForModel(m)).toEqual({
+        width: p.width,
+        height: p.height,
+        font: p.font,
+        tileGap: "gap",
+        blockPadding: 0,
+      });
     }
   });
 
@@ -273,5 +283,98 @@ describe("appearance is preview-only data on every built-in", () => {
       "appearance.options: an object of field → allowed values (strings)",
     ]);
     expect(validateDeviceModel({ ...base, appearance: { bezel: "#334455", boardColors: ["black"] } }).ok).toBe(true);
+  });
+});
+
+describe("layoutOptions: the byte-changing layout choices a model allows", () => {
+  it("every built-in LED model allows both tile gaps and both paddings and defaults to today's; split-flap models declare none", () => {
+    for (const m of modelsByTechnology("led_matrix")) {
+      expect(m.layoutOptions, m.id).toEqual({
+        tileGap: { allowed: ["gap", "fill"], default: "gap" },
+        blockPadding: { allowed: [0, 1], default: 0 },
+      });
+      expect(layoutPolicyForModel(m), m.id).toEqual(m.layoutOptions);
+      expect(ledSpecForModel(m), m.id).toMatchObject({ tileGap: "gap", blockPadding: 0 });
+    }
+    for (const m of modelsByTechnology("split_flap")) expect(m.layoutOptions, m.id).toBeUndefined();
+  });
+
+  it("an undeclared field is unrestricted with the renderer's default; a declared one narrows and may move the default", () => {
+    const base = DEVICE_MODELS.hub75_64x32;
+    const none: DeviceModel = { ...base, layoutOptions: undefined };
+    expect(layoutPolicyForModel(none)).toEqual({
+      tileGap: { allowed: ["gap", "fill"], default: "gap" },
+      blockPadding: { allowed: [0, 1], default: 0 },
+    });
+    const fillOnly: DeviceModel = { ...base, layoutOptions: { tileGap: { allowed: ["fill"] } } };
+    expect(layoutPolicyForModel(fillOnly)).toEqual({
+      tileGap: { allowed: ["fill"], default: "fill" }, // the renderer default is not allowed → first allowed
+      blockPadding: { allowed: [0, 1], default: 0 },
+    });
+    const padded: DeviceModel = {
+      ...base,
+      layoutOptions: { blockPadding: { allowed: [0, 1], default: 1 }, tileGap: { allowed: ["fill", "gap"] } },
+    };
+    expect(layoutPolicyForModel(padded)).toEqual({
+      tileGap: { allowed: ["fill", "gap"], default: "gap" }, // the renderer default, when allowed, whatever the order
+      blockPadding: { allowed: [0, 1], default: 1 },
+    });
+    expect(ledSpecForModel(padded)).toEqual({ width: 64, height: 32, font: "5x7", tileGap: "gap", blockPadding: 1 });
+  });
+
+  it("ledLayoutOptionsForModel honours an allowed choice, falls back to the default for one that is not, and never throws", () => {
+    const base = DEVICE_MODELS.divoom_pixoo64;
+    expect(ledLayoutOptionsForModel(base)).toEqual({ tileGap: "gap", blockPadding: 0, ignored: [] });
+    expect(ledLayoutOptionsForModel(base, { tileGap: "fill", blockPadding: 1 })).toEqual({
+      tileGap: "fill",
+      blockPadding: 1,
+      ignored: [],
+    });
+    const gapOnly: DeviceModel = {
+      ...base,
+      layoutOptions: { tileGap: { allowed: ["gap"] }, blockPadding: { allowed: [1], default: 1 } },
+    };
+    const r = ledLayoutOptionsForModel(gapOnly, { tileGap: "fill", blockPadding: 0 });
+    expect(r.tileGap).toBe("gap");
+    expect(r.blockPadding).toBe(1);
+    expect(r.ignored).toEqual([
+      'tileGap="fill" is not a value divoom_pixoo64 allows (tileGap: "gap"); using "gap"',
+      "blockPadding=0 is not a value divoom_pixoo64 allows (blockPadding: 1); using 1",
+    ]);
+    // An unset choice is the model's default — the same thing the spec carries.
+    expect(ledLayoutOptionsForModel(gapOnly, {})).toEqual({ tileGap: "gap", blockPadding: 1, ignored: [] });
+  });
+
+  it("validateDeviceModel checks the declaration: fields, values, distinctness, default ∈ allowed, LED only", () => {
+    const base = JSON.parse(JSON.stringify(DEVICE_MODELS.divoom_pixoo64));
+    expect(validateDeviceModel(base).ok).toBe(true);
+    expect(validateDeviceModel({ ...base, layoutOptions: {} }).ok).toBe(true);
+    expect(validateDeviceModel({ ...base, layoutOptions: { tileGap: { allowed: ["fill"] } } }).ok).toBe(true);
+    expect(validateDeviceModel({ ...base, layoutOptions: "fill" }).errors).toEqual(["layoutOptions: an object"]);
+    expect(validateDeviceModel({ ...base, layoutOptions: { gutter: { allowed: ["fill"] } } }).errors).toEqual([
+      "layoutOptions.gutter: not a field",
+    ]);
+    expect(validateDeviceModel({ ...base, layoutOptions: { tileGap: "fill" } }).errors).toEqual([
+      "layoutOptions.tileGap: an object with allowed (and default)",
+    ]);
+    expect(validateDeviceModel({ ...base, layoutOptions: { tileGap: { allowed: [] } } }).errors).toEqual([
+      'layoutOptions.tileGap.allowed: a non-empty list of distinct values from "gap" | "fill"',
+    ]);
+    expect(validateDeviceModel({ ...base, layoutOptions: { tileGap: { allowed: ["gap", "gap"] } } }).ok).toBe(false);
+    expect(validateDeviceModel({ ...base, layoutOptions: { tileGap: { allowed: ["gap", "wide"] } } }).ok).toBe(false);
+    expect(validateDeviceModel({ ...base, layoutOptions: { blockPadding: { allowed: [0, 2] } } }).errors).toEqual([
+      "layoutOptions.blockPadding.allowed: a non-empty list of distinct values from 0 | 1",
+    ]);
+    expect(validateDeviceModel({ ...base, layoutOptions: { blockPadding: { allowed: ["1"] } } }).ok).toBe(false);
+    expect(
+      validateDeviceModel({ ...base, layoutOptions: { tileGap: { allowed: ["gap"], default: "fill" } } }).errors,
+    ).toEqual(["layoutOptions.tileGap.default: one of allowed"]);
+    expect(
+      validateDeviceModel({ ...base, layoutOptions: { tileGap: { allowed: ["gap"], values: 1 } } }).errors,
+    ).toEqual(["layoutOptions.tileGap.values: not a field"]);
+    const flagship = JSON.parse(JSON.stringify(DEVICE_MODELS.vestaboard_flagship));
+    expect(validateDeviceModel({ ...flagship, layoutOptions: { tileGap: { allowed: ["gap"] } } }).errors).toEqual([
+      "layoutOptions: an led_matrix model's; a split-flap board has no LED layout",
+    ]);
   });
 });

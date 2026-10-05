@@ -35,6 +35,18 @@ const meta = {
     },
     size: { control: "select", options: ["sm", "md", "lg"] },
     code62Glyph: { control: "select", options: ["degree", "heart"] },
+    tileGap: {
+      control: "select",
+      options: [undefined, "gap", "fill"],
+      description:
+        "LED: light the gutter between same-colour tiles and blocks (fill) or not (gap). Gated by the model's layoutOptions; unset is the model's default",
+    },
+    blockPadding: {
+      control: "select",
+      options: [undefined, 0, 1],
+      description:
+        "LED: grow a block's field one pixel into the gutters and margin (1). Gated by the model's layoutOptions",
+    },
     frame: {
       control: "select",
       options: ["none", "tv"],
@@ -98,6 +110,24 @@ export const Pixoo64: Story = {
   args: {
     model: "divoom_pixoo64",
     message: "MON OCT 3\n\n09:30 STANDUP\n12:00 LUNCH\n15:00 1:1 ♥\n\n{67}{67}{67} 3 LEFT",
+  },
+};
+
+/**
+ * The Pixoo with both byte-changing layout options on: `tileGap="fill"`
+ * joins same-colour tiles into one field and `blockPadding={1}` gives the
+ * block label a one-pixel bookend. Explicit values win over the model's
+ * defaults where its `layoutOptions` allow them (every built-in LED model
+ * allows both); `LedMatrixDisplay`'s 2×2 story shows all four combinations.
+ */
+export const Pixoo64FillAndPadding: Story = {
+  name: "Pixoo 64, fill and padding",
+  args: {
+    model: "divoom_pixoo64",
+    message: "Mon Oct 3\n{black/white: 09:30 } Standup\n{66}{66}{66}{66}{63}{63}\n{red/yellow: HOT } 72°",
+    letterCase: "mixed",
+    tileGap: "fill",
+    blockPadding: 1,
   },
 };
 

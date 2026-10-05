@@ -566,3 +566,65 @@ describe("LedMatrixDisplay painting", () => {
     }
   });
 });
+
+describe("LedMatrixDisplay tileGap and blockPadding", () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it("draws the defaults with no attribute, and reports a non-default choice on the housing", () => {
+    render(<LedMatrixDisplay message="{63}{63}" preset="pixoo64" />);
+    expect(screen.getByRole("img")).not.toHaveAttribute("data-tile-gap");
+    expect(screen.getByRole("img")).not.toHaveAttribute("data-block-padding");
+    cleanup();
+    render(<LedMatrixDisplay message="{63}{63}" preset="pixoo64" tileGap="fill" blockPadding={1} />);
+    expect(screen.getByRole("img")).toHaveAttribute("data-tile-gap", "fill");
+    expect(screen.getByRole("img")).toHaveAttribute("data-block-padding", "1");
+  });
+
+  it("a choice the model does not allow falls back to the model's default, with a dev warning and no throw", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const model: DeviceModel = {
+      ...DEVICE_MODELS.divoom_pixoo64,
+      id: "pixoo_fill_only",
+      layoutOptions: { tileGap: { allowed: ["fill"] }, blockPadding: { allowed: [1] } },
+    };
+    render(<LedMatrixDisplay message="{63}{63}" model={model} tileGap="gap" blockPadding={0} />);
+    expect(screen.getByRole("img")).toHaveAttribute("data-tile-gap", "fill");
+    expect(screen.getByRole("img")).toHaveAttribute("data-block-padding", "1");
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn.mock.calls[0][0]).toMatch(/tileGap="gap" is not a value pixoo_fill_only allows/);
+    expect(warn.mock.calls[1][0]).toMatch(/blockPadding=0 is not a value pixoo_fill_only allows/);
+    cleanup();
+    warn.mockClear();
+    // Unset: the model's default, silently.
+    render(<LedMatrixDisplay message="{63}{63}" model={model} />);
+    expect(screen.getByRole("img")).toHaveAttribute("data-tile-gap", "fill");
+    expect(screen.getByRole("img")).toHaveAttribute("data-block-padding", "1");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("without a model there is nothing to gate: an explicit choice stands", () => {
+    render(<LedMatrixDisplay message="{63}{63}" matrixWidth={16} matrixHeight={8} font="3x5" tileGap="fill" />);
+    expect(screen.getByRole("img")).toHaveAttribute("data-tile-gap", "fill");
+    expect(screen.getByRole("img")).not.toHaveAttribute("data-block-padding");
+  });
+
+  it("applies to a cell grid as to a message", () => {
+    const cells: BoardToken[][] = [
+      [
+        { type: "color", code: "63" },
+        { type: "color", code: "63" },
+      ],
+    ];
+    render(
+      <LedMatrixDisplay cells={cells} matrixWidth={8} matrixHeight={5} font="3x5" tileGap="fill" blockPadding={1} />,
+    );
+    expect(screen.getByRole("img")).toHaveAttribute("data-tile-gap", "fill");
+    expect(screen.getByRole("img")).toHaveAttribute("data-block-padding", "1");
+  });
+});

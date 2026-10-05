@@ -631,3 +631,60 @@ describe("ledTransitionFrames", () => {
     expect(frames[0].pixels).not.toBe(frames[1].pixels);
   });
 });
+
+describe("tileGap and blockPadding through a transition", () => {
+  const spec = { width: 26, height: 7, font: "3x5" } as const;
+  const opts = { tileGap: "fill", blockPadding: 1 } as const;
+  const from = layoutLedMessage("{black/white:ON} {63}{63}", spec, opts);
+  const to = layoutLedMessage("{black/white:OK} {66}{66}", spec, opts);
+  const px = (f: { pixels: Uint8ClampedArray; width: number }, x: number, y: number) => [
+    f.pixels[(y * f.width + x) * 3],
+    f.pixels[(y * f.width + x) * 3 + 1],
+    f.pixels[(y * f.width + x) * 3 + 2],
+  ];
+  const WHITE = [255, 255, 255];
+
+  it("every kind settles on exactly the static frame with both options on", () => {
+    const settled = rasterizeLedLayout(to);
+    for (const kind of LED_TRANSITION_KINDS) {
+      const tr = planLedTransition(from, to, { kind, stepMs: 20, durationMs: 200 });
+      expect(tr.frameAt(tr.durationMs).pixels, kind).toEqual(settled.pixels);
+      expect(tr.frameAt(tr.durationMs + 1).pixels, kind).toEqual(settled.pixels);
+      expect(ledTransitionFrames(tr, 30).at(-1)!.pixels, kind).toEqual(settled.pixels);
+    }
+  });
+
+  it("a flip's mid-way layouts carry the options, so the padded field and the filled run never flicker, half-flaps included", () => {
+    const tr = planLedTransition(from, to, { kind: "flip", stepMs: 80, scrambleSteps: 3, stagger: 0 });
+    // Cell (0,0)'s box is x 1…3, y 1…5 (origin 1,1); its padding ring is x 0…4, y 0…6; the
+    // two block cells join at x = 4 and the run's padding ends at x = 8.
+    for (let t = 0; t < tr.durationMs; t += 20) {
+      const frame = tr.frameAt(t);
+      const layout = tr.layoutAt(t);
+      expect(layout.options.tileGap, `t=${t}`).toBe("fill");
+      expect(layout.options.blockPadding, `t=${t}`).toBe(1);
+      expect(px(frame, 0, 0), `t=${t} padding corner`).toEqual(WHITE);
+      expect(px(frame, 2, 0), `t=${t} padding above`).toEqual(WHITE);
+      expect(px(frame, 4, 3), `t=${t} gutter inside the block run`).toEqual(WHITE);
+      expect(px(frame, 8, 3), `t=${t} padding after the run`).toEqual(WHITE);
+      expect(px(frame, 9, 3), `t=${t} unlit cell after the padding`).toEqual([0, 0, 0]);
+      // The tile run's gutter (x = 16, between cells 3 and 4) is lit in the
+      // tiles' colour whatever glyphs the cells are passing through.
+      const tiles = layout.cells.slice(3, 5).map((c) => c.glyph);
+      if (tiles[0] === tiles[1] && tiles[0].startsWith("tile:")) {
+        expect(px(frame, 16, 3), `t=${t} tile gutter`).not.toEqual([0, 0, 0]);
+      }
+    }
+  });
+
+  it("a cascade and the per-pixel kinds keep the fields too", () => {
+    for (const kind of ["cascade", "wipe", "dissolve"] as const) {
+      const tr = planLedTransition(from, to, { kind, durationMs: 200 });
+      for (const t of [0, 50, 100, 150, 199]) {
+        const frame = tr.frameAt(t);
+        expect(px(frame, 0, 0), `${kind} t=${t}`).toEqual(WHITE);
+        expect(px(frame, 4, 3), `${kind} t=${t}`).toEqual(WHITE);
+      }
+    }
+  });
+});

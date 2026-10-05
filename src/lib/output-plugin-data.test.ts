@@ -12,6 +12,7 @@ import {
   DEVICE_MODELS,
   type DeviceModel,
   type DeviceModelId,
+  layoutPolicyForModel,
   ledSpecForModel,
   resolveDeviceModel,
   validateDeviceModel,
@@ -90,10 +91,17 @@ function discoverPlugins(): OutputPlugin[] {
 const PLUGINS = discoverPlugins();
 const id = (m: unknown) => (m as { id?: unknown })?.id;
 
-/** A model's rendering contract: everything but the research prose. */
+/**
+ * A model's rendering contract: everything but the research prose. The
+ * layout policy is compared **resolved** (`layoutPolicyForModel`), because
+ * a plugin published before `layoutOptions` existed declares none, and an
+ * undeclared field means every value with the renderer's default — which
+ * is exactly what the built-ins declare, so the two still draw identically.
+ */
 function renderingFacts(model: DeviceModel) {
   const { notes: _notes, sources: _sources, ...animation } = model.animation;
-  return { ...model, animation };
+  const { layoutOptions: _declared, ...rest } = model;
+  return { ...rest, animation, layoutPolicy: layoutPolicyForModel(model) };
 }
 
 describe("the output-plugin devDependencies", () => {

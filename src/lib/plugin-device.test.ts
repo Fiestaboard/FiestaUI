@@ -78,7 +78,8 @@ describe("a plugin-declared device, end to end", () => {
   });
 
   it("lays a message out with the plugin's own glyph and its fallbacks", () => {
-    expect(ledSpecForModel(model)).toEqual({ width: 48, height: 12, font: "3x5" });
+    // The sign declares no layoutOptions: unrestricted, with the renderer's defaults.
+    expect(ledSpecForModel(model)).toEqual({ width: 48, height: 12, font: "3x5", tileGap: "gap", blockPadding: 0 });
     expect(characterSetForModel(model)).toBe(charset);
     const layout = layoutLedMessage("€12 {icon:up}", ledSpecForModel(model)!, { monochrome: "#ffb000", charset });
     expect(layout.grid).toMatchObject({ rows: 2, cols: 12 });
