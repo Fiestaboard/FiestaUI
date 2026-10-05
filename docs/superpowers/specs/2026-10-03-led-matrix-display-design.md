@@ -835,9 +835,14 @@ radiogroup, one card per entry with label, description, availability or
 "runs as" note, the device default marked, and an optional tiny looping
 `LedMatrixDisplay` preview of the whole device scaled to fit (pinned to the
 card bottom; all previews tick on one shared clock; still under reduced
-motion). Unavailable entries are real, focusable radios marked
-`aria-disabled` so their reasons are reachable; the picker refuses to select
-them and keeps the current value.
+motion). Unavailable entries stay in the group as radios marked
+`aria-disabled`, each with its reason in the card; the keyboard skips an
+`aria-disabled` radio (Base UI's composite never focuses one), so every
+reason is also listed under the group as a plain list the group is
+`aria-describedby`. The picker refuses to select an unavailable entry and
+keeps the current value; uncontrolled, it re-derives its value when the
+model changes (an untouched default follows the new device, a choice the
+new device cannot run gives way to its default).
 
 ## 9. `CharacterGlyph` and `CharacterSetSpecimen`
 

@@ -71,6 +71,7 @@ import { BoardTeaser } from "../components/board/board-teaser";
 import { CharacterGlyph } from "../components/board/character-glyph";
 import { CharacterSetSpecimen } from "../components/board/character-set-specimen";
 import { LedMatrixDisplay } from "../components/board/led-matrix-display";
+import { LedTransitionPicker } from "../components/board/led-transition-picker";
 import { ScaledBoardDisplay } from "../components/board/scaled-board-display";
 import { StaticBoardDisplay } from "../components/board/static-board-display";
 import { BoardIcon } from "../components/chrome/board-icon";
@@ -1603,6 +1604,11 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </div>
   ),
   CharacterSetSpecimen: () => <CharacterSetSpecimen charset="led_3x5" compareTo="vestaboard_v2" size="sm" />,
+  LedTransitionPicker: () => (
+    <div className="w-[560px] max-w-full">
+      <LedTransitionPicker model="divoom_pixoo64" preview={false} columns="2" />
+    </div>
+  ),
   LedMatrixDisplay: () => (
     <LedMatrixDisplay message={"72° SUNNY\nAQI 42\n{66}{66} GOOD"} preset="hub75_64x32" size="sm" />
   ),

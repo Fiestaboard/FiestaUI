@@ -243,6 +243,10 @@ export const INVENTORY = [
           "One token from a character set on its own — LED dots or a flap tile, with the set's fallback when unsupported.",
       },
       {
+        name: "LedTransitionPicker",
+        summary: "The transition menu for an LED board — None and every kind — with what the chosen device can run.",
+      },
+      {
         name: "CharacterSetSpecimen",
         summary:
           "A specimen of one character set — every glyph, tile and icon — marking what it adds or lacks against another.",
