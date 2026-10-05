@@ -12,14 +12,32 @@
 
 import { memo, useMemo } from "react";
 
-import { type Code62Glyph, messageToGrid, messageToText } from "../../lib/board-characters";
+import {
+  type BoardToken,
+  cellsAreBlank,
+  cellsToGrid,
+  cellsToText,
+  type Code62Glyph,
+  messageToGrid,
+  messageToText,
+} from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
 import { gapClasses, paddingClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
 import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
 
 export interface StaticBoardDisplayProps {
-  message: string | null;
+  /** Board markup. Ignored when `cells` is given. */
+  message?: string | null;
+  /**
+   * A grid of parsed cells (`BoardToken[][]`, row-major) in place of
+   * `message` — what FiestaBoard core hands a preview after parsing the
+   * markup once. Wins over `message` when both are given. Drawn as given
+   * (nothing is re-parsed, so `extendedMarkup` does not apply), fitted to
+   * the board like a message's lines (`cellsToGrid`), with code 62 drawn as
+   * this board's flap. A grid that draws nothing announces `emptyLabel`.
+   */
+  cells?: readonly (readonly BoardToken[])[];
   size?: "sm" | "md" | "lg";
   boardType?: "black" | "white";
   deviceType?: DeviceType;
@@ -70,6 +88,7 @@ const NO_TEXT_LABEL = "Board preview";
 
 export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   message,
+  cells,
   size = "sm",
   boardType = "black",
   deviceType = "flagship",
@@ -93,8 +112,11 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   const textColor = isWhiteBoard ? "var(--color-board-text-on-light)" : "var(--color-board-text-on-dark)";
 
   const grid = useMemo(
-    () => messageToGrid(message ?? "", dims.rows, dims.cols, deviceType, code62Glyph, { extendedMarkup }),
-    [message, dims.rows, dims.cols, deviceType, code62Glyph, extendedMarkup],
+    () =>
+      cells !== undefined
+        ? cellsToGrid(cells, dims.rows, dims.cols, deviceType, code62Glyph)
+        : messageToGrid(message ?? "", dims.rows, dims.cols, deviceType, code62Glyph, { extendedMarkup }),
+    [cells, message, dims.rows, dims.cols, deviceType, code62Glyph, extendedMarkup],
   );
 
   // The board's whole accessible name: the tiles below are aria-hidden, so
@@ -103,13 +125,16 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   // announce "Board preview" is four boards a screen-reader user cannot tell
   // apart, while a sighted user reads four different messages.
   const label = useMemo(() => {
-    if (!message) return emptyLabel;
+    if (cells !== undefined ? cellsAreBlank(cells) : !message) return emptyLabel;
     if (previewLabel !== undefined) return previewLabel;
     // The code-62 glyph matters: where a `°` draws as a heart, the name has to
     // say what the tiles draw.
-    const text = messageToText(message, deviceType, code62Glyph, { extendedMarkup });
+    const text =
+      cells !== undefined
+        ? cellsToText(cells, deviceType, code62Glyph)
+        : messageToText(message!, deviceType, code62Glyph, { extendedMarkup });
     return text ? messageLabel(text) : NO_TEXT_LABEL;
-  }, [message, deviceType, code62Glyph, extendedMarkup, previewLabel, messageLabel, emptyLabel]);
+  }, [cells, message, deviceType, code62Glyph, extendedMarkup, previewLabel, messageLabel, emptyLabel]);
 
   // Seam gap: additional left/top margin applied at Note physical boundaries
   const seamGap = size === "sm" ? "6px" : size === "md" ? "8px" : "10px";

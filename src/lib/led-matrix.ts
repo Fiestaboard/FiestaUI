@@ -511,16 +511,7 @@ const BLANK_TOKEN: BoardToken = Object.freeze({ type: "char", value: " " });
  */
 export function layoutLedMessage(message: string, spec: LedMatrixSpec, options: LedLayoutOptions = {}): LedLayout {
   const grid = ledGridLayout(spec);
-  // An unparseable colour (a colour picker's `rgba(…)`, a typo) falls back to
-  // the default rather than rasterizing to black — invisible text on an LED.
-  const monochrome = resolveHexOption(options.monochrome, undefined);
-  const textColor = monochrome ?? resolveHexOption(options.textColor, DEFAULT_LED_TEXT_COLOR)!;
-  const custom = options.charset?.glyphs;
-  const resolved: LedLayout["options"] = {
-    monochrome,
-    ...(custom ? { glyphs: custom } : {}),
-    ...(options.charset ? { charset: options.charset } : {}),
-  };
+  const { textColor, monochrome, custom, resolved } = resolveLayoutOptions(options);
   if (grid.rows === 0 || grid.cols === 0) return layoutLedCells(grid, [], resolved);
 
   const lines = message.split("\n");
@@ -534,6 +525,81 @@ export function layoutLedMessage(message: string, spec: LedMatrixSpec, options: 
     }
   }
   return layoutLedCells(grid, cells, resolved);
+}
+
+/** A grid of parsed cells, row-major: what FiestaBoard core hands a preview. */
+export type BoardCellGrid = readonly (readonly BoardToken[])[];
+
+/**
+ * Lay a grid of already-parsed cells out on the matrix — the alternative to
+ * {@link layoutLedMessage} for a caller that has parsed the markup once
+ * itself (FiestaBoard core parses a message into rich cells and hands every
+ * output the same grid). The two paths are byte-identical for the same
+ * content: a message laid out here as the cells `parseLine` makes of it
+ * (extended markup on, case per `letterCase`) draws the same ops, text and
+ * frame as the message itself (golden-tested).
+ *
+ * Cells are drawn **as given**. Nothing is re-parsed and no case is applied:
+ * `letterCase` is a parsing option and a parsed grid has already been cased,
+ * so a lowercase cell draws lowercase whatever `letterCase` says. A tile
+ * token may spell its colour either way (`"red"` or `"63"`); both are one
+ * glyph. A grid that does not match the device grid is **clipped** (rows and
+ * cells past the grid are dropped) and **padded** (missing cells are blank),
+ * exactly as a long or short message is; {@link ledCellGridMismatch} says
+ * whether that happened, for a caller that wants to fail loudly instead.
+ */
+export function layoutLedCellGrid(
+  cells: BoardCellGrid,
+  spec: LedMatrixSpec,
+  options: LedLayoutOptions = {},
+): LedLayout {
+  const grid = ledGridLayout(spec);
+  const { textColor, monochrome, custom, resolved } = resolveLayoutOptions(options);
+  if (grid.rows === 0 || grid.cols === 0) return layoutLedCells(grid, [], resolved);
+  const resolvedCells: LedCell[] = [];
+  for (let row = 0; row < grid.rows; row++) {
+    const line = cells[row];
+    for (let col = 0; col < grid.cols; col++) {
+      resolvedCells.push(ledCellForToken(line?.[col] ?? BLANK_TOKEN, textColor, monochrome, custom));
+    }
+  }
+  return layoutLedCells(grid, resolvedCells, resolved);
+}
+
+/**
+ * @internal Whether a cell grid is the device grid's size: `null` when it is,
+ * else a one-line description (`"3×20 cells on a 4×10 grid"`) for the
+ * console and a data attribute. The cells' width is their widest row.
+ */
+export function ledCellGridMismatch(cells: BoardCellGrid, grid: LedGridLayout): string | null {
+  const rows = cells.length;
+  let cols = 0;
+  for (const row of cells) if (row.length > cols) cols = row.length;
+  if (rows === grid.rows && cells.every((row) => row.length === grid.cols)) return null;
+  return `${rows}×${cols} cells on a ${grid.rows}×${grid.cols} grid`;
+}
+
+/**
+ * The colours a layout draws with and the options it carries, from the
+ * caller's. An unparseable colour (a colour picker's `rgba(…)`, a typo)
+ * falls back to the default rather than rasterizing to black — invisible
+ * text on an LED.
+ */
+function resolveLayoutOptions(options: LedLayoutOptions): {
+  textColor: string;
+  monochrome: string | undefined;
+  custom: CharacterSet["glyphs"] | undefined;
+  resolved: LedLayout["options"];
+} {
+  const monochrome = resolveHexOption(options.monochrome, undefined);
+  const textColor = monochrome ?? resolveHexOption(options.textColor, DEFAULT_LED_TEXT_COLOR)!;
+  const custom = options.charset?.glyphs;
+  const resolved: LedLayout["options"] = {
+    monochrome,
+    ...(custom ? { glyphs: custom } : {}),
+    ...(options.charset ? { charset: options.charset } : {}),
+  };
+  return { textColor, monochrome, custom, resolved };
 }
 
 /**

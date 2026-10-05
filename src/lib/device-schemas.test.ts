@@ -7,6 +7,11 @@ import { describe, expect, it } from "vitest";
 import { CHARACTER_SET_IDS, CHARACTER_SETS, materializeCharacterSet, validateCharacterSet } from "./character-sets";
 import { ACME_SIGN_CHARSET, ACME_SIGN_MODEL, GOLDEN_PLUGIN_CHARSETS } from "./charset-golden-cases";
 import { DEVICE_MODEL_IDS, DEVICE_MODELS, validateDeviceModel } from "./devices";
+import {
+  FIESTAPANEL_LED_MATRIX_MODEL,
+  FIESTAPANEL_SPLIT_FLAP_MODEL,
+  PLUGIN_MODEL_FIXTURES,
+} from "./plugin-model-fixtures";
 
 /*
  * The two JSON Schemas are what FiestaBoard and its output plugins validate
@@ -62,6 +67,16 @@ describe("the schemas", () => {
     expect(validDevice(json(ACME_SIGN_MODEL)), schemaErrors(validDevice)).toBe(true);
     for (const set of GOLDEN_PLUGIN_CHARSETS)
       expect(validCharset(json(set)), `${set.id}: ${schemaErrors(validCharset)}`).toBe(true);
+  });
+
+  it("accept FiestaBoard's two FiestaPanel declarations, one per render style, and plugin-models.json carries them", () => {
+    expect(validDevice(json(FIESTAPANEL_SPLIT_FLAP_MODEL)), schemaErrors(validDevice)).toBe(true);
+    expect(validDevice(json(FIESTAPANEL_LED_MATRIX_MODEL)), schemaErrors(validDevice)).toBe(true);
+    expect(validateDeviceModel(json(FIESTAPANEL_SPLIT_FLAP_MODEL))).toEqual({ ok: true, errors: [] });
+    expect(validateDeviceModel(json(FIESTAPANEL_LED_MATRIX_MODEL))).toEqual({ ok: true, errors: [] });
+    const models = fixture("plugin-models.json").models;
+    expect(models).toEqual(json(PLUGIN_MODEL_FIXTURES));
+    for (const m of models) expect(validDevice(m), `${m.id}: ${schemaErrors(validDevice)}`).toBe(true);
   });
 });
 
@@ -136,6 +151,14 @@ const DEVICE_TABLE: Array<[string, boolean, () => unknown]> = [
     () => ({ ...pixoo(), geometry: { kind: "pixels", width: 64, height: 6.5 } }),
   ],
   ["cells geometry without cols", false, () => ({ ...flagship(), geometry: { kind: "cells", rows: 6 } })],
+  ["a panel with no declared size", true, () => ({ ...flagship(), geometry: { kind: "panel" } })],
+  ["a panel with a declared size", true, () => ({ ...flagship(), geometry: { kind: "panel", rows: 12, cols: 29 } })],
+  ["a panel with a zero-row size", false, () => ({ ...flagship(), geometry: { kind: "panel", rows: 0, cols: 29 } })],
+  [
+    "a panel with a fractional width",
+    false,
+    () => ({ ...flagship(), geometry: { kind: "panel", rows: 12, cols: 29.5 } }),
+  ],
   ["an unknown geometry kind", false, () => ({ ...flagship(), geometry: { kind: "hex" } })],
   ["rgb with the wrong bit depth", false, () => ({ ...pixoo(), color: { kind: "rgb", bitDepth: 16 } })],
   [

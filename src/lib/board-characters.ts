@@ -656,3 +656,69 @@ export function messageToText(
     .replace(/\s+/g, " ")
     .trim();
 }
+
+/**
+ * Fit a grid of already-parsed cells to a board — the cells-in counterpart
+ * of {@link messageToGrid}, for a caller that parsed the markup once itself
+ * (FiestaBoard core hands every output the same rich `BoardToken[][]`).
+ * Rows and cells past the grid are clipped and missing ones padded blank,
+ * exactly as a message's lines are; code 62 draws as the glyph
+ * {@link resolveCode62Glyph} picks for this board, since which flap a board
+ * carries is a property of the board, not of the content. Nothing else is
+ * touched: a cell draws as given, colours and icon tag riding along.
+ */
+export function cellsToGrid(
+  cells: readonly (readonly BoardToken[])[],
+  rows: number,
+  cols: number,
+  deviceType: string = "flagship",
+  code62Glyph?: Code62Glyph,
+): BoardToken[][] {
+  const glyph = resolveCode62Glyph(deviceType, code62Glyph);
+  const grid: BoardToken[][] = [];
+  for (let row = 0; row < rows; row++) {
+    const line = cells[row];
+    const rowTokens: BoardToken[] = [];
+    for (let col = 0; col < cols; col++) {
+      const token = line?.[col];
+      rowTokens.push(token ? applyCode62Glyph(token, glyph) : BLANK_TOKEN);
+    }
+    grid.push(rowTokens);
+  }
+  return grid;
+}
+
+/**
+ * Whether a grid of parsed cells draws nothing at all — no character, no
+ * tile — so a renderer handed one can announce its empty label the way it
+ * does for a missing message. A cleared board arrives as a grid of blanks,
+ * not as no grid.
+ */
+export function cellsAreBlank(cells: readonly (readonly BoardToken[])[]): boolean {
+  return cells.every((row) => row.every((token) => token.type === "char" && token.value === " "));
+}
+
+/**
+ * The plain text a board draws for a grid of parsed cells — the cells-in
+ * counterpart of {@link messageToText}, so a board handed cells announces
+ * exactly what it would announce for the message they were parsed from.
+ */
+export function cellsToText(
+  cells: readonly (readonly BoardToken[])[],
+  deviceType: string = "flagship",
+  code62Glyph?: Code62Glyph,
+): string {
+  const glyph = resolveCode62Glyph(deviceType, code62Glyph);
+  return cells
+    .map((row) =>
+      row
+        .map((token) => {
+          const drawn = applyCode62Glyph(token, glyph);
+          return drawn.type === "char" ? drawn.value : " ";
+        })
+        .join(""),
+    )
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}

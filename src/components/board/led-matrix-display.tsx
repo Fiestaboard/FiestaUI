@@ -19,6 +19,11 @@
  * and the soldermask behind it — comes from the device model's `appearance`
  * (../../lib/devices), which is preview-only: nothing here changes the frame.
  *
+ * Content arrives as a message string, or as a grid of cells someone parsed
+ * already (`cells`): FiestaBoard core parses markup once into rich cells and
+ * hands every output the same grid, so a preview must take that grid as it
+ * is. Both go through the same layout, so they draw the same bytes.
+ *
  * A message change can animate (`transition`): the old and new layouts are
  * handed to ../../lib/led-transitions, which is a pure function of time, and a
  * `requestAnimationFrame` loop paints `frameAt(t)` until it settles on exactly
@@ -31,8 +36,9 @@
  * BoardDisplay, `announceUpdates` adds a polite live region for mirrored boards.
  */
 
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { isDevBuild } from "../../lib/dev";
 import {
   characterSetForModel,
   type DeviceModel,
@@ -43,9 +49,13 @@ import {
 } from "../../lib/devices";
 import { type LedFontId } from "../../lib/led-fonts";
 import {
+  type BoardCellGrid,
+  layoutLedCellGrid,
   layoutLedMessage,
   ledBackgroundMask,
+  ledCellGridMismatch,
   type LedFrame,
+  ledGridLayout,
   type LedLayout,
   type LedLayoutOptions,
   type LedMatrixPresetId,
@@ -60,7 +70,22 @@ import { useReducedMotion } from "./reduced-motion";
 export type { LedPixelShape } from "./led-look";
 
 export interface LedMatrixDisplayProps extends LedLayoutOptions {
-  message: string | null;
+  /** Board markup, laid out with `layoutLedMessage`. Ignored when `cells` is given. */
+  message?: string | null;
+  /**
+   * A grid of parsed cells (`BoardToken[][]`, row-major) in place of
+   * `message` — what FiestaBoard core hands a preview after parsing the
+   * markup once. Wins over `message` when both are given. The cells draw as
+   * given (no re-parsing, no casing; a tile may spell its colour `"red"` or
+   * `"63"`), and a change animates exactly as a message change does.
+   *
+   * The grid should be the device grid's size (`ledGridLayout(spec).rows ×
+   * cols`). One that is not is clipped and padded, the way a long or short
+   * message is, and the housing reports it on `data-cells-mismatch`; in a
+   * development build it is also a `console.error`, since a wrong-sized
+   * grid is a caller bug the preview cannot otherwise show.
+   */
+  cells?: BoardCellGrid;
   /** A known device. `matrixWidth` / `matrixHeight` / `font` / `monochrome`,
    *  when given, win over the preset's — so `preset="awtrix" matrixWidth={64}`
    *  is a 64×8 board in the 3×5 face. */
@@ -278,6 +303,7 @@ function paintLedFrame(
 
 export const LedMatrixDisplay = memo(function LedMatrixDisplay({
   message,
+  cells,
   preset,
   model,
   matrixWidth,
@@ -315,25 +341,41 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
   const { shape, dotRatio, offColor, substrateColor } = resolveLedLook(appearance, pixelShape);
   const bezel = appearance?.bezel;
 
-  const layout = useMemo(
-    () =>
-      layoutLedMessage(
-        message ?? "",
-        { width, height, font: fontId },
-        { textColor, monochrome: mono, letterCase, charset },
-      ),
-    [message, width, height, fontId, textColor, mono, letterCase, charset],
-  );
+  const layout = useMemo(() => {
+    const spec = { width, height, font: fontId };
+    const options = { textColor, monochrome: mono, letterCase, charset };
+    return cells !== undefined
+      ? layoutLedCellGrid(cells, spec, options)
+      : layoutLedMessage(message ?? "", spec, options);
+  }, [cells, message, width, height, fontId, textColor, mono, letterCase, charset]);
   const frame = useMemo(() => rasterizeLedLayout(layout), [layout]);
   // The block-span fields of what the canvas shows, kept off the bloom.
   const blockMask = useMemo(() => ledBackgroundMask(layout), [layout]);
 
+  // A cell grid that is not the device grid's size is a caller bug: the
+  // layout clips and pads it regardless (so production draws what it can),
+  // the housing says so, and a dev build shouts.
+  const cellsMismatch = useMemo(
+    () => (cells !== undefined ? ledCellGridMismatch(cells, ledGridLayout({ width, height, font: fontId })) : null),
+    [cells, width, height, fontId],
+  );
+  useEffect(() => {
+    if (cellsMismatch !== null && isDevBuild()) {
+      console.error(
+        `LedMatrixDisplay: ${cellsMismatch}. The grid is clipped and padded to the device; size it with ledGridLayout(spec).`,
+      );
+    }
+  }, [cellsMismatch]);
+
   // Named from what the matrix shows, not the whole message — see LedLayout.text.
+  // A cell grid is "empty" when it draws nothing at all: a cleared board
+  // arrives as a grid of blanks, not as a missing one.
+  const empty = cells !== undefined ? layout.ops.length === 0 && layout.text === "" : !message;
   const label = useMemo(() => {
-    if (!message) return emptyLabel;
+    if (empty) return emptyLabel;
     if (previewLabel !== undefined) return previewLabel;
     return layout.text ? messageLabel(layout.text) : NO_TEXT_LABEL;
-  }, [message, layout.text, previewLabel, messageLabel, emptyLabel]);
+  }, [empty, layout.text, previewLabel, messageLabel, emptyLabel]);
 
   // Reduced motion, decided here as BoardDisplay does (issue #180): under
   // `reduce` a change snaps. There is no opt-out prop — a consumer can turn
@@ -477,6 +519,7 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
         data-monochrome={mono ? "" : undefined}
         data-model={deviceModel?.id}
         data-unknown-model={unknownModel}
+        data-cells-mismatch={cellsMismatch ?? undefined}
         data-transition={activeTransition ? activeTransition.kind : "none"}
         data-transition-source={resolved.source}
         data-transition-fallback={resolved.source === "fallback" ? resolved.requested : undefined}

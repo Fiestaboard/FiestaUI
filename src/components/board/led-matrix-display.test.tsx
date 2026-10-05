@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { type BoardToken, parseLine } from "../../lib/board-characters";
 import { DEVICE_MODELS, type DeviceModel } from "../../lib/devices";
 import { SEQUENCE_PANEL_MODEL } from "../../lib/led-golden-cases";
 import * as transitions from "../../lib/led-transitions";
@@ -31,6 +32,16 @@ describe("LedMatrixDisplay", () => {
     // jsdom has no canvas backend; it logs "not implemented" and returns null.
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   });
+
+  // A full device grid, as FiestaBoard core would send it: 64×32 in the 5×7
+  // face is 4 rows × 10 cols, every cell present.
+  const grid = (message: string, rows = 4, cols = 10): BoardToken[][] => {
+    const lines = message.split("\n");
+    return Array.from({ length: rows }, (_, row) => {
+      const tokens = parseLine(lines[row] ?? "", cols, { extendedMarkup: true });
+      return Array.from({ length: cols }, (_, col) => tokens[col] ?? { type: "char", value: " " });
+    });
+  };
 
   it("names the board from its message and hides the canvas", () => {
     render(<LedMatrixDisplay message={"hello {red}world\nline two"} preset="hub75_64x32" />);
@@ -188,6 +199,65 @@ describe("LedMatrixDisplay", () => {
     }
   });
 
+  describe("cells in", () => {
+    const hub = (cells: readonly (readonly BoardToken[])[]) => <LedMatrixDisplay cells={cells} preset="hub75_64x32" />;
+
+    it("renders a cell grid without a message, named by the same rules as a message", () => {
+      // 64×32 in 5×7: 10 cols × 4 rows.
+      render(hub(grid("{black/white:ON} AIR\n{icon:sun} 72°")));
+      const board = screen.getByRole("img", { name: "LED matrix preview: ON AIR sun 72°" });
+      expect(board).not.toHaveAttribute("data-cells-mismatch");
+      cleanup();
+      render(hub([[{ type: "color", code: "red" }]]));
+      expect(screen.getByRole("img", { name: "LED matrix preview" })).toBeInTheDocument();
+    });
+
+    it("wins over a message when both are given", () => {
+      render(<LedMatrixDisplay cells={grid("CELLS")} message="MESSAGE" preset="hub75_64x32" />);
+      expect(screen.getByRole("img", { name: "LED matrix preview: CELLS" })).toBeInTheDocument();
+    });
+
+    it("is empty when the grid draws nothing: a cleared board announces the empty label", () => {
+      render(hub(grid("")));
+      expect(screen.getByRole("img", { name: "Empty LED matrix display" })).toBeInTheDocument();
+      cleanup();
+      render(hub([]));
+      expect(screen.getByRole("img", { name: "Empty LED matrix display" })).toBeInTheDocument();
+    });
+
+    it("fails loudly in a dev build on a grid that does not fit the device: console.error and a data attribute", () => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        render(hub([[{ type: "char", value: "A" }]]));
+        const board = screen.getByRole("img", { name: "LED matrix preview: A" });
+        expect(board).toHaveAttribute("data-cells-mismatch", "1×1 cells on a 4×10 grid");
+        expect(error).toHaveBeenCalledTimes(1);
+        expect(error.mock.calls[0][0]).toMatch(/LedMatrixDisplay: 1×1 cells on a 4×10 grid/);
+        // A fitting grid says nothing.
+        error.mockClear();
+        cleanup();
+        render(hub(grid("A")));
+        expect(error).not.toHaveBeenCalled();
+      } finally {
+        error.mockRestore();
+      }
+    });
+
+    it("clips and pads quietly in a production build, marking the housing but logging nothing", () => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.stubEnv("NODE_ENV", "production");
+      try {
+        render(hub([grid("TOO LONG FOR TEN", 1, 16)[0], grid("B", 1, 1)[0], [], [], [], []]));
+        const board = screen.getByRole("img", { name: "LED matrix preview: TOO LONG F B" });
+        expect(board).toHaveAttribute("data-cells-mismatch", "6×16 cells on a 4×10 grid");
+        expect(error).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllEnvs();
+        error.mockRestore();
+      }
+    });
+  });
+
   describe("transition resolution", () => {
     it("takes its default transition from the device model, and 'none' or a kind overrides it", () => {
       render(<LedMatrixDisplay message="HI" preset="hub75_64x32" />);
@@ -324,6 +394,18 @@ describe("LedMatrixDisplay", () => {
       expect(planSpy.mock.calls[0][2]).toEqual({ kind: "flip", stepMs: 80, halfFlap: false, maxFrames: 32 });
       const plan = planSpy.mock.results[0].value as transitions.LedTransition;
       expect(plan.frameCount).toBe(14); // the default flip, whole, inside 32
+    });
+
+    it("plans a transition on a cells change too, from the old grid to the new one", () => {
+      const { rerender } = render(<LedMatrixDisplay cells={grid("AB")} preset="hub75_64x32" transition="wipe" />);
+      expect(planSpy).not.toHaveBeenCalled();
+      rerender(<LedMatrixDisplay cells={grid("CD")} preset="hub75_64x32" transition="wipe" />);
+      expect(planSpy).toHaveBeenCalledTimes(1);
+      const [from, to] = planSpy.mock.calls[0];
+      expect(from.text).toBe("AB");
+      expect(to.text).toBe("CD");
+      vi.advanceTimersByTime(2000);
+      expect(screen.getByRole("img", { name: "LED matrix preview: CD" })).toBeInTheDocument();
     });
 
     it("cancels the animation frame on unmount", () => {
