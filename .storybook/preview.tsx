@@ -48,6 +48,8 @@ const preview: Preview = {
       storySort: {
         order: [
           "Foundations",
+          // The display-outputs effort end to end (src/stories/display-outputs-showcase.stories.tsx).
+          "Showcase",
           "Primitives",
           ["Layout", "Typography"],
           "Forms",

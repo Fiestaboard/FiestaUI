@@ -98,6 +98,19 @@ describe("DisplayPreview", () => {
       expect(screen.getByRole("img")).toHaveAttribute("data-matrix-width", "32");
     });
 
+    it("passes letterCase to an LED renderer, and a split-flap board ignores it", () => {
+      // The accessible name follows the case drawn: upper by default, the
+      // message's own with `letterCase="mixed"` on a face that has lowercase.
+      render(<DisplayPreview model="hub75_64x32" message="Hello" />);
+      expect(screen.getByRole("img", { name: "LED matrix preview: HELLO" })).toBeInTheDocument();
+      cleanup();
+      render(<DisplayPreview model="hub75_64x32" message="Hello" letterCase="mixed" />);
+      expect(screen.getByRole("img", { name: "LED matrix preview: Hello" })).toBeInTheDocument();
+      cleanup();
+      render(<DisplayPreview model="vestaboard_note" message="Hello" letterCase="mixed" />);
+      expect(screen.getByRole("img", { name: "Board preview: HELLO" })).toBeInTheDocument();
+    });
+
     it("takes a model object the same as an id", () => {
       render(<DisplayPreview model={DEVICE_MODELS.vestaboard_note} message="HELLO" />);
       expect(tiles()).toBe(3 * 15);
