@@ -142,6 +142,9 @@ for (let i = 0; i < BOARD_CHARS.length; i++) {
   const char = BOARD_CHARS[i];
   if (!CHAR_INDEX.has(char)) CHAR_INDEX.set(char, i);
 }
+// A typed heart is code 62, the same flap as a typed degree sign:
+// FiestaBoard's board_chars maps `°`, `♥` and `❤` all to 62.
+CHAR_INDEX.set("♥", 62);
 
 /** Find a character's index in BOARD_CHARS; unknown characters map to blank (0). */
 export function getCharIndex(char: string): number {
@@ -164,6 +167,39 @@ export function getCharFromToken(token: BoardToken): string {
  * a message reaches the preview, template rendering has normalized colors to
  * single brackets. End tags (`{/red}`, `{/}`) render nothing.
  */
+/** Colour names an end tag may close — the named colours, not the codes. */
+const END_TAG_NAMES = new Set([
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "blue",
+  "violet",
+  "purple",
+  "white",
+  "black",
+  "filled",
+]);
+
+/** `{/}` or `{/<colour name>}` (any case). `{/63}`, `{/foo}` are not end tags. */
+function isEndTag(content: string): boolean {
+  if (!content.startsWith("/")) return false;
+  const name = content.slice(1).toLowerCase();
+  return name === "" || END_TAG_NAMES.has(name);
+}
+
+/**
+ * Characters keep their Unicode identity in a token: a typed heart stays a
+ * heart, so a renderer that can draw one (an LED) draws one. Only the
+ * split-flap projection collapses it, `♥` and `°` both being code 62
+ * ({@link getCharIndex}), drawn as whichever glyph the board's flap carries
+ * ({@link applyCode62Glyph}). `❤` (U+2764) is normalised to `♥` (U+2665) so a
+ * heart is one character everywhere downstream.
+ */
+function typedCharToBoard(ch: string): string {
+  return ch === "❤" ? "♥" : ch;
+}
+
 export function parseLine(line: string, maxTokens: number = Infinity): BoardToken[] {
   const tokens: BoardToken[] = [];
   let i = 0;
@@ -176,9 +212,11 @@ export function parseLine(line: string, maxTokens: number = Infinity): BoardToke
       if (closingBrace !== -1) {
         const content = line.substring(i + 1, closingBrace);
 
-        // Check if it's an end tag {/...} or {/}
-        if (content.startsWith("/")) {
-          // Skip end tags - they don't render anything
+        // End tags render nothing — but only `{/}` and `{/<colour name>}`
+        // are end tags. Anything else after a slash (`{/foo}`, `{/63}`) is
+        // literal text on the board, so it falls through to be drawn
+        // character by character (FiestaBoard's COLOR_MARKER_PATTERN).
+        if (isEndTag(content)) {
           i = closingBrace + 1;
           continue;
         }
@@ -202,9 +240,13 @@ export function parseLine(line: string, maxTokens: number = Infinity): BoardToke
       }
     }
 
+    // One cell per code point, as the board counts them: an emoji is one
+    // character to FiestaBoard's renderer, not a UTF-16 surrogate pair.
+    const codePoint = line.codePointAt(i) ?? 0;
+    const ch = String.fromCodePoint(codePoint);
     // Convert to uppercase since board only supports uppercase letters
-    tokens.push({ type: "char", value: line[i].toUpperCase() });
-    i++;
+    tokens.push({ type: "char", value: typedCharToBoard(ch.toUpperCase()) });
+    i += ch.length;
   }
 
   return tokens;
@@ -255,7 +297,10 @@ export function resolveCode62Glyph(deviceType: string, code62Glyph?: Code62Glyph
  * this substitution (FiestaBoard#1666).
  */
 export function applyCode62Glyph(token: BoardToken, glyph: Code62Glyph): BoardToken {
-  if (glyph === "heart" && token.type === "char" && token.value === "°") return { type: "char", value: "♥" };
+  if (token.type !== "char") return token;
+  if (glyph === "heart" && token.value === "°") return { type: "char", value: "♥" };
+  // A typed heart is code 62 too; a degree-flap board draws its flap.
+  if (glyph === "degree" && token.value === "♥") return { type: "char", value: "°" };
   return token;
 }
 

@@ -76,6 +76,9 @@ export const ALL_COLOR_CODES: Record<string, string> = Object.assign(Object.crea
   purple: BOARD_COLORS.violet, // alias
   white: BOARD_COLORS.white,
   black: BOARD_COLORS.black,
+  // The filled tile, code 71 — FiestaBoard's renderer accepts `{filled}`
+  // as its name, so the preview must draw the same tile.
+  filled: COLOR_CODE_MAP["71"],
 });
 
 // List of available color names for pickers/selectors
