@@ -277,24 +277,31 @@ jobs:
           # claude-code was installed globally by the validate/fix step.
           "$FIESTAUI_DIR/scripts/downstream-upgrade/adopt.sh"
 
+      # The job-start token is often dead by now (installation tokens last
+      # an hour; adoption alone has run 64 minutes), so these last steps mint
+      # a fresh one before every push and gh call. See auth.sh.
       - name: Push fixes and confirm downstream CI
         id: ci
         if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true'
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_ID: ${{ secrets.CLAUDE_BOT_APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
           REPO: ${{ matrix.repo }}
           BRANCH: ${{ env.UPGRADE_BRANCH }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           PREV_VERSION: ${{ steps.meta.outputs.prev }}
           NEW_VERSION: ${{ steps.meta.outputs.version }}
         run: |
+          # shellcheck source=/dev/null
+          . "$FIESTAUI_DIR/scripts/downstream-upgrade/auth.sh"
           cd "$DOWNSTREAM_DIR"
-          git push --force origin "$UPGRADE_BRANCH"
+          push_branch
           pr=$("$FIESTAUI_DIR/scripts/downstream-upgrade/pr-sync.sh" sync \
             "$NEW_VERSION" "$GITHUB_WORKSPACE/pr-body.md")
           result=pending
           while true; do
             sleep 60 # give CI time to register checks on the new SHA
+            refresh_auth
             if gh pr checks "$pr" -R "$TARGET_REPO" --watch --fail-fast; then
               result=green; break
             fi
@@ -313,7 +320,7 @@ jobs:
                 echo "$TARGET_REPO CI went red with adoption commits present;"
                 echo "all adoption commits were dropped and CI re-run."
               } >> "$GITHUB_WORKSPACE/adoption-summary.md"
-              git push --force origin "$UPGRADE_BRANCH"
+              push_branch
               continue
             fi
             attempts=$(cat "$ATTEMPTS_FILE" 2>/dev/null || echo 0)
@@ -322,6 +329,7 @@ jobs:
             fi
             # Pull failing logs for Claude, then try one more bounded round.
             : > "$LOG_FILE"
+            refresh_auth
             run_id=$(gh run list -R "$TARGET_REPO" --branch "$UPGRADE_BRANCH" \
               --status failure --limit 1 --json databaseId --jq '.[0].databaseId // empty')
             if [ -n "$run_id" ]; then
@@ -332,17 +340,21 @@ jobs:
             if ! "$FIESTAUI_DIR/scripts/downstream-upgrade/fix-loop.sh"; then
               result=blocked; break
             fi
-            git push --force origin "$UPGRADE_BRANCH"
+            push_branch
           done
           echo "result=$result" >> "$GITHUB_OUTPUT"
 
       - name: Final PR state
         if: inputs.dry_run != true && steps.baseline.outputs.ok == 'true'
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_ID: ${{ secrets.CLAUDE_BOT_APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.CLAUDE_BOT_APP_PRIVATE_KEY }}
           REPO: ${{ matrix.repo }}
           BRANCH: ${{ env.UPGRADE_BRANCH }}
         run: |
+          # shellcheck source=/dev/null
+          . "$FIESTAUI_DIR/scripts/downstream-upgrade/auth.sh"
+          refresh_auth
           cd "$DOWNSTREAM_DIR"
           if [ "${{ steps.ci.outputs.result }}" = "green" ]; then
             {
