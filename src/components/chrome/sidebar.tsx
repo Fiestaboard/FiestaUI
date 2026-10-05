@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Menu, Settings, Sparkles, X } from "lucide-react";
-import { Fragment, memo, useEffect, useRef, useState } from "react";
+import { Fragment, memo, useEffect, useId, useRef, useState } from "react";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../forms/button";
@@ -35,6 +35,13 @@ const MOBILE_ITEM_INACTIVE = cn(MOBILE_ITEM_BASE, NAV_ITEM_INACTIVE);
 // alone: 1.56:1 against the light rail, and 1:1 against a LIT chip's own
 // orange fill, where focus did nothing but make the chip 2px bigger. The
 // ink hairlines in the shared recipe are what hold the boundary there.
+// The hamburger's notice gap, as SidebarAccountTrigger's NOTICE_CUTOUT is the
+// avatar's. The glyph renders at 16px (Button sizes unsized svgs), offset 10px
+// in the 36px button, so the `end-2 top-2` dot's centre is (14, 2) in the
+// glyph's own box — just past the end of its top bar. Mirrored for RTL.
+const HAMBURGER_NOTICE_CUTOUT =
+  "[mask-image:radial-gradient(circle_at_14px_2px,transparent_6px,#000_6.5px)] rtl:[mask-image:radial-gradient(circle_at_2px_2px,transparent_6px,#000_6.5px)]";
+
 const FOOTER_CHIP_BASE = "focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors";
 const FOOTER_CHIP_ACTIVE = cn(FOOTER_CHIP_BASE, NAV_ITEM_ACTIVE);
 const FOOTER_CHIP_INACTIVE = cn(FOOTER_CHIP_BASE, NAV_ITEM_INACTIVE);
@@ -216,7 +223,12 @@ export interface SidebarProps {
    * nodes that only ever held one control each; the version now lives in
    * the app's About dialog and the theme is a checked group in the menu.
    */
-  renderSettingsMenu?: (ctx: { variant: "mobile" | "desktop"; collapsed: boolean }) => React.ReactNode;
+  renderSettingsMenu?: (ctx: {
+    variant: "mobile" | "desktop";
+    collapsed: boolean;
+    /** `menuNotice`, passed through for the app's `SidebarAccountTrigger`. */
+    notice?: string;
+  }) => React.ReactNode;
   /**
    * A one-click shortcut to the settings route: a gear chip in the rail
    * footer, between the account menu and the assistant. Omit to hide.
@@ -234,6 +246,18 @@ export interface SidebarProps {
    * do not pass this without also covering the drawer.
    */
   settings?: { href: string; label: string; active?: boolean; onPrefetch?: () => void };
+  /**
+   * Something inside the account menu is waiting to be acted on (an update
+   * ready to install), in the app's words: "Update available".
+   *
+   * One prop, both breakpoints. On the desktop rail it is handed back to
+   * `renderSettingsMenu` as `notice`, for the app to pass to its
+   * `SidebarAccountTrigger`, which wears the dot on the avatar. In the
+   * mobile drawer there is no trigger — the menu's rows render inline — so
+   * the closed hamburger is the only thing on screen that can say the
+   * drawer holds something, and the Sidebar puts the dot there itself.
+   */
+  menuNotice?: string;
   /** App max width in px — the sidebar centers itself against it. */
   maxWidth: number;
   /** Gap between the app edge and the sidebar in px. */
@@ -257,6 +281,7 @@ export const Sidebar = memo(function Sidebar({
   mobileBoardSelector,
   renderSettingsMenu,
   settings,
+  menuNotice,
   maxWidth,
   sidebarInset,
 }: SidebarProps) {
@@ -280,6 +305,9 @@ export const Sidebar = memo(function Sidebar({
   const ignoringDeprecatedItems = Boolean(items && (primaryItems || secondaryItems));
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // An empty string is no notice, as on the trigger.
+  const hamburgerNotice = !mobileMenuOpen && Boolean(menuNotice);
+  const hamburgerNoticeId = useId();
   const [appInset, setAppInset] = useState(0);
   const headerRef = useRef<HTMLElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
@@ -579,7 +607,7 @@ export const Sidebar = memo(function Sidebar({
    * VRT's job.
    */
   const footerBlock = (variant: "mobile" | "desktop", isCollapsed: boolean) => {
-    const menu = renderSettingsMenu?.({ variant, collapsed: isCollapsed });
+    const menu = renderSettingsMenu?.({ variant, collapsed: isCollapsed, notice: menuNotice || undefined });
     const shortcut = variant === "desktop" ? settingsAction(isCollapsed) : null;
     const assistant = variant === "desktop" ? aiAction(isCollapsed) : null;
     if (!menu && !shortcut && !assistant) return null;
@@ -691,7 +719,7 @@ export const Sidebar = memo(function Sidebar({
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 flex-shrink-0 -ml-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="relative h-9 w-9 flex-shrink-0 -ml-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             onClick={(e) => {
               // Capture the trigger before opening so close (Escape, backdrop,
               // nav click, or this same toggle) can restore focus to it.
@@ -699,8 +727,30 @@ export const Sidebar = memo(function Sidebar({
               setMobileMenuOpen(!mobileMenuOpen);
             }}
             aria-label={mobileMenuOpen ? labels.closeMenu : labels.openMenu}
+            aria-describedby={hamburgerNotice ? hamburgerNoticeId : undefined}
           >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className={cn("h-6 w-6", hamburgerNotice && HAMBURGER_NOTICE_CUTOUT)} />
+            )}
+            {/* The account trigger's dot, cut out of the glyph the same way,
+                so the two read as one signal across breakpoints. On the
+                glyph's top bar end, not the button's corner, where it
+                floated free of anything. Gone while the drawer is open: the
+                glyph is an X then, and a notice on "Close" says nothing. */}
+            {hamburgerNotice && (
+              <>
+                <span
+                  data-slot="sidebar-menu-notice"
+                  aria-hidden="true"
+                  className="pointer-events-none absolute end-2 top-2 size-2 rounded-full bg-brand"
+                />
+                <span id={hamburgerNoticeId} hidden>
+                  {menuNotice}
+                </span>
+              </>
+            )}
           </Button>
           {logoBlock("mobile")}
           {/* Board selector then assistant, both pinned right. The assistant

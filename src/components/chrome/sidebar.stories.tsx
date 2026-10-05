@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
+  ArrowUpCircle,
   Calendar,
   FileText,
   FlaskConical,
@@ -88,6 +89,10 @@ const renderLink: SidebarProps["renderLink"] = ({ children, ...props }) => <a {.
 /** What the app calls the menu when there is nobody signed in to name it after. */
 const ANONYMOUS_LABEL = "More";
 
+/** The app's words for the trigger's dot, and the version the demo offers. */
+const UPDATE_NOTICE = "Update available";
+const DEMO_UPDATE = "7.3.0";
+
 const SETTINGS: NonNullable<SidebarProps["settings"]> = { href: "#settings", label: "Settings" };
 
 /**
@@ -102,11 +107,17 @@ const SETTINGS: NonNullable<SidebarProps["settings"]> = { href: "#settings", lab
 function DemoSettingsMenu({
   collapsed,
   username = "casa",
+  update,
+  notice,
   theme,
   onThemeChange,
 }: {
   collapsed: boolean;
   username?: string;
+  /** A waiting version: adds the menu's update row. */
+  update?: string;
+  /** The Sidebar's `menuNotice`, handed back through `renderSettingsMenu`. */
+  notice?: string;
   theme: string;
   onThemeChange: (theme: string) => void;
 }) {
@@ -118,6 +129,7 @@ function DemoSettingsMenu({
           label={anonymous ? ANONYMOUS_LABEL : username}
           anonymous={anonymous}
           collapsed={collapsed}
+          notice={notice}
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56">
@@ -154,6 +166,12 @@ function DemoSettingsMenu({
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        {update && (
+          <DropdownMenuItem className="text-brand-emphasis">
+            <ArrowUpCircle className="h-4 w-4" aria-hidden="true" />
+            Update to {update}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem>
           <Info className="h-4 w-4" aria-hidden="true" />
           About FiestaBoard
@@ -174,8 +192,9 @@ function DemoSidebar({
   initialCollapsed = false,
   boardCount = 2,
   username,
+  update,
   ...overrides
-}: Partial<SidebarProps> & { initialCollapsed?: boolean; boardCount?: number; username?: string }) {
+}: Partial<SidebarProps> & { initialCollapsed?: boolean; boardCount?: number; username?: string; update?: string }) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [theme, setTheme] = useState("dark");
   const [board, setBoard] = useState("board-1");
@@ -217,9 +236,17 @@ function DemoSidebar({
           />
         ) : undefined
       }
-      renderSettingsMenu={({ collapsed: isCollapsed }) => (
-        <DemoSettingsMenu collapsed={isCollapsed} username={username} theme={theme} onThemeChange={setTheme} />
+      renderSettingsMenu={({ collapsed: isCollapsed, notice }) => (
+        <DemoSettingsMenu
+          collapsed={isCollapsed}
+          username={username}
+          update={update}
+          notice={notice}
+          theme={theme}
+          onThemeChange={setTheme}
+        />
       )}
+      menuNotice={update ? UPDATE_NOTICE : undefined}
       {...overrides}
     />
   );
@@ -233,6 +260,7 @@ interface PlaygroundArgs {
   boardCount: number;
   showSettings: boolean;
   username: string;
+  updateAvailable: boolean;
   activeItem: string;
   showTransitionsLab: boolean;
 }
@@ -295,9 +323,17 @@ function PlaygroundSidebar(args: PlaygroundArgs) {
           />
         ) : undefined
       }
-      renderSettingsMenu={({ collapsed: isCollapsed }) => (
-        <DemoSettingsMenu collapsed={isCollapsed} username={args.username} theme={theme} onThemeChange={setTheme} />
+      renderSettingsMenu={({ collapsed: isCollapsed, notice }) => (
+        <DemoSettingsMenu
+          collapsed={isCollapsed}
+          username={args.username}
+          update={args.updateAvailable ? DEMO_UPDATE : undefined}
+          notice={notice}
+          theme={theme}
+          onThemeChange={setTheme}
+        />
       )}
+      menuNotice={args.updateAvailable ? UPDATE_NOTICE : undefined}
     />
   );
 }
@@ -325,6 +361,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     boardCount: 2,
     showSettings: true,
     username: "casa",
+    updateAvailable: false,
     activeItem: "home",
     showTransitionsLab: false,
   },
@@ -481,6 +518,28 @@ export const NoUsernameCollapsed: Story = {
  * or the chips off the rail — the footer's width belongs to the rail, not
  * to the name.
  */
+/**
+ * An update is waiting. The row that applies it lives inside the account
+ * menu, so the closed trigger wears a dot on the avatar's shoulder — the
+ * one sign, before the menu is opened, that there is something in it. The
+ * app passes its words for the dot ("Update available") as the Sidebar's
+ * `menuNotice`; the Sidebar hands them back through `renderSettingsMenu`
+ * for the trigger, where they become its accessible description.
+ */
+export const UpdateAvailable: Story = {
+  render: () => <DemoSidebar update={DEMO_UPDATE} />,
+};
+
+/** On the 64px rail the dot is all there is; the tooltip says what it means. */
+export const UpdateAvailableCollapsed: Story = {
+  render: () => <DemoSidebar initialCollapsed update={DEMO_UPDATE} />,
+};
+
+/** Auth off: the dot sits on the ellipsis that stands in for the avatar. */
+export const UpdateAvailableNoUsername: Story = {
+  render: () => <DemoSidebar username="" update={DEMO_UPDATE} />,
+};
+
 export const LongUsername: Story = {
   render: () => <DemoSidebar username="bartholomew.featherstonehaugh" />,
 };
@@ -529,4 +588,20 @@ export const Mobile: Story = {
     },
   },
   render: () => <DemoSidebar />,
+};
+
+/**
+ * On a phone the account menu's rows render inline in the drawer, so there
+ * is no trigger to wear the dot. The Sidebar puts it on the hamburger
+ * instead, from the same `menuNotice`, until the drawer opens and the
+ * glyph turns into a close X.
+ */
+export const UpdateAvailableMobile: Story = {
+  globals: {
+    viewport: { value: "mobile1", isRotated: false },
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+  render: () => <DemoSidebar update={DEMO_UPDATE} />,
 };
