@@ -50,10 +50,18 @@ export interface BoardShowcaseProps {
   boardType?: "black" | "white";
   /**
    * Which glyph the viewer's board draws for code 62 (FiestaBoard#1666).
-   * Flagship previews only — a `note` or `note_array` preview always draws the
-   * heart its hardware carries, whatever this says. Defaults to `"degree"`.
+   * Flagship previews only — a `note`, `note_array` or `panel` preview always
+   * draws the heart its hardware carries, whatever this says. Defaults to
+   * `"degree"`.
    */
   code62Glyph?: Code62Glyph;
+  /**
+   * Parse the extended markup — colour spans `{red:HOT}`, block spans and
+   * `{icon:sun}` icons — on the board. Unset, the board's own default applies
+   * (off until split-flap boards flip to the extended grammar in a major, on
+   * after it); pass `false` to keep the literal parse through that flip.
+   */
+  extendedMarkup?: boolean;
   defaultBoardType?: "black" | "white";
   onBoardTypeChange?: (boardType: "black" | "white") => void;
   labels?: Partial<BoardShowcaseLabels>;
@@ -77,6 +85,7 @@ export function BoardShowcase({
   size = "md",
   boardType,
   code62Glyph,
+  extendedMarkup,
   defaultBoardType = "black",
   onBoardTypeChange,
   labels,
@@ -120,8 +129,11 @@ export function BoardShowcase({
               boardType={activeBoardType}
               deviceType={preview.device_type ?? "flagship"}
               code62Glyph={code62Glyph}
+              extendedMarkup={extendedMarkup}
               notesWide={preview.notes_wide ?? 1}
               notesTall={preview.notes_tall ?? 1}
+              gridRows={preview.grid_rows}
+              gridCols={preview.grid_cols}
               previewLabel={previewLabel}
             />
           </TabsContent>

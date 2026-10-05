@@ -32,6 +32,11 @@ const meta = {
       control: "boolean",
       description: "Loading state — all tiles cycle through the character set continuously",
     },
+    bezel: {
+      control: "boolean",
+      description:
+        "Draw the housing (default). Off: only the tile grid, transparent — what a split-flap board draws inside TvFrame, as the Apple TV app shows FiestaPanel. The flap cascade is unaffected.",
+    },
     size: {
       control: "select",
       options: ["sm", "md", "lg"],
@@ -44,8 +49,8 @@ const meta = {
     },
     deviceType: {
       control: "select",
-      options: ["flagship", "note", "note_array"],
-      description: "Board hardware family (6×22 flagship, 3×15 Note, or W×H Note array)",
+      options: ["flagship", "note", "note_array", "panel"],
+      description: "Board hardware family (6×22 flagship, 3×15 Note, W×H Note array, or a rows×cols panel)",
     },
     notesWide: {
       control: { type: "number", min: 1, max: 8 },
@@ -55,11 +60,24 @@ const meta = {
       control: { type: "number", min: 1, max: 8 },
       description: "Notes tall (note_array only)",
     },
+    gridRows: {
+      control: { type: "number", min: 3, max: 96 },
+      description: "Explicit grid rows (panel only; clamped to 3–96)",
+    },
+    gridCols: {
+      control: { type: "number", min: 15, max: 128 },
+      description: "Explicit grid columns (panel only; clamped to 15–128)",
+    },
     code62Glyph: {
       control: "select",
       options: ["degree", "heart"],
       description:
         "Which glyph this board's code-62 flap carries. Flagship only — Note hardware always draws the heart. Vestaboard replaced the Flagship's degree flap with a heart on units built from 2026, and nothing queryable tells them apart, so the owner has to say. Defaults to `degree`. Display-only: both are code 62 on the wire.",
+    },
+    extendedMarkup: {
+      control: "boolean",
+      description:
+        "Parse the extended markup (`{red:HOT}` spans as plain letters, `{icon:sun}` icons as their fallback tile). Off by default until FiestaBoard's Python renderer has parity; same contract as `StaticBoardDisplay`.",
     },
     isStatic: {
       control: "boolean",
@@ -331,6 +349,23 @@ export const NoteArray: Story = {
     deviceType: "note_array",
     notesWide: 2,
     notesTall: 1,
+  },
+};
+
+/**
+ * A panel — a life-size virtual board on a TV — is sized by character, not by
+ * Note block: 12 rows × 29 columns is what a 55" screen fits, and is a multiple
+ * of a Note on neither axis. One seamless surface, so no Note seams.
+ */
+export const PanelGrid: Story = {
+  args: {
+    message:
+      "A PANEL IS SIZED BY CHARACTER\n{green}12 ROWS BY 29 COLUMNS{/green}\nNOT BY WHOLE NOTE BLOCKS\n\nONE SEAMLESS SURFACE SO\nNO SEAMS AT ROW 3 OR\nAT COLUMN 15 °",
+    size: "sm",
+    isLoading: false,
+    deviceType: "panel",
+    gridRows: 12,
+    gridCols: 29,
   },
 };
 

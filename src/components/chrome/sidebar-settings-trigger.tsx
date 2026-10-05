@@ -19,6 +19,12 @@ import { cn } from "../../lib/utils";
  * the current route. It fills its container, so the footer decides how wide
  * it is; collapsed it is a 36px square that lines up with the assistant chip
  * stacked below it.
+ *
+ * @deprecated Use `SidebarAccountTrigger`. The menu this opens is the
+ * account menu, and the gear now belongs to the Sidebar's `settings`
+ * shortcut — a gear here beside a gear there is two controls that look
+ * alike and do different things. Kept so 7.1 consumers keep building;
+ * it will be removed in the next major.
  */
 export interface SidebarSettingsTriggerProps extends Omit<React.ComponentProps<"button">, "children"> {
   /**
@@ -31,6 +37,7 @@ export interface SidebarSettingsTriggerProps extends Omit<React.ComponentProps<"
   collapsed?: boolean;
 }
 
+/** @deprecated Use `SidebarAccountTrigger`, with the Sidebar's `settings` prop for the gear. */
 export const SidebarSettingsTrigger = React.forwardRef<HTMLButtonElement, SidebarSettingsTriggerProps>(
   function SidebarSettingsTrigger({ label, collapsed = false, className, ...props }, ref) {
     return (

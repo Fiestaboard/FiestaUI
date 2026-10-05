@@ -92,3 +92,13 @@ if (!Element.prototype.scrollIntoView) {
 if (!Element.prototype.getAnimations) {
   Element.prototype.getAnimations = () => [];
 }
+
+// ProseMirror measures the caret through `Range.getClientRects()` when it
+// focuses or scrolls a selection into view (the template editor's toolbar
+// inserts do both). jsdom's Range has neither method, and the throw lands in
+// a deferred callback — an unhandled error after the assertion, which is why
+// it is stubbed globally. Empty rects are the honest answer without layout.
+if (!Range.prototype.getClientRects) {
+  Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
+  Range.prototype.getBoundingClientRect = () => new DOMRect(0, 0, 0, 0);
+}

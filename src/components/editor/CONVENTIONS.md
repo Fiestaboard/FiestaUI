@@ -51,6 +51,7 @@ with exactly these names or the group will not compile:
 | formula-node.ts      | `../node-views/formula-node-view`    | `FormulaNodeView`   |
 | variable-node.ts     | `../node-views/variable-node-view`   | `VariableNodeView`  |
 | wrapped-text-node.ts | `../node-views/wrapped-text-view`    | `WrappedTextView`   |
+| icon-node.ts         | `../node-views/icon-node-view`       | `IconNodeView`      |
 
 ---
 
@@ -141,8 +142,11 @@ Rules:
   `DeviceType`) get **structural interfaces declared locally** in the component
   that needs them, exported so the app can check its own objects against them.
   Exception: `DeviceType` — use FiestaUI's, re-exported from `./constants`.
-  Note it is `"flagship" | "note" | "note_array"`, wider than the app's
-  two-member union, so any `switch` on it needs a `note_array` arm or a default.
+  Note it is `"flagship" | "note" | "note_array" | "panel"`, wider than the
+  app's two-member union, so any `switch` on it needs `note_array` and `panel`
+  arms or a default. Neither size is knowable from `deviceType` alone: a
+  `note_array` needs `notesWide`/`notesTall` and a `panel` needs
+  `gridRows`/`gridCols`.
 - App components (`HomeAssistantEntityPicker`) become **render-prop slots**:
   `renderEntityPicker?: (ctx: { value: string; onChange: (v: string) => void }) => React.ReactNode`.
   Omitted slot renders nothing — never a placeholder or a "coming soon".
@@ -192,6 +196,15 @@ will get a compile error if you assume the app's names.
 - **Color lookups use `Object.hasOwn`, not `in`.** `"{{toString}}"` must not
   parse as a color — same reasoning as the null-prototype note in
   `lib/board-colors.ts`. Keep this if you write another lookup.
+- **The extended markup is opt-in at the parser.** `parseLineContent` /
+  `parseTemplateSimple` read `{{red:HOT}}`, `{{black/white:OPEN}}` and
+  `{{icon:sun}}` only with `{ extendedMarkup: true }`, which `TemplateEditor`
+  passes exactly when it knows a character set (`charset` / `deviceModel`).
+  Without it every template parses as it always did; the snapshots in
+  `template-editor-identity.test.tsx` pin that and are never regenerated. A
+  span is a MARK (`colorSpan`, `extensions/color-span-mark.ts`), an icon an
+  atom node; the head grammar is CLOSED (`spanHead`), so any other
+  `{{head:…}}` stays a variable.
 
 ---
 

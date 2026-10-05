@@ -23,6 +23,13 @@ export interface ScaledBoardTeaserProps {
   boardType?: "black" | "white";
   /** Which glyph the board draws for code 62; see `BoardTeaser`. */
   code62Glyph?: Code62Glyph;
+  /**
+   * Parse the extended markup — colour spans `{red:HOT}`, block spans and
+   * `{icon:sun}` icons — on the board. Unset, the board's own default applies
+   * (off until split-flap boards flip to the extended grammar in a major, on
+   * after it); pass `false` to keep the literal parse through that flip.
+   */
+  extendedMarkup?: boolean;
   /** Strip width in tiles. */
   tiles?: number;
   minScale?: number;
@@ -34,6 +41,7 @@ export function ScaledBoardTeaser({
   teaser,
   boardType = "black",
   code62Glyph,
+  extendedMarkup,
   tiles = 15,
   minScale = 0.85,
   maxScale = 1.5,
@@ -66,7 +74,13 @@ export function ScaledBoardTeaser({
       style={{ height: `${STRIP_HEIGHT * scale}px` }}
     >
       <div style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}>
-        <BoardTeaser teaser={teaser} tiles={tiles} boardType={boardType} code62Glyph={code62Glyph} />
+        <BoardTeaser
+          teaser={teaser}
+          tiles={tiles}
+          boardType={boardType}
+          code62Glyph={code62Glyph}
+          extendedMarkup={extendedMarkup}
+        />
       </div>
     </div>
   );

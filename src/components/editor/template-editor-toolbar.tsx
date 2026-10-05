@@ -38,14 +38,17 @@ import {
 
 import type { Code62Glyph } from "../../lib/board-characters";
 import { AVAILABLE_COLORS, type BoardColorName, getBoardColor } from "../../lib/board-colors";
+import type { BoardIconName } from "../../lib/board-icons";
+import { type CharacterSet, type CharacterSetId, iconsInSet, resolveCharacterSet } from "../../lib/character-sets";
 import { useDepsChanged } from "../../lib/use-deps-changed";
 import { cn } from "../../lib/utils";
+import { CharacterGlyph } from "../board/character-glyph";
 import { Skeleton } from "../feedback/skeleton";
 import { Box } from "../layout/box";
 import { Flex } from "../layout/flex";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
 import { Text } from "../typography/text";
-import { ColorPickerContent, type ColorPickerLabels } from "./color-picker-content";
+import { type BlockColorChoice, ColorPickerContent, type ColorPickerLabels } from "./color-picker-content";
 import type { DeviceType } from "./constants";
 import { DrawCharPickerContent, type DrawCharPickerLabels } from "./draw-char-picker-content";
 import { FormattingPickerContent, type FormattingPickerLabels } from "./formatting-picker-content";
@@ -53,6 +56,7 @@ import type { LineAlignment } from "./template-editor";
 import { ToolbarDropdown } from "./toolbar-dropdown";
 import type { DrawBrush } from "./utils/draw-mode";
 import { insertTemplateContent } from "./utils/insertion";
+import { COLOR_SPAN_MARK } from "./utils/serialization";
 import type {
   PluginDisplayData,
   PluginManifest,
@@ -226,6 +230,18 @@ export interface TemplateEditorToolbarProps {
    * `deviceType`.
    */
   code62Glyph?: Code62Glyph;
+  /**
+   * The character set the target board draws (lib/character-sets) — a
+   * built-in id or a set object (an output plugin's). Threaded to the colour
+   * and draw-character pickers, and what decides which of the extended forms
+   * the toolbar offers: a set with colour spans gets text colours (the
+   * selection becomes `{{red:…}}`), one with block spans gets block colours
+   * (`{{black/white:…}}`), one with icons gets icons (`{{icon:sun}}`) and
+   * icon stamps in draw mode. Draw-mode colour swatches are offered only
+   * when the set has tiles. Unset: today's toolbar, byte for byte. An
+   * unknown id throws; it never quietly becomes a Vestaboard.
+   */
+  charset?: CharacterSetId | CharacterSet;
   onSyncFromBoard?: () => void;
   syncFromBoardPending?: boolean;
   drawMode?: boolean;
@@ -299,6 +315,7 @@ function TemplateEditorToolbarImpl({
   className,
   deviceType,
   code62Glyph,
+  charset,
   onSyncFromBoard,
   syncFromBoardPending = false,
   drawMode = false,
@@ -324,10 +341,34 @@ function TemplateEditorToolbarImpl({
     l.drawColors?.[name] ?? DEFAULT_TEMPLATE_EDITOR_TOOLBAR_LABELS.drawColors[name];
   const effectiveBrush: DrawBrush = drawBrush ?? { kind: "color", color: "red" };
 
+  const set = charset ? resolveCharacterSet(charset) : null;
+  const setIcons = set ? iconsInSet(set) : [];
+  // What the set adds beyond tiles. Any of these opens the Colors dropdown
+  // even when the host's `templateVariables.colors` is absent.
+  const hasSetMarkup = set !== null && (set.colorSpans || set.blockSpans || setIcons.length > 0);
+  // In draw mode the colour swatches paint tiles, so a set without tiles
+  // (a plain monochrome sign) offers none; brushes come from the set.
+  const drawColors = !set || set.tiles ? AVAILABLE_COLORS : [];
+
   const handleInsert = (templateString: string) => {
     if (editor) {
       insertTemplateContent(editor, templateString);
     }
+  };
+
+  // The extended forms. A colour or block span is a MARK on the selection
+  // (toggled, so picking the active colour again clears it; with no
+  // selection it becomes the stored mark the next typed text takes), and an
+  // icon is an atom inserted at the caret, parsed with the extended markup
+  // so `{{icon:sun}}` lands as an icon node rather than a variable.
+  const handleTextColor = (color: BoardColorName) => {
+    editor?.chain().focus().toggleMark(COLOR_SPAN_MARK, { color, background: null }).run();
+  };
+  const handleBlockColor = ({ color, background }: BlockColorChoice) => {
+    editor?.chain().focus().toggleMark(COLOR_SPAN_MARK, { color, background }).run();
+  };
+  const handleIcon = (icon: BoardIconName) => {
+    if (editor) insertTemplateContent(editor, `{{icon:${icon}}}`, { extendedMarkup: true });
   };
 
   const handleAlignmentClick = (alignment: LineAlignment) => {
@@ -590,7 +631,7 @@ function TemplateEditorToolbarImpl({
         {drawMode && (
           <>
             <Flex align="center" gap="0.5">
-              {AVAILABLE_COLORS.map((name) => {
+              {drawColors.map((name) => {
                 const selected = effectiveBrush.kind === "color" && effectiveBrush.color === name;
                 return (
                   <Tooltip key={name}>
@@ -647,7 +688,9 @@ function TemplateEditorToolbarImpl({
             <ToolbarDropdown
               label={l.drawCharacter}
               data-testid="draw-char-dropdown"
-              className={cn(effectiveBrush.kind === "char" && "ring-2 ring-primary")}
+              className={cn(
+                (effectiveBrush.kind === "char" || effectiveBrush.kind === "icon") && "ring-2 ring-primary",
+              )}
               icon={
                 effectiveBrush.kind === "char" ? (
                   <Text
@@ -657,6 +700,14 @@ function TemplateEditorToolbarImpl({
                   >
                     {effectiveBrush.char}
                   </Text>
+                ) : effectiveBrush.kind === "icon" ? (
+                  <CharacterGlyph
+                    token={`{icon:${effectiveBrush.icon}}`}
+                    charset={set ?? "led_5x7"}
+                    size="sm"
+                    height={16}
+                    decorative
+                  />
                 ) : (
                   <Type className="w-4 h-4" />
                 )
@@ -667,6 +718,7 @@ function TemplateEditorToolbarImpl({
                   current={effectiveBrush}
                   deviceType={deviceType}
                   code62Glyph={code62Glyph}
+                  charset={set ?? undefined}
                   labels={drawCharPickerLabels}
                   onSelect={(brush) => {
                     onDrawBrushChange?.(brush);
@@ -852,7 +904,7 @@ function TemplateEditorToolbarImpl({
             )}
 
             {/* Colors Dropdown */}
-            {hasColors && (
+            {(hasColors || hasSetMarkup) && (
               <ToolbarDropdown label={l.colors} icon={<Palette className="w-4 h-4" />}>
                 {(close) => (
                   <ColorPickerContent
@@ -862,6 +914,31 @@ function TemplateEditorToolbarImpl({
                     }}
                     deviceType={deviceType}
                     code62Glyph={code62Glyph}
+                    charset={set ?? undefined}
+                    onInsertTextColor={
+                      set?.colorSpans
+                        ? (color) => {
+                            handleTextColor(color);
+                            close();
+                          }
+                        : undefined
+                    }
+                    onInsertBlockColor={
+                      set?.blockSpans
+                        ? (choice) => {
+                            handleBlockColor(choice);
+                            close();
+                          }
+                        : undefined
+                    }
+                    onInsertIcon={
+                      setIcons.length > 0
+                        ? (icon) => {
+                            handleIcon(icon);
+                            close();
+                          }
+                        : undefined
+                    }
                     labels={colorPickerLabels}
                   />
                 )}
@@ -935,7 +1012,9 @@ function TemplateEditorToolbarImpl({
             </Tooltip>
 
             {/* Divider */}
-            {(hasVariables || hasColors || hasFormatting) && <Box className="h-6 w-px bg-border mx-1" />}
+            {(hasVariables || hasColors || hasFormatting || hasSetMarkup) && (
+              <Box className="h-6 w-px bg-border mx-1" />
+            )}
 
             {/* Alignment Controls */}
             <Flex align="center" gap="0.5" className="rounded-md border border-border overflow-hidden bg-background">

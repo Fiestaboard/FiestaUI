@@ -12,14 +12,32 @@
 
 import { memo, useMemo } from "react";
 
-import { type Code62Glyph, messageToGrid, messageToText } from "../../lib/board-characters";
+import {
+  type BoardToken,
+  cellsAreBlank,
+  cellsToGrid,
+  cellsToText,
+  type Code62Glyph,
+  messageToGrid,
+  messageToText,
+} from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
 import { gapClasses, paddingClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
 import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
 
 export interface StaticBoardDisplayProps {
-  message: string | null;
+  /** Board markup. Ignored when `cells` is given. */
+  message?: string | null;
+  /**
+   * A grid of parsed cells (`BoardToken[][]`, row-major) in place of
+   * `message` — what FiestaBoard core hands a preview after parsing the
+   * markup once. Wins over `message` when both are given. Drawn as given
+   * (nothing is re-parsed, so `extendedMarkup` does not apply), fitted to
+   * the board like a message's lines (`cellsToGrid`), with code 62 drawn as
+   * this board's flap. A grid that draws nothing announces `emptyLabel`.
+   */
+  cells?: readonly (readonly BoardToken[])[];
   size?: "sm" | "md" | "lg";
   boardType?: "black" | "white";
   deviceType?: DeviceType;
@@ -32,6 +50,12 @@ export interface StaticBoardDisplayProps {
   notesWide?: number;
   /** Notes tall (for note_array device; ignored otherwise). */
   notesTall?: number;
+  /** Explicit grid size; only used when deviceType is "panel". Rows of
+   *  characters, clamped to [MIN_GRID_ROWS, MAX_GRID_ROWS]. */
+  gridRows?: number;
+  /** Explicit grid size; only used when deviceType is "panel". Columns of
+   *  characters, clamped to [MIN_GRID_COLS, MAX_GRID_COLS]. */
+  gridCols?: number;
   /** Fixed accessible label for a shown message. Overrides `messageLabel`, so
    *  pass it only when a hand-written description beats the board's own text
    *  (BoardShowcase's curated previews do). Note that it makes every board it
@@ -44,6 +68,26 @@ export interface StaticBoardDisplayProps {
   messageLabel?: (message: string) => string;
   /** Accessible label when the board has no message. */
   emptyLabel?: string;
+  /**
+   * Parse the extended markup — `{red:HOT}` colour spans (drawn as plain
+   * letters) and `{icon:sun}` icons (drawn as their fallback tile or
+   * character). **Future state:** off by default because FiestaBoard's Python
+   * renderer does not know this grammar yet, and a preview must show what
+   * the hardware draws today. It flips to default-on in one commit, with a
+   * fixture, once the Python side has parity. See `ParseLineOptions`.
+   */
+  extendedMarkup?: boolean;
+  /**
+   * Draw the board's housing — the bezel, its border and shadow, the padded
+   * surface the tiles sit on. Default `true`, the board as it has always
+   * drawn. `false` draws only the tile grid (gutters, note seams and the
+   * tiles' own materials intact) on a transparent background, with no
+   * bezel, border, shadow, padding or surface: what FiestaPanel's Apple TV
+   * app shows — flaps on the TV's black, no frame — and what `TvFrame` wants
+   * from a split-flap board (`DisplayPreview frame="tv"` passes it). The
+   * housing records it on `data-bezel="false"`; the role and name are kept.
+   */
+  bezel?: boolean;
 }
 
 // Module-scope so the memoized component sees a stable prop identity, and the
@@ -55,6 +99,7 @@ const NO_TEXT_LABEL = "Board preview";
 
 export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   message,
+  cells,
   size = "sm",
   boardType = "black",
   deviceType = "flagship",
@@ -62,19 +107,28 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   className = "",
   notesWide = 1,
   notesTall = 1,
+  gridRows,
+  gridCols,
   previewLabel,
   messageLabel = defaultMessageLabel,
   emptyLabel = "Empty board display",
+  extendedMarkup = false,
+  bezel = true,
 }: StaticBoardDisplayProps) {
-  const dims = resolveDimensions(deviceType, notesWide, notesTall);
+  const dims = resolveDimensions(deviceType, notesWide, notesTall, gridRows, gridCols);
+  // Seams mark physical Note boundaries, so only a note_array has them — a
+  // panel is one seamless surface even where it crosses a 3×15 boundary.
   const showSeams = isNoteArray(deviceType);
   const isWhiteBoard = boardType === "white";
   const tileBg = isWhiteBoard ? "var(--color-board-surface-light)" : "var(--color-board-surface-dark)";
   const textColor = isWhiteBoard ? "var(--color-board-text-on-light)" : "var(--color-board-text-on-dark)";
 
   const grid = useMemo(
-    () => messageToGrid(message ?? "", dims.rows, dims.cols, deviceType, code62Glyph),
-    [message, dims.rows, dims.cols, deviceType, code62Glyph],
+    () =>
+      cells !== undefined
+        ? cellsToGrid(cells, dims.rows, dims.cols, deviceType, code62Glyph)
+        : messageToGrid(message ?? "", dims.rows, dims.cols, deviceType, code62Glyph, { extendedMarkup }),
+    [cells, message, dims.rows, dims.cols, deviceType, code62Glyph, extendedMarkup],
   );
 
   // The board's whole accessible name: the tiles below are aria-hidden, so
@@ -83,13 +137,16 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   // announce "Board preview" is four boards a screen-reader user cannot tell
   // apart, while a sighted user reads four different messages.
   const label = useMemo(() => {
-    if (!message) return emptyLabel;
+    if (cells !== undefined ? cellsAreBlank(cells) : !message) return emptyLabel;
     if (previewLabel !== undefined) return previewLabel;
     // The code-62 glyph matters: where a `°` draws as a heart, the name has to
     // say what the tiles draw.
-    const text = messageToText(message, deviceType, code62Glyph);
+    const text =
+      cells !== undefined
+        ? cellsToText(cells, deviceType, code62Glyph)
+        : messageToText(message!, deviceType, code62Glyph, { extendedMarkup });
     return text ? messageLabel(text) : NO_TEXT_LABEL;
-  }, [message, deviceType, code62Glyph, previewLabel, messageLabel, emptyLabel]);
+  }, [cells, message, deviceType, code62Glyph, extendedMarkup, previewLabel, messageLabel, emptyLabel]);
 
   // Seam gap: additional left/top margin applied at Note physical boundaries
   const seamGap = size === "sm" ? "6px" : size === "md" ? "8px" : "10px";
@@ -126,21 +183,33 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
           clamp it below that and let the rows escape it on both sides. A
           consumer whose slot is narrower than a board wants
           `ScaledBoardDisplay`. */}
+      {/* `bezel={false}`: the same two boxes with nothing drawn on them — no
+          border, colour, shadow, padding or surface — so the board is its
+          tile grid, transparent, and a consumer that measures the housing
+          (ScaledBoardDisplay, TvFrame's fit) measures the grid. The attribute
+          and style branches leave the default DOM byte-identical. */}
       <div
         role="img"
         aria-label={label}
         data-slot="static-board-display"
-        className={`${borderClasses} ${className}`}
-        style={{ backgroundColor: bezelBg, borderColor, boxShadow, width: "fit-content" }}
+        {...(bezel ? {} : { "data-bezel": "false" })}
+        className={bezel ? `${borderClasses} ${className}` : className}
+        style={
+          bezel ? { backgroundColor: bezelBg, borderColor, boxShadow, width: "fit-content" } : { width: "fit-content" }
+        }
       >
         <div
-          className={`${paddingClasses[size]} relative`}
+          className={bezel ? `${paddingClasses[size]} relative` : "relative"}
           aria-hidden="true"
-          style={{
-            background: isWhiteBoard
-              ? "linear-gradient(135deg, var(--color-board-surface-light) 0%, var(--color-board-bezel-border-light) 100%)"
-              : "linear-gradient(135deg, var(--color-board-surface-dark) 0%, var(--color-board-black) 100%)",
-          }}
+          style={
+            bezel
+              ? {
+                  background: isWhiteBoard
+                    ? "linear-gradient(135deg, var(--color-board-surface-light) 0%, var(--color-board-bezel-border-light) 100%)"
+                    : "linear-gradient(135deg, var(--color-board-surface-dark) 0%, var(--color-board-black) 100%)",
+                }
+              : undefined
+          }
         >
           <div className={`flex flex-col ${gapClasses[size]}`}>
             {grid.map((row, rowIdx) => {

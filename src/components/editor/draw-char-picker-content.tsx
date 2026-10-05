@@ -3,11 +3,22 @@
  */
 "use client";
 
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 
 import { type Code62Glyph, resolveCode62Glyph } from "../../lib/board-characters";
 import type { DeviceType } from "../../lib/board-dimensions";
+import { BOARD_ICONS } from "../../lib/board-icons";
+import {
+  type CharacterSet,
+  type CharacterSetId,
+  charsetHasChar,
+  charsInSet,
+  iconsInSet,
+  LOWERCASE_CHARS,
+  resolveCharacterSet,
+} from "../../lib/character-sets";
 import { cn } from "../../lib/utils";
+import { CharacterGlyph } from "../board/character-glyph";
 import { Box } from "../layout/box";
 import { Grid } from "../layout/grid";
 import type { DrawBrush } from "./utils/draw-mode";
@@ -36,12 +47,21 @@ export interface DrawCharPickerLabels {
   degree: string;
   /** Accessible name for the code-62 button when the flap draws a heart. */
   heart: string;
+  /** Heading for the lowercase row a mixed-case set gets. */
+  lowercase: string;
+  /** Heading for the icon row a set with icons gets. */
+  icons: string;
+  /** Accessible name for one icon stamp, given the icon's label. */
+  iconLabel: (iconLabel: string) => string;
 }
 
 export const DEFAULT_DRAW_CHAR_PICKER_LABELS: DrawCharPickerLabels = {
   characters: "Characters",
   degree: "Degree",
   heart: "Heart",
+  lowercase: "Lowercase",
+  icons: "Icons",
+  iconLabel: (iconLabel) => `${iconLabel} icon`,
 };
 
 export interface DrawCharPickerContentProps {
@@ -61,6 +81,18 @@ export interface DrawCharPickerContentProps {
    * fixed in the colour picker.
    */
   code62Glyph?: Code62Glyph;
+  /**
+   * The character set the target device draws (../../lib/character-sets) —
+   * a built-in id or a set object (an output plugin's). Only the stamps it
+   * contains are offered, an LED set draws them as its dots, a mixed-case
+   * set adds a lowercase row, and a set with icons adds an icon row whose
+   * stamps are `{ kind: "icon" }` brushes. Unset: the split-flap set, which
+   * is every stamp in `DRAW_CHARS` — today's picker byte for byte. A set
+   * that fixes code 62 (`vestaboard_v1` / `_v2`) also decides the
+   * degree/heart glyph. An unknown id throws; it never quietly becomes a
+   * Vestaboard.
+   */
+  charset?: CharacterSetId | CharacterSet;
   labels?: Partial<DrawCharPickerLabels>;
 }
 
@@ -71,6 +103,7 @@ export function DrawCharPickerContent({
   onSelect,
   deviceType,
   code62Glyph,
+  charset,
   labels,
 }: DrawCharPickerContentProps) {
   const l = { ...DEFAULT_DRAW_CHAR_PICKER_LABELS, ...labels };
@@ -79,18 +112,46 @@ export function DrawCharPickerContent({
   // promise a glyph the board will not draw.
   // Not `deviceType === "note"`: since 2026 some Flagships carry the heart
   // flap too, so the glyph is a property of the board, not the device family.
-  const isHeart = resolveCode62Glyph(deviceType ?? "flagship", code62Glyph) === "heart";
+  const set = charset ? resolveCharacterSet(charset) : null;
+  const isHeart = (set?.code62Glyph ?? resolveCode62Glyph(deviceType ?? "flagship", code62Glyph)) === "heart";
+  // The stamps on offer: every flap stamp, narrowed to the set; a mixed-case
+  // set appends a–z. One flat list so the roving focus walks both rows.
+  // The code-62 stamp is always `°` (both glyphs encode to 62), so it stays
+  // on offer when the set draws either glyph — a heart-flap set has ♥, not °.
+  const stamps = set
+    ? DRAW_CHARS.filter((c) =>
+        c === DEGREE_CHAR
+          ? charsetHasChar(set, DEGREE_CHAR) || charsetHasChar(set, NOTE_HEART_CHAR)
+          : charsetHasChar(set, c),
+      )
+    : DRAW_CHARS;
+  const chars = set?.mixedCase ? [...stamps, ...charsInSet(set, LOWERCASE_CHARS)] : stamps;
+  // The icon stamps a set with icons adds, after the characters, in one
+  // roving sequence with them: an icon is one cell, like any stamp.
+  const icons = set ? iconsInSet(set) : [];
+  const total = chars.length + icons.length;
+  const upperCount = stamps.length;
   const selectedChar = current.kind === "char" ? current.char : null;
+  const selectedIcon = current.kind === "icon" ? current.icon : null;
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   // Roving tabindex: exactly one button is in the tab order (the selected
-  // character if any, otherwise the first), arrow keys move focus.
-  const [focusedIndex, setFocusedIndex] = useState(() => {
-    const selectedIndex = selectedChar ? DRAW_CHARS.indexOf(selectedChar) : -1;
+  // character if any, otherwise the first), arrow keys move focus. The
+  // index is clamped to the current list at render: a set change can
+  // shorten the list under it (a mixed-case set to an uppercase one, a set
+  // with icons to one without), and an index past the end would leave no
+  // tab stop at all.
+  const [rawFocusedIndex, setFocusedIndex] = useState(() => {
+    const selectedIndex = selectedChar
+      ? chars.indexOf(selectedChar)
+      : selectedIcon
+        ? chars.length + icons.indexOf(selectedIcon)
+        : -1;
     return selectedIndex >= 0 ? selectedIndex : 0;
   });
+  const focusedIndex = Math.min(rawFocusedIndex, total - 1);
 
   const moveFocus = (index: number) => {
-    const wrapped = ((index % DRAW_CHARS.length) + DRAW_CHARS.length) % DRAW_CHARS.length;
+    const wrapped = ((index % total) + total) % total;
     setFocusedIndex(wrapped);
     buttonRefs.current[wrapped]?.focus();
   };
@@ -119,7 +180,7 @@ export function DrawCharPickerContent({
         break;
       case "End":
         event.preventDefault();
-        moveFocus(DRAW_CHARS.length - 1);
+        moveFocus(total - 1);
         break;
     }
   };
@@ -129,35 +190,90 @@ export function DrawCharPickerContent({
     // trigger-sized wrapper, so without an explicit width the panel
     // shrink-fits to ~36px and the grid-cols-8 tracks (minmax(0,1fr))
     // collapse until the glyph buttons overlap.
-    <Box className="w-64 p-2" data-testid="draw-char-picker" role="group" aria-label={l.characters}>
+    <Box
+      className="w-64 p-2"
+      data-testid="draw-char-picker"
+      data-charset={set?.id}
+      role="group"
+      aria-label={l.characters}
+    >
       <Grid cols="8" gap="1">
-        {DRAW_CHARS.map((char, index) => {
+        {chars.map((char, index) => {
           // Code 62 is the one character whose drawn glyph depends on the
           // device; every other stamp draws as itself.
           const isDegree = char === DEGREE_CHAR;
           const glyph = isDegree && isHeart ? NOTE_HEART_CHAR : char;
+          const isLower = index >= upperCount;
+          // An LED set draws its stamps as the dots the board will show; a
+          // flap set keeps the typed character, as the picker always has.
+          const body = set?.font ? <CharacterGlyph token={glyph} charset={set} size="sm" decorative /> : glyph;
 
           return (
-            <button
-              key={char}
-              ref={(el) => {
-                buttonRefs.current[index] = el;
-              }}
-              type="button"
-              data-draw-char={char}
-              tabIndex={index === focusedIndex ? 0 : -1}
-              aria-pressed={selectedChar === char}
-              aria-label={isDegree ? (isHeart ? l.heart : l.degree) : char}
-              onClick={() => onSelect({ kind: "char", char })}
-              onFocus={() => setFocusedIndex(index)}
-              onKeyDown={(event) => handleKeyDown(event, index)}
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-md border font-mono text-sm transition-shadow",
-                selectedChar === char ? "ring-2 ring-primary ring-offset-1" : "hover:bg-muted/50",
+            <Fragment key={char}>
+              {isLower && index === upperCount && (
+                <span
+                  className="col-span-8 mt-1 text-xs font-medium text-muted-foreground"
+                  data-slot="draw-char-picker-lowercase-heading"
+                >
+                  {l.lowercase}
+                </span>
               )}
-            >
-              {glyph}
-            </button>
+              <button
+                ref={(el) => {
+                  buttonRefs.current[index] = el;
+                }}
+                type="button"
+                data-draw-char={char}
+                data-lowercase={isLower ? "" : undefined}
+                tabIndex={index === focusedIndex ? 0 : -1}
+                aria-pressed={selectedChar === char}
+                aria-label={isDegree ? (isHeart ? l.heart : l.degree) : char}
+                onClick={() => onSelect({ kind: "char", char })}
+                onFocus={() => setFocusedIndex(index)}
+                onKeyDown={(event) => handleKeyDown(event, index)}
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-md border font-mono text-sm transition-shadow",
+                  selectedChar === char ? "ring-2 ring-primary ring-offset-1" : "hover:bg-muted/50",
+                )}
+              >
+                {body}
+              </button>
+            </Fragment>
+          );
+        })}
+        {icons.map((icon, i) => {
+          const index = chars.length + i;
+          const name = l.iconLabel(BOARD_ICONS[icon].label);
+          return (
+            <Fragment key={icon}>
+              {i === 0 && (
+                <span
+                  className="col-span-8 mt-1 text-xs font-medium text-muted-foreground"
+                  data-slot="draw-char-picker-icons-heading"
+                >
+                  {l.icons}
+                </span>
+              )}
+              <button
+                ref={(el) => {
+                  buttonRefs.current[index] = el;
+                }}
+                type="button"
+                data-draw-icon={icon}
+                tabIndex={index === focusedIndex ? 0 : -1}
+                aria-pressed={selectedIcon === icon}
+                aria-label={name}
+                onClick={() => onSelect({ kind: "icon", icon })}
+                onFocus={() => setFocusedIndex(index)}
+                onKeyDown={(event) => handleKeyDown(event, index)}
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-md border font-mono text-sm transition-shadow",
+                  selectedIcon === icon ? "ring-2 ring-primary ring-offset-1" : "hover:bg-muted/50",
+                )}
+              >
+                {set && <CharacterGlyph token={`{icon:${icon}}`} charset={set} size="sm" decorative />}
+              </button>
+            </Fragment>
           );
         })}
       </Grid>

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { goldenCharacterSet } from "../../lib/charset-golden-cases";
 import { ColorPickerContent } from "./color-picker-content";
 
 const meta = {
@@ -69,5 +70,57 @@ export const Localized: Story = {
       heartCharacterAriaLabel: "Caractère cœur",
       insertHeartTooltip: "Insérer un cœur (Note uniquement)",
     },
+  },
+};
+
+/**
+ * An LED character set with colour spans, block spans and icons: a
+ * text-colour group (the host wraps the selection as `{{red:…}}`, black
+ * offered as "Black (unlit on LEDs)"), a block-colour group (`{{black/red:…}}`)
+ * and an icon group (`{{icon:sun}}`). Each glyph is drawn by the set, 30px
+ * in a 40px button. A split-flap set never shows any of them.
+ */
+export const LedCharset: Story = {
+  args: {
+    onInsert: (value) => console.log("insert", value),
+    charset: "led_5x7",
+    onInsertTextColor: (color) => console.log("text colour", color),
+    onInsertBlockColor: (choice) => console.log("block colour", choice),
+    onInsertIcon: (icon) => console.log("icon", icon),
+  },
+};
+
+/** The 3×5 set offers only the icons its face can draw. */
+export const SmallLedCharset: Story = {
+  args: {
+    onInsert: (value) => console.log("insert", value),
+    charset: "led_3x5",
+    onInsertTextColor: (color) => console.log("text colour", color),
+    onInsertBlockColor: (choice) => console.log("block colour", choice),
+    onInsertIcon: (icon) => console.log("icon", icon),
+  },
+};
+
+/**
+ * A plugin's own set, passed as an object: the ACME sign has block spans and
+ * three icons but no colour spans, so the text-colour group is absent and
+ * the icon group offers only up, down and check.
+ */
+export const PluginCharset: Story = {
+  args: {
+    onInsert: (value) => console.log("insert", value),
+    charset: goldenCharacterSet("acme_sign_v1"),
+    onInsertTextColor: (color) => console.log("text colour", color),
+    onInsertBlockColor: (choice) => console.log("block colour", choice),
+    onInsertIcon: (icon) => console.log("icon", icon),
+  },
+};
+
+/** A heart-flap Vestaboard set decides the code-62 glyph itself, drawn as a tile. */
+export const HeartFlapCharset: Story = {
+  args: {
+    onInsert: (value) => console.log("insert", value),
+    deviceType: "flagship",
+    charset: "vestaboard_v2",
   },
 };

@@ -27,6 +27,9 @@ import { type CSSProperties, memo, useCallback, useEffect, useMemo, useRef, useS
 import {
   BOARD_CHARS,
   type BoardToken,
+  cellsAreBlank,
+  cellsToGrid,
+  cellsToText,
   type Code62Glyph,
   EXTRA_CHARS,
   getCharFromToken,
@@ -34,6 +37,7 @@ import {
   isColorTile,
   messageToGrid,
   messageToText,
+  resolveCode62Glyph,
   tokensEqual,
 } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
@@ -41,6 +45,20 @@ import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions }
 import { gapClasses, paddingClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
 import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
 import { reducedMotionQuery, useReducedMotion } from "./reduced-motion";
+
+/** The drum position both ♥ and ° share — see {@link resolveCode62Glyph}. */
+const CODE_62_INDEX = getCharIndex("°");
+
+/**
+ * The glyph a flap draws at a drum position. `BOARD_CHARS[62]` is written as
+ * "°", but a heart board's flap at that position carries ♥: the drum passes
+ * code 62 on every loading cycle and on the way to or from a heart, and the
+ * halves must draw the board's own flap, not the table's spelling of it.
+ */
+function drumChar(index: number, code62Glyph: Code62Glyph): string {
+  if (index === CODE_62_INDEX) return code62Glyph === "heart" ? "♥" : "°";
+  return BOARD_CHARS[index];
+}
 
 // Shared split-flap keyframes. Rendered once from BoardDisplay as a
 // <style href precedence> element — React 19 dedupes it by href and hoists it
@@ -509,6 +527,7 @@ const GridRow = memo(
     isRowSeam = false,
     seamGap = "6px",
     emitCellMetadata = false,
+    code62Glyph,
   }: {
     row: BoardToken[];
     rowIdx: number;
@@ -522,6 +541,8 @@ const GridRow = memo(
     isRowSeam?: boolean;
     seamGap?: string;
     emitCellMetadata?: boolean;
+    /** Resolved glyph of this board's code-62 flap; see {@link drumChar}. */
+    code62Glyph: Code62Glyph;
   }) {
     return (
       <div
@@ -554,6 +575,7 @@ const GridRow = memo(
                 flapStepMs={flapStepMs}
                 rowIdx={rowIdx}
                 colIdx={colIdx}
+                code62Glyph={code62Glyph}
               />
             </div>
           );
@@ -574,6 +596,7 @@ const GridRow = memo(
     if (prevProps.isRowSeam !== nextProps.isRowSeam) return false;
     if (prevProps.seamGap !== nextProps.seamGap) return false;
     if (prevProps.emitCellMetadata !== nextProps.emitCellMetadata) return false;
+    if (prevProps.code62Glyph !== nextProps.code62Glyph) return false;
 
     // Deep compare tokens
     for (let i = 0; i < prevProps.row.length; i++) {
@@ -683,6 +706,7 @@ const CharTile = memo(
     flapStepMs,
     rowIdx = 0,
     colIdx = 0,
+    code62Glyph = "degree",
   }: {
     token: BoardToken;
     size?: "sm" | "md" | "lg";
@@ -693,6 +717,8 @@ const CharTile = memo(
     flapStepMs: number;
     rowIdx?: number;
     colIdx?: number;
+    /** Resolved glyph of this board's code-62 flap; see {@link drumChar}. */
+    code62Glyph?: Code62Glyph;
   }) {
     // When the user disables board animations (or reduce_motion is on),
     // collapse isAnimating so the loading rotation never starts and the
@@ -985,9 +1011,9 @@ const CharTile = memo(
     // Color tiles also animate - they cycle through all characters during loading
     // No special handling needed - they go through the same animation logic below
 
-    const currentChar = BOARD_CHARS[currentCharIndex];
+    const currentChar = drumChar(currentCharIndex, code62Glyph);
     const prevCharIndex = (currentCharIndex - 1 + BOARD_CHARS.length) % BOARD_CHARS.length;
-    const prevChar = BOARD_CHARS[prevCharIndex];
+    const prevChar = drumChar(prevCharIndex, code62Glyph);
 
     return (
       <>
@@ -1190,13 +1216,25 @@ const CharTile = memo(
       prevProps.boardType === nextProps.boardType &&
       prevProps.isAnimating === nextProps.isAnimating &&
       prevProps.animationsEnabled === nextProps.animationsEnabled &&
-      prevProps.flapStepMs === nextProps.flapStepMs
+      prevProps.flapStepMs === nextProps.flapStepMs &&
+      prevProps.code62Glyph === nextProps.code62Glyph
     );
   },
 );
 
 export interface BoardDisplayProps {
-  message: string | null;
+  /** Board markup. Ignored when `cells` is given. */
+  message?: string | null;
+  /**
+   * A grid of parsed cells (`BoardToken[][]`, row-major) in place of
+   * `message` — what FiestaBoard core hands a preview after parsing the
+   * markup once. Wins over `message` when both are given. Drawn as given
+   * (nothing is re-parsed, so `extendedMarkup` does not apply), fitted to
+   * the board like a message's lines (`cellsToGrid`), with code 62 drawn as
+   * this board's flap. A new grid animates exactly as a new message does. A
+   * grid that draws nothing announces `emptyLabel`.
+   */
+  cells?: readonly (readonly BoardToken[])[];
   isLoading?: boolean;
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -1213,6 +1251,9 @@ export interface BoardDisplayProps {
    *
    *  Display-only: both glyphs are character code 62 on the wire. */
   code62Glyph?: Code62Glyph;
+  /** Parse colour spans and icons (future state; off until the Python
+   *  renderer has parity). Same contract as `StaticBoardDisplay`. */
+  extendedMarkup?: boolean;
   /** Skip animation infrastructure and render plain divs per tile. Much
    *  cheaper for static previews that never animate. */
   isStatic?: boolean;
@@ -1220,6 +1261,12 @@ export interface BoardDisplayProps {
   notesWide?: number;
   /** Notes tall (for note_array device; ignored otherwise). */
   notesTall?: number;
+  /** Explicit grid size; only used when deviceType is "panel". Rows of
+   *  characters, clamped to [MIN_GRID_ROWS, MAX_GRID_ROWS]. */
+  gridRows?: number;
+  /** Explicit grid size; only used when deviceType is "panel". Columns of
+   *  characters, clamped to [MIN_GRID_COLS, MAX_GRID_COLS]. */
+  gridCols?: number;
   /** Emit data-row / data-col / data-cell-value on every tile wrapper.
    *  Only the page editor's draw mode consumes these (DrawableBoardPreview
    *  hit-tests strokes via data-row/data-col and tests read data-cell-value),
@@ -1256,6 +1303,17 @@ export interface BoardDisplayProps {
    *  alerts) where a change is news. `polite`, never `assertive`: a board
    *  update is informational. Same opt-in shape as `EmptyState`'s `announce`. */
   announceUpdates?: boolean;
+  /**
+   * Draw the board's housing — the bezel, its border and shadow, the padded
+   * surface the tiles sit on. Default `true`. `false` draws only the tile
+   * grid, transparent, with every tile's own materials and the flap
+   * animation untouched: what FiestaPanel's Apple TV app shows — flaps on
+   * the TV's black, no frame — and what `TvFrame` wants from a split-flap
+   * board (`DisplayPreview frame="tv"` passes it). Same contract as
+   * `StaticBoardDisplay`'s prop of this name: `data-bezel="false"` on the
+   * housing, role and name kept.
+   */
+  bezel?: boolean;
 }
 
 // Module-scope default so the aria-label memo below keeps a stable dependency.
@@ -1267,15 +1325,19 @@ const NO_TEXT_LABEL = "Board display";
 export const BoardDisplay = memo(
   function BoardDisplay({
     message,
+    cells,
     isLoading = false,
     size = "md",
     className = "",
     boardType = "black",
     deviceType = "flagship",
     code62Glyph,
+    extendedMarkup = false,
     isStatic = false,
     notesWide = 1,
     notesTall = 1,
+    gridRows,
+    gridCols,
     emitCellMetadata = false,
     animationsEnabled = true,
     flapSpeed = "standard",
@@ -1283,6 +1345,7 @@ export const BoardDisplay = memo(
     emptyLabel = "Empty board display",
     messageLabel = defaultMessageLabel,
     announceUpdates = false,
+    bezel = true,
   }: BoardDisplayProps) {
     // Reduced motion, decided here rather than left to CSS (issue #180).
     //
@@ -1320,16 +1383,23 @@ export const BoardDisplay = memo(
     const flapStepMs = resolveFlapSpeed(flapSpeed);
 
     // Get dimensions for the device type
-    const dims = resolveDimensions(deviceType, notesWide, notesTall);
+    const dims = resolveDimensions(deviceType, notesWide, notesTall, gridRows, gridCols);
+    // Seams mark physical Note boundaries, so only a note_array has them — a
+    // panel is one seamless surface even where it crosses a 3×15 boundary.
     const showSeams = isNoteArray(deviceType);
     // Seam gap: additional left/top margin applied at Note physical boundaries
     const seamGap = size === "sm" ? "6px" : size === "md" ? "8px" : "10px";
+    // What this board's code-62 flap carries. The grid below substitutes it
+    // into the landed tokens; the tiles need it too, for the drum position
+    // their flaps pass through on the way (see drumChar).
+    const drumGlyph = resolveCode62Glyph(deviceType, code62Glyph);
 
     // Memoize grid calculation to avoid recalculating on every render
     const grid = useMemo(() => {
+      if (cells !== undefined) return cellsToGrid(cells, dims.rows, dims.cols, deviceType, code62Glyph);
       const messageForGrid = message ?? "";
-      return messageToGrid(messageForGrid, dims.rows, dims.cols, deviceType, code62Glyph);
-    }, [message, dims.rows, dims.cols, deviceType, code62Glyph]);
+      return messageToGrid(messageForGrid, dims.rows, dims.cols, deviceType, code62Glyph, { extendedMarkup });
+    }, [cells, message, dims.rows, dims.cols, deviceType, code62Glyph, extendedMarkup]);
 
     // White board has light bezel and border
     const isWhiteBoard = boardType === "white";
@@ -1349,16 +1419,19 @@ export const BoardDisplay = memo(
 
     const boardText = useMemo(() => {
       if (isLoading) return loadingLabel;
-      if (!message) return emptyLabel;
+      if (cells !== undefined ? cellsAreBlank(cells) : !message) return emptyLabel;
       // `messageToText` rather than a local regex (issue #205): it reads the
       // message with the same parser the tiles do, so the name says what is
       // actually on the board, and all three renderers now derive it one way.
-      const text = messageToText(message, deviceType, code62Glyph);
+      const text =
+        cells !== undefined
+          ? cellsToText(cells, deviceType, code62Glyph)
+          : messageToText(message!, deviceType, code62Glyph, { extendedMarkup });
       // A board of nothing but color tiles draws no text; it is not empty, so
       // it gets the generic name rather than `emptyLabel` or a dangling
       // "Board display: " with nothing after it.
       return text ? messageLabel(text) : NO_TEXT_LABEL;
-    }, [message, deviceType, code62Glyph, isLoading, loadingLabel, emptyLabel, messageLabel]);
+    }, [cells, message, deviceType, code62Glyph, extendedMarkup, isLoading, loadingLabel, emptyLabel, messageLabel]);
 
     // What the live region says, when one is asked for (issue #206).
     //
@@ -1430,28 +1503,42 @@ export const BoardDisplay = memo(
             `StaticBoardDisplay`'s tiles already have via `shrink-0` (#203).
             The answer for a slot narrower than a board is
             `ScaledBoardDisplay`, which scales the whole board to fit. */}
+        {/* `bezel={false}`: the same two boxes with nothing drawn on them — no
+            border, colour, shadow, padding or surface — so the board is its
+            tile grid, transparent, and whoever measures the housing
+            (ScaledBoardDisplay, TvFrame's fit) measures the grid. The
+            attribute and style branches leave the default DOM byte-identical. */}
         <div
           role="img"
           aria-label={boardText}
           data-slot="board-display"
           data-board-preview=""
-          className={`${borderClasses} ${className}`}
-          style={{
-            backgroundColor: bezelBg,
-            borderColor,
-            boxShadow,
-            width: "fit-content",
-          }}
+          {...(bezel ? {} : { "data-bezel": "false" })}
+          className={bezel ? `${borderClasses} ${className}` : className}
+          style={
+            bezel
+              ? {
+                  backgroundColor: bezelBg,
+                  borderColor,
+                  boxShadow,
+                  width: "fit-content",
+                }
+              : { width: "fit-content" }
+          }
         >
           {/* Inner bezel border */}
           <div
-            className={`${paddingClasses[size]} relative`}
+            className={bezel ? `${paddingClasses[size]} relative` : "relative"}
             aria-hidden="true"
-            style={{
-              background: isWhiteBoard
-                ? "linear-gradient(135deg, var(--color-board-surface-light) 0%, var(--color-board-bezel-border-light) 100%)"
-                : "linear-gradient(135deg, var(--color-board-surface-dark) 0%, var(--color-board-black) 100%)",
-            }}
+            style={
+              bezel
+                ? {
+                    background: isWhiteBoard
+                      ? "linear-gradient(135deg, var(--color-board-surface-light) 0%, var(--color-board-bezel-border-light) 100%)"
+                      : "linear-gradient(135deg, var(--color-board-surface-dark) 0%, var(--color-board-black) 100%)",
+                  }
+                : undefined
+            }
           >
             <div className={`flex flex-col ${gapClasses[size]}`}>
               {grid.map((row, rowIdx) => {
@@ -1484,6 +1571,7 @@ export const BoardDisplay = memo(
                     isRowSeam={isRowSeam}
                     seamGap={seamGap}
                     emitCellMetadata={emitCellMetadata}
+                    code62Glyph={drumGlyph}
                   />
                 );
               })}
@@ -1496,6 +1584,7 @@ export const BoardDisplay = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.message === nextProps.message &&
+      prevProps.cells === nextProps.cells &&
       prevProps.isLoading === nextProps.isLoading &&
       prevProps.size === nextProps.size &&
       prevProps.className === nextProps.className &&
@@ -1504,6 +1593,8 @@ export const BoardDisplay = memo(
       prevProps.code62Glyph === nextProps.code62Glyph &&
       prevProps.notesWide === nextProps.notesWide &&
       prevProps.notesTall === nextProps.notesTall &&
+      prevProps.gridRows === nextProps.gridRows &&
+      prevProps.gridCols === nextProps.gridCols &&
       prevProps.isStatic === nextProps.isStatic &&
       prevProps.emitCellMetadata === nextProps.emitCellMetadata &&
       prevProps.animationsEnabled === nextProps.animationsEnabled &&
@@ -1513,10 +1604,11 @@ export const BoardDisplay = memo(
       prevProps.loadingLabel === nextProps.loadingLabel &&
       prevProps.emptyLabel === nextProps.emptyLabel &&
       prevProps.messageLabel === nextProps.messageLabel &&
+      prevProps.announceUpdates === nextProps.announceUpdates &&
       // Every prop must be listed here: one left out is silently inert, since
       // this comparator — not React's shallow default — decides whether the
       // board re-renders at all.
-      prevProps.announceUpdates === nextProps.announceUpdates
+      prevProps.bezel === nextProps.bezel
     );
   },
 );

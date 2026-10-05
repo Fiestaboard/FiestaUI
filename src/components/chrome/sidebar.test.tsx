@@ -237,6 +237,215 @@ describe("Sidebar footer", () => {
   });
 });
 
+describe("Sidebar menu notice", () => {
+  const mobileHeader = () => document.querySelector<HTMLElement>("header")!;
+  const hamburgerDot = () => mobileHeader().querySelector('[data-slot="sidebar-menu-notice"]');
+
+  it("puts no dot on the hamburger by default", () => {
+    renderSidebar();
+    expect(hamburgerDot()).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: LABELS.openMenu })).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("dots the closed hamburger and describes why", () => {
+    // In the drawer the account menu's rows are inline, so there is no
+    // trigger to wear the dot; the hamburger is the only thing on screen.
+    renderSidebar({ menuNotice: "Update available" });
+    const button = screen.getByRole("button", { name: LABELS.openMenu });
+    expect(button).toHaveAccessibleDescription("Update available");
+    expect(button).toContainElement(hamburgerDot() as HTMLElement);
+  });
+
+  it("drops the dot while the drawer is open, where the glyph is a close X", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ menuNotice: "Update available" });
+    expect(hamburgerDot()).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    const close = within(mobileHeader()).getByRole("button", { name: LABELS.closeMenu });
+    expect(close).not.toHaveAttribute("aria-describedby");
+    expect(hamburgerDot()).not.toBeInTheDocument();
+  });
+
+  it("hands the notice to the account menu, and draws no dot of its own on the rail", () => {
+    // The rail's dot belongs on the app's trigger, which gets the words
+    // through the slot; a second dot from the Sidebar would be a double.
+    const seen: Array<string | undefined> = [];
+    renderSidebar({
+      menuNotice: "Update available",
+      renderSettingsMenu: ({ variant, notice }) => {
+        if (variant === "desktop") seen.push(notice);
+        return <button type="button">casa</button>;
+      },
+    });
+    expect(seen.at(-1)).toBe("Update available");
+    expect(desktopRail().querySelector('[data-slot="sidebar-menu-notice"]')).not.toBeInTheDocument();
+  });
+
+  it("hands over no notice when there is none", () => {
+    const seen: Array<string | undefined> = [];
+    renderSidebar({
+      menuNotice: "",
+      renderSettingsMenu: ({ notice }) => {
+        seen.push(notice);
+        return null;
+      },
+    });
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((n) => n === undefined)).toBe(true);
+    expect(hamburgerDot()).not.toBeInTheDocument();
+  });
+});
+
+describe("Sidebar settings shortcut", () => {
+  const SETTINGS: SidebarProps["settings"] = { href: "#settings", label: "Settings" };
+  const shortcut = () => within(desktopFooter()).queryByRole("link", { name: "Settings" });
+
+  it("renders a link to settings in the footer", () => {
+    renderSidebar({ ai: AI, renderSettingsMenu: settingsMenu, settings: SETTINGS });
+    expect(shortcut()).toHaveAttribute("href", "#settings");
+    // The handle the app's tests and e2e find it by. Asserted present here
+    // so the "absent" tests below are not vacuously true of a typo.
+    expect(shortcut()).toHaveAttribute("data-slot", "sidebar-settings-link");
+  });
+
+  it("names itself in a tooltip, being icon-only at every width", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ items: DESTINATIONS, settings: SETTINGS });
+
+    await user.hover(shortcut()!);
+    expect(await screen.findByText("Settings")).toBeInTheDocument();
+  });
+
+  it("still prefetches on hover and focus with the tooltip's handlers merged in", async () => {
+    // The tooltip trigger attaches its own onMouseEnter/onFocus to the same
+    // element; the app's must survive the merge.
+    const user = userEvent.setup();
+    const onPrefetch = vi.fn();
+    renderSidebar({ items: DESTINATIONS, settings: { ...SETTINGS, onPrefetch } });
+
+    await user.hover(shortcut()!);
+    expect(onPrefetch).toHaveBeenCalledTimes(1);
+    shortcut()!.focus();
+    expect(onPrefetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("works through a link that is a component, not a bare anchor", async () => {
+    // The app's renderLink returns its own router-link component. Everything
+    // the Sidebar and the tooltip hand over — name, slot, ref, handlers —
+    // has to arrive on the anchor that component renders.
+    function AppLink({ children, ...props }: React.ComponentProps<"a">) {
+      return <a {...props}>{children}</a>;
+    }
+    const user = userEvent.setup();
+    renderSidebar({
+      items: DESTINATIONS,
+      settings: { ...SETTINGS, active: true },
+      renderLink: ({ children, ...props }) => <AppLink {...props}>{children}</AppLink>,
+    });
+
+    expect(shortcut()).toHaveAttribute("data-slot", "sidebar-settings-link");
+    expect(shortcut()).toHaveAttribute("aria-current", "page");
+    await user.hover(shortcut()!);
+    expect(await screen.findByText("Settings")).toBeInTheDocument();
+  });
+
+  it("sits between the account menu and the assistant", () => {
+    renderSidebar({ ai: AI, renderSettingsMenu: settingsMenu, settings: SETTINGS });
+    const footer = desktopFooter();
+    const menu = within(footer).getByTestId("settings-menu");
+    const assistant = within(footer).getByRole("button", { name: LABELS.aiAssistant });
+    // Node.DOCUMENT_POSITION_FOLLOWING — menu, then gear, then assistant.
+    expect(menu.compareDocumentPosition(shortcut()!) & 4).toBeTruthy();
+    expect(shortcut()!.compareDocumentPosition(assistant) & 4).toBeTruthy();
+  });
+
+  it("is rendered through the app's link, so it navigates client-side", () => {
+    const renderAppLink = vi.fn(renderLink);
+    renderSidebar({ items: [], settings: SETTINGS, renderLink: renderAppLink });
+    expect(renderAppLink).toHaveBeenCalledWith(
+      expect.objectContaining({ href: "#settings", "aria-label": "Settings" }),
+      expect.objectContaining({ key: "settings", href: "#settings" }),
+    );
+  });
+
+  it("marks itself as the current page while settings is the route", () => {
+    // Settings is not a row of the list, so on /settings nothing else on the
+    // rail can answer "where am I".
+    renderSidebar({ settings: { ...SETTINGS, active: true } });
+    expect(shortcut()).toHaveAttribute("aria-current", "page");
+    expect(shortcut()!.className.split(/\s+/)).toContain("nav-active");
+  });
+
+  it("claims nothing while settings is not the route", () => {
+    renderSidebar({ settings: SETTINGS });
+    expect(shortcut()).not.toHaveAttribute("aria-current");
+    expect(shortcut()!.className.split(/\s+/)).not.toContain("nav-active");
+  });
+
+  it("stays on the collapsed rail, still named", () => {
+    renderSidebar({ collapsed: true, ai: AI, renderSettingsMenu: settingsMenu, settings: SETTINGS });
+    expect(shortcut()).toBeInTheDocument();
+  });
+
+  it("takes the rail's full width when collapsed, like the nav tiles above it", () => {
+    // A 36px square under 48px nav tiles makes the lit gear a visibly
+    // smaller "on" than the lit Home row.
+    const { unmount } = renderSidebar({ ai: AI, settings: SETTINGS });
+    const assistant = () => within(desktopFooter()).getByRole("button", { name: LABELS.aiAssistant });
+    expect(shortcut()!.className.split(/\s+/)).toContain("w-9");
+    expect(assistant().className.split(/\s+/)).toContain("w-9");
+    unmount();
+
+    renderSidebar({ collapsed: true, ai: AI, settings: SETTINGS });
+    expect(shortcut()!.className.split(/\s+/)).toContain("w-full");
+    expect(assistant().className.split(/\s+/)).toContain("w-full");
+  });
+
+  it("is absent unless the app asks for it", () => {
+    renderSidebar({ items: DESTINATIONS, ai: AI, renderSettingsMenu: settingsMenu });
+    expect(shortcut()).not.toBeInTheDocument();
+  });
+
+  it("renders a footer for the shortcut alone", () => {
+    renderSidebar({ settings: SETTINGS });
+    expect(shortcut()).toBeInTheDocument();
+  });
+
+  it("stays out of the mobile chrome, where the drawer lists settings itself", async () => {
+    const user = userEvent.setup();
+    // DESTINATIONS only: the shared list carries a "Settings" nav row, and
+    // this has to be able to say there is NO settings link on mobile.
+    renderSidebar({ items: DESTINATIONS, ai: AI, renderSettingsMenu: settingsMenu, settings: SETTINGS });
+    expect(shortcut()).toBeInTheDocument();
+    expect(within(screen.getByRole("banner")).queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+    const menu = screen.getByRole("dialog", { name: LABELS.navigationMenu });
+    expect(within(menu).queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
+  });
+});
+
+describe("Sidebar current page", () => {
+  it("announces the active nav row as the current page", () => {
+    // The fill is for the eye. Without aria-current the settings shortcut
+    // was the only link on the rail a screen reader ever heard as current.
+    renderSidebar();
+    expect(within(desktopNav()).getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+    expect(within(desktopNav()).getByRole("link", { name: "Pages" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("announces it in the mobile menu too", async () => {
+    const user = userEvent.setup();
+    renderSidebar();
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    const mobileNav = within(screen.getByRole("dialog", { name: LABELS.navigationMenu })).getByRole("navigation");
+    expect(within(mobileNav).getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+    expect(within(mobileNav).getByRole("link", { name: "Pages" })).not.toHaveAttribute("aria-current");
+  });
+});
+
 describe("Sidebar mobile header", () => {
   const mobileHeader = () => screen.getByRole("banner");
 

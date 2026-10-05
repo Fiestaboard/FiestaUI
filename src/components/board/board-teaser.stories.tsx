@@ -34,6 +34,11 @@ const meta = {
       description:
         "Which glyph the board this strip stands for draws for code 62. Already resolved by the consumer — a one-row strip has no device shape of its own. Defaults to `degree`.",
     },
+    extendedMarkup: {
+      control: "boolean",
+      description:
+        "Parse the extended markup (`{red:HOT}` spans as plain letters, `{icon:sun}` icons as their fallback tile). Off by default until FiestaBoard's Python renderer has parity; same contract as `StaticBoardDisplay`.",
+    },
     className: {
       control: "text",
       description: "Additional CSS classes on the strip container",

@@ -68,8 +68,14 @@ import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "../compone
 import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
 import { BoardTeaser } from "../components/board/board-teaser";
+import { CharacterGlyph } from "../components/board/character-glyph";
+import { CharacterSetSpecimen } from "../components/board/character-set-specimen";
+import { DisplayPreview } from "../components/board/display-preview";
+import { LedMatrixDisplay } from "../components/board/led-matrix-display";
+import { LedTransitionPicker } from "../components/board/led-transition-picker";
 import { ScaledBoardDisplay } from "../components/board/scaled-board-display";
 import { StaticBoardDisplay } from "../components/board/static-board-display";
+import { TvFrame } from "../components/board/tv-frame";
 import { BoardIcon } from "../components/chrome/board-icon";
 import { BoardSelector } from "../components/chrome/board-selector";
 import {
@@ -111,6 +117,7 @@ import {
 } from "../components/chrome/top-nav";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/containment/accordion";
 import { ActionCard } from "../components/containment/action-card";
+import { Avatar } from "../components/containment/avatar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { IconTile } from "../components/containment/icon-tile";
@@ -1040,6 +1047,14 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       />
     </Stack>
   ),
+  Avatar: () => (
+    <div className="flex items-end gap-3">
+      <Avatar size="sm" name="casa" />
+      <Avatar size="md" name="ada.lovelace" />
+      <Avatar size="lg" tone="brand" name="Grace Hopper" />
+      <Avatar size="md" />
+    </div>
+  ),
   Card: () => (
     <Grid cols="1" sm="2" gap="4" className="w-full max-w-3xl">
       <Card>
@@ -1582,6 +1597,36 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </div>
   ),
   BoardTeaser: () => <BoardTeaser teaser="AQI 42 GOOD" size="md" />,
+  CharacterGlyph: () => (
+    <div className="flex items-center gap-2">
+      <CharacterGlyph token="{icon:sun}" charset="led_5x7" />
+      <CharacterGlyph token="{red:A}" charset="led_5x7" />
+      <CharacterGlyph token="{icon:sun}" charset="vestaboard_v2" />
+      <CharacterGlyph token="a" charset="vestaboard_v1" markUnsupported />
+    </div>
+  ),
+  CharacterSetSpecimen: () => <CharacterSetSpecimen charset="led_3x5" compareTo="vestaboard_v2" size="sm" />,
+  LedTransitionPicker: () => (
+    <div className="w-[560px] max-w-full">
+      <LedTransitionPicker model="divoom_pixoo64" preview={false} columns="2" />
+    </div>
+  ),
+  LedMatrixDisplay: () => (
+    <LedMatrixDisplay message={"72° SUNNY\nAQI 42\n{66}{66} GOOD"} preset="hub75_64x32" size="sm" />
+  ),
+  DisplayPreview: () => (
+    <div className="flex flex-col items-center gap-3">
+      <DisplayPreview model="vestaboard_note" message={"72° SUNNY\nAQI 42 GOOD"} size="sm" />
+      <DisplayPreview model="ulanzi_tc001_awtrix" message="72° {66}OK" size="sm" />
+    </div>
+  ),
+  TvFrame: () => (
+    <div className="w-[480px] max-w-full">
+      <TvFrame diagonalInches={55}>
+        <DisplayPreview model="vestaboard_note" message={"72° SUNNY\nAQI 42 GOOD"} size="sm" bezel={false} />
+      </TvFrame>
+    </div>
+  ),
 
   /* ---- Data ---- */
   StatStrip: () => (

@@ -147,6 +147,10 @@ export const INVENTORY = [
         name: "ActionCard",
         summary: "Card's surface as one pressable target — medallion, title, description; button or link.",
       },
+      {
+        name: "Avatar",
+        summary: "Round mark for a person — initials from a name, or a glyph; three sizes, neutral or brand.",
+      },
       { name: "Card", summary: "Surface with header, content, footer and action slots." },
       { name: "Collapsible", summary: "Single show/hide region driven by its own trigger." },
       {
@@ -233,6 +237,34 @@ export const INVENTORY = [
       { name: "BoardDisplay", summary: "The animated display, with flap cascade and a live region." },
       { name: "BoardBackdrop", summary: "A field of split-flap rows used as a page backdrop." },
       { name: "BoardTeaser", summary: "One-line teaser strip for cards and lists." },
+      {
+        name: "CharacterGlyph",
+        summary:
+          "One token from a character set on its own — LED dots or a flap tile, with the set's fallback when unsupported.",
+      },
+      {
+        name: "LedTransitionPicker",
+        summary: "The transition menu for an LED board — None and every kind — with what the chosen device can run.",
+      },
+      {
+        name: "CharacterSetSpecimen",
+        summary:
+          "A specimen of one character set — every glyph, tile and icon — marking what it adds or lacks against another.",
+      },
+      {
+        name: "LedMatrixDisplay",
+        summary: "An LED matrix (AWTRIX, HUB75, Pixoo…) — the same message set in a bitmap font, painted on a canvas.",
+      },
+      {
+        name: "DisplayPreview",
+        summary:
+          "One entry point for any device model — picks the split-flap or LED renderer from the model's declared technology.",
+      },
+      {
+        name: "TvFrame",
+        summary:
+          "An OLED television around a board renderer — FiestaPanel's housing, sized by diagonal and aspect, dimmable, with an offline state. A split-flap board on it is bare flaps on the black.",
+      },
     ],
   },
   {
@@ -275,11 +307,14 @@ export const INVENTORY = [
       { name: "VariablePickerContent", summary: "Plugin variables, grouped by plugin with previews." },
       {
         name: "ColorPickerContent",
-        summary: "The board's eight hardware tile colours, plus the code-62 flap character.",
+        summary: "The board's eight tile colours and code-62 flap, plus a set's text colours, block colours and icons.",
       },
       { name: "FormattingPickerContent", summary: "Layout tokens — centre, fill space." },
       { name: "FilterPickerContent", summary: "Filters applied to the selected variable node." },
-      { name: "DrawCharPickerContent", summary: "Brush picker for draw mode — colours, characters and the eraser." },
+      {
+        name: "DrawCharPickerContent",
+        summary: "Brush picker for draw mode — colours, characters, the eraser, and a set's icons.",
+      },
     ],
   },
   {

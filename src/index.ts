@@ -8,6 +8,7 @@
  */
 export * from "./components/containment/accordion";
 export * from "./components/containment/action-card";
+export * from "./components/containment/avatar";
 export * from "./components/containment/card";
 export * from "./components/containment/collapsible";
 export * from "./components/containment/icon-tile";
@@ -75,6 +76,7 @@ export * from "./components/chrome/page-layout";
 export * from "./components/chrome/page-toolbar";
 export * from "./components/chrome/pagination";
 export * from "./components/chrome/sidebar";
+export * from "./components/chrome/sidebar-account-trigger";
 export * from "./components/chrome/sidebar-settings-trigger";
 export * from "./components/chrome/skip-to-content";
 export * from "./components/chrome/theme-toggle";
@@ -91,7 +93,183 @@ export * from "./components/board/static-board-display";
 export * from "./lib/board-characters";
 export * from "./lib/board-colors";
 export * from "./lib/board-dimensions";
+// The icon registry behind `{icon:…}` (parsed only under `extendedMarkup`):
+// a curated surface, so the LED glyph data that joins it later stays internal.
+export {
+  BOARD_ICON_ALIASES,
+  BOARD_ICON_NAMES,
+  BOARD_ICONS,
+  type BoardIconName,
+  type BoardIconSpec,
+  isBoardIconName,
+  resolveBoardIconName,
+} from "./lib/board-icons";
 export * from "./lib/board-previews";
+// One token from a character set, drawn the way its board draws it (LED
+// dots or a flap tile), and a specimen sheet of a whole set: the glyph
+// surface the editor pickers build on. Curated: the per-renderer internals
+// stay unexported.
+export {
+  CharacterGlyph,
+  type CharacterGlyphLabels,
+  characterGlyphName,
+  type CharacterGlyphProps,
+  characterGlyphRenderer,
+  type CharacterGlyphSize,
+  characterGlyphToken,
+  DEFAULT_CHARACTER_GLYPH_LABELS,
+} from "./components/board/character-glyph";
+export {
+  CharacterSetSpecimen,
+  type CharacterSetSpecimenLabels,
+  type CharacterSetSpecimenProps,
+  DEFAULT_CHARACTER_SET_SPECIMEN_LABELS,
+} from "./components/board/character-set-specimen";
+// The LED matrix preview renderer: one canvas painted from the frame the
+// data layer below produces, animated between messages by the transition
+// engine.
+export {
+  LedMatrixDisplay,
+  type LedMatrixDisplayProps,
+  type LedPixelShape,
+} from "./components/board/led-matrix-display";
+// One preview entry point for any device model: dispatches on the model's
+// declared technology to the split-flap or the LED renderer, so previews
+// of plugin-declared devices are derived from their data, never shipped as
+// plugin React. The override gate is pure data and stays internal.
+export { DisplayPreview, type DisplayPreviewFrame, type DisplayPreviewProps } from "./components/board/display-preview";
+// The OLED television FiestaPanel shows on, around any board renderer:
+// `DisplayPreview frame="tv"` uses it, with the set in `tv`. The geometry
+// and fit helpers stay internal.
+export { type TvAspect, TvFrame, type TvFrameOptions, type TvFrameProps } from "./components/board/tv-frame";
+// The transition menu as a settings control: one card per entry, judged
+// against a device model, with what the device cannot run kept reachable.
+export {
+  DEFAULT_LED_TRANSITION_PICKER_LABELS,
+  LedTransitionPicker,
+  type LedTransitionPickerLabels,
+  type LedTransitionPickerProps,
+} from "./components/board/led-transition-picker";
+// The LED data layer: bitmap fonts, character sets, device models and the
+// layout → raster pipeline. Curated named exports — the glyph table and the
+// cell-level drawing functions are renderer plumbing (`@internal`) and stay
+// unexported; the picker components come in a later PR.
+export {
+  CHARACTER_SET_IDS,
+  CHARACTER_SETS,
+  type CharacterSet,
+  characterSetForDevice,
+  type CharacterSetId,
+  type CharacterSetInput,
+  type CharsetDiff,
+  charsetDiff,
+  charsetFallback,
+  charsetHasChar,
+  charsetHasIcon,
+  type CharsetIssue,
+  charsetIssue,
+  charsetLineage,
+  charsetSupports,
+  type CharsetValidation,
+  type CharsetValidationIssue,
+  charsInSet,
+  iconsInSet,
+  isCharacterSetId,
+  LOWERCASE_CHARS,
+  materializeCharacterSet,
+  resolveCharacterSet,
+  tryResolveCharacterSet,
+  validateCharacterSet,
+  validateMessage,
+  type ValidationResult,
+} from "./lib/character-sets";
+export {
+  characterSetForModel,
+  DEVICE_FAMILIES,
+  DEVICE_MODEL_IDS,
+  DEVICE_MODELS,
+  type DeviceAnimation,
+  type DeviceAppearance,
+  type DeviceColor,
+  type DeviceFamily,
+  type DeviceFamilyId,
+  type DeviceGeometry,
+  type DeviceModel,
+  deviceModelForDeviceType,
+  deviceModelForPreset,
+  type DeviceModelId,
+  type DeviceModelRef,
+  type DisplayTechnology,
+  isDeviceModelId,
+  ledSpecForModel,
+  modelsByTechnology,
+  resolveDeviceModel,
+  tryResolveDeviceModel,
+  validateDeviceModel,
+} from "./lib/devices";
+export { LED_FONTS, type LedFont, type LedFontId } from "./lib/led-fonts";
+export {
+  type BoardCellGrid,
+  DEFAULT_LED_TEXT_COLOR,
+  frameToAscii,
+  frameToBits,
+  layoutLedCellGrid,
+  layoutLedMessage,
+  LED_MATRIX_PRESETS,
+  LED_MONO_COLORS,
+  ledBackgroundMask,
+  type LedCell,
+  type LedDrawOp,
+  type LedFrame,
+  type LedGridLayout,
+  ledGridLayout,
+  type LedLayout,
+  type LedLayoutOptions,
+  type LedLetterCase,
+  type LedMatrixPreset,
+  type LedMatrixPresetId,
+  type LedMatrixSpec,
+  type LedMonoColorName,
+  MAX_MATRIX_SIZE,
+  MIN_MATRIX_SIZE,
+  parseHexColor,
+  rasterizeLedLayout,
+  renderLedFrame,
+  renderLedGlyph,
+} from "./lib/led-matrix";
+// LED transitions: the engine (a pure function of time between two layouts,
+// sampled by the preview and by device adapters) and the menu a device model
+// is judged against. The seeded scramble's hash and generator stay internal;
+// `ledScramblePool` and `ledFlipSeed` are exported so a port can prove its
+// pool and its seeds match before it compares frames.
+export {
+  defaultTransitionIdForModel,
+  isLedTransitionId,
+  LED_TRANSITION_IDS,
+  LED_TRANSITIONS,
+  type LedTransitionAvailability,
+  type LedTransitionEntry,
+  type LedTransitionId,
+  type ResolvedLedTransition,
+  resolveLedTransition,
+  transitionsForModel,
+  transitionSpecForDevice,
+} from "./lib/led-transition-registry";
+export {
+  DEFAULT_LED_FLIP_STAGGER,
+  DEFAULT_LED_FLIP_STEP_MS,
+  DEFAULT_LED_SCRAMBLE_STEPS,
+  DEFAULT_LED_TRANSITION_MS,
+  LED_TRANSITION_KINDS,
+  ledFlipSeed,
+  ledScramblePool,
+  type LedTransition,
+  ledTransitionFrames,
+  type LedTransitionKind,
+  type LedTransitionSpec,
+  MIN_CASCADE_SLOT_MS,
+  planLedTransition,
+} from "./lib/led-transitions";
 // Data display — derived metrics rendered for reading, not editing (#229).
 export * from "./components/data/bar-list";
 export * from "./components/data/stat-strip";
@@ -122,9 +300,22 @@ export * from "./components/editor/filter-picker-content";
 export * from "./components/editor/formatting-picker-content";
 export * from "./components/editor/variable-picker-content";
 // TipTap schema + node views, for apps composing their own editor instance.
+// Task 8: the extended markup, curated (no `export *` for new modules).
+export {
+  type CharsetWarning,
+  CharsetWarnings,
+  charsetWarningsKey,
+  type CharsetWarningsLabels,
+  collectCharsetWarnings,
+  DEFAULT_CHARSET_WARNINGS_LABELS,
+  readCharsetWarnings,
+  setCharsetWarningsCharset,
+} from "./components/editor/extensions/charset-warnings";
+export { ColorSpanMark, spanColorHex } from "./components/editor/extensions/color-span-mark";
 export * from "./components/editor/extensions/color-tile-node";
 export * from "./components/editor/extensions/fill-space-node";
 export * from "./components/editor/extensions/formula-node";
+export { type IconAttrs, IconNode } from "./components/editor/extensions/icon-node";
 export * from "./components/editor/extensions/line-navigation";
 export * from "./components/editor/extensions/single-paragraph-doc";
 export * from "./components/editor/extensions/trailing-newline";
@@ -133,6 +324,12 @@ export * from "./components/editor/extensions/wrapped-text-node";
 export * from "./components/editor/node-views/color-tile-node-view";
 export * from "./components/editor/node-views/fill-space-node-view";
 export * from "./components/editor/node-views/formula-node-view";
+export {
+  DEFAULT_ICON_NODE_VIEW_LABELS,
+  IconNodeView,
+  type IconNodeViewLabels,
+  type IconNodeViewProps,
+} from "./components/editor/node-views/icon-node-view";
 export * from "./components/editor/node-views/node-view-context";
 export * from "./components/editor/node-views/variable-node-view";
 export * from "./components/editor/node-views/wrapped-text-view";

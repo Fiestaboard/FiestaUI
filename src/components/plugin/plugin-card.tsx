@@ -48,6 +48,13 @@ export interface PluginCardProps {
    */
   code62Glyph?: Code62Glyph;
   /**
+   * Parse the extended markup — colour spans `{red:HOT}`, block spans and
+   * `{icon:sun}` icons — on the board. Unset, the board's own default applies
+   * (off until split-flap boards flip to the extended grammar in a major, on
+   * after it); pass `false` to keep the literal parse through that flip.
+   */
+  extendedMarkup?: boolean;
+  /**
    * Renders the card's primary link. Receives the class that stretches it over
    * the card, and the card title as children.
    */
@@ -67,6 +74,7 @@ export function PluginCard({
   teaser,
   boardType = "black",
   code62Glyph,
+  extendedMarkup,
   renderLink,
   action,
   className,
@@ -111,7 +119,12 @@ export function PluginCard({
 
       {teaser && (
         <div className="border-t bg-muted/30 px-3 py-4">
-          <ScaledBoardTeaser teaser={teaser} boardType={boardType} code62Glyph={code62Glyph} />
+          <ScaledBoardTeaser
+            teaser={teaser}
+            boardType={boardType}
+            code62Glyph={code62Glyph}
+            extendedMarkup={extendedMarkup}
+          />
         </div>
       )}
     </div>

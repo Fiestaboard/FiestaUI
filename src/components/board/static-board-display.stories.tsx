@@ -33,7 +33,7 @@ const meta = {
     },
     deviceType: {
       control: "select",
-      options: ["flagship", "note", "note_array"],
+      options: ["flagship", "note", "note_array", "panel"],
       description: "Board hardware family",
     },
     notesWide: {
@@ -43,6 +43,14 @@ const meta = {
     notesTall: {
       control: { type: "number", min: 1, max: 8 },
       description: "Notes tall (note_array only)",
+    },
+    gridRows: {
+      control: { type: "number", min: 3, max: 96 },
+      description: "Explicit grid rows (panel only; clamped to 3–96)",
+    },
+    gridCols: {
+      control: { type: "number", min: 15, max: 128 },
+      description: "Explicit grid columns (panel only; clamped to 15–128)",
     },
     previewLabel: {
       control: "text",
@@ -58,9 +66,19 @@ const meta = {
       control: "text",
       description: "Accessible label when the board is empty",
     },
+    extendedMarkup: {
+      control: "boolean",
+      description:
+        "Parse the extended markup — `{red:HOT}` colour spans (drawn as plain letters), `{black/white:ON}` block spans and `{icon:sun}` icons (drawn as their fallback tile or character). Off by default: FiestaBoard's Python renderer does not know this grammar yet, so a preview shows what the hardware draws today. Flips on in a coordinated release.",
+    },
     className: {
       control: "text",
       description: "Additional CSS classes on the board bezel",
+    },
+    bezel: {
+      control: "boolean",
+      description:
+        "Draw the housing (default). Off: only the tile grid, transparent — no bezel, border, shadow, padding or surface. What a split-flap board draws inside TvFrame, as the Apple TV app shows FiestaPanel.",
     },
   },
 } satisfies Meta<typeof StaticBoardDisplay>;
@@ -101,11 +119,84 @@ export const NoteDevice: Story = {
   },
 };
 
+/** A 12 × 29 panel: an explicit character grid, drawn seamlessly. */
+export const PanelGrid: Story = {
+  args: {
+    message:
+      "A PANEL IS SIZED BY CHARACTER\n{green}12 ROWS BY 29 COLUMNS{/green}\nNOT BY WHOLE NOTE BLOCKS\n\nONE SEAMLESS SURFACE SO\nNO SEAMS AT ROW 3 OR\nAT COLUMN 15 °",
+    size: "sm",
+    deviceType: "panel",
+    gridRows: 12,
+    gridCols: 29,
+  },
+};
+
 export const Empty: Story = {
   args: {
     message: null,
     size: "sm",
   },
+};
+
+/**
+ * `bezel={false}`: the tile grid and nothing else — no bezel, border, shadow,
+ * padding or surface — on whatever is behind it. Here that is the black a TV
+ * screen gives, which is the case this exists for: FiestaPanel's Apple TV app
+ * shows the flaps on the set's black with no board frame around them, and
+ * `TvFrame` shows a split-flap board the same way. The gutters, note seams and
+ * the tiles' own leaf, hinge and colour materials are untouched, and the board
+ * keeps its role and name.
+ */
+export const Frameless: Story = {
+  args: {
+    message: "FLAPS ONLY\n{red}NO FRAME{/red}\n{63}{64}{65} ON BLACK",
+    size: "md",
+    deviceType: "note",
+    bezel: false,
+  },
+  decorators: [
+    (Story) => (
+      <div className="rounded-sm bg-black p-8">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+/**
+ * The extended markup on a split-flap board, drawn twice: `extendedMarkup`
+ * is the only difference.
+ *
+ * Today (default) the board draws `{red:RED}` and `{icon:sun}` as the literal
+ * characters, because that is what FiestaBoard's Python renderer sends the
+ * hardware. With `extendedMarkup` the span's letters survive uncoloured and
+ * the icons become their fallback tiles — a yellow tile for the sun, a green
+ * one for the check — which is what split-flap boards will draw once the
+ * Python parser has parity (the flip ships as a coordinated major). Note the
+ * accessible name under each board follows what the tiles draw.
+ */
+export const ExtendedMarkup: Story = {
+  args: {
+    message: "{red:RED} ALERT\n{icon:sun} 72° UV 6\n{icon:check} ALL OK",
+    size: "sm",
+    deviceType: "note",
+  },
+  render: (args) => (
+    <div className="flex flex-col gap-6">
+      <figure className="flex flex-col gap-2">
+        <StaticBoardDisplay {...args} />
+        <figcaption className="text-sm text-muted-foreground">
+          Default — what the hardware draws today: the markers are literal text
+        </figcaption>
+      </figure>
+      <figure className="flex flex-col gap-2">
+        <StaticBoardDisplay {...args} extendedMarkup />
+        <figcaption className="text-sm text-muted-foreground">
+          extendedMarkup — the planned degradation: plain letters, fallback tiles
+        </figcaption>
+      </figure>
+    </div>
+  ),
 };
 
 /**
