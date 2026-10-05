@@ -296,9 +296,22 @@ export * from "./components/editor/filter-picker-content";
 export * from "./components/editor/formatting-picker-content";
 export * from "./components/editor/variable-picker-content";
 // TipTap schema + node views, for apps composing their own editor instance.
+// Task 8: the extended markup, curated (no `export *` for new modules).
+export {
+  type CharsetWarning,
+  CharsetWarnings,
+  charsetWarningsKey,
+  type CharsetWarningsLabels,
+  collectCharsetWarnings,
+  DEFAULT_CHARSET_WARNINGS_LABELS,
+  readCharsetWarnings,
+  setCharsetWarningsCharset,
+} from "./components/editor/extensions/charset-warnings";
+export { ColorSpanMark, spanColorHex } from "./components/editor/extensions/color-span-mark";
 export * from "./components/editor/extensions/color-tile-node";
 export * from "./components/editor/extensions/fill-space-node";
 export * from "./components/editor/extensions/formula-node";
+export { type IconAttrs, IconNode } from "./components/editor/extensions/icon-node";
 export * from "./components/editor/extensions/line-navigation";
 export * from "./components/editor/extensions/single-paragraph-doc";
 export * from "./components/editor/extensions/trailing-newline";
@@ -307,6 +320,12 @@ export * from "./components/editor/extensions/wrapped-text-node";
 export * from "./components/editor/node-views/color-tile-node-view";
 export * from "./components/editor/node-views/fill-space-node-view";
 export * from "./components/editor/node-views/formula-node-view";
+export {
+  DEFAULT_ICON_NODE_VIEW_LABELS,
+  IconNodeView,
+  type IconNodeViewLabels,
+  type IconNodeViewProps,
+} from "./components/editor/node-views/icon-node-view";
 export * from "./components/editor/node-views/node-view-context";
 export * from "./components/editor/node-views/variable-node-view";
 export * from "./components/editor/node-views/wrapped-text-view";

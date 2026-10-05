@@ -302,11 +302,14 @@ export const INVENTORY = [
       { name: "VariablePickerContent", summary: "Plugin variables, grouped by plugin with previews." },
       {
         name: "ColorPickerContent",
-        summary: "The board's eight hardware tile colours, plus the code-62 flap character.",
+        summary: "The board's eight tile colours and code-62 flap, plus a set's text colours, block colours and icons.",
       },
       { name: "FormattingPickerContent", summary: "Layout tokens — centre, fill space." },
       { name: "FilterPickerContent", summary: "Filters applied to the selected variable node." },
-      { name: "DrawCharPickerContent", summary: "Brush picker for draw mode — colours, characters and the eraser." },
+      {
+        name: "DrawCharPickerContent",
+        summary: "Brush picker for draw mode — colours, characters, the eraser, and a set's icons.",
+      },
     ],
   },
   {

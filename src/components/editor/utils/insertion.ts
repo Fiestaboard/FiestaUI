@@ -5,21 +5,26 @@
 
 import type { Editor } from "@tiptap/react";
 
-import { parseLineContent } from "./serialization";
+import { parseLineContent, type TemplateMarkupOptions } from "./serialization";
 
 /**
  * Insert template content at the current cursor position in the editor
  * @param editor - The TipTap editor instance
  * @param templateString - Template string to insert (e.g., "{{weather.temperature}}", "{red}", "{{fill_space}}")
+ * @param options - How to read it; `extendedMarkup` lets `{{icon:sun}}` and `{{red:HOT}}` insert as such
  */
-export function insertTemplateContent(editor: Editor, templateString: string): void {
+export function insertTemplateContent(
+  editor: Editor,
+  templateString: string,
+  options: TemplateMarkupOptions = {},
+): void {
   if (!editor || !editor.state) {
     console.warn("Cannot insert content: editor is not available or not initialized");
     return;
   }
 
   // Parse the template string into TipTap nodes
-  const nodes = parseLineContent(templateString);
+  const nodes = parseLineContent(templateString, options);
 
   if (nodes.length === 0) {
     return;

@@ -9,7 +9,7 @@
 - the glyph and picker UI;
 - a single preview entry point.
 
-**Architecture:** The working prototype on `feat/led-matrix-display` is the reference implementation, and the spec records its full behaviour. This plan does not rewrite it. It carves the prototype into PRs in dependency order (Tasks 0–6), adds two pieces the prototype doesn't have yet (Task 7: cells-in rendering plus `DisplayPreview`; Task 8: output-plugin devDependencies), ends with the coordinated markup switch-over (Task 9), and records what each release unblocks downstream.
+**Architecture:** The working prototype on `feat/led-matrix-display` is the reference implementation, and the spec records its full behaviour. This plan does not rewrite it. It carves the prototype into PRs in dependency order (Tasks 0–6), adds the pieces the prototype doesn't have yet (Task 7: cells-in rendering plus `DisplayPreview`; Task 8: the device-aware `TemplateEditor`; Task 9: `TvFrame` for FiestaPanel previews; Task 10: the Storybook showcase; Task 11: output-plugin devDependencies), ends with the coordinated markup switch-over (Task 12), and records what each release unblocks downstream.
 
 **Tech stack:** React 19, TypeScript, Tailwind v4, Storybook 10 (VRT + test-runner a11y), vitest + jsdom, `node --test` fixture tests, and JSON Schema fixtures for the Python port.
 
@@ -19,7 +19,7 @@
 
 ## Global Constraints
 
-- **Every merge to `main` publishes a version.** The continuous release derives the bump from conventional commits, so each PR must be safe to ship alone: additive, default-off, and with no `!` / `BREAKING CHANGE`, except Task 9, which is a deliberate, coordinated major. A PR whose feature is half-done keeps it unexported or behind a prop that defaults to today's behaviour.
+- **Every merge to `main` publishes a version.** The continuous release derives the bump from conventional commits, so each PR must be safe to ship alone: additive, default-off, and with no `!` / `BREAKING CHANGE`, except Task 12, which is a deliberate, coordinated major. A PR whose feature is half-done keeps it unexported or behind a prop that defaults to today's behaviour.
 - **PRs are squash-merged, so the PR title is the commit the release gate sees.** Releases use `--generate-notes`, so anything a downstream consumer must know goes in the PR **title and body**, not only in commit messages.
 - **Parser parity is a contract.** `src/lib/board-characters.ts` mirrors FiestaBoard's Python renderer.
   - New grammar (`{colour:…}`, `{fg/bg:…}`, `{icon:…}`) stays behind `extendedMarkup` (default `false`) until FiestaBoard ships parser parity in a coordinated release.
@@ -63,7 +63,7 @@ The prototype is uncommitted on `feat/led-matrix-display` (base `81ef225`, revis
 
 | File                                                                         | Split across tasks                                                                                                                                                                           |
 | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/index.ts`                                                               | 1–7 (each adds its own exports)                                                                                                                                                              |
+| `src/index.ts`                                                               | 1–9 (each adds its own exports)                                                                                                                                                              |
 | `src/stories/component-inventory.ts` / `component-inventory-demos.tsx`       | 3–6                                                                                                                                                                                          |
 | `src/components/board/led-matrix-display.tsx` / `.stories.tsx` / `.test.tsx` | 3 (static) / 4 (transitions)                                                                                                                                                                 |
 | `scripts/ci/led-fixtures.mjs` and `src/lib/led-fixtures.test.ts`             | 2 (data + layout goldens) / 4 (transition goldens)                                                                                                                                           |
@@ -357,13 +357,77 @@ This is new work. FiestaBoard core parses markup once into rich cells (FiestaBoa
 
 ---
 
-### Task 8: Output-plugin device data as devDependencies (new; gated on FiestaBoard)
+### Task 8: Device-aware `TemplateEditor` (new)
+
+**PR title:** `feat(editor): device-aware TemplateEditor — charset/deviceModel, colour and block spans, icons, charset warnings`
+
+Added after the plan was approved. Task 6 gave the pickers `charset`; this threads it through the editor itself, so the TipTap surface reads, writes, offers and warns about the extended markup for whichever board a template targets. The template syntax and its rules were agreed with FiestaBoard (session `distributed-kindling-quokka-45`) and are recorded in spec §10.
+
+**Files:**
+
+- Modify:
+  - `src/components/editor/template-editor.tsx`: `charset?` (an id or a `CharacterSet`), `deviceModel?` (an id or a `DeviceModel`; implies the set through `characterSetForModel` with `code62Glyph`, and the grid from the model's geometry — an LED model's rows × cols are `ledGridLayout`'s; explicit `boardWidth` / `boardLines` still win). Unknown ids throw. The warnings summary is the textbox's accessible description.
+  - `template-editor-toolbar.tsx`: `charset`, threaded to both pickers; the picker callbacks wired to editor commands (`toggleMark` for spans, an icon atom at the caret); draw-mode swatches only for a set with tiles.
+  - `draw-char-picker-content.tsx`: an icon row for a set with icons (`{ kind: "icon" }` brushes).
+  - `utils/serialization.ts`: `TemplateParseOptions.extendedMarkup`, the nested double-brace tokenizer, the CLOSED head grammar (`spanHead`: a colour name, 63–70, `#rrggbb`, `fg/bg`, or `icon`; never `filled` / 71), mark-aware serialization (`serializeInlineNodes`).
+  - `utils/draw-mode.ts`: the icon brush; `{{icon:…}}` is one cell and a span is one cell per character, so draw mode stays positional over the new forms.
+  - `utils/length-calculator.ts`, `utils/insertion.ts`, `utils/stroke-transaction.ts`, `node-views/node-view-context.tsx` (the set reaches node views), `src/styles/editor.css`.
+- Create:
+  - `extensions/color-span-mark.ts` — a MARK with `color` / `background`, serialized `{{red:HOT}}` / `{{black/white:OPEN}}`
+  - `extensions/icon-node.ts` + `node-views/icon-node-view.tsx` — an atom drawn by `CharacterGlyph` with the target set, serialized `{{icon:sun}}` (always the canonical name; `{sun}` is a read-only alias, D16)
+  - `extensions/charset-warnings.ts` — decorations from `charsetIssue` / `charsetFallback` per cell, with a `title` naming what draws instead and a summary outside the surface; the split-flap case says the forms render literally until Task 12
+  - the tests: `template-editor-identity.test.tsx` (byte-identity without a set, snapshots generated at the parent commit), `utils/extended-markup.test.ts` (round-trips, nesting, edge cases, draw mode, length), `template-editor-charsets.test.tsx` (a real editor in jsdom: inserting a span, a block and an icon through the toolbar, the serialized value, the warnings)
+  - the stories: each charset/device (Flagship v1 and v2, Note, Pixoo 64, HUB75, AWTRIX, MAX7219, the ACME plugin set), the editor beside a live `DisplayPreview`, and the warnings
+
+**Rules (from the agreed inputs):**
+
+- [x] Without `charset` / `deviceModel` the editor is byte-identical in value and DOM: the extended forms are not parsed, so a split-flap template serializes exactly as today.
+- [x] The closed head grammar: `{{weather:sf.temperature}}` and any other head stays a variable. FiestaBoard reserves the colour names, the codes and `icon` as plugin ids.
+- [x] Spans, blocks and icons are OFFERED only when the set supports them (`colorSpans`, `blockSpans`, `icons`). A loaded template is never rewritten: a span read on a flap set is kept and warned about, not dropped.
+- [x] Nesting round-trips: a variable, formula or tile inside a span (`{{red:{{weather.temp}}°}}`); a span inside a span flattens to adjacent spans (the same cells).
+- [x] Data is not markup: there is no literal-brace escape in the editor's parser; the data-vs-markup rule is FiestaBoard's engine contract (spec §10.2).
+- [x] Length counting treats a span as its content and an icon as one cell.
+- [x] Case follows the set: a mixed-case set keeps typed lowercase (surface, template, draw stamps, no `case` warning); every other set, and no set, uppercases on serialize as before.
+
+**Steps:**
+
+- [x] Generate the byte-identity snapshots at the parent commit before changing the parser; never regenerate them.
+- [x] Build the parser, the mark, the icon node, the warnings and the wiring; tests for each.
+- [x] Stories, the a11y runner, screenshots looked at.
+- [ ] Run the checks, then open and merge the PR.
+
+**Downstream:** FiestaBoard's editor adopts the package editor with `deviceModel` threaded from the board. B5 `feat/template-extended-syntax` is the engine side of the same syntax (B4 #2161 has `TemplateEngine.render(..., extended_markup=False)`, applied per flap output until Task 12).
+
+---
+
+### Task 9: `TvFrame`, an OLED-TV-style frame for FiestaPanel previews (new)
+
+**PR title:** `feat(board): TvFrame for FiestaPanel previews`
+
+Stub: another agent writes the full entry and builds it. What is agreed:
+
+- A frame that wraps either renderer (split-flap or LED matrix) in an OLED-TV housing, selected by `DisplayPreview frame="tv"` for the `fiestapanel_split_flap` / `fiestapanel_led_matrix` models (`src/lib/plugin-model-fixtures.ts`). Today `frame="tv"` renders as `"none"` and only marks the housing (`data-frame`).
+- Inputs per board: the render style, the grid rows × cols, the screen diagonal and aspect ratio, and a dimming / offline state.
+- Consumers: the FiestaBoard web viewer (`panel-view.tsx` / `panel-board.tsx`). The tvOS app draws its own frame and does not use this.
+- Files: `src/components/board/tv-frame.tsx` (+ stories and test), `display-preview.tsx` (the `tv` branch), `src/index.ts`, the inventory.
+
+---
+
+### Task 10: Storybook showcase (new)
+
+**PR title:** `docs(storybook): LED matrix showcase`
+
+Stub: the owner scopes this. The intent: one showcase page that walks the shipped pieces end to end — every built-in and plugin model through `DisplayPreview`, the editor beside its preview (Task 8's story as a starting point), the character-set specimens and the transition picker — as the entry point for output-plugin authors and the FiestaBoard team.
+
+---
+
+### Task 11: Output-plugin device data as devDependencies (new; gated on FiestaBoard)
 
 **PR title:** `test(board): render and validate output-plugin device data`
 
 **Ready to start after Task 2.**
 
-The Pixoo repo is already live and public: https://github.com/Fiestaboard/fiestaboard-output--divoom-pixoo. Commit `432ec13c27f7b6f23d015bd8fe617d3a72fc9a5b` (same data as `a9266832`, README provenance updated for the fixed schemas) carries `output/device-models.json`, byte-identical to the revision 7 handoff (sha256 `ae3d62d4…`), and a data-only `package.json`. It is untagged.
+The Pixoo repo is already live and public: https://github.com/Fiestaboard/fiestaboard-output--divoom-pixoo. Commit `01e9ee21548012a007ef7aef78cdfe1a16cad678` carries the Task 2 data: `output/device-models.json` with the `appearance` block and no top-level `pixelShape` (sha256 `e7cbfff3…`), and a data-only `package.json`; its README cites `a70b719`. It is untagged.
 
 FiestaBoard tags v0.1.0 only once the data validates against the schema released in Task 2. Pin by that commit SHA until the tag exists, then switch to the tag.
 
@@ -371,7 +435,7 @@ The Vestaboard and FiestaPanel repos follow FiestaBoard's Phase 4 extraction, an
 
 **Files:**
 
-- Modify: `package.json` devDependencies: `"@fiestaboard/output-divoom-pixoo": "github:Fiestaboard/fiestaboard-output--divoom-pixoo#432ec13c27f7b6f23d015bd8fe617d3a72fc9a5b"` (later `#v0.1.0`), and later `-vestaboard` and `-fiestapanel`
+- Modify: `package.json` devDependencies: `"@fiestaboard/output-divoom-pixoo": "github:Fiestaboard/fiestaboard-output--divoom-pixoo#01e9ee21548012a007ef7aef78cdfe1a16cad678"` (later `#v0.1.0`), and later `-vestaboard` and `-fiestapanel`
 - Create:
   - `src/lib/output-plugin-data.test.ts`: validates each devDep's `output/device-models.json` (and `character-set.json`) against the **current** schemas
   - `src/components/board/output-plugin-devices.stories.tsx`: renders each plugin model through `DisplayPreview`
@@ -385,7 +449,7 @@ The Vestaboard and FiestaPanel repos follow FiestaBoard's Phase 4 extraction, an
 
 ---
 
-### Task 9: Coordinated `extendedMarkup` default flip (gated on FiestaBoard B1)
+### Task 12: Coordinated `extendedMarkup` default flip (gated on FiestaBoard B1)
 
 **PR title:** `feat(board)!: split-flap boards render extended markup by default`
 
@@ -417,7 +481,9 @@ The Vestaboard and FiestaPanel repos follow FiestaBoard's Phase 4 extraction, an
 | 2 + 4               | B2: `src/led/` ports the layout, raster and seeded scramble flip against `led-golden.json`. It needs the layout goldens (Task 2) and transition goldens (Task 4), not the canvas (Task 3). The Pixoo plugin uploads sequences within its 32-frame budget. |
 | 6                   | The editor adopts the package pickers, with `charset` threaded alongside `code62Glyph`.                                                                                                                                                                   |
 | 7                   | The app adopts `DisplayPreview`.                                                                                                                                                                                                                          |
-| 9 (coordinated)     | Turn on `extendedMarkup` for split-flap previews in the **same** release window as Python parser parity.                                                                                                                                                  |
+| 8                   | The editor adopts the package `TemplateEditor` with `deviceModel` threaded from the board; B5 `feat/template-extended-syntax` is the engine side (extended markup per output).                                                                            |
+| 9                   | The web viewer (`panel-view.tsx` / `panel-board.tsx`) adopts `DisplayPreview frame="tv"` for FiestaPanel.                                                                                                                                                 |
+| 12 (coordinated)    | Turn on `extendedMarkup` for split-flap previews in the **same** release window as Python parser parity.                                                                                                                                                  |
 
 **Hardware spike (FiestaBoard, before the Pixoo plugin's transport is finalised).** About an hour with a real Pixoo 64 to confirm:
 
@@ -432,7 +498,7 @@ The result decides the push-counter / reboot / animate-on-change mitigation reco
 
 The single list is the spec's §17. These are the ones that gate a task here:
 
-- **Legacy `{sun}` vs `{icon:sun}`**: decided (D16). Shortcuts become registry aliases, with tile fallbacks, shipping in Task 9.
+- **Legacy `{sun}` vs `{icon:sun}`**: decided (D16). Shortcuts become registry aliases, with tile fallbacks, shipping in Task 12. The editor always writes `{{icon:sun}}` (Task 8).
 - **Pixoo frames per change**: decided at 32. The hardware spike may argue for 16, which would change only the plugin's data, not this plan.
 - **Page-level override of a degraded transition**: affects FiestaBoard's settings work, not a FiestaUI task.
 
@@ -443,5 +509,4 @@ The single list is the spec's §17. These are the ones that gate a task here:
 - A loading drum for LED.
 - Brightness / gamma preview.
 - A BDF font parser.
-- The template editor's TipTap span/block/icon nodes and validation decorations. These are FiestaBoard app work, listed in spec §editor.
 - Device transports. These belong to FiestaBoard output plugins.

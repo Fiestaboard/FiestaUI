@@ -7,11 +7,13 @@ import { Fragment, useRef, useState } from "react";
 
 import { type Code62Glyph, resolveCode62Glyph } from "../../lib/board-characters";
 import type { DeviceType } from "../../lib/board-dimensions";
+import { BOARD_ICONS } from "../../lib/board-icons";
 import {
   type CharacterSet,
   type CharacterSetId,
   charsetHasChar,
   charsInSet,
+  iconsInSet,
   LOWERCASE_CHARS,
   resolveCharacterSet,
 } from "../../lib/character-sets";
@@ -47,6 +49,10 @@ export interface DrawCharPickerLabels {
   heart: string;
   /** Heading for the lowercase row a mixed-case set gets. */
   lowercase: string;
+  /** Heading for the icon row a set with icons gets. */
+  icons: string;
+  /** Accessible name for one icon stamp, given the icon's label. */
+  iconLabel: (iconLabel: string) => string;
 }
 
 export const DEFAULT_DRAW_CHAR_PICKER_LABELS: DrawCharPickerLabels = {
@@ -54,6 +60,8 @@ export const DEFAULT_DRAW_CHAR_PICKER_LABELS: DrawCharPickerLabels = {
   degree: "Degree",
   heart: "Heart",
   lowercase: "Lowercase",
+  icons: "Icons",
+  iconLabel: (iconLabel) => `${iconLabel} icon`,
 };
 
 export interface DrawCharPickerContentProps {
@@ -76,8 +84,9 @@ export interface DrawCharPickerContentProps {
   /**
    * The character set the target device draws (../../lib/character-sets) —
    * a built-in id or a set object (an output plugin's). Only the stamps it
-   * contains are offered, an LED set draws them as its dots, and a
-   * mixed-case set adds a lowercase row. Unset: the split-flap set, which
+   * contains are offered, an LED set draws them as its dots, a mixed-case
+   * set adds a lowercase row, and a set with icons adds an icon row whose
+   * stamps are `{ kind: "icon" }` brushes. Unset: the split-flap set, which
    * is every stamp in `DRAW_CHARS` — today's picker byte for byte. A set
    * that fixes code 62 (`vestaboard_v1` / `_v2`) also decides the
    * degree/heart glyph. An unknown id throws; it never quietly becomes a
@@ -117,22 +126,32 @@ export function DrawCharPickerContent({
       )
     : DRAW_CHARS;
   const chars = set?.mixedCase ? [...stamps, ...charsInSet(set, LOWERCASE_CHARS)] : stamps;
+  // The icon stamps a set with icons adds, after the characters, in one
+  // roving sequence with them: an icon is one cell, like any stamp.
+  const icons = set ? iconsInSet(set) : [];
+  const total = chars.length + icons.length;
   const upperCount = stamps.length;
   const selectedChar = current.kind === "char" ? current.char : null;
+  const selectedIcon = current.kind === "icon" ? current.icon : null;
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   // Roving tabindex: exactly one button is in the tab order (the selected
   // character if any, otherwise the first), arrow keys move focus. The
   // index is clamped to the current list at render: a set change can
-  // shorten the list under it (a mixed-case set to an uppercase one), and
-  // an index past the end would leave no tab stop at all.
+  // shorten the list under it (a mixed-case set to an uppercase one, a set
+  // with icons to one without), and an index past the end would leave no
+  // tab stop at all.
   const [rawFocusedIndex, setFocusedIndex] = useState(() => {
-    const selectedIndex = selectedChar ? chars.indexOf(selectedChar) : -1;
+    const selectedIndex = selectedChar
+      ? chars.indexOf(selectedChar)
+      : selectedIcon
+        ? chars.length + icons.indexOf(selectedIcon)
+        : -1;
     return selectedIndex >= 0 ? selectedIndex : 0;
   });
-  const focusedIndex = Math.min(rawFocusedIndex, chars.length - 1);
+  const focusedIndex = Math.min(rawFocusedIndex, total - 1);
 
   const moveFocus = (index: number) => {
-    const wrapped = ((index % chars.length) + chars.length) % chars.length;
+    const wrapped = ((index % total) + total) % total;
     setFocusedIndex(wrapped);
     buttonRefs.current[wrapped]?.focus();
   };
@@ -161,7 +180,7 @@ export function DrawCharPickerContent({
         break;
       case "End":
         event.preventDefault();
-        moveFocus(chars.length - 1);
+        moveFocus(total - 1);
         break;
     }
   };
@@ -218,6 +237,41 @@ export function DrawCharPickerContent({
                 )}
               >
                 {body}
+              </button>
+            </Fragment>
+          );
+        })}
+        {icons.map((icon, i) => {
+          const index = chars.length + i;
+          const name = l.iconLabel(BOARD_ICONS[icon].label);
+          return (
+            <Fragment key={icon}>
+              {i === 0 && (
+                <span
+                  className="col-span-8 mt-1 text-xs font-medium text-muted-foreground"
+                  data-slot="draw-char-picker-icons-heading"
+                >
+                  {l.icons}
+                </span>
+              )}
+              <button
+                ref={(el) => {
+                  buttonRefs.current[index] = el;
+                }}
+                type="button"
+                data-draw-icon={icon}
+                tabIndex={index === focusedIndex ? 0 : -1}
+                aria-pressed={selectedIcon === icon}
+                aria-label={name}
+                onClick={() => onSelect({ kind: "icon", icon })}
+                onFocus={() => setFocusedIndex(index)}
+                onKeyDown={(event) => handleKeyDown(event, index)}
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-md border font-mono text-sm transition-shadow",
+                  selectedIcon === icon ? "ring-2 ring-primary ring-offset-1" : "hover:bg-muted/50",
+                )}
+              >
+                {set && <CharacterGlyph token={`{icon:${icon}}`} charset={set} size="sm" decorative />}
               </button>
             </Fragment>
           );

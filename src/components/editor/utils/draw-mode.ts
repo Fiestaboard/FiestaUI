@@ -10,15 +10,26 @@
 
 import { BOARD_CHARS } from "../../../lib/board-characters";
 import type { BoardColorName } from "../../../lib/board-colors";
+import { type BoardIconName, resolveBoardIconName } from "../../../lib/board-icons";
 import { BOARD_CODE_TO_COLOR, BOARD_COLOR_CODES, type BoardColorToken } from "../constants";
+import { matchDoubleBrace, MAX_TEMPLATE_SPAN_DEPTH, spanHead, type TemplateMarkupOptions } from "./serialization";
 
 /**
- * The active drawing tool: a color brush, the eraser, or a stamp character
- * picked from the toolbar's character dropdown.
+ * The active drawing tool: a color brush, the eraser, a stamp character
+ * picked from the toolbar's character dropdown, or an icon stamp — offered
+ * only when the target character set has icons.
  */
-export type DrawBrush = { kind: "color"; color: BoardColorToken } | { kind: "eraser" } | { kind: "char"; char: string };
+export type DrawBrush =
+  | { kind: "color"; color: BoardColorToken }
+  | { kind: "eraser" }
+  | { kind: "char"; char: string }
+  | { kind: "icon"; icon: BoardIconName };
 
-/** One board cell: a single literal character, or a "{{color}}" marker. */
+/**
+ * One board cell: a single literal character, a "{{color}}" marker, an
+ * "{{icon:sun}}" marker, or one cell of a span — "{{red:H}}", which the
+ * editor's serializer merges back into "{{red:HOT}}" with its neighbours.
+ */
 export type Cell = string;
 
 export interface CellPaint {
@@ -58,17 +69,32 @@ function colorCell(color: BoardColorToken): Cell {
   return `{{${canonicalColor(color)}}}`;
 }
 
+export interface BrushToCellOptions {
+  /**
+   * Keep a lowercase stamp lowercase — the target set is mixed-case (an LED
+   * face), so the picker offered `a` and the board draws `a`. Default off:
+   * the flap set is uppercase only, so `a` has always stamped `A`.
+   */
+  preserveCase?: boolean;
+}
+
 /** Maps the active brush to the cell content it writes. */
-export function brushToCell(brush: DrawBrush): Cell {
+export function brushToCell(brush: DrawBrush, options: BrushToCellOptions = {}): Cell {
   switch (brush.kind) {
     case "color":
       return colorCell(brush.color);
     case "eraser":
       return " ";
     case "char": {
-      const char = brush.char.toUpperCase();
-      if (char.length === 1 && DRAW_CHARS.includes(char)) return char;
+      const upper = brush.char.toUpperCase();
+      if (upper.length === 1 && DRAW_CHARS.includes(upper)) return options.preserveCase ? brush.char : upper;
       console.warn(`[draw-mode] Invalid stamp character ${JSON.stringify(brush.char)} — erasing instead.`);
+      return " ";
+    }
+    case "icon": {
+      const name = resolveBoardIconName(brush.icon);
+      if (name) return `{{icon:${name}}}`;
+      console.warn(`[draw-mode] Unknown icon ${JSON.stringify(brush.icon)} — erasing instead.`);
       return " ";
     }
   }
@@ -77,20 +103,54 @@ export function brushToCell(brush: DrawBrush): Cell {
 /**
  * Shared tokenizer behind lineToCells and isPositionalLine so their notion of
  * "what is a color token vs a dynamic token" can never diverge.
+ *
+ * Under `options.extendedMarkup` the extended forms are positional too, under
+ * the closed head grammar (utils/serialization `spanHead`): `{{icon:sun}}` is
+ * one cell, and a span `{{red:HOT}}` is one cell per character it wraps, each
+ * carrying the span (`{{red:H}}`) so a stroke over one cell leaves its
+ * neighbours' colour alone. A variable inside a span is dynamic, as anywhere
+ * else. Without the option — a host that has not been given a character set
+ * — a span or an icon is a dynamic token, the first `}}` ends a token, and
+ * every stroke lands exactly as it did before the extended markup existed.
+ * `span` is the head of the span the text sits in and `depth` how many spans
+ * deep, for the recursive walk, which is capped like the parser's.
  */
-function tokenizeLine(line: string): { cells: Cell[]; droppedDynamic: boolean } {
+function tokenizeLine(
+  line: string,
+  options: TemplateMarkupOptions = {},
+  span: string | null = null,
+  depth = 0,
+): { cells: Cell[]; droppedDynamic: boolean } {
+  const extended = options.extendedMarkup === true;
   const cells: Cell[] = [];
   let droppedDynamic = false;
   let remaining = line;
+  const wrap = (cell: Cell): Cell => (span ? `{{${span}:${cell}}}` : cell);
 
   while (remaining.length > 0) {
+    if (extended && remaining.startsWith("{{")) {
+      const end = matchDoubleBrace(remaining, 0);
+      if (end > 4) {
+        const raw = remaining.slice(2, end - 2);
+        const content = raw.trim().toLowerCase();
+        if (Object.hasOwn(BOARD_COLOR_CODES, content)) {
+          cells.push(wrap(colorCell(content as BoardColorToken)));
+        } else if (!extendedCells(raw, options, span, depth, cells)) {
+          // Non-color {{...}} tokens are dynamic — dropped.
+          droppedDynamic = true;
+        }
+        remaining = remaining.slice(end);
+        continue;
+      }
+    }
     const dbl = remaining.match(DOUBLE_TOKEN_RE);
     if (dbl) {
+      // The first `}}` ends it (always, without the extended markup; for an
+      // unbalanced token with it), as it always did.
       const content = dbl[1].trim().toLowerCase();
-      if (Object.hasOwn(BOARD_COLOR_CODES, content)) {
+      if (!extended && Object.hasOwn(BOARD_COLOR_CODES, content)) {
         cells.push(colorCell(content as BoardColorToken));
       } else {
-        // Non-color {{...}} tokens are dynamic — dropped.
         droppedDynamic = true;
       }
       remaining = remaining.slice(dbl[0].length);
@@ -114,15 +174,51 @@ function tokenizeLine(line: string): { cells: Cell[]; droppedDynamic: boolean } 
       // Not a color token — fall through to literal handling below.
     }
 
-    cells.push(remaining[0]);
+    cells.push(wrap(remaining[0]));
     remaining = remaining.slice(1);
   }
 
   return { cells, droppedDynamic };
 }
 
-export function lineToCells(line: string): Cell[] {
-  return tokenizeLine(line).cells;
+/**
+ * `{{icon:sun}}` → one cell; `{{red:HOT}}` → its body's cells, each wrapped.
+ * False otherwise. A span opener past {@link MAX_TEMPLATE_SPAN_DEPTH} is
+ * literal text — one cell per character, like the parser's literal ninth
+ * level — so a hostile line cannot recurse without bound.
+ */
+function extendedCells(
+  content: string,
+  options: TemplateMarkupOptions,
+  span: string | null,
+  depth: number,
+  cells: Cell[],
+): boolean {
+  const colon = content.indexOf(":");
+  if (colon <= 0) return false;
+  const head = content.slice(0, colon);
+  const body = content.slice(colon + 1);
+  if (head.toLowerCase() === "icon") {
+    const name = resolveBoardIconName(body.trim().toLowerCase());
+    if (!name) return false;
+    cells.push(span ? `{{${span}:{{icon:${name}}}}}` : `{{icon:${name}}}`);
+    return true;
+  }
+  const opened = spanHead(head);
+  if (!opened) return false;
+  if (depth >= MAX_TEMPLATE_SPAN_DEPTH) {
+    const wrap = (cell: Cell): Cell => (span ? `{{${span}:${cell}}}` : cell);
+    for (const ch of `{{${content}}}`) cells.push(wrap(ch));
+    return true;
+  }
+  const innerHead = opened.background ? `${opened.color}/${opened.background}` : opened.color;
+  const inner = tokenizeLine(body, options, innerHead, depth + 1);
+  cells.push(...inner.cells);
+  return true;
+}
+
+export function lineToCells(line: string, options: TemplateMarkupOptions = {}): Cell[] {
+  return tokenizeLine(line, options).cells;
 }
 
 export function cellsToLine(cells: Cell[]): string {
@@ -131,12 +227,17 @@ export function cellsToLine(cells: Cell[]): string {
   return cells.slice(0, end).join("");
 }
 
-export function isPositionalLine(line: string): boolean {
-  return !tokenizeLine(line).droppedDynamic;
+export function isPositionalLine(line: string, options: TemplateMarkupOptions = {}): boolean {
+  return !tokenizeLine(line, options).droppedDynamic;
 }
 
-export function paintLine(line: string, paints: CellPaint[], cols: number): string {
-  const cells = lineToCells(line);
+export function paintLine(
+  line: string,
+  paints: CellPaint[],
+  cols: number,
+  options: TemplateMarkupOptions = {},
+): string {
+  const cells = lineToCells(line, options);
   if (cells.length > cols) cells.length = cols;
 
   const validPaints = paints.filter((p) => p.col >= 0 && p.col < cols);
@@ -149,13 +250,14 @@ export function paintLine(line: string, paints: CellPaint[], cols: number): stri
 
 /**
  * Render a positional line for BoardDisplay's parser, which expects
- * single-bracket color markers ({red}) after server-side rendering.
+ * single-bracket markers ({red}, {icon:sun}, {red:H}) after server-side
+ * rendering.
  */
-export function renderPositionalLine(line: string): string {
-  return lineToCells(line)
+export function renderPositionalLine(line: string, options: TemplateMarkupOptions = {}): string {
+  return lineToCells(line, options)
     .map((cell) => {
-      const m = cell.match(COLOR_CELL_RE);
-      return m ? `{${m[1]}}` : cell;
+      if (cell.match(COLOR_CELL_RE)) return cell.slice(1, -1);
+      return cell.startsWith("{{") ? cell.replaceAll("{{", "{").replaceAll("}}", "}") : cell;
     })
     .join("");
 }

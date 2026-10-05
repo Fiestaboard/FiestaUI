@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { CharacterSetId } from "../../lib/character-sets";
+import { type CharacterSetId, iconsInSet } from "../../lib/character-sets";
 import { goldenCharacterSet } from "../../lib/charset-golden-cases";
 import { ColorPickerContent } from "./color-picker-content";
 import { DrawCharPickerContent } from "./draw-char-picker-content";
@@ -284,7 +284,8 @@ describe("DrawCharPickerContent with a charset", () => {
   it("adds a lowercase row for a mixed-case LED set and keeps the stamp as typed", () => {
     const onSelect = vi.fn();
     render(<DrawCharPickerContent current={{ kind: "eraser" }} onSelect={onSelect} charset="led_5x7" />);
-    expect(screen.getAllByRole("button")).toHaveLength(DRAW_CHARS.length + 26);
+    // Every flap stamp, a–z, and (Task 8) one icon stamp per icon the set draws.
+    expect(screen.getAllByRole("button")).toHaveLength(DRAW_CHARS.length + 26 + iconsInSet("led_5x7").length);
     const a = screen.getByRole("button", { name: "a" });
     expect(a).toHaveAttribute("data-lowercase", "");
     expect(screen.getByRole("button", { name: "A" })).not.toHaveAttribute("data-lowercase");
@@ -310,10 +311,11 @@ describe("DrawCharPickerContent with a charset", () => {
     const { rerender } = render(
       <DrawCharPickerContent current={{ kind: "eraser" }} onSelect={vi.fn()} charset="led_5x7" />,
     );
-    const z = screen.getByRole("button", { name: "z" });
     fireEvent.keyDown(screen.getByRole("button", { name: "A" }), { key: "End" });
-    expect(z).toHaveFocus();
-    expect(z).toHaveAttribute("tabindex", "0");
+    const last = screen.getAllByRole("button").at(-1)!;
+    expect(last).toHaveFocus();
+    expect(last).toHaveAttribute("tabindex", "0");
+    expect(screen.getAllByRole("button").indexOf(last)).toBeGreaterThan(DRAW_CHARS.length);
     rerender(<DrawCharPickerContent current={{ kind: "eraser" }} onSelect={vi.fn()} charset="vestaboard_v1" />);
     const stops = screen.getAllByRole("button").filter((b) => b.getAttribute("tabindex") === "0");
     expect(stops).toHaveLength(1);
@@ -330,9 +332,31 @@ describe("DrawCharPickerContent with a charset", () => {
     fireEvent.keyDown(degree, { key: "ArrowRight" });
     expect(screen.getByRole("button", { name: "a" })).toHaveFocus();
     fireEvent.keyDown(screen.getByRole("button", { name: "a" }), { key: "End" });
-    expect(screen.getByRole("button", { name: "z" })).toHaveFocus();
-    fireEvent.keyDown(screen.getByRole("button", { name: "z" }), { key: "ArrowRight" });
+    // End is the last stamp of all: the set's last icon (Task 8 appends the
+    // icon row to the same roving sequence), and Right from it wraps to A.
+    expect(screen.getByRole("button", { name: "partly cloudy icon" })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole("button", { name: "partly cloudy icon" }), { key: "ArrowRight" });
     expect(screen.getByRole("button", { name: "A" })).toHaveFocus();
+    // z → the icon row's first stamp.
+    screen.getByRole("button", { name: "z" }).focus();
+    fireEvent.keyDown(screen.getByRole("button", { name: "z" }), { key: "ArrowRight" });
+    expect(screen.getByRole("button", { name: "sun icon" })).toHaveFocus();
+  });
+
+  it("offers an icon stamp per icon the set draws, as an icon brush", () => {
+    const onSelect = vi.fn();
+    render(<DrawCharPickerContent current={{ kind: "icon", icon: "rain" }} onSelect={onSelect} charset="led_5x7" />);
+    const heading = screen.getByText("Icons");
+    expect(heading).toHaveAttribute("data-slot", "draw-char-picker-icons-heading");
+    const rain = screen.getByRole("button", { name: "rain icon" });
+    expect(rain).toHaveAttribute("aria-pressed", "true");
+    expect(rain).toHaveAttribute("tabindex", "0");
+    expect(rain.querySelector('[data-slot="character-glyph"] svg')).not.toBeNull();
+    screen.getByRole("button", { name: "sun icon" }).click();
+    expect(onSelect).toHaveBeenCalledWith({ kind: "icon", icon: "sun" });
+    // A flap set has no icons, so no row and no heading.
+    render(<DrawCharPickerContent current={{ kind: "eraser" }} onSelect={vi.fn()} charset="vestaboard_v1" />);
+    expect(screen.getAllByText("Icons")).toHaveLength(1);
   });
 
   it("lets the set decide the code-62 glyph, over deviceType", () => {
@@ -354,9 +378,16 @@ describe("DrawCharPickerContent with a charset", () => {
     const acme = goldenCharacterSet("acme_sign_v1"); // A–Z, 0–9, - : . € — uppercase only, no ° or ♥
     const onSelect = vi.fn();
     render(<DrawCharPickerContent current={{ kind: "eraser" }} onSelect={onSelect} charset={acme} />);
-    const offered = screen.getAllByRole("button").map((b) => b.getAttribute("data-draw-char"));
+    const buttons = screen.getAllByRole("button");
+    const offered = buttons.map((b) => b.getAttribute("data-draw-char")).filter((c) => c !== null);
     expect(offered).toEqual(DRAW_CHARS.filter((c) => acme.chars.includes(c)));
     expect(offered).toHaveLength(26 + 10 + 3);
+    // Plus the three icons the sign declares, and only those.
+    expect(buttons.map((b) => b.getAttribute("data-draw-icon")).filter((i) => i !== null)).toEqual([
+      "check",
+      "up",
+      "down",
+    ]);
     expect(offered).not.toContain("°");
     expect(offered).not.toContain("a");
     expect(screen.queryByText("Lowercase")).toBeNull();

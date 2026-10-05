@@ -362,6 +362,19 @@ function withSpan<T extends BoardToken>(token: T, span: SpanColors | undefined):
 }
 
 /**
+ * The token `{icon:name}` parses to: the icon's split-flap fallback (a tile,
+ * a character or a blank) tagged with `icon`, carrying the enclosing span's
+ * colours when given. The editor builds the same token for an icon node (its
+ * warnings and its node view), so it lives here rather than being copied.
+ */
+export function boardIconToken(name: BoardIconName, span?: Pick<BoardToken, "color" | "background">): BoardToken {
+  const token = iconToken(name, undefined);
+  if (span?.color !== undefined) token.color = span.color;
+  if (span?.background !== undefined) token.background = span.background;
+  return token;
+}
+
+/**
  * The token an icon degrades to on a board that has no glyph for it. The
  * span's colours ride along whether the fallback is a character or a tile
  * (FiestaBoard B1 finding 5): a flap ignores them either way, and a renderer

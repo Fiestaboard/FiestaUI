@@ -169,3 +169,71 @@
   outline-offset: 1px;
   border-radius: 3px;
 }
+
+/* ── Extended markup (LED-era sets) ─────────────────────────────────────────
+   A colour span and a block span are MARKS (extensions/color-span-mark.ts):
+   the text keeps the page's foreground so every pair reads on a light and a
+   dark page, and the board colour rides on the underline (colour span) or
+   the border and tint (block span). The faithful colours are in the pickers'
+   glyphs and in DisplayPreview; this is the editing hint. The hex values
+   arrive as custom properties the mark sets inline. */
+.ProseMirror [data-type="color-span"] {
+  --span-color: currentColor;
+  text-decoration: underline;
+  text-decoration-color: var(--span-color);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
+  border-radius: 2px;
+}
+
+.ProseMirror [data-type="color-span"][data-background] {
+  text-decoration: none;
+  padding: 0 2px;
+  border: 1px solid var(--span-background);
+  background-color: color-mix(in srgb, var(--span-background) 22%, transparent);
+  box-shadow: inset 0 -2px 0 var(--span-color);
+}
+
+/* A mixed-case set (template-editor.tsx sets `data-preserve-case` on the
+   surface when the target draws lowercase): the text shows as typed, because
+   that is what the board will draw and what the template will carry. */
+.ProseMirror[data-preserve-case] > p {
+  text-transform: none;
+}
+
+/* An icon cell (extensions/icon-node.ts): one glyph, drawn by the target set. */
+.ProseMirror [data-type="icon"] {
+  display: inline-block !important;
+  vertical-align: middle;
+  white-space: nowrap;
+  max-height: 1.4rem !important;
+  line-height: 1.4rem;
+  text-transform: none;
+}
+
+/* A cell the target set cannot draw as written (extensions/charset-warnings.ts).
+   The `title` says what the board draws instead; the editor's summary below
+   the surface repeats it for assistive tech. The marker never blocks typing. */
+.ProseMirror .charset-warning {
+  text-decoration: underline wavy var(--warning);
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+}
+
+.ProseMirror [data-node-view-wrapper].charset-warning,
+.ProseMirror [data-type="icon"].charset-warning {
+  text-decoration: none;
+  outline: 1.5px dashed var(--warning);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+/* A colour span's own underline and a warning's wavy one would overprint:
+   the warning wins, and the colour stays on the border. */
+.ProseMirror [data-type="color-span"] .charset-warning,
+.ProseMirror .charset-warning[data-type="color-span"] {
+  text-decoration: underline wavy var(--warning);
+  border-bottom: 2px solid var(--span-color);
+}

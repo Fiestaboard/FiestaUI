@@ -47,6 +47,7 @@ const EXCLUDED = {
   ColorTileNodeView: "TipTap NodeViewRenderer — only mountable inside a ProseMirror document, via TemplateEditor.",
   FillSpaceNodeView: "TipTap NodeViewRenderer — only mountable inside a ProseMirror document, via TemplateEditor.",
   FormulaNodeView: "TipTap NodeViewRenderer — only mountable inside a ProseMirror document, via TemplateEditor.",
+  IconNodeView: "TipTap NodeViewRenderer — only mountable inside a ProseMirror document, via TemplateEditor.",
   VariableNodeView: "TipTap NodeViewRenderer — only mountable inside a ProseMirror document, via TemplateEditor.",
   WrappedTextView: "TipTap NodeViewRenderer — only mountable inside a ProseMirror document, via TemplateEditor.",
 };

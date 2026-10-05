@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Injection channel for the five React NodeViews.
+ * Injection channel for the React NodeViews.
  *
  * WHY THIS EXISTS — node views are not rendered by a parent component. The
  * extensions instantiate them as `ReactNodeViewRenderer(XNodeView)`, so TipTap
@@ -27,14 +27,16 @@
 
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 
+import type { CharacterSet } from "../../../lib/character-sets";
 import type { ColorTileNodeViewLabels } from "./color-tile-node-view";
 import type { FillSpaceNodeViewLabels } from "./fill-space-node-view";
 import type { FormulaEditorSlotContext, FormulaNodeViewLabels } from "./formula-node-view";
+import type { IconNodeViewLabels } from "./icon-node-view";
 import type { VariableNodeViewLabels } from "./variable-node-view";
 import type { WrappedTextViewLabels } from "./wrapped-text-view";
 
 /**
- * Every node-view label in one flat bag. The keys are unique across the five
+ * Every node-view label in one flat bag. The keys are unique across the six
  * components and match the FiestaBoard app's translation keys 1:1, so the app
  * can map its message catalog across mechanically.
  */
@@ -43,6 +45,7 @@ export interface NodeViewLabels
     ColorTileNodeViewLabels,
     FillSpaceNodeViewLabels,
     FormulaNodeViewLabels,
+    IconNodeViewLabels,
     VariableNodeViewLabels,
     WrappedTextViewLabels {}
 
@@ -56,6 +59,13 @@ export interface NodeViewInjection {
    * lazily-imported `FormulaEditorPanel`.
    */
   renderFormulaEditor?: (ctx: FormulaEditorSlotContext) => ReactNode;
+  /**
+   * The character set the target board draws, so an icon node view can draw
+   * the icon the way that board will (its glyph, or its tile fallback).
+   * Pushed by `TemplateEditor` from its `charset` / `deviceModel`; absent,
+   * icons are drawn by the 5×7 LED set, which has every one.
+   */
+  charset?: CharacterSet;
 }
 
 /** Frozen and module-level so a missing provider never churns consumers. */
@@ -71,8 +81,13 @@ export interface NodeViewInjectionProviderProps extends NodeViewInjection {
  * Wrap `<EditorContent>` with this to push labels and slots into node views.
  * Rendering it is optional: without it every node view uses English defaults.
  */
-export function NodeViewInjectionProvider({ labels, renderFormulaEditor, children }: NodeViewInjectionProviderProps) {
-  const value = useMemo(() => ({ labels, renderFormulaEditor }), [labels, renderFormulaEditor]);
+export function NodeViewInjectionProvider({
+  labels,
+  renderFormulaEditor,
+  charset,
+  children,
+}: NodeViewInjectionProviderProps) {
+  const value = useMemo(() => ({ labels, renderFormulaEditor, charset }), [labels, renderFormulaEditor, charset]);
   return <NodeViewInjectionContext.Provider value={value}>{children}</NodeViewInjectionContext.Provider>;
 }
 
