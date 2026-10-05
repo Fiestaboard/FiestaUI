@@ -39,6 +39,9 @@ export interface BoardTeaserProps {
    * Defaults to `"degree"`, the glyph every Flagship carried before 2026.
    */
   code62Glyph?: Code62Glyph;
+  /** Parse colour spans and icons (future state; off until the Python
+   *  renderer has parity). Same contract as `StaticBoardDisplay`. */
+  extendedMarkup?: boolean;
   className?: string;
 }
 
@@ -48,6 +51,7 @@ export const BoardTeaser = memo(function BoardTeaser({
   size = "sm",
   boardType = "black",
   code62Glyph = "degree",
+  extendedMarkup = false,
   className = "",
 }: BoardTeaserProps) {
   const isWhiteBoard = boardType === "white";
@@ -55,14 +59,14 @@ export const BoardTeaser = memo(function BoardTeaser({
   const textColor = isWhiteBoard ? "var(--color-board-text-on-light)" : "var(--color-board-text-on-dark)";
 
   const row = useMemo<BoardToken[]>(() => {
-    const tokens = parseLine(teaser)
+    const tokens = parseLine(teaser, Infinity, { extendedMarkup })
       .slice(0, tiles)
       .map((token) => applyCode62Glyph(token, code62Glyph));
     while (tokens.length < tiles) {
       tokens.push({ type: "char", value: " " });
     }
     return tokens;
-  }, [teaser, tiles, code62Glyph]);
+  }, [teaser, tiles, code62Glyph, extendedMarkup]);
 
   // Plain-text teaser for the accessible label: color markers stripped,
   // whitespace collapsed. Falls back to a generic label for color-only strips.
@@ -71,7 +75,10 @@ export const BoardTeaser = memo(function BoardTeaser({
   // "flagship" because a strip has no device of its own: `code62Glyph` arrives
   // already resolved, and passing a device here would re-resolve it and force a
   // Note consumer's heart back to whatever the device implies.
-  const label = useMemo(() => messageToText(teaser, "flagship", code62Glyph) || "Board teaser", [teaser, code62Glyph]);
+  const label = useMemo(
+    () => messageToText(teaser, "flagship", code62Glyph, { extendedMarkup }) || "Board teaser",
+    [teaser, code62Glyph, extendedMarkup],
+  );
 
   // Tile metrics (sizeClasses/textSizeClasses/gapClasses) come from
   // ../../lib/board-metrics so a teaser strip matches a full board row rendered

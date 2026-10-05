@@ -27,6 +27,13 @@ export interface BoardBackdropProps {
    * "continues past every edge" background must never do.
    */
   fixed?: boolean;
+  /**
+   * Parse the extended markup — colour spans `{red:HOT}`, block spans and
+   * `{icon:sun}` icons — on the board. Unset, the board's own default applies
+   * (off until split-flap boards flip to the extended grammar in a major, on
+   * after it); pass `false` to keep the literal parse through that flip.
+   */
+  extendedMarkup?: boolean;
   className?: string;
 }
 
@@ -127,6 +134,7 @@ export function BoardBackdrop({
   mobileRows = 14,
   seed = 7,
   fixed = false,
+  extendedMarkup,
   className,
 }: BoardBackdropProps) {
   const rows = useMemo(() => buildRows(phrases, rowCount, tiles, seed), [phrases, rowCount, tiles, seed]);
@@ -163,7 +171,7 @@ export function BoardBackdrop({
               className={cn("board-backdrop-row", i >= mobileRows && "hidden sm:block")}
               style={{ animationDelay: `${50 + i * 55}ms` }}
             >
-              <BoardTeaser teaser={row} tiles={tiles} size="md" boardType="black" />
+              <BoardTeaser teaser={row} tiles={tiles} size="md" boardType="black" extendedMarkup={extendedMarkup} />
             </div>
           ))}
         </div>

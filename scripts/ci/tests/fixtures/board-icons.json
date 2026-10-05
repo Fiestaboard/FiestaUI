@@ -1,0 +1,21 @@
+{
+  "icons": {
+    "sun": { "label": "sun", "color": "#f8e71c", "fallback": "65" },
+    "cloud": { "label": "cloud", "color": "#ffffff", "fallback": "69" },
+    "rain": { "label": "rain", "color": "#4a90d9", "fallback": "67" },
+    "snow": { "label": "snow", "color": "#ffffff", "fallback": "68" },
+    "bolt": { "label": "lightning", "color": "#f8e71c", "fallback": "64" },
+    "check": { "label": "check", "color": "#7ed321", "fallback": "66" },
+    "cross": { "label": "cross", "color": "#eb4034", "fallback": "63" },
+    "up": { "label": "up", "color": "#7ed321", "fallback": "+" },
+    "down": { "label": "down", "color": "#eb4034", "fallback": "-" },
+    "star": { "label": "star", "color": "#f8e71c", "fallback": "65" },
+    "bus": { "label": "bus", "color": "#f5a623", "fallback": null },
+    "train": { "label": "train", "color": "#4a90d9", "fallback": null },
+    "music": { "label": "music", "color": "#9b59b6", "fallback": null },
+    "bell": { "label": "bell", "color": "#f8e71c", "fallback": null },
+    "fog": { "label": "fog", "color": "#ffffff", "fallback": "-" },
+    "partly": { "label": "partly cloudy", "color": "#f8e71c", "fallback": "69" }
+  },
+  "aliases": { "storm": "bolt", "x": "cross" }
+}

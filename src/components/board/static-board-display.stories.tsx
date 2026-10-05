@@ -66,6 +66,11 @@ const meta = {
       control: "text",
       description: "Accessible label when the board is empty",
     },
+    extendedMarkup: {
+      control: "boolean",
+      description:
+        "Parse the extended markup — `{red:HOT}` colour spans (drawn as plain letters), `{black/white:ON}` block spans and `{icon:sun}` icons (drawn as their fallback tile or character). Off by default: FiestaBoard's Python renderer does not know this grammar yet, so a preview shows what the hardware draws today. Flips on in a coordinated release.",
+    },
     className: {
       control: "text",
       description: "Additional CSS classes on the board bezel",
@@ -126,6 +131,42 @@ export const Empty: Story = {
     message: null,
     size: "sm",
   },
+};
+
+/**
+ * The extended markup on a split-flap board, drawn twice: `extendedMarkup`
+ * is the only difference.
+ *
+ * Today (default) the board draws `{red:RED}` and `{icon:sun}` as the literal
+ * characters, because that is what FiestaBoard's Python renderer sends the
+ * hardware. With `extendedMarkup` the span's letters survive uncoloured and
+ * the icons become their fallback tiles — a yellow tile for the sun, a green
+ * one for the check — which is what split-flap boards will draw once the
+ * Python parser has parity (the flip ships as a coordinated major). Note the
+ * accessible name under each board follows what the tiles draw.
+ */
+export const ExtendedMarkup: Story = {
+  args: {
+    message: "{red:RED} ALERT\n{icon:sun} 72° UV 6\n{icon:check} ALL OK",
+    size: "sm",
+    deviceType: "note",
+  },
+  render: (args) => (
+    <div className="flex flex-col gap-6">
+      <figure className="flex flex-col gap-2">
+        <StaticBoardDisplay {...args} />
+        <figcaption className="text-sm text-muted-foreground">
+          Default — what the hardware draws today: the markers are literal text
+        </figcaption>
+      </figure>
+      <figure className="flex flex-col gap-2">
+        <StaticBoardDisplay {...args} extendedMarkup />
+        <figcaption className="text-sm text-muted-foreground">
+          extendedMarkup — the planned degradation: plain letters, fallback tiles
+        </figcaption>
+      </figure>
+    </div>
+  ),
 };
 
 /**

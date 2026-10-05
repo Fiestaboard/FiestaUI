@@ -181,19 +181,41 @@ board parse one string the same way.
 | Marker                   | Meaning                                                                                                                                                                            | Split-flap                                   | LED RGB                               | LED monochrome                             |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------- | ------------------------------------------ |
 | `{red}`, `{63}` … `{71}` | A colour **tile**: one cell                                                                                                                                                        | the tile                                     | the glyph box filled (not the gutter) | a lit block; `{black}`/`{70}`/`{71}` unlit |
-| `{red:HOT}`              | A colour **span**: the letters in the colour. `<colour>` is a board colour name, a tile code `63`–`71` or `#rrggbb`; content parses recursively and braces nest (`{red:HOT {66}}`) | `HOT` in the flap colour                     | red letters                           | lit letters                                |
+| `{red:HOT}`              | A colour **span**: the letters in the colour. `<colour>` is a board colour name, a tile code `63`–`70` or `#rrggbb`; content parses recursively and braces nest (`{red:HOT {66}}`) | `HOT` in the flap colour                     | red letters                           | lit letters                                |
 | `{black/white:OPEN}`     | A **block span**: background `bg`, glyph `fg`; both board colours, codes or hex                                                                                                    | `OPEN` uncoloured                            | white field, unlit glyph (inverse)    | field in the panel colour, glyph unlit     |
 | `{icon:sun}`             | An **icon**: one cell, a character not an image                                                                                                                                    | its fallback: a tile, a character or a blank | the glyph in the icon's colour        | the lit glyph                              |
 | `{/}` , `{/red}`         | End tags                                                                                                                                                                           | —                                            | —                                     | —                                          |
 | anything else in braces  | literal text                                                                                                                                                                       | literal                                      | literal                               | literal                                    |
 
 Tokens are `BoardToken`s: `{ type: "char", value, color?, background?, icon? }`
-or `{ type: "color", code, icon? }`. A char inside a span carries `color`; a
-char inside a block carries `color` and `background`. A block head `fg/bg`
-sits beside `{colour:…}` without ambiguity because a lone colour never
-contains `/`, and `{/…}` remains an end tag, so a block span always names
-both colours. Anything that is not a colour before the colon (`{foo:bar}`)
-is literal text, like every unknown marker today.
+or `{ type: "color", code, color?, background?, icon? }`. A char inside a
+span carries `color`; a char inside a block carries `color` and
+`background`. An icon's token carries the same span fields whether its
+fallback is a character or a tile (B1 finding 5), so a per-output projection
+still knows what the author asked for. A block head `fg/bg` sits beside
+`{colour:…}` without ambiguity because a lone colour never contains `/`, and
+`{/}` / `{/<colour>}` remain the only end tags, so a block span always names
+both colours (`{/red:A}` and `{red/:A}` are literal). A span or block colour
+is a board colour name (`red` … `black`, `purple`), a tile code `63`–`70` or
+`#rrggbb`; `filled` / `71` names a flap, not a hue, so `{filled:x}` is
+literal while `{filled}` stays a tile. Anything else before the colon
+(`{foo:bar}`) is literal text, like every unknown marker today.
+
+**Nesting depth.** Spans nest at most **8** deep (`MAX_SPAN_DEPTH`). A span
+opened outside any span is depth 1 and a span inside it is depth 2; an
+opener that would open depth 9 is not a marker: its `{`, head and `:` are
+ordinary characters of the depth-8 span, and its `}` is an ordinary `}`
+when the parse reaches it. Only parsed spans (colour and block) count — a
+literal `{foo:…}` wrapper uses no level — and tiles, icons and end tags are
+not spans, so they parse at every depth, including inside a literal
+ninth-level opener. A span's extent is unchanged by the cap: it still ends
+at the brace that balances its own `{`, counting every brace between them.
+So `{red:`×8 + `{blue:X}` + `}`×8 is eight red spans around the literal
+red text `{BLUE:X}`, and `{red:`×7 + `{blue:X}` + `}`×7 is a blue `X`. The
+cap bounds the parser's recursion; with brace matches found in one pass
+per line, a line of any length parses in linear time. The Python parser
+mirrors the cap exactly (parity fixtures in
+`scripts/ci/tests/board-characters.test.mjs`).
 
 Why not reuse `{red}…{/red}` for spans: it already parses — tile, text,
 nothing — and tens of plugin previews contain it. Reinterpreting it on LEDs
@@ -211,7 +233,11 @@ case drawn.
 **Code 62 and the heart.** Code 62 follows `code62Glyph` (degree by default;
 a Note's set fixes heart). `♥` draws in red, the same treatment as the flap;
 `{icon:heart}` is the ♥ **character**, not an icon, and a span's colours
-carry onto it.
+carry onto it. `extendedMarkup` changes nothing about a typed heart: the
+token keeps its Unicode identity in every mode (`❤` normalised to `♥`), and
+only the split-flap projection (`getCharIndex`, `applyCode62Glyph` in
+`messageToGrid` / `messageToText`) collapses `♥` and `°` to code 62, drawn as
+the board's flap glyph in both directions.
 
 **Icons.** Sixteen (`src/lib/board-icons.ts`): weather (`sun`, `cloud`,
 `rain`, `snow`, `bolt`, `fog`, `partly`), status (`check`, `cross`, `up`,
@@ -751,10 +777,13 @@ focusable with their reason.
 // src/lib/board-characters.ts  (shared with every split-flap renderer)
 type BoardToken =
   | { type: "char"; value: string; color?: string; background?: string; icon?: BoardIconName }
-  | { type: "color"; code: string; icon?: BoardIconName };
-parseLine(line, maxTokens?, { extendedMarkup?, preserveCase? })
+  | { type: "color"; code: string; color?: string; background?: string; icon?: BoardIconName };
+interface ParseLineOptions { extendedMarkup?: boolean; preserveCase?: boolean }
+parseLine(line, maxTokens?, options?)
 messageToGrid(message, rows, cols, deviceType?, code62Glyph?, options?)
 messageToText(message, deviceType?, code62Glyph?, options?)
+tokensEqual(a, b)       // colour-blind: value/code only, for flap memo comparators
+richTokensEqual(a, b)   // type, value/code, color, background and icon all match (§8.1)
 
 // src/lib/board-icons.ts
 BOARD_ICONS: Record<BoardIconName, BoardIconSpec { label, color, fallback }>   // 16 icons
@@ -888,11 +917,11 @@ start), `fiestaboard-output--vestaboard`, `fiestaboard-output--fiestapanel`.
 Extended markup on split-flap previews ships only in a release coordinated
 with core parser parity.
 
-## 15. Known preview-vs-board parity gaps (fixed in plan Task 0)
+## 15. Known preview-vs-board parity gaps (fixed in plan Tasks 0 and 1)
 
 From FiestaBoard B1's parity run of the Python parser against FiestaUI's
-`parseLine`; each is a FiestaUI change in PR 1 so both parsers read the
-message the same way:
+`parseLine`; 1–4 are fixed in plan Task 0 and 5 in Task 1 (it only arises
+under `extendedMarkup`), so both parsers read the message the same way:
 
 1. `{filled}` is tile **71**.
 2. Only `{/}` and `{/<colour>}` are end tags; any other `{/…}` is literal
@@ -900,9 +929,11 @@ message the same way:
 3. Iterate by **code point**, so an astral character or an emoji is one
    cell, not two.
 4. A typed `♥` or `❤` is code **62**.
-5. An icon whose fallback is a colour tile currently drops the surrounding
-   span's colours in the parser's emitted token; the colours must carry
-   through (as `charsetFallback` already does).
+5. An icon whose fallback is a colour tile dropped the surrounding span's
+   colours in the parser's emitted token; the colours now carry through on
+   the tile token (`{ type: "color", code, icon, color?, background? }`), as
+   they already did on a character fallback. `charsetFallback` (Task 2) must
+   keep them too when it degrades an icon to a tile.
 
 ## 16. Risks
 

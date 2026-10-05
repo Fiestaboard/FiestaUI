@@ -93,6 +93,17 @@ export * from "./components/board/static-board-display";
 export * from "./lib/board-characters";
 export * from "./lib/board-colors";
 export * from "./lib/board-dimensions";
+// The icon registry behind `{icon:…}` (parsed only under `extendedMarkup`):
+// a curated surface, so the LED glyph data that joins it later stays internal.
+export {
+  BOARD_ICON_ALIASES,
+  BOARD_ICON_NAMES,
+  BOARD_ICONS,
+  type BoardIconName,
+  type BoardIconSpec,
+  isBoardIconName,
+  resolveBoardIconName,
+} from "./lib/board-icons";
 export * from "./lib/board-previews";
 // Data display — derived metrics rendered for reading, not editing (#229).
 export * from "./components/data/bar-list";
