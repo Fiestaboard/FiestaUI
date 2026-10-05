@@ -552,15 +552,10 @@ function BesideLivePreviewDemo({ model }: { model: DeviceModelRef }) {
         <Text size="xs" tone="muted">
           Live preview: {resolved.label}
         </Text>
-        {/* A flap preview reads the extended markup only once FiestaBoard's
-            parser has parity (plan Task 12); until then it draws the forms
-            literally, which is exactly what the editor's warning says. */}
-        <DisplayPreview
-          model={model}
-          message={previewFromTemplate(value, cols)}
-          extendedMarkup={resolved.technology === "led_matrix"}
-          size="sm"
-        />
+        {/* Every preview reads the extended markup by default: a flap draws
+            the degradation (plain letters, fallback tiles), which is exactly
+            what the editor's per-cell warnings say draws there. */}
+        <DisplayPreview model={model} message={previewFromTemplate(value, cols)} size="sm" />
       </Stack>
     </Flex>
   );
@@ -596,9 +591,11 @@ export const UnsupportedCharacters: Story = {
 };
 
 /**
- * The extended forms on a split-flap target: until FiestaBoard's coordinated
- * release (plan Task 12) a flap board renders them literally, and the editor
- * says so rather than pretending the tile fallbacks will appear.
+ * The extended forms on a split-flap target: the flap draws the span's
+ * letters without the colour and the sun as its yellow tile, and each marked
+ * cell's title says so. (Before the coordinated major that shipped with
+ * FiestaBoard's parser parity the board drew these markers literally, and the
+ * summary said so instead.)
  */
 export const FlapWithExtendedMarkup: Story = {
   name: "Split-flap with extended markup",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { parseLine } from "./board-characters";
 import { ALL_COLOR_CODES } from "./board-colors";
 import {
   BOARD_ICON_ALIASES,
@@ -80,6 +81,53 @@ describe("resolveBoardIconName", () => {
       expect(resolveBoardIconName(alias)).toBe(name);
       expect(isBoardIconName(alias), alias).toBe(false);
     }
+  });
+
+  /*
+   * FiestaBoard's legacy single-brace shortcuts, copied verbatim from
+   * FiestaBoard src/templates/engine.py `SYMBOL_CHARS` (the ASCII each one
+   * expanded to before D16). Its engine now expands every one through this
+   * registry — `{sun}` → `{icon:sun}` — so each name must resolve here and
+   * nowhere else; the heart is the one exception, a character not an icon.
+   */
+  const FIESTABOARD_SYMBOL_CHARS: Record<string, string> = {
+    sun: "*",
+    star: "*",
+    cloud: "O",
+    rain: "/",
+    snow: "*",
+    storm: "!",
+    fog: "-",
+    partly: "%",
+    heart: "<3",
+    check: "+",
+    x: "X",
+  };
+
+  it("resolves every FiestaBoard legacy shortcut (D16), with {icon:heart} as the ♥ character", () => {
+    for (const shortcut of Object.keys(FIESTABOARD_SYMBOL_CHARS)) {
+      const token = parseLine(`{icon:${shortcut}}`, 1, { extendedMarkup: true })[0];
+      if (shortcut === "heart") {
+        expect(resolveBoardIconName(shortcut)).toBeNull();
+        expect(token).toEqual({ type: "char", value: "♥" });
+        continue;
+      }
+      const name = resolveBoardIconName(shortcut);
+      expect(name, shortcut).not.toBeNull();
+      expect(BOARD_ICONS[name!], shortcut).toBeDefined();
+      // The shortcut draws the icon's split-flap fallback, tagged with the
+      // canonical name — the tile fallbacks win over the old ASCII (D16).
+      expect(token, shortcut).toMatchObject({ icon: name });
+      const { fallback } = BOARD_ICONS[name!];
+      if (fallback !== null && ALL_COLOR_CODES[fallback])
+        expect(token).toEqual({ type: "color", code: fallback, icon: name });
+      else expect(token).toEqual({ type: "char", value: fallback ?? " ", icon: name });
+    }
+    // The two whose shortcut name differs from the icon's own.
+    expect(resolveBoardIconName("storm")).toBe("bolt");
+    expect(resolveBoardIconName("x")).toBe("cross");
+    // The tile fallbacks the release notes call out: {sun} was `*`, now a yellow tile.
+    expect(parseLine("{icon:sun}", 1, { extendedMarkup: true })[0]).toEqual({ type: "color", code: "65", icon: "sun" });
   });
 
   it("is exact: unknown names, the heart and upper case are not resolved here", () => {

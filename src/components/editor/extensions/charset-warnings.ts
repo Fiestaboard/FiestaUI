@@ -49,12 +49,6 @@ export interface CharsetWarning {
   fallback: BoardToken;
   /** The `title` shown on the cell. */
   message: string;
-  /**
-   * True when the cell is one of the extended forms (a span or an icon) and
-   * the set is a split-flap one, which renders them literally until the
-   * coordinated release (plan Task 12) — the editor's summary says so.
-   */
-  literalOnFlap: boolean;
 }
 
 export interface CharsetWarningsLabels {
@@ -66,8 +60,6 @@ export interface CharsetWarningsLabels {
   unsupportedSpan: string;
   /** A colour tile on a set without tiles. */
   unsupportedTile: string;
-  /** A span or icon on a split-flap set, which draws the markup as text until the coordinated release. */
-  literalOnFlap: string;
 }
 
 export const DEFAULT_CHARSET_WARNINGS_LABELS: CharsetWarningsLabels = {
@@ -75,7 +67,6 @@ export const DEFAULT_CHARSET_WARNINGS_LABELS: CharsetWarningsLabels = {
   unsupportedIcon: (fallback) => `This board has no glyph for this icon — drawn as ${fallback}`,
   unsupportedSpan: "This board can't colour text — drawn without the colour",
   unsupportedTile: "This board has no colour tiles — drawn as blank",
-  literalOnFlap: "Renders literally on a split-flap board until FiestaBoard's coordinated release",
 };
 
 interface CharsetWarningsState {
@@ -126,7 +117,6 @@ export function collectCharsetWarnings(
 ): CharsetWarning[] {
   if (!set) return [];
   const l = { ...DEFAULT_CHARSET_WARNINGS_LABELS, ...labels };
-  const isFlap = !set.font;
   const warnings: CharsetWarning[] = [];
   const push = (from: number, to: number, token: BoardToken) => {
     const reason = charsetIssue(set, token);
@@ -136,12 +126,12 @@ export function collectCharsetWarnings(
     // is black — the unlit default, which is what every block picker
     // offers — nothing visible is lost, so there is nothing to warn about.
     if (reason === "colorSpan" && token.background !== undefined && set.blockSpans && isUnlit(token.color)) return;
+    // A split-flap set gets the same message as any other: since the
+    // coordinated major that shipped with FiestaBoard's parser parity, a flap
+    // draws a span's letters uncoloured and an icon's tile fallback — exactly
+    // what `charsetFallback` names — rather than the markers as text.
     const fallback = charsetFallback(set, token);
-    const extendedForm = token.icon !== undefined || token.color !== undefined || token.background !== undefined;
-    const literalOnFlap =
-      isFlap && extendedForm && (reason === "icon" || reason === "colorSpan" || reason === "blockSpan");
-    const message = literalOnFlap ? l.literalOnFlap : messageFor(reason, fallback, l);
-    warnings.push({ from, to, reason, token, fallback, message, literalOnFlap });
+    warnings.push({ from, to, reason, token, fallback, message: messageFor(reason, fallback, l) });
   };
 
   doc.descendants((node, pos) => {

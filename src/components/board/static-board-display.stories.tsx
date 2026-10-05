@@ -69,7 +69,7 @@ const meta = {
     extendedMarkup: {
       control: "boolean",
       description:
-        "Parse the extended markup — `{red:HOT}` colour spans (drawn as plain letters), `{black/white:ON}` block spans and `{icon:sun}` icons (drawn as their fallback tile or character). Off by default: FiestaBoard's Python renderer does not know this grammar yet, so a preview shows what the hardware draws today. Flips on in a coordinated release.",
+        "Parse the extended markup — `{red:HOT}` colour spans (drawn as plain letters), `{black/white:ON}` block spans and `{icon:sun}` icons (drawn as their fallback tile or character). On by default since the coordinated major that shipped with FiestaBoard's Python parser parity; `false` opts a board driven by an older FiestaBoard back to the literal markers its renderer draws.",
     },
     className: {
       control: "text",
@@ -167,12 +167,12 @@ export const Frameless: Story = {
  * The extended markup on a split-flap board, drawn twice: `extendedMarkup`
  * is the only difference.
  *
- * Today (default) the board draws `{red:RED}` and `{icon:sun}` as the literal
- * characters, because that is what FiestaBoard's Python renderer sends the
- * hardware. With `extendedMarkup` the span's letters survive uncoloured and
- * the icons become their fallback tiles — a yellow tile for the sun, a green
- * one for the check — which is what split-flap boards will draw once the
- * Python parser has parity (the flip ships as a coordinated major). Note the
+ * By default the span's letters survive uncoloured and the icons become
+ * their fallback tiles — a yellow tile for the sun, a green one for the
+ * check — which is what a split-flap board draws since the coordinated major
+ * that shipped with FiestaBoard's Python parser parity. `extendedMarkup={false}`
+ * is the opt-out for a board driven by an older FiestaBoard, whose renderer
+ * drew `{red:RED}` and `{icon:sun}` as the literal characters. Note the
  * accessible name under each board follows what the tiles draw.
  */
 export const ExtendedMarkup: Story = {
@@ -186,13 +186,14 @@ export const ExtendedMarkup: Story = {
       <figure className="flex flex-col gap-2">
         <StaticBoardDisplay {...args} />
         <figcaption className="text-sm text-muted-foreground">
-          Default — what the hardware draws today: the markers are literal text
+          Default (extendedMarkup) — the degradation the board draws: plain letters, fallback tiles
         </figcaption>
       </figure>
       <figure className="flex flex-col gap-2">
-        <StaticBoardDisplay {...args} extendedMarkup />
+        <StaticBoardDisplay {...args} extendedMarkup={false} />
         <figcaption className="text-sm text-muted-foreground">
-          extendedMarkup — the planned degradation: plain letters, fallback tiles
+          extendedMarkup={"{false}"} — the opt-out for a FiestaBoard older than parser parity: the markers are literal
+          text
         </figcaption>
       </figure>
     </div>

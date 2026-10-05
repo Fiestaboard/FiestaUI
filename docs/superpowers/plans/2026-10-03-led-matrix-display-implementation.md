@@ -375,7 +375,7 @@ Added after the plan was approved. Task 6 gave the pickers `charset`; this threa
 - Create:
   - `extensions/color-span-mark.ts` — a MARK with `color` / `background`, serialized `{{red:HOT}}` / `{{black/white:OPEN}}`
   - `extensions/icon-node.ts` + `node-views/icon-node-view.tsx` — an atom drawn by `CharacterGlyph` with the target set, serialized `{{icon:sun}}` (always the canonical name; `{sun}` is a read-only alias, D16)
-  - `extensions/charset-warnings.ts` — decorations from `charsetIssue` / `charsetFallback` per cell, with a `title` naming what draws instead and a summary outside the surface; the split-flap case says the forms render literally until Task 12
+  - `extensions/charset-warnings.ts` — decorations from `charsetIssue` / `charsetFallback` per cell, with a `title` naming what draws instead and a summary outside the surface; the split-flap case said the forms render literally until Task 12 (Task 12 removed that suffix: the titles name the fallback the flap now draws)
   - the tests: `template-editor-identity.test.tsx` (byte-identity without a set, snapshots generated at the parent commit), `utils/extended-markup.test.ts` (round-trips, nesting, edge cases, draw mode, length), `template-editor-charsets.test.tsx` (a real editor in jsdom: inserting a span, a block and an icon through the toolbar, the serialized value, the warnings)
   - the stories: each charset/device (Flagship v1 and v2, Note, Pixoo 64, HUB75, AWTRIX, MAX7219, the ACME plugin set), the editor beside a live `DisplayPreview`, and the warnings
 
@@ -396,7 +396,7 @@ Added after the plan was approved. Task 6 gave the pickers `charset`; this threa
 - [x] Stories, the a11y runner, screenshots looked at.
 - [ ] Run the checks, then open and merge the PR.
 
-**Downstream:** FiestaBoard's editor adopts the package editor with `deviceModel` threaded from the board. B5 `feat/template-extended-syntax` is the engine side of the same syntax (B4 #2161 has `TemplateEngine.render(..., extended_markup=False)`, applied per flap output until Task 12).
+**Downstream:** FiestaBoard's editor adopts the package editor with `deviceModel` threaded from the board. B5 `feat/template-extended-syntax` is the engine side of the same syntax (B4 #2161 has `TemplateEngine.render(..., extended_markup=False)`, applied per flap output until Task 12, which retires it).
 
 ---
 
@@ -512,11 +512,11 @@ The Vestaboard and FiestaPanel repos follow FiestaBoard's Phase 4 extraction, an
 
 **Steps:**
 
-- [ ] FiestaBoard confirms its scan with `src/markup_compat.py` (FiestaBoard #2128). The scan finds stored `{<colour>:`, `{<fg>/<bg>:` and `{icon:` text in users' data at upgrade time; none of FiestaBoard's own fixtures contain it today. The owner accepts the change.
-- [ ] Legacy shortcuts: **decided** (FiestaBoard D16, spec "Decided: legacy shortcuts become icon aliases"). Make sure `resolveBoardIconName` resolves every legacy shortcut name (`sun`, `star`, `cloud`, `rain`, `snow`, `storm`, `fog`, `partly`, `check`, `x`; `heart` → ♥), with a test that iterates FiestaBoard's `SYMBOL_CHARS` list. The release notes call out that `{sun}` and its siblings now draw the icon's tile fallback on split-flap instead of ASCII. This lands together with FiestaBoard B4 (`feat/icon-shortcut-aliases`).
-- [ ] Write a `BREAKING CHANGE:` footer naming the affected markup and the opt-out prop.
-- [ ] Flip the defaults. Update every test that asserted literal rendering of the new markers to its opt-out form.
-- [ ] Release in coordination: FiestaUI publishes the major, and FiestaBoard bumps it alongside its parity release.
+- [x] FiestaBoard confirms its scan with `src/markup_compat.py` (FiestaBoard #2128). The scan finds stored `{<colour>:`, `{<fg>/<bg>:` and `{icon:` text in users' data at upgrade time; none of FiestaBoard's own fixtures contain it today. The owner accepts the change. _(Scan run, stored user text flagged, owner accepted.)_
+- [x] Legacy shortcuts: **decided** (FiestaBoard D16, spec "Decided: legacy shortcuts become icon aliases"). Make sure `resolveBoardIconName` resolves every legacy shortcut name (`sun`, `star`, `cloud`, `rain`, `snow`, `storm`, `fog`, `partly`, `check`, `x`; `heart` → ♥), with a test that iterates FiestaBoard's `SYMBOL_CHARS` list. The release notes call out that `{sun}` and its siblings now draw the icon's tile fallback on split-flap instead of ASCII. This lands together with FiestaBoard B4 (`feat/icon-shortcut-aliases`). _(`src/lib/board-icons.test.ts` carries the list; `parseLine` does not read single-brace `{sun}` because FiestaBoard's engine expands it first.)_
+- [x] Write a `BREAKING CHANGE:` footer naming the affected markup and the opt-out prop.
+- [x] Flip the defaults. Update every test that asserted literal rendering of the new markers to its opt-out form. _(Flipped at the renderers — `BoardDisplay`, `StaticBoardDisplay`, `BoardTeaser`, and so `ScaledBoardDisplay` and `DisplayPreview` — not at the parser: `parseLine` / `messageToGrid` / `messageToText` keep `extendedMarkup: false` so the Python parity fixtures stay explicit about the mode. The editor's "renders literally" summary and its `literalOnFlap` / `flapExtendedMarkup` labels are removed; the per-cell titles already named the fallback. `src/components/board/extended-markup-default.test.tsx` pins the default and the opt-out on every split-flap renderer.)_
+- [ ] Release in coordination: FiestaUI publishes the major, and FiestaBoard bumps it alongside its parity release. _(The PR stays a draft until B1/B5 are merged and scheduled.)_
 
 ## FiestaBoard work this plan unblocks (tracked here, executed there)
 

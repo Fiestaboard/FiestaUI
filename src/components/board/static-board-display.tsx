@@ -70,11 +70,13 @@ export interface StaticBoardDisplayProps {
   emptyLabel?: string;
   /**
    * Parse the extended markup — `{red:HOT}` colour spans (drawn as plain
-   * letters) and `{icon:sun}` icons (drawn as their fallback tile or
-   * character). **Future state:** off by default because FiestaBoard's Python
-   * renderer does not know this grammar yet, and a preview must show what
-   * the hardware draws today. It flips to default-on in one commit, with a
-   * fixture, once the Python side has parity. See `ParseLineOptions`.
+   * letters), `{black/white:OPEN}` block spans (likewise) and `{icon:sun}`
+   * icons (drawn as their fallback tile or character). Default `true` since
+   * the coordinated major that shipped with FiestaBoard's Python parser
+   * parity, so a preview draws what the hardware draws. `false` is the
+   * opt-out for a board still driven by an older FiestaBoard, whose renderer
+   * draws the markers literally (`{RED:HOT}`, braces as blanks). `cells` are
+   * already parsed, so it does not apply to them. See `ParseLineOptions`.
    */
   extendedMarkup?: boolean;
   /**
@@ -112,7 +114,7 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
   previewLabel,
   messageLabel = defaultMessageLabel,
   emptyLabel = "Empty board display",
-  extendedMarkup = false,
+  extendedMarkup = true,
   bezel = true,
 }: StaticBoardDisplayProps) {
   const dims = resolveDimensions(deviceType, notesWide, notesTall, gridRows, gridCols);

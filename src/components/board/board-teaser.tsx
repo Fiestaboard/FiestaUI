@@ -39,8 +39,10 @@ export interface BoardTeaserProps {
    * Defaults to `"degree"`, the glyph every Flagship carried before 2026.
    */
   code62Glyph?: Code62Glyph;
-  /** Parse colour spans and icons (future state; off until the Python
-   *  renderer has parity). Same contract as `StaticBoardDisplay`. */
+  /** Parse colour spans, block spans and icons. Default `true` since the
+   *  coordinated major that shipped with FiestaBoard's Python parser parity;
+   *  `false` opts a board driven by an older FiestaBoard back to literal
+   *  markers. Same contract as `StaticBoardDisplay`. */
   extendedMarkup?: boolean;
   className?: string;
 }
@@ -51,7 +53,7 @@ export const BoardTeaser = memo(function BoardTeaser({
   size = "sm",
   boardType = "black",
   code62Glyph = "degree",
-  extendedMarkup = false,
+  extendedMarkup = true,
   className = "",
 }: BoardTeaserProps) {
   const isWhiteBoard = boardType === "white";

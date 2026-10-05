@@ -88,8 +88,14 @@ export const BOARD_ICON_NAMES = Object.keys(BOARD_ICONS) as BoardIconName[];
 
 /**
  * Other names an icon answers to, from FiestaBoard's legacy single-brace
- * shortcuts (`engine.py` SYMBOL_CHARS: storm, x). `heart` is not an icon —
- * `{icon:heart}` is the ♥ character, see `parseLine`.
+ * shortcuts (`engine.py` SYMBOL_CHARS). Every shortcut name resolves through
+ * this registry and nowhere else (FiestaBoard plan D16): `sun`, `star`,
+ * `cloud`, `rain`, `snow`, `fog`, `partly` and `check` are icons of their own
+ * name, `storm` and `x` are the aliases below, and `heart` is not an icon —
+ * `{icon:heart}` is the ♥ character, see `parseLine`. FiestaBoard's engine
+ * expands `{sun}` to `{icon:sun}` before a message reaches any renderer, so
+ * on a split-flap board the shortcut draws the icon's tile fallback (a
+ * yellow tile) where its ASCII expansion (`*`) used to draw.
  */
 export const BOARD_ICON_ALIASES: Readonly<Record<string, BoardIconName>> = freezeTable({
   storm: "bolt",

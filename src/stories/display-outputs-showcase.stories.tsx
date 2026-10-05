@@ -161,10 +161,11 @@ export const Overview: Story = {
         <Text>
           Every board reads one message grammar. Colour tiles are what they always were; colour spans{" "}
           <Code>{"{red:HOT}"}</Code>, block spans <Code>{"{black/white:OPEN}"}</Code> and icons{" "}
-          <Code>{"{icon:sun}"}</Code> are new, and a split-flap preview reads them only behind{" "}
-          <Code>extendedMarkup</Code> until FiestaBoard's parser has parity. A character set says what a board can draw
-          and what it draws instead — so the rich content editor, told its device, offers exactly that set's forms and
-          underlines every cell the board cannot draw as written.
+          <Code>{"{icon:sun}"}</Code> are new, and every preview reads them by default — a split-flap board draws a
+          span's letters uncoloured and an icon's tile fallback, with <Code>{"extendedMarkup={false}"}</Code> as the
+          opt-out for a board driven by a FiestaBoard older than parser parity. A character set says what a board can
+          draw and what it draws instead — so the rich content editor, told its device, offers exactly that set's forms
+          and underlines every cell the board cannot draw as written.
         </Text>
         <Text>
           Transitions are a menu judged against each device's frame budget: FiestaBoard's own flip, which scrambles
@@ -205,7 +206,7 @@ export const Overview: Story = {
             </li>
             <li>
               <StoryLink id={`${SHOWCASE}--colour-blocks-and-icons`}>Colour, blocks and icons</StoryLink> — the grammar
-              on an LED and on a flap, today and after the coordinated release.
+              on an LED and on a flap, with the pre-parity opt-out beside the default.
             </li>
             <li>
               <StoryLink id={`${SHOWCASE}--plugin-declared-devices`}>Plugin-declared devices</StoryLink> — three devices
@@ -315,7 +316,9 @@ function PlaygroundDemo({ initialDevice }: { initialDevice: string }) {
   if (state.key !== key) {
     setState({ key, value: device.templates[0], page: 0, transition: facts.defaultTransition });
   }
-  const [futureFlap, setFutureFlap] = useState(false);
+  // The opt-out, kept as documentation of the coordinated major: a flap
+  // driven by a FiestaBoard older than parser parity draws the markers as text.
+  const [legacyFlap, setLegacyFlap] = useState(false);
   const [specimenOpen, setSpecimenOpen] = useState(false);
 
   const nextMessage = () => {
@@ -323,7 +326,7 @@ function PlaygroundDemo({ initialDevice }: { initialDevice: string }) {
     setState({ ...state, page, value: device.templates[page] });
   };
   const message = previewFromTemplate(state.value, grid.cols);
-  const extended = isLed || futureFlap;
+  const extended = isLed || !legacyFlap;
 
   const preview = (
     <DisplayPreview
@@ -380,9 +383,9 @@ function PlaygroundDemo({ initialDevice }: { initialDevice: string }) {
         </Button>
         {!isLed ? (
           <div className="flex items-center gap-2">
-            <Switch id="showcase-future-flap" checked={futureFlap} onCheckedChange={setFutureFlap} />
-            <Label htmlFor="showcase-future-flap" className="font-normal">
-              Preview as after the coordinated release (spans and icons degrade to tiles)
+            <Switch id="showcase-legacy-flap" checked={legacyFlap} onCheckedChange={setLegacyFlap} />
+            <Label htmlFor="showcase-legacy-flap" className="font-normal">
+              Preview as before parser parity (extendedMarkup=false: spans and icons as literal text)
             </Label>
           </div>
         ) : null}
@@ -412,9 +415,9 @@ function PlaygroundDemo({ initialDevice }: { initialDevice: string }) {
           <PanelHeading title="Preview">
             {isLed
               ? `Spans and icons drawn as the device draws them; transition: ${LED_TRANSITIONS[state.transition].label}.`
-              : futureFlap
-                ? "The planned degradation: spans keep their letters, icons draw their tile fallback."
-                : "What the board draws today: FiestaBoard's parser has no span or icon grammar yet, so the editor's new forms show literally."}
+              : legacyFlap
+                ? "Before parser parity (extendedMarkup={false}): the board had no span or icon grammar, so the editor's new forms showed literally."
+                : "The default: spans keep their letters and drop the colour, icons draw their tile fallback — what the board draws."}
           </PanelHeading>
           {device.tv ? preview : <FitToWidth>{preview}</FitToWidth>}
           <DeviceCard device={device} />
@@ -789,9 +792,9 @@ const MARKUP_SAMPLE = "{icon:sun} 72° {orange:WARM}\n{red:HOT} {blue:COLD} {66}
 
 /**
  * The grammar in a table, a message using all of it on an RGB panel and a
- * mono ticker, and the split-flap side twice: what the board draws today
- * (the parser has no span or icon grammar yet, so the forms are literal)
- * and the planned degradation after the coordinated release.
+ * mono ticker, and the split-flap side twice: the default degradation (plain
+ * letters, fallback tiles) and, for the record, the pre-parity opt-out
+ * (`extendedMarkup={false}`), where the forms were literal text.
  */
 export const ColourBlocksAndIcons: Story = {
   name: "Colour, blocks and icons",
@@ -799,8 +802,9 @@ export const ColourBlocksAndIcons: Story = {
     <Stack gap="8">
       <Intro title="Colour, blocks and icons">
         One grammar for every board, parsed once in <Code>board-characters</Code>. Tiles are unchanged; spans, blocks
-        and icons are new and sit behind <Code>extendedMarkup</Code> for split-flap previews until FiestaBoard's Python
-        parser has parity (plan Task 12, a coordinated major).
+        and icons are new, and every preview reads them by default since the coordinated major that shipped with
+        FiestaBoard's Python parser parity (plan Task 12). A split-flap preview of a board on an older FiestaBoard opts
+        out with <Code>{"extendedMarkup={false}"}</Code>.
       </Intro>
       <div className="overflow-x-auto">
         <Table>
@@ -841,14 +845,14 @@ export const ColourBlocksAndIcons: Story = {
               <DisplayPreview model="p10_hub12_32x16" message={"{red:HOT} {66}\n{black/white:OPEN}"} size="lg" />
             </FitToWidth>
           </Figure>
-          <Figure caption="Vestaboard Note today: FiestaBoard's renderer has no span or icon grammar yet, so the hardware draws the braces' text literally. The preview matches the hardware.">
+          <Figure caption="Vestaboard Note, the default: the letters survive, the colour drops, the sun is a yellow tile and the check a green one — what the board draws since FiestaBoard's parser parity.">
             <FitToWidth>
               <StaticBoardDisplay message={MARKUP_SAMPLE} deviceType="note" size="sm" />
             </FitToWidth>
           </Figure>
-          <Figure caption="Vestaboard Note after the coordinated release (extendedMarkup): the letters survive, the colour drops, the sun is a yellow tile and the check a green one.">
+          <Figure caption="Vestaboard Note with extendedMarkup={false}, the opt-out for a board on a FiestaBoard older than parser parity: its renderer had no span or icon grammar, so the braces' text drew literally.">
             <FitToWidth>
-              <StaticBoardDisplay message={MARKUP_SAMPLE} deviceType="note" size="sm" extendedMarkup />
+              <StaticBoardDisplay message={MARKUP_SAMPLE} deviceType="note" size="sm" extendedMarkup={false} />
             </FitToWidth>
           </Figure>
         </Grid>

@@ -330,15 +330,18 @@ test("parity: a typed ♥ or ❤ is code 62, drawn by the board's own flap", () 
 
 // --- Extended markup: colour spans, block spans and icons (behind a flag) ----
 //
-// `extendedMarkup` is off by default because the Python renderer has no span,
-// block or icon grammar yet: a split-flap preview must draw what the hardware
-// draws today. The LED layout turns it on. Every message without the new
-// markers parses identically either way.
+// `extendedMarkup` is off by default AT THE PARSER: `parseLine` is the parity
+// contract FiestaBoard's Python port is checked against, so a bare call is an
+// explicit parse of the base grammar, and these tests name the mode they pin.
+// Every renderer defaults it ON — the LED layout always did, and the split-flap
+// renderers since the coordinated major that shipped with Python parser
+// parity (`extendedMarkup={false}` is their opt-out). Every message without
+// the new markers parses identically either way.
 
 const EXT = { extendedMarkup: true };
 const literal = (text) => [...text].map(char);
 
-test("extended: without extendedMarkup the new markers are literal text, as the Python renderer draws them", () => {
+test("extended: without extendedMarkup (the parser default and the renderers' opt-out) the new markers are literal text", () => {
   assert.deepEqual(parseLine("{red:HO}"), literal("{RED:HO}"));
   assert.deepEqual(parseLine("{icon:sun}"), literal("{ICON:SUN}"));
   assert.deepEqual(parseLine("{black/white:ON}"), literal("{BLACK/WHITE:ON}"));

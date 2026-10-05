@@ -156,12 +156,6 @@ export interface TemplateEditorLabels {
    * accessible description; each marked cell also carries a `title`.
    */
   charsetWarningsSummary: (n: number) => string;
-  /**
-   * Appended to the summary when the target is a split-flap set and the
-   * template holds colour spans or icons, which that board draws literally
-   * until FiestaBoard's coordinated release (plan Task 12).
-   */
-  flapExtendedMarkup: string;
 }
 
 export const DEFAULT_TEMPLATE_EDITOR_LABELS: TemplateEditorLabels = {
@@ -175,8 +169,6 @@ export const DEFAULT_TEMPLATE_EDITOR_LABELS: TemplateEditorLabels = {
   editorAriaLabel: "Template editor",
   charsetWarningsSummary: (n) =>
     `${n} ${n === 1 ? "cell" : "cells"} won't draw as written on this board — hover a marked cell to see what it draws instead.`,
-  flapExtendedMarkup:
-    "Colour spans and icons render literally on a split-flap board until FiestaBoard's coordinated release.",
 };
 
 /**
@@ -1682,7 +1674,6 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
             data-count={warnings.length}
           >
             {warnings.length > 0 && l.charsetWarningsSummary(warnings.length)}
-            {warnings.some((w) => w.literalOnFlap) && ` ${l.flapExtendedMarkup}`}
           </Text>
         )}
 

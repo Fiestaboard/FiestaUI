@@ -262,23 +262,45 @@ a pixel layout; ours sits _in_ the message and degrades.
 
 ### 4.2 The parity contract: `extendedMarkup`
 
-`parseLine` is a parity contract with FiestaBoard's Python renderer, which
-does not yet know spans, blocks or icons: today the hardware draws
-`{red:HOT}` as the literal characters `{RED:HOT}` (braces as blanks) and
-`{icon:sun}` as `ICON:SUN`. So the three markers are parsed only behind
-`ParseLineOptions.extendedMarkup`: the LED layout sets it; `BoardDisplay`,
-`StaticBoardDisplay` and `BoardTeaser` take it and default it off
-(`ScaledBoardDisplay` passes it through via its props spread; it needs no
-prop of its own), so a split-flap preview keeps showing what the hardware
-shows (a story can show the future state explicitly, captioned —
-`TodaysSplitFlap` shows both). Split-flap boards get the new markup — the
-degradation above — only once the Python parser has parity, flipped in one
-coordinated release with the shared fixtures both parsers are checked
-against (section 14). That flip changes what existing literal text such as
-`{red:HOT}` draws on a flap, so it ships as a deliberate major
-(`feat(board)!`) in the same window as FiestaBoard's parser parity, after
-FiestaBoard's upgrade fixtures are scanned for affected strings
-(implementation plan, Task 12).
+`parseLine` is a parity contract with FiestaBoard's Python renderer. Before
+parser parity the hardware drew `{red:HOT}` as the literal characters
+`{RED:HOT}` (braces as blanks) and `{icon:sun}` as `ICON:SUN`, so the three
+markers parse only behind `ParseLineOptions.extendedMarkup`, and the split-flap
+renderers defaulted it off so a preview showed what the hardware showed.
+
+**Flipped (plan Task 12, `feat(board)!`, a deliberate major).** The contract
+now has two layers, and the default differs between them on purpose:
+
+- **The parser keeps the option off.** `parseLine`, `messageToGrid` and
+  `messageToText` default `extendedMarkup` to `false`: they are the functions
+  the Python port is checked against, the shared fixtures (section 14) pin
+  both modes by name, and a bare call stays an explicit parse of the base
+  grammar. Nothing a parity test asserts changed.
+- **Every renderer defaults it on.** The LED layout always did;
+  `BoardDisplay`, `StaticBoardDisplay` and `BoardTeaser` now default the
+  prop to `true` (`ScaledBoardDisplay` and `DisplayPreview` pass it through,
+  so they follow), and `extendedMarkup={false}` is the opt-out for a board
+  still driven by a FiestaBoard older than parser parity. `cells` are
+  already parsed, so the prop never applies to them.
+
+What that changes on a split-flap preview, and nowhere else: `{red:HOT}` /
+`{63:HOT}` / `{#rrggbb:HOT}` draw `HOT` uncoloured where they drew
+`{RED:HOT}`; `{black/white:OPEN}` draws `OPEN` where it drew
+`{BLACK/WHITE:OPEN}`; `{icon:sun}` and the fifteen other icons draw their
+fallback (a tile, a character or a blank) where they drew `ICON:SUN`;
+`{icon:heart}` draws the ♥ flap where it drew `ICON:HEART`; and the legacy
+shortcuts `{sun}` … `{x}`, which FiestaBoard's engine now expands to
+`{icon:…}` (D16), draw the same fallbacks where they drew ASCII. Every
+message without those markers draws byte-identically. The editor's
+split-flap warnings name the fallback that draws (the per-cell titles) and no
+longer say the forms render literally; the `literalOnFlap` warning field and
+the `flapExtendedMarkup` / `literalOnFlap` labels are gone. Stories keep the
+comparison for the record (`StaticBoardDisplay/ExtendedMarkup`,
+`TodaysSplitFlap`, the showcase's opt-out switch), captioned as the default
+beside the opt-out. The release is coordinated: FiestaBoard's parser parity
+(B1/B5) and shortcut aliases (B4) ship in the same window, after its
+`markup_compat.py` scan of stored user text and the owner's acceptance, so
+previews and boards never disagree.
 
 ## 5. Character sets
 
@@ -1123,9 +1145,10 @@ font). Unknown ids throw. With a set known:
   `charsetFallback` per cell): a wavy underline, a `title` naming what draws
   instead ("drawn as yellow tile", "drawn as blank", "drawn without the
   colour"), and a summary under the surface that is the textbox's accessible
-  description. On a split-flap set the summary says spans and icons render
-  literally until the coordinated release (Task 12). Nothing blocks typing,
-  and reading the document never rewrites it.
+  description. On a split-flap set the titles name the degradation the board
+  draws ("drawn without the colour", "drawn as yellow tile"); before Task 12
+  the summary said the forms rendered literally, and that suffix is gone.
+  Nothing blocks typing, and reading the document never rewrites it.
 - Draw mode gets an icon brush when the set has icons, colour swatches only
   when it has tiles, and its grid from the model. `{{icon:sun}}` is one cell
   and a span is one cell per character, so a line with either stays
@@ -1173,11 +1196,13 @@ the single-braced message markup of §4.1 when it renders:
   (`{{icon:x}}` → `{{icon:cross}}`). The legacy `{sun}` shortcuts are
   read-only aliases (D16) and are never written back. `{{icon:heart}}` is the
   ♥ character, not an icon.
-- **Mixed boards.** Until Task 12, a page shown on both a flap and an LED
-  board renders the new forms literally on the flap; the editor's warnings
-  surface that when the target is split-flap. FiestaBoard applies
-  `TemplateEngine.render(..., extended_markup=False)` per flap output (B4
-  #2161, B5 `feat/template-extended-syntax`).
+- **Mixed boards.** A page shown on both a flap and an LED board draws the
+  degradation on the flap (plain letters, fallback tiles) and the forms as
+  written on the LED; the editor's warnings name the fallback when the target
+  is split-flap. Before Task 12 the flap rendered the forms literally and
+  FiestaBoard applied `TemplateEngine.render(..., extended_markup=False)` per
+  flap output (B4 #2161, B5 `feat/template-extended-syntax`); the coordinated
+  release retires that per-output switch.
 
 ### 10.2 Data is not markup — FiestaBoard's engine contract
 
@@ -1412,8 +1437,8 @@ never forks it:
 
 Repos: `fiestaboard-output--divoom-pixoo` (first; a data-only skeleton to
 start), `fiestaboard-output--vestaboard`, `fiestaboard-output--fiestapanel`.
-Extended markup on split-flap previews ships only in a release coordinated
-with core parser parity.
+Extended markup on split-flap previews is the default from the Task 12 major
+on, released in the same window as core parser parity (§4.2).
 
 ## 15. Known preview-vs-board parity gaps (fixed in plan Tasks 0 and 1)
 
@@ -1506,11 +1531,16 @@ The owner delegated this question with "whatever is best for scaling". The decis
 - **Legacy shortcuts become aliases.** FiestaBoard's legacy single-brace shortcuts (`{sun}`, `{star}`, `{cloud}`, `{rain}`, `{snow}`, `{storm}`, `{fog}`, `{partly}`, `{check}`, `{x}`) resolve through the registry to the matching `{icon:…}`. There is no second table.
 - **`{heart}` stays the ♥ character** (code 62).
 - **The tile fallbacks win.** On a split-flap board `{sun}` changes from `*` to the yellow tile.
-- **When it ships:** the visible change ships only in the coordinated Task 12 release. FiestaBoard's upgrade scanner flags shortcut usage, and the release notes call it out.
-- **Where aliases resolve:** if a FiestaUI preview needs to resolve a shortcut (for example, a template that uses `{sun}`), it does so through `resolveBoardIconName`, never through a separate map.
+- **When it ships:** the visible change ships only in the coordinated Task 12 release. FiestaBoard's upgrade scanner flags shortcut usage, and the release notes call it out. **Shipped on the FiestaUI side in Task 12:** `resolveBoardIconName` resolves every `SYMBOL_CHARS` name (`sun`, `star`, `cloud`, `rain`, `snow`, `fog`, `partly`, `check` as icons of their own name; `storm` → `bolt`, `x` → `cross` as `BOARD_ICON_ALIASES`), `{icon:heart}` is ♥, and `src/lib/board-icons.test.ts` iterates FiestaBoard's list.
+- **Where aliases resolve:** if a FiestaUI preview needs to resolve a shortcut (for example, a template that uses `{sun}`), it does so through `resolveBoardIconName`, never through a separate map. FiestaUI's `parseLine` does **not** read the single-brace `{sun}` form: FiestaBoard's engine expands shortcuts before any message reaches a renderer, so a rendered message never contains one, and a preview of a raw template goes through the engine (or the showcase's `previewFromTemplate`) first.
 - **Implementation:** FiestaBoard's side is Stack B layer B4, `feat/icon-shortcut-aliases`.
 
 ## 17. Open questions
+
+_Closed by plan Task 12:_ whether and when split-flap previews read the
+extended markup. They do by default (§4.2), `extendedMarkup={false}` opts out,
+the legacy shortcuts are registry aliases (D16 above), and the release is
+coordinated with FiestaBoard's parser parity.
 
 - Should a long message on a small matrix scroll by default (as AWTRIX does)
   or clip (decided for now)? That decides whether scrolling is opt-in, and

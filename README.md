@@ -102,6 +102,10 @@ import { DisplayPreview, LedMatrixDisplay, parseLine } from "@fiestaboard/ui";
 <DisplayPreview model="vestaboard_note" message="HELLO" appearance={{ board_color: "white" }} />
 ```
 
+**Extended markup is on by default, on every board.** Colour spans `{red:HOT}`, block spans `{black/white:OPEN}` and icons `{icon:sun}` parse on every renderer: an LED draws them as written, and a split-flap board draws the degradation — the span's letters without the colour, the icon's fallback tile (`{icon:sun}` is a yellow tile, `{icon:check}` a green one). That has been the split-flap default since the coordinated major that shipped with FiestaBoard's Python parser parity; a board driven by an older FiestaBoard, whose renderer draws those markers literally, opts out with `extendedMarkup={false}` on `BoardDisplay`, `ScaledBoardDisplay`, `StaticBoardDisplay`, `BoardTeaser` or `DisplayPreview` — and on `ScaledBoardTeaser`, `PluginCard`, `BoardBackdrop` and `BoardShowcase`, which pass the prop through and otherwise inherit the renderer's default.
+
+**The `TemplateEditor` is the one exception.** It reads the extended grammar only when it is given a `charset` or a `deviceModel`: without a set it cannot offer the forms in its toolbar or say which cells a board cannot draw, and the templates it edits are stored text whose grammar the host decides, so `{{red:HOT}}` without a set stays the variable it always was and round-trips untouched. FiestaBoard threads the board's `deviceModel` into the editor, which turns the grammar on; a host that wants it without a device passes `charset="vestaboard_v1"` (or the board's set). The pure parser (`parseLine`, `messageToGrid`, `messageToText`) keeps the option off unless asked, so a bare call is an explicit parse of the base grammar.
+
 **Cells in.** FiestaBoard core parses markup once into rich cells (`BoardToken[][]`: characters, colour tiles and icons, with their span colours) and hands every output the same grid. Each renderer accepts that grid as `cells` in place of `message`; `cells` wins when both are given, and the two paths draw byte-identical frames for the same content (golden-tested).
 
 ```tsx

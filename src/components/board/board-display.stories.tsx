@@ -77,7 +77,7 @@ const meta = {
     extendedMarkup: {
       control: "boolean",
       description:
-        "Parse the extended markup (`{red:HOT}` spans as plain letters, `{icon:sun}` icons as their fallback tile). Off by default until FiestaBoard's Python renderer has parity; same contract as `StaticBoardDisplay`.",
+        "Parse the extended markup (`{red:HOT}` spans as plain letters, `{icon:sun}` icons as their fallback tile). On by default since the coordinated major that shipped with FiestaBoard's Python parser parity; `false` opts a board on an older FiestaBoard back to literal markers. Same contract as `StaticBoardDisplay`.",
     },
     isStatic: {
       control: "boolean",
