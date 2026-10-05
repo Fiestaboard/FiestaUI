@@ -338,6 +338,15 @@ export const DEVICE_MODELS: Readonly<Record<DeviceModelId, DeviceModel>> = {
   // in ~0.5 s. So one frame per change: stream at a nominal 2 fps, below
   // every animated entry's minimum, which keeps the default transition on
   // "none". The researched 32-frame sequence budget is superseded.
+  //
+  // NOTE (deprecation planned, not yet applied): the Pixoo's declaration of
+  // record is its output plugin's, @fiestaboard/output-divoom-pixoo
+  // (`output/device-models.json`, pinned as a devDependency here and held
+  // equal to this entry by src/lib/output-plugin-data.test.ts). Prefer the
+  // plugin's object where a caller has it; this built-in stays, and stays
+  // exported, until the next major. It is not tagged `@deprecated` because
+  // the id is also a `DeviceModelId` and a `legacy.preset` target, which a
+  // tag on this property could not cover.
   divoom_pixoo64: ledModel("divoom_pixoo64", "pixoo64", "divoom", { delivery: "stream", maxFps: 2 }, SQUARE_LED),
   // UNMEASURED: no documented push rate and no test device. Held at a nominal
   // 2 fps — below every animated entry's minimum — so it stays on "none"

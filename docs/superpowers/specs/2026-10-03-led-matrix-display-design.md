@@ -413,6 +413,26 @@ sets are **open data**, not closed registries:
 - **FiestaUI consumes plugin device data as devDependencies** — for Storybook
   stories of real plugin devices and for contract tests that validate each
   plugin's `device-models.json` against the schemas at a pinned version.
+  Each plugin is a data-only npm package (`output/*.json`, no code), pinned
+  in `package.json` by `github:Fiestaboard/fiestaboard-output--<device>#<commit
+or tag>`, so `npm ci` installs the data the plugin has actually published.
+  The contract test (`src/lib/output-plugin-data.test.ts`, Task 11) discovers
+  every `@fiestaboard/output-*` devDependency, checks that the lockfile
+  resolves it to the pinned commit, and validates each model in its
+  `output/device-models.json` (and its `output/character-set.json`, if it
+  ships one) against the **current** schemas by `$id` and the current TS
+  validators; it then resolves every model, takes its set and its LED layout
+  spec, and asks the transition registry for its menu, so a model that
+  validates but cannot be rendered also fails. A plugin model that shares an
+  id with a built-in (the Pixoo) must agree with it on everything rendering
+  reads — geometry, colour, charset, font, appearance, legacy and the
+  animation budget — with only the research prose (`notes`, `sources`)
+  allowed to differ, since the runtime built-in leaves that out. The point
+  is direction: a FiestaUI schema or validator change that would break a
+  published plugin fails FiestaUI's own CI before the change is released,
+  rather than the plugin's CI after. Stories render the same package data
+  through `DisplayPreview` (`Showcase/Output Plugin Devices`), captioned with
+  the package and the commit or tag it is pinned to.
 - Both shapes are **plain JSON**: arrays and strings, no functions or class
   instances. A set that adds characters its face does not have carries their
   bitmaps in `glyphs`, exactly like `led-fonts.ts`; `layoutLedMessage`,
