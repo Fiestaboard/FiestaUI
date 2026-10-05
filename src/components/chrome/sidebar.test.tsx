@@ -488,3 +488,35 @@ describe("Sidebar deprecated primaryItems/secondaryItems", () => {
     expect(rowsOf(desktopNav())).toEqual([]);
   });
 });
+
+describe("Sidebar footer box", () => {
+  // The account menu, the gear and the assistant share ONE footer box under
+  // the nav's hairline — the rail's bottom margin and the hairline margin
+  // are that box's padding, nothing else's. The strip used to sit in a
+  // padded row nested inside another padded block, which is how the footer
+  // ended up 16px above and 20px below while every other seam on the rail
+  // was 12. Geometry is VRT's job; the shape (one box, every footer
+  // control, outside the scrolling list, on the rhythm's classes) is what
+  // jsdom can hold onto.
+  it("pins the account menu and the chips together in one box outside the nav", () => {
+    renderSidebar({ ai: AI, renderSettingsMenu: settingsMenu, settings: { href: "#settings", label: "Settings" } });
+    const footer = desktopFooter();
+    const menu = within(footer).getByTestId("settings-menu");
+    const gear = within(footer).getByRole("link", { name: "Settings" });
+    const assistant = within(footer).getByRole("button", { name: LABELS.aiAssistant });
+    const box = footer.parentElement;
+
+    expect(box?.contains(menu)).toBe(true);
+    expect(box?.contains(gear)).toBe(true);
+    expect(box?.contains(assistant)).toBe(true);
+    expect(box?.contains(desktopNav())).toBe(false);
+    // pt-3 to the hairline, pb-4 to the rail's edge — the logo row's pt-4 /
+    // pb-3, mirrored.
+    expect(box?.className).toBe("shrink-0 px-2 pt-3 pb-4");
+  });
+
+  it("gives the nav list the hairline margin on both ends", () => {
+    renderSidebar();
+    expect(desktopNav().className.split(/\s+/)).toContain("py-3");
+  });
+});
