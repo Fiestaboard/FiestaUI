@@ -140,6 +140,15 @@ export interface LedMatrixDisplayProps extends LedLayoutOptions {
   messageLabel?: (message: string) => string;
   /** Accessible label when there is no message. */
   emptyLabel?: string;
+  /**
+   * Draw the housing — the bezel's border, padding and shadow around the
+   * panel. Default `true`. `false` draws only the LED substrate and its
+   * dots, with `data-bezel="false"` on the housing and the role and name
+   * kept — the same contract as the split-flap renderers' prop. Whether an
+   * LED board inside `TvFrame` should go bare is an open question (spec
+   * §7.5); `DisplayPreview frame="tv"` keeps the housing until it is decided.
+   */
+  bezel?: boolean;
 }
 
 const PITCH = { sm: 4, md: 6, lg: 9 } as const;
@@ -322,6 +331,7 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
   previewLabel,
   messageLabel = defaultMessageLabel,
   emptyLabel = "Empty LED matrix display",
+  bezel = true,
 }: LedMatrixDisplayProps) {
   const lookup = model !== undefined ? tryResolveDeviceModel(model) : undefined;
   const unknownModel = lookup?.error !== undefined ? String(model) : undefined;
@@ -339,7 +349,7 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
   // (see ./led-look, shared with CharacterGlyph).
   const appearance = deviceModel?.appearance;
   const { shape, dotRatio, offColor, substrateColor } = resolveLedLook(appearance, pixelShape);
-  const bezel = appearance?.bezel;
+  const bezelColor = appearance?.bezel;
 
   const layout = useMemo(() => {
     const spec = { width, height, font: fontId };
@@ -524,12 +534,24 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
         data-transition-source={resolved.source}
         data-transition-fallback={resolved.source === "fallback" ? resolved.requested : undefined}
         data-transition-frames={activeTransition?.maxFrames}
-        className={cn("min-w-0 max-w-full rounded-lg border-[3px] p-2 sm:p-3", className)}
-        style={{
-          backgroundColor: bezel ?? "var(--color-board-bezel-dark)",
-          borderColor: "var(--color-board-bezel-border-dark)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.06)",
-        }}
+        {...(bezel ? {} : { "data-bezel": "false" })}
+        // `bezel={false}`: the same box with no border, padding, colour or
+        // shadow — the substrate and its dots alone. The branches leave the
+        // default DOM byte-identical.
+        className={cn(
+          bezel ? "min-w-0 max-w-full rounded-lg border-[3px] p-2 sm:p-3" : "min-w-0 max-w-full",
+          className,
+        )}
+        style={
+          bezel
+            ? {
+                backgroundColor: bezelColor ?? "var(--color-board-bezel-dark)",
+                borderColor: "var(--color-board-bezel-border-dark)",
+                boxShadow:
+                  "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.06)",
+              }
+            : undefined
+        }
       >
         <div className="max-w-full" style={{ width: frame.width * pitch }}>
           <canvas

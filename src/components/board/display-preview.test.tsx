@@ -277,13 +277,53 @@ describe("DisplayPreview", () => {
       expect(board).toHaveAttribute("data-transition-source", "explicit");
     });
 
-    it("reserves the frame: 'tv' renders the bare board today and is recorded on the housing", () => {
-      render(<DisplayPreview model={FIESTAPANEL_SPLIT_FLAP_MODEL} message="HI" frame="tv" />);
+    it("frame='tv' puts either renderer on a TvFrame's screen, with the set from `tv`", () => {
+      render(
+        <DisplayPreview
+          model={FIESTAPANEL_SPLIT_FLAP_MODEL}
+          message="HI"
+          frame="tv"
+          tv={{ diagonalInches: 65, aspect: { w: 16, h: 9 }, dimmed: 0.3, stand: false }}
+        />,
+      );
       expect(housing()).toHaveAttribute("data-frame", "tv");
-      expect(document.querySelectorAll("[data-slot]")).toHaveLength(2); // the housing and the board, no bezel
+      const tv = housing().querySelector("[data-slot=tv-frame]")!;
+      expect(tv).toHaveAttribute("data-diagonal", "65");
+      expect(tv).toHaveAttribute("data-aspect", (16 / 9).toFixed(4));
+      expect(tv).toHaveAttribute("data-dimmed", "0.3");
+      expect(tv).not.toHaveAttribute("data-stand");
+      const board = screen.getByRole("img", { name: "Board preview: HI" });
+      expect(board).toHaveAttribute("data-slot", "static-board-display");
+      expect(tv.querySelector("[data-slot=tv-frame-screen]")!.contains(board)).toBe(true);
+      // On the TV a split-flap board is bare flaps (bezel.test.tsx has the rest).
+      expect(board).toHaveAttribute("data-bezel", "false");
       cleanup();
+      render(<DisplayPreview model={FIESTAPANEL_LED_MATRIX_MODEL} message="HI" frame="tv" />);
+      const led = screen.getByRole("img", { name: "LED matrix preview: HI" });
+      expect(housing().querySelector("[data-slot=tv-frame-screen]")!.contains(led)).toBe(true);
+      // An LED board keeps its housing on the TV until that is decided (spec §7.5).
+      expect(led).not.toHaveAttribute("data-bezel");
+      // Unset `tv` is the default set.
+      expect(housing().querySelector("[data-slot=tv-frame]")).toHaveAttribute("data-diagonal", "55");
+    });
+
+    it("frame='tv' offline hides the board and announces the status; a non-FiestaPanel model may be framed too", () => {
+      render(<DisplayPreview model="vestaboard_note" message="HI" frame="tv" tv={{ offline: true }} />);
+      expect(screen.getByRole("status")).toHaveTextContent("No signal");
+      expect(screen.queryByRole("img")).toBeNull();
+      expect(housing().querySelector("[data-slot=static-board-display]")).toBeInTheDocument();
+    });
+
+    it("frame='none' (the default) draws the bare board and records it on the housing", () => {
       render(<DisplayPreview model={FIESTAPANEL_SPLIT_FLAP_MODEL} message="HI" />);
       expect(housing()).toHaveAttribute("data-frame", "none");
+      expect(document.querySelector("[data-slot=tv-frame]")).toBeNull();
+      expect(document.querySelectorAll("[data-slot]")).toHaveLength(2); // the housing and the board
+      cleanup();
+      // `tv` without the frame is inert.
+      render(<DisplayPreview model={FIESTAPANEL_SPLIT_FLAP_MODEL} message="HI" tv={{ offline: true }} />);
+      expect(document.querySelector("[data-slot=tv-frame]")).toBeNull();
+      expect(screen.getByRole("img", { name: "Board preview: HI" })).toBeInTheDocument();
     });
   });
 

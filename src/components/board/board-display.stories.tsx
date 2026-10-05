@@ -32,6 +32,11 @@ const meta = {
       control: "boolean",
       description: "Loading state — all tiles cycle through the character set continuously",
     },
+    bezel: {
+      control: "boolean",
+      description:
+        "Draw the housing (default). Off: only the tile grid, transparent — what a split-flap board draws inside TvFrame, as the Apple TV app shows FiestaPanel. The flap cascade is unaffected.",
+    },
     size: {
       control: "select",
       options: ["sm", "md", "lg"],

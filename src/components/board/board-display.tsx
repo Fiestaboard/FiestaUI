@@ -1303,6 +1303,17 @@ export interface BoardDisplayProps {
    *  alerts) where a change is news. `polite`, never `assertive`: a board
    *  update is informational. Same opt-in shape as `EmptyState`'s `announce`. */
   announceUpdates?: boolean;
+  /**
+   * Draw the board's housing — the bezel, its border and shadow, the padded
+   * surface the tiles sit on. Default `true`. `false` draws only the tile
+   * grid, transparent, with every tile's own materials and the flap
+   * animation untouched: what FiestaPanel's Apple TV app shows — flaps on
+   * the TV's black, no frame — and what `TvFrame` wants from a split-flap
+   * board (`DisplayPreview frame="tv"` passes it). Same contract as
+   * `StaticBoardDisplay`'s prop of this name: `data-bezel="false"` on the
+   * housing, role and name kept.
+   */
+  bezel?: boolean;
 }
 
 // Module-scope default so the aria-label memo below keeps a stable dependency.
@@ -1334,6 +1345,7 @@ export const BoardDisplay = memo(
     emptyLabel = "Empty board display",
     messageLabel = defaultMessageLabel,
     announceUpdates = false,
+    bezel = true,
   }: BoardDisplayProps) {
     // Reduced motion, decided here rather than left to CSS (issue #180).
     //
@@ -1491,28 +1503,42 @@ export const BoardDisplay = memo(
             `StaticBoardDisplay`'s tiles already have via `shrink-0` (#203).
             The answer for a slot narrower than a board is
             `ScaledBoardDisplay`, which scales the whole board to fit. */}
+        {/* `bezel={false}`: the same two boxes with nothing drawn on them — no
+            border, colour, shadow, padding or surface — so the board is its
+            tile grid, transparent, and whoever measures the housing
+            (ScaledBoardDisplay, TvFrame's fit) measures the grid. The
+            attribute and style branches leave the default DOM byte-identical. */}
         <div
           role="img"
           aria-label={boardText}
           data-slot="board-display"
           data-board-preview=""
-          className={`${borderClasses} ${className}`}
-          style={{
-            backgroundColor: bezelBg,
-            borderColor,
-            boxShadow,
-            width: "fit-content",
-          }}
+          {...(bezel ? {} : { "data-bezel": "false" })}
+          className={bezel ? `${borderClasses} ${className}` : className}
+          style={
+            bezel
+              ? {
+                  backgroundColor: bezelBg,
+                  borderColor,
+                  boxShadow,
+                  width: "fit-content",
+                }
+              : { width: "fit-content" }
+          }
         >
           {/* Inner bezel border */}
           <div
-            className={`${paddingClasses[size]} relative`}
+            className={bezel ? `${paddingClasses[size]} relative` : "relative"}
             aria-hidden="true"
-            style={{
-              background: isWhiteBoard
-                ? "linear-gradient(135deg, var(--color-board-surface-light) 0%, var(--color-board-bezel-border-light) 100%)"
-                : "linear-gradient(135deg, var(--color-board-surface-dark) 0%, var(--color-board-black) 100%)",
-            }}
+            style={
+              bezel
+                ? {
+                    background: isWhiteBoard
+                      ? "linear-gradient(135deg, var(--color-board-surface-light) 0%, var(--color-board-bezel-border-light) 100%)"
+                      : "linear-gradient(135deg, var(--color-board-surface-dark) 0%, var(--color-board-black) 100%)",
+                  }
+                : undefined
+            }
           >
             <div className={`flex flex-col ${gapClasses[size]}`}>
               {grid.map((row, rowIdx) => {
@@ -1578,10 +1604,11 @@ export const BoardDisplay = memo(
       prevProps.loadingLabel === nextProps.loadingLabel &&
       prevProps.emptyLabel === nextProps.emptyLabel &&
       prevProps.messageLabel === nextProps.messageLabel &&
+      prevProps.announceUpdates === nextProps.announceUpdates &&
       // Every prop must be listed here: one left out is silently inert, since
       // this comparator — not React's shallow default — decides whether the
       // board re-renders at all.
-      prevProps.announceUpdates === nextProps.announceUpdates
+      prevProps.bezel === nextProps.bezel
     );
   },
 );

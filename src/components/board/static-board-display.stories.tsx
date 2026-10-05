@@ -75,6 +75,11 @@ const meta = {
       control: "text",
       description: "Additional CSS classes on the board bezel",
     },
+    bezel: {
+      control: "boolean",
+      description:
+        "Draw the housing (default). Off: only the tile grid, transparent — no bezel, border, shadow, padding or surface. What a split-flap board draws inside TvFrame, as the Apple TV app shows FiestaPanel.",
+    },
   },
 } satisfies Meta<typeof StaticBoardDisplay>;
 
@@ -131,6 +136,31 @@ export const Empty: Story = {
     message: null,
     size: "sm",
   },
+};
+
+/**
+ * `bezel={false}`: the tile grid and nothing else — no bezel, border, shadow,
+ * padding or surface — on whatever is behind it. Here that is the black a TV
+ * screen gives, which is the case this exists for: FiestaPanel's Apple TV app
+ * shows the flaps on the set's black with no board frame around them, and
+ * `TvFrame` shows a split-flap board the same way. The gutters, note seams and
+ * the tiles' own leaf, hinge and colour materials are untouched, and the board
+ * keeps its role and name.
+ */
+export const Frameless: Story = {
+  args: {
+    message: "FLAPS ONLY\n{red}NO FRAME{/red}\n{63}{64}{65} ON BLACK",
+    size: "md",
+    deviceType: "note",
+    bezel: false,
+  },
+  decorators: [
+    (Story) => (
+      <div className="rounded-sm bg-black p-8">
+        <Story />
+      </div>
+    ),
+  ],
 };
 
 /**

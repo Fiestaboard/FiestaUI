@@ -260,6 +260,11 @@ export const INVENTORY = [
         summary:
           "One entry point for any device model — picks the split-flap or LED renderer from the model's declared technology.",
       },
+      {
+        name: "TvFrame",
+        summary:
+          "An OLED television around a board renderer — FiestaPanel's housing, sized by diagonal and aspect, dimmable, with an offline state. A split-flap board on it is bare flaps on the black.",
+      },
     ],
   },
   {

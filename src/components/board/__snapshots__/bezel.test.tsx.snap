@@ -1,0 +1,25 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`bezel > default: the housing, byte-identical to before the prop existed > BoardDisplay 1`] = `
+"<div class="w-full flex justify-center"><div role="img" aria-label="Board display: HI" data-slot="board-display" data-board-preview="" class="rounded-lg sm:rounded-xl border-[3px] sm:border-[4px] lg:border-[5px] " style="background-color: var(--color-board-bezel-dark); border-color: var(--color-board-bezel-border-dark); box-shadow: 0 8px 32px rgba(0,0,0,0.6),
+      0 4px 16px rgba(0,0,0,0.4),
+      inset 0 1px 1px rgba(255,255,255,0.08),
+      inset 0 0 0 1px rgba(255,255,255,0.03); width: fit-content;"><div class="px-2 py-3 sm:px-4 sm:py-6 md:px-5 md:py-8 lg:px-6 lg:py-10 relative" aria-hidden="true" style="background: linear-gradient(135deg, var(--color-board-surface-dark) 0%, var(--color-board-black) 100%);"><div class="flex flex-col gap-[3px] sm:gap-[4px] md:gap-[5px] lg:gap-[6px]"><!-- 3 rows, 45 tiles --></div></div></div></div>"
+`;
+
+exports[`bezel > default: the housing, byte-identical to before the prop existed > BoardDisplay 2`] = `"126aaf3b2fb8e908c6655e6bf10c4838d50d3a94982355b91aaf7b5c2aff02c8"`;
+
+exports[`bezel > default: the housing, byte-identical to before the prop existed > BoardDisplay, the static path 1`] = `
+"<div class="w-full flex justify-center"><div role="img" aria-label="Board display: HI" data-slot="board-display" data-board-preview="" class="rounded-lg sm:rounded-xl border-[3px] sm:border-[4px] lg:border-[5px] " style="background-color: var(--color-board-bezel-dark); border-color: var(--color-board-bezel-border-dark); box-shadow: 0 8px 32px rgba(0,0,0,0.6),
+      0 4px 16px rgba(0,0,0,0.4),
+      inset 0 1px 1px rgba(255,255,255,0.08),
+      inset 0 0 0 1px rgba(255,255,255,0.03); width: fit-content;"><div class="px-2 py-3 sm:px-4 sm:py-6 md:px-5 md:py-8 lg:px-6 lg:py-10 relative" aria-hidden="true" style="background: linear-gradient(135deg, var(--color-board-surface-dark) 0%, var(--color-board-black) 100%);"><div class="flex flex-col gap-[3px] sm:gap-[4px] md:gap-[5px] lg:gap-[6px]"><!-- 3 rows, 45 tiles --></div></div></div></div>"
+`;
+
+exports[`bezel > default: the housing, byte-identical to before the prop existed > BoardDisplay, the static path 2`] = `"af71ef87782f433ed3dd75ea433859b1610a666bcc9838f11b4048afd9c50968"`;
+
+exports[`bezel > default: the housing, byte-identical to before the prop existed > LedMatrixDisplay 1`] = `"<div class="flex w-full min-w-0 justify-center"><div role="img" aria-label="LED matrix preview: HI" data-slot="led-matrix-display" data-matrix-width="16" data-matrix-height="8" data-font="3x5" data-pixel-shape="round" data-transition="none" data-transition-source="default" class="min-w-0 max-w-full rounded-lg border-[3px] p-2 sm:p-3" style="background-color: var(--color-board-bezel-dark); border-color: var(--color-board-bezel-border-dark); box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.06);"><div class="max-w-full" style="width: 96px;"><canvas aria-hidden="true" width="96" height="48" class="block h-auto w-full" style="background-color: rgb(10, 10, 10);"></canvas></div></div></div>"`;
+
+exports[`bezel > default: the housing, byte-identical to before the prop existed > StaticBoardDisplay 1`] = `"<div class="w-full flex justify-center"><div role="img" aria-label="Board preview: HI" data-slot="static-board-display" class="rounded-lg border-[3px] " style="background-color: var(--color-board-bezel-dark); border-color: var(--color-board-bezel-border-dark); box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.06); width: fit-content;"><div class="px-3 py-4 relative" aria-hidden="true" style="background: linear-gradient(135deg, var(--color-board-surface-dark) 0%, var(--color-board-black) 100%);"><div class="flex flex-col gap-[3px]"><!-- 3 rows, 45 tiles --></div></div></div></div>"`;
+
+exports[`bezel > default: the housing, byte-identical to before the prop existed > StaticBoardDisplay 2`] = `"5ca64a368ab8061a4b702e98fc6f4fed4845010616f1877d79415ad2e29b68d1"`;

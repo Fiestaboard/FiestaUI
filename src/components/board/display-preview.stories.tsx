@@ -35,7 +35,16 @@ const meta = {
     },
     size: { control: "select", options: ["sm", "md", "lg"] },
     code62Glyph: { control: "select", options: ["degree", "heart"] },
-    frame: { control: "select", options: ["none", "tv"], description: "Reserved: tv renders as none today" },
+    frame: {
+      control: "select",
+      options: ["none", "tv"],
+      description: "The housing: none is the bare board, tv puts it on an OLED television (TvFrame), set by `tv`",
+    },
+    bezel: {
+      control: "boolean",
+      description:
+        "The board's own housing. Unset: drawn, except for a split-flap board inside frame=tv, which is bare flaps on the TV's black (the Apple TV app's look). An explicit value wins.",
+    },
   },
 } satisfies Meta<typeof DisplayPreview>;
 
@@ -117,8 +126,9 @@ export const Max7219: Story = {
 
 /**
  * FiestaPanel in its split-flap style, declared by FiestaBoard's plugin as
- * a `panel` with its size (12 × 29, a 55" TV) — not a built-in. The TV
- * bezel is not drawn yet: `frame="tv"` is reserved for it.
+ * a `panel` with its size (12 × 29, a 55" TV) — not a built-in. The board
+ * with its housing; `frame="tv"` puts it on the television as bare flaps
+ * (see the TvFrame stories).
  */
 export const FiestaPanelSplitFlap: Story = {
   name: "FiestaPanel (split-flap, plugin-declared)",
@@ -126,7 +136,6 @@ export const FiestaPanelSplitFlap: Story = {
     model: FIESTAPANEL_SPLIT_FLAP_MODEL as DeviceModel,
     message:
       "DEPARTURES\n\nN JUDAH      2 MIN\nN JUDAH     14 MIN\nKT INGLESIDE 6 MIN\n\n72° SUNNY  AQI 42\n{66}{66}{66} GOOD",
-    frame: "tv",
   },
 };
 
@@ -138,7 +147,6 @@ export const FiestaPanelLedMatrix: Story = {
     message:
       "DEPARTURES\n\nN JUDAH      2 MIN\n{red:N JUDAH     14 MIN}\nKT INGLESIDE 6 MIN\n\n{icon:sun} 72° SUNNY\n{black/white:AQI 42} GOOD",
     size: "sm",
-    frame: "tv",
   },
 };
 

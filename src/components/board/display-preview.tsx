@@ -23,8 +23,12 @@
  * FiestaPanel — FiestaBoard's TV board — declares one model per render
  * style (`fiestapanel_split_flap`, a `panel` with its size declared;
  * `fiestapanel_led_matrix`, measured in pixels) and is dispatched like any
- * other device. The TV bezel around it is FiestaBoard's to define; `frame`
- * reserves the prop and draws nothing yet.
+ * other device. `frame="tv"` wraps whichever renderer the model gets in
+ * `TvFrame`, the OLED television FiestaPanel shows on, with the viewer's
+ * facts about the set in `tv` (diagonal, aspect, dimming, offline). On the
+ * TV a split-flap board draws no housing of its own — only its flaps, as
+ * the Apple TV app shows them — so the flaps are what is fitted to the
+ * screen (`bezel`).
  */
 
 import { useEffect } from "react";
@@ -45,12 +49,13 @@ import { type LedTransitionSpec } from "../../lib/led-transitions";
 import { BoardDisplay } from "./board-display";
 import { LedMatrixDisplay, type LedPixelShape } from "./led-matrix-display";
 import { StaticBoardDisplay } from "./static-board-display";
+import { TvFrame, type TvFrameOptions } from "./tv-frame";
 
 /**
- * The housing around the board. `"none"` is the bare renderer. `"tv"` is
- * reserved for FiestaPanel's television bezel, once FiestaBoard defines
- * it; today it renders exactly as `"none"` and only marks the housing
- * (`data-frame`), so a consumer can already ask for it.
+ * The housing around the board. `"none"` is the bare renderer. `"tv"` puts
+ * the renderer on the screen of an OLED television (`TvFrame`) — the way
+ * FiestaPanel shows a board — for any model, with the set described by the
+ * `tv` prop. The housing records the choice on `data-frame` either way.
  */
 export type DisplayPreviewFrame = "none" | "tv";
 
@@ -106,7 +111,24 @@ export interface DisplayPreviewProps {
   emptyLabel?: string;
   /** The housing. See {@link DisplayPreviewFrame}. Defaults to `"none"`. */
   frame?: DisplayPreviewFrame;
-  /** Passed to the renderer's housing. */
+  /**
+   * The television, when `frame` is `"tv"`: FiestaBoard's
+   * `screen_diagonal_inches` as `diagonalInches`, `screen_aspect_w` / `_h`
+   * as `aspect`, the viewer's auto-dim level as `dimmed`, its frame-fetch
+   * failure as `offline`, and `stand: false` for a wall mount. Unset is a
+   * 55" 16:9 set on its stand, showing. Ignored for any other `frame`.
+   */
+  tv?: TvFrameOptions;
+  /**
+   * Draw the board's own housing (the renderer's `bezel`). Unset, the board
+   * has its housing — except a split-flap board inside `frame="tv"`, which
+   * draws only its flaps on the TV's black, as FiestaPanel's Apple TV app
+   * does, and is fitted to the screen by its tile grid. An LED board inside
+   * the TV keeps its housing until that is decided (spec §7.5). An explicit
+   * value wins either way.
+   */
+  bezel?: boolean;
+  /** Passed to the renderer's housing (the board, not the television). */
   className?: string;
 }
 
@@ -207,6 +229,8 @@ export function DisplayPreview({
   messageLabel,
   emptyLabel,
   frame = "none",
+  tv,
+  bezel,
   className,
 }: DisplayPreviewProps) {
   // Throws for an unknown id, with the list of built-ins: never a flagship.
@@ -221,8 +245,14 @@ export function DisplayPreview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ignoredKey]);
 
+  // The housing: a split-flap board on the TV is bare flaps (the owner's
+  // call, after the Apple TV app); an LED board on the TV keeps its housing
+  // for now (open, spec §7.5); any board elsewhere has one. Explicit wins.
+  const bare = frame === "tv" && model.technology === "split_flap";
+  const housingShown = bezel ?? !bare;
+
   // Shared by every renderer; each adds its own defaults for what is unset.
-  const content = { message, cells, className, previewLabel, messageLabel, emptyLabel };
+  const content = { message, cells, className, previewLabel, messageLabel, emptyLabel, bezel: housingShown };
   const defined = <T extends object>(o: T): T =>
     Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 
@@ -265,7 +295,8 @@ export function DisplayPreview({
 
   // `display: contents`: the housing carries the dispatch facts for the app
   // and for tests, and takes no part in layout — the renderer's own outer
-  // box still centres the board exactly as it does on its own.
+  // box still centres the board exactly as it does on its own, and the
+  // television, when there is one, fills the width it is given.
   return (
     <div
       className="contents"
@@ -275,7 +306,7 @@ export function DisplayPreview({
       data-frame={frame}
       data-geometry-clamped={geometryClamped}
     >
-      {board}
+      {frame === "tv" ? <TvFrame {...tv}>{board}</TvFrame> : board}
     </div>
   );
 }

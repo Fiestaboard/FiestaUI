@@ -404,12 +404,31 @@ Added after the plan was approved. Task 6 gave the pickers `charset`; this threa
 
 **PR title:** `feat(board): TvFrame for FiestaPanel previews`
 
-Stub: another agent writes the full entry and builds it. What is agreed:
+FiestaPanel is a board shown on a TV, so its previews sit on one. `TvFrame` is the OLED television around any board renderer, and `DisplayPreview frame="tv"` (reserved in Task 7) now wraps whichever renderer the model gets in it. The inputs were agreed with FiestaBoard (`src/panels/models.py`; spec §7.5 and §14): the render style and the grid come from the model as before; the set itself from `screen_diagonal_inches`, `screen_aspect_w` / `_h`, the viewer's auto-dim level and its frame-fetch failure. `calibration_scale` is the viewer's physical-size calibration and the frame never reads it.
 
-- A frame that wraps either renderer (split-flap or LED matrix) in an OLED-TV housing, selected by `DisplayPreview frame="tv"` for the `fiestapanel_split_flap` / `fiestapanel_led_matrix` models (`src/lib/plugin-model-fixtures.ts`). Today `frame="tv"` renders as `"none"` and only marks the housing (`data-frame`).
-- Inputs per board: the render style, the grid rows × cols, the screen diagonal and aspect ratio, and a dimming / offline state.
+**What was built:**
+
+- `TvFrame` (`src/components/board/tv-frame.tsx`): a thin gunmetal bezel lit from above with a slim chin, a standby LED on the chin, a centre plate stand (`stand={false}` for a wall mount), and an OLED-black screen with a faint reflection. CSS and inline styles only — no images, no new tokens (the LED is `--color-board-orange`; the hardware greys are literal, as the board bezels' are).
+  - `diagonalInches` (3–200, default 55) and `aspect` (a number or `{ w, h }`, default 16/9) set the geometry through `tvFrameGeometry`: the bezel is modelled in inches (a fixed part plus a little per inch of diagonal) and emitted as a fraction of the set's width in `cqw` (the housing is an inline-size container), so a 32" set has a visibly thicker bezel and a bigger stand than an 85" (`standScale = √(55/D)`, bounded). The diagonal never changes how big the board renders beyond the fit.
+  - The board is laid out at its natural size (`width: max-content`) and scaled to fit the screen inside a 4% margin (`fitToScreen`, measured by a ResizeObserver from a layout effect, so the first paint is right); it fills the width or the height, whichever binds. The screen records `data-fit` and `data-fit-scale`.
+  - `dimmed` (0–1) is a black veil over the screen only. `offline` turns the screen off: the board is `visibility: hidden` and `aria-hidden` (nothing is showing, so nothing is reported), the standby LED lights amber, and a `role="status"` region on the screen carries `offlineLabel` ("No signal"); it is rendered empty while online, so the change announces.
+  - Sizing is the container's: the set fills the width it is given and shrinks to a phone with no horizontal overflow (checked at 390px in both themes).
+  - A11y: every piece of chrome is `aria-hidden`; the housing has no role or label; the board keeps its own `role="img"` and name.
+- `DisplayPreview`: `tv?: TvFrameOptions` (`diagonalInches`, `aspect`, `dimmed`, `offline`, `stand`, `offlineLabel`), applied when `frame="tv"`, which is allowed for any model. `className` still goes to the board, not the set.
+- Exports: `TvFrame`, `TvFrameProps`, `TvFrameOptions`, `TvAspect`. The geometry and fit helpers stay internal. Inventory entry and demo.
+- Tests (`tv-frame.test.tsx`, 21; `display-preview.test.tsx` +2): the inputs' fallbacks and clamps, the geometry's monotonicity, `fitToScreen` on both axes and the margin, the chrome hidden and the board named, offline announced and hidden, defaults, the CSS variables, the measured fit through stubbed sizes, and the `DisplayPreview` wiring.
+- Stories (`tv-frame.stories.tsx`, 9): split-flap 55" 16:9, LED 65", portrait 9:16, 32" beside 85", dimmed 0.6, offline, wall mount, and `DisplayPreview frame="tv"` for both FiestaPanel models. The a11y runner passes in both themes; the shots were looked at in both themes at desktop and phone width.
 - Consumers: the FiestaBoard web viewer (`panel-view.tsx` / `panel-board.tsx`). The tvOS app draws its own frame and does not use this.
-- Files: `src/components/board/tv-frame.tsx` (+ stories and test), `display-preview.tsx` (the `tv` branch), `src/index.ts`, the inventory.
+- **Frameless split-flap boards inside the TV** (owner feedback on the PR: "the Apple TV app doesn't show a frame, just flaps"; second commit). `bezel?: boolean` on `StaticBoardDisplay`, `BoardDisplay` (`ScaledBoardDisplay` passes it through and measures the grid) and `LedMatrixDisplay`: default `true` with the DOM byte-identical (held by `bezel.test.tsx`'s snapshots, recorded from the first commit); `false` draws only the tile grid — gutters, seams and tile materials intact, transparent — with no bezel, border, shadow, padding or surface, keeping `role="img"`, the name and `data-slot`, plus `data-bezel="false"`. `DisplayPreview` exposes `bezel` (default `true` outside a TV, `false` for a split-flap model inside `frame="tv"`; explicit wins), so the flaps fill the TV screen to its margin as the Apple TV app shows them. The LED board keeps its housing on the TV (owner decision, 2026-10-04; spec §7.5); the bare option is a TvFrame story. Tests (`bezel.test.tsx`, 13): the default snapshots, `bezel={false}` on every renderer, the flap cascade without a bezel, the `DisplayPreview` rules. Stories: StaticBoardDisplay "Frameless"; the TvFrame split-flap stories now bare; "FiestaPanel LED matrix, bare (bezel={false} option)". This replaces the crop in FiestaBoard's `panel-board.tsx`.
+
+**Steps:**
+
+- [x] `TvFrame`, the `DisplayPreview` branch, exports, inventory; tests for each.
+- [x] Stories, the a11y runner, screenshots looked at in both themes and at 390px.
+- [x] `bezel={false}` for split-flap boards inside the TV (owner feedback), the LED-in-TV housing decided (kept).
+- [ ] Run the checks, then open and merge the PR.
+
+**Downstream:** FiestaBoard's viewer wraps its preview in `DisplayPreview frame="tv"` with `tv` built from the panel's settings; its own bezel goes, and so does `panel-board.tsx`'s overflow-hidden crop of the housed board (the flaps are now the renderer's whole box, so the viewer's physical-size scale applies to the grid directly). The viewer decides the LED housing question with the owner.
 
 ---
 

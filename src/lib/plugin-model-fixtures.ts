@@ -10,9 +10,8 @@
  * It renders in one of two styles, and FiestaBoard declares a model per
  * style — a split-flap panel sized in characters, and an LED-matrix look
  * sized in pixels — so a preview is dispatched on the model's technology
- * like any other device's. (The TV bezel around either is FiestaBoard's to
- * define; until it is, `DisplayPreview` draws the bare board — see its
- * `frame` prop.)
+ * like any other device's. The television around either is `TvFrame`,
+ * through `DisplayPreview`'s `frame="tv"` and `tv` props.
  */
 
 import { ACME_SIGN_MODEL } from "./charset-golden-cases";
