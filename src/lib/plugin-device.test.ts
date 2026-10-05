@@ -17,6 +17,8 @@ import {
   validateDeviceModel,
 } from "./devices";
 import { frameToAscii, frameToBits, layoutLedMessage, rasterizeLedLayout, renderLedGlyph } from "./led-matrix";
+import { defaultTransitionIdForModel, resolveLedTransition, transitionsForModel } from "./led-transition-registry";
+import { ledScramblePool, ledTransitionFrames, planLedTransition } from "./led-transitions";
 
 /*
  * A device nobody here has heard of, declared the way a FiestaBoard output
@@ -25,8 +27,7 @@ import { frameToAscii, frameToBits, layoutLedMessage, rasterizeLedLayout, render
  * euro sign it carries as a bitmap (./charset-golden-cases, where the set is
  * also a golden fixture) — and a sequence API that takes at most 12 frames.
  * Everything FiestaUI does for a built-in must work for it: validate, lay
- * out, draw its glyphs. (Its budgeted flip and its transition menu are the
- * transition layer's tests.)
+ * out, draw its glyphs, flip under its budget, list its menu.
  */
 const ACME_MODEL_JSON: Record<string, unknown> = JSON.parse(JSON.stringify(ACME_SIGN_MODEL));
 
@@ -116,5 +117,83 @@ describe("a plugin-declared device, end to end", () => {
       value: "A",
       background: "white",
     });
+  });
+
+  it("flips under the plugin's 12-frame budget, in one colour, landing on the target", () => {
+    const spec = ledSpecForModel(model)!;
+    const from = layoutLedMessage("€12", spec, { monochrome: "#ffb000", charset });
+    const to = layoutLedMessage("€99", spec, { monochrome: "#ffb000", charset });
+    const resolved = resolveLedTransition(undefined, model);
+    expect(resolved).toMatchObject({
+      id: "flip",
+      source: "default",
+      spec: { kind: "flip", maxFrames: 12, halfFlap: false, stepMs: 100 },
+    });
+    const tr = planLedTransition(from, to, resolved.spec as Exclude<typeof resolved.spec, "none">);
+    // The default flip (14 frames) is compressed: stagger first, then scramble.
+    expect(tr.frameCount).toBe(12);
+    // The scramble draws only from the sign's own set, carried on the layout.
+    expect(from.options.charset).toBe(charset);
+    const pool = new Set(ledScramblePool(charset));
+    for (let f = 1; f < 11; f++) {
+      tr.layoutAt(f * 100).cells.forEach((cell, i) => {
+        if (cell.glyph !== from.cells[i].glyph && cell.glyph !== to.cells[i].glyph) {
+          expect(pool.has(cell.glyph), `frame ${f} cell ${i}`).toBe(true);
+        }
+      });
+    }
+    expect(tr.durationMs).toBe(11 * 100);
+    const frames = ledTransitionFrames(tr);
+    expect(frames).toHaveLength(12);
+    expect([...frames[0].pixels]).toEqual([...tr.from.pixels]);
+    expect([...frames.at(-1)!.pixels]).toEqual([...tr.to.pixels]);
+    // Every frame is one colour (the sign's amber) — a 1-bit adapter's bits.
+    for (const f of frames) {
+      for (let i = 0; i < f.pixels.length; i += 3) {
+        const lit = f.pixels[i] || f.pixels[i + 1] || f.pixels[i + 2];
+        if (lit) expect([f.pixels[i], f.pixels[i + 1], f.pixels[i + 2]]).toEqual([0xff, 0xb0, 0x00]);
+      }
+      expect(frameToBits(f)).toHaveLength(48 * 12);
+    }
+    // A longer request still fits the budget exactly, and a caller's own
+    // step never goes under the device's minimum frame time.
+    const long = resolveLedTransition({ kind: "flip", scrambleSteps: 40, stagger: 20, stepMs: 20 }, model);
+    expect(long.spec).toMatchObject({ kind: "flip", maxFrames: 12, stepMs: 100, halfFlap: false });
+    expect(planLedTransition(from, to, long.spec as Exclude<typeof long.spec, "none">).frameCount).toBe(12);
+  });
+
+  it("scrambles from its own set: no lowercase, no sun, the euro included", () => {
+    const pool = ledScramblePool(charset);
+    expect(pool.length).toBe(charset.chars.length + 7 + charset.icons.length);
+    expect(new Set(pool).size).toBe(pool.length);
+    expect(pool).not.toContain(0);
+  });
+
+  it("lists the menu for it, with the budget on every entry", () => {
+    expect(defaultTransitionIdForModel(model)).toBe("flip");
+    const menu = transitionsForModel(model);
+    expect(menu.find((a) => a.id === "none")!.available).toBe(true);
+    expect(menu.find((a) => a.id === "flip")).toMatchObject({
+      available: true,
+      degraded: true,
+      reason: "Compressed to 12 frames: one frame per step, no half-flaps",
+    });
+    expect(
+      menu.filter((a) => a.id !== "none").every((a) => a.available && a.spec !== "none" && a.spec?.maxFrames === 12),
+    ).toBe(true);
+    expect(resolveLedTransition("slide", model)).toMatchObject({
+      id: "slide",
+      source: "explicit",
+      spec: { kind: "slide", maxFrames: 12 },
+    });
+    // A tighter budget drops the flip (it needs 8 frames) but keeps a fade.
+    const tight: DeviceModel = { ...model, animation: { ...model.animation, maxFrames: 6 } };
+    expect(defaultTransitionIdForModel(tight)).toBe("none");
+    expect(transitionsForModel(tight).find((a) => a.id === "flip")).toMatchObject({
+      available: false,
+      reason: "Needs at least 8 frames; this device plays sequences of up to 6.",
+    });
+    expect(transitionsForModel(tight).find((a) => a.id === "fade")!.available).toBe(true);
+    expect(resolveLedTransition("flip", tight)).toMatchObject({ id: "none", source: "fallback", requested: "flip" });
   });
 });

@@ -1,7 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { type ReactNode, useEffect, useState } from "react";
 
-import { LED_MATRIX_PRESETS, LED_MONO_COLORS } from "../../lib/led-matrix";
-import { LedMatrixDisplay } from "./led-matrix-display";
+import { type DeviceModel, deviceModelForPreset } from "../../lib/devices";
+import { SEQUENCE_PANEL_MODEL } from "../../lib/led-golden-cases";
+import { LED_MATRIX_PRESETS, LED_MONO_COLORS, type LedMatrixPresetId } from "../../lib/led-matrix";
+import { transitionsForModel } from "../../lib/led-transition-registry";
+import { LED_TRANSITION_KINDS, type LedTransitionKind } from "../../lib/led-transitions";
+import { LedMatrixDisplay, type LedMatrixDisplayProps } from "./led-matrix-display";
 import { StaticBoardDisplay } from "./static-board-display";
 
 const meta = {
@@ -29,6 +34,11 @@ const meta = {
     textColor: { control: "color" },
     monochrome: { control: "color", description: "Set for a single-colour panel: every lit LED is this colour" },
     letterCase: { control: "select", options: ["upper", "mixed"] },
+    transition: {
+      control: "select",
+      options: [undefined, "none", ...LED_TRANSITION_KINDS],
+      description: "Unset: the preset's device model decides (flip when its API is fast enough, else snap)",
+    },
   },
 } satisfies Meta<typeof LedMatrixDisplay>;
 
@@ -231,6 +241,115 @@ export const MonochromeBesideRgb: Story = {
   ),
 };
 
+/* ---- Transitions ------------------------------------------------------- */
+
+/**
+ * Cycles through messages: a "Next message" button, and optionally a timer.
+ * Under VRT's reduced motion every change snaps, so the shot is the first
+ * message's static frame whichever way the story is driven.
+ */
+function Cycler({
+  messages,
+  intervalMs,
+  children,
+}: {
+  messages: string[];
+  intervalMs?: number;
+  children: (message: string) => ReactNode;
+}) {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (!intervalMs) return;
+    const id = setInterval(() => setIndex((i) => (i + 1) % messages.length), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs, messages.length]);
+  return (
+    <div className="flex flex-col items-center gap-4">
+      {children(messages[index])}
+      <button
+        type="button"
+        data-testid="next-message"
+        className="rounded-md border px-3 py-1 text-sm"
+        onClick={() => setIndex((i) => (i + 1) % messages.length)}
+      >
+        Next message
+      </button>
+    </div>
+  );
+}
+
+const TRANSIT_A = "N JUDAH  2 MIN\nN JUDAH 14 MIN\nKT        6 MIN\n\n{66} ON TIME";
+const TRANSIT_B = "N JUDAH  1 MIN\nN JUDAH 13 MIN\nKT        5 MIN\n\n{65} 2 MIN LATE";
+const TRANSIT_C = "N JUDAH DUE\nN JUDAH 12 MIN\nKT        4 MIN\n\n{63} DELAYED";
+
+const transitionStory = (transition: LedTransitionKind, extra: Partial<LedMatrixDisplayProps> = {}): Story => ({
+  args: { message: TRANSIT_A, preset: "hub75_128x64", size: "sm", transition, ...extra },
+  render: (args) => (
+    <Cycler messages={[TRANSIT_A, TRANSIT_B, TRANSIT_C]}>
+      {(message) => <LedMatrixDisplay {...args} message={message} announceUpdates />}
+    </Cycler>
+  ),
+});
+
+/**
+ * The FiestaBoard flip: every changing cell scrambles through six glyphs
+ * drawn from the board's own character set — letters, digits, tiles, icons —
+ * one per 80 ms with a half-flap between them, then lands on its target.
+ * Cells start up to six steps apart, so the board settles as a cascade. The
+ * scramble is seeded from the cell and the change, so it is the same every
+ * time; it does not walk Vestaboard's character order.
+ */
+export const FlipTransition: Story = transitionStory("flip");
+/** One flip per changed cell, in reading order, across 480ms. */
+export const CascadeTransition: Story = transitionStory("cascade");
+/** The new frame pushes the old one up — AWTRIX's default app switch. */
+export const SlideTransition: Story = transitionStory("slide");
+/** A left-to-right curtain. */
+export const WipeTransition: Story = transitionStory("wipe");
+/** A crossfade: on hardware, a real brightness ramp. */
+export const FadeTransition: Story = transitionStory("fade");
+/** Pixels switch in a fixed pseudo-random order — the same order on every device. */
+export const DissolveTransition: Story = transitionStory("dissolve");
+
+/** A quicker flip: `{ kind: "flip", stepMs: 40 }`. */
+export const FlipQuick: Story = transitionStory("flip", { transition: { kind: "flip", stepMs: 40 } });
+
+/** Every kind at once, retargeting every 4 s. */
+export const AllTransitions: Story = {
+  args: { message: TRANSIT_A, preset: "hub75_64x32", size: "sm" },
+  render: (args) => (
+    <Cycler
+      messages={[
+        "72° SUNNY\nUV 6 {65}\nAQI 42 {66}",
+        "68° CLOUDY\nUV 2 {66}\nAQI 55 {65}",
+        "61° RAIN\nUV 1 {66}\nAQI 30 {66}",
+      ]}
+      intervalMs={4000}
+    >
+      {(message) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {LED_TRANSITION_KINDS.map((kind) => (
+            <figure key={kind} className="flex flex-col items-center gap-1">
+              <LedMatrixDisplay {...args} message={message} transition={kind} />
+              <figcaption className="text-xs text-muted-foreground">{kind}</figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+    </Cycler>
+  ),
+};
+
+/** The flip on a mono ticker: the scramble in one colour. */
+export const FlipMonochrome: Story = {
+  args: { message: "72° {66}OK", preset: "max7219", size: "lg", transition: "flip" },
+  render: (args) => (
+    <Cycler messages={["72° {66}OK", "68° {65}UV2", "{red:61°} RAIN"]}>
+      {(message) => <LedMatrixDisplay {...args} message={message} />}
+    </Cycler>
+  ),
+};
+
 /* ---- FiestaBoard examples ---------------------------------------------- */
 
 /** A weather page with icons, coloured temperatures and a tile UV bar. */
@@ -331,18 +450,30 @@ export const OnePluginEveryBoard: Story = {
   ),
 };
 
-/* ---- Pixoo 64 first, block text, character sets ------------------------ */
+/* ---- Pixoo 64 first, block text, character sets, device defaults -------- */
 
-const PIXOO_WEATHER =
-  "{icon:sun} SAN FRANCISCO\n{red:72°} FEELS 70°\nHI {orange:78} LO {blue:61}\nUV {65}{65}{65} 6/11\nAQI {green:42} GOOD\n\n{black/white: TUE } {icon:cloud} 68°\n{black/white: WED } {icon:sun} 75°";
+const PIXOO_PAGES = [
+  "{icon:sun} SAN FRANCISCO\n{red:72°} FEELS 70°\nHI {orange:78} LO {blue:61}\nUV {65}{65}{65} 6/11\nAQI {green:42} GOOD\n\n{black/white: TUE } {icon:cloud} 68°\n{black/white: WED } {icon:sun} 75°",
+  "{icon:train} {blue:N} JUDAH 2 MIN\n{icon:train} {red:KT} 3RD  6 MIN\n{icon:bus} {orange:22} FILL 4 MIN\n\n{white/red: DELAYED }\n22 FILLMORE +12",
+  "Now playing\n{violet:Bad Guy}\nBillie Eilish\n{icon:music} 2:14 / 3:14\n\n{black/green: PLAYING }",
+];
 
 /**
  * The first test device: a Pixoo 64, a 64×64 diffused face (square pixels,
  * from the model's `appearance`) in the 3×5 font, with mixed case, colour
- * spans, icons and inverse-video pills on one page.
+ * spans, icons and inverse-video pills on one page. Its hardware test
+ * (2026-10-04) found that an uploaded animation loops forever and shows a
+ * "LOADING…" overlay first, while a single-frame push is clean in half a
+ * second — so the Pixoo **snaps**: its default transition is None, and
+ * "Next message" cuts straight to the next page, exactly as the device does.
  */
 export const Pixoo64Featured: Story = {
-  args: { message: PIXOO_WEATHER, preset: "pixoo64", letterCase: "mixed", size: "md" },
+  args: { message: PIXOO_PAGES[0], preset: "pixoo64", letterCase: "mixed", size: "md" },
+  render: (args) => (
+    <Cycler messages={PIXOO_PAGES}>
+      {(message) => <LedMatrixDisplay {...args} message={message} announceUpdates />}
+    </Cycler>
+  ),
 };
 
 /**
@@ -423,5 +554,78 @@ export const OneMessageEveryCharset: Story = {
         </figure>
       </div>
     </div>
+  ),
+};
+
+const LED_MODEL_IDS = Object.keys(LED_MATRIX_PRESETS) as LedMatrixPresetId[];
+const describeDefault = (id: LedMatrixPresetId) => {
+  const flip = transitionsForModel(deviceModelForPreset(id)).find((t) => t.id === "flip")!;
+  if (!flip.available || flip.spec === null || flip.spec === "none") return `none — ${flip.reason ?? "snap"}`;
+  const spec = flip.spec;
+  const how = spec.maxFrames ? `${spec.maxFrames} frames` : spec.halfFlap === false ? "coarse" : "half-flaps";
+  return `flip, ${spec.stepMs ?? 80} ms, ${how}`;
+};
+
+/**
+ * Every LED model with the transition its API earns by default: full flip
+ * for streams at ≥ 25 fps (HUB75, WLED, local MAX7219/P10), a coarse flip for
+ * a sequence player (Tronbyt), none for the Pixoo 64 (it snaps — hardware
+ * test, 2026-10-04) and for AWTRIX, each captioned with the registry's
+ * reason. Press "Next message" and compare.
+ */
+export const DefaultTransitionByDevice: Story = {
+  args: { message: "72° {66}OK", size: "sm" },
+  render: (args) => (
+    <Cycler messages={["72° {66}OK", "68° {65}UV2", "61° {63}RAIN"]}>
+      {(message) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {LED_MODEL_IDS.map((id) => (
+            <figure key={id} className="flex flex-col items-center gap-1">
+              <LedMatrixDisplay {...args} message={message} preset={id} size={id === "hub75_128x64" ? 2 : "sm"} />
+              <figcaption className="text-xs text-muted-foreground">
+                {deviceModelForPreset(id).label} · {describeDefault(id)}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+    </Cycler>
+  ),
+};
+
+const STATUS_PAGES = [
+  "{black/white: OPEN }  9-5\n{black/green: OK } ALL CLEAR\n\n{white/red: SF } 4  {white/blue: LAD } 2",
+  "{black/yellow: BUSY } 9-5\n{black/green: OK } ALL CLEAR\n\n{white/red: SF } 5  {white/blue: LAD } 2",
+  "{white/red: CLOSED }\n{black/yellow: !! } 1 ALERT\n\n{white/red: SF } 5  {white/blue: LAD } 3",
+];
+
+/** Block-colour text flipping: the pill's field stays lit while its glyphs turn. */
+export const BlockFlip: Story = {
+  args: { message: STATUS_PAGES[0], preset: "hub75_64x32", transition: "flip", size: "md" },
+  render: (args) => (
+    <Cycler messages={STATUS_PAGES}>{(message) => <LedMatrixDisplay {...args} message={message} />}</Cycler>
+  ),
+};
+
+/** A plugin-style 64×64 sequence player with a 32-frame budget — the device the transition goldens pin. */
+const SEQUENCE_MODEL = SEQUENCE_PANEL_MODEL as unknown as DeviceModel;
+
+/**
+ * A sequence player's hard 32-frame budget: a long flip (`scrambleSteps: 40`,
+ * `stagger: 20` would be 62 frames) is compressed into exactly 32 — the
+ * stagger goes first, the scramble keeps 30 steps — and still lands on the
+ * final frame. The device is the generic `sequence_panel_64` fixture model
+ * (the Pixoo 64 used to stand here, until its hardware test showed it snaps).
+ */
+export const SequenceDeviceBudget: Story = {
+  args: {
+    message: PIXOO_PAGES[0],
+    model: SEQUENCE_MODEL,
+    letterCase: "mixed",
+    size: "md",
+    transition: { kind: "flip", scrambleSteps: 40, stagger: 20 },
+  },
+  render: (args) => (
+    <Cycler messages={PIXOO_PAGES}>{(message) => <LedMatrixDisplay {...args} message={message} />}</Cycler>
   ),
 };

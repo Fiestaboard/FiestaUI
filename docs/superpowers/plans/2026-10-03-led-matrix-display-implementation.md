@@ -255,7 +255,7 @@ Send the version and SHA.
   - the `plugin-device.test.ts` budget slice
 - Modify:
   - `led-matrix-display.tsx`: `transition` (registry ids or a spec object), the resolution precedence (explicit > device default, then a reasoned fallback, exposed as `data-transition-source` / `-fallback`), `announceUpdates`, the rAF loop with mid-flight retargeting, `frameAtIndex`
-  - the transition stories, including `Pixoo64Budget` and `BlockFlip`
+  - the transition stories, including `SequenceDeviceBudget` (the 32-frame budget on the generic `sequence_panel_64` fixture model; the Pixoo 64 snaps) and `BlockFlip`
   - `src/index.ts`
 
 **Interfaces:**

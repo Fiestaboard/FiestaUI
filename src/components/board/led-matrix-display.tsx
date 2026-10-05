@@ -18,14 +18,20 @@
  * How the panel *looks* — round or square LEDs, the dot size, the unlit LED
  * and the soldermask behind it — comes from the device model's `appearance`
  * (../../lib/devices), which is preview-only: nothing here changes the frame.
- * A message change repaints the static frame; nothing here ever schedules an
- * animation frame.
+ *
+ * A message change can animate (`transition`): the old and new layouts are
+ * handed to ../../lib/led-transitions, which is a pure function of time, and a
+ * `requestAnimationFrame` loop paints `frameAt(t)` until it settles on exactly
+ * the static frame. `prefers-reduced-motion: reduce` snaps instead, as
+ * BoardDisplay does (issue #180). When the resolved transition is "none"
+ * nothing here ever schedules a frame.
  *
  * Accessibility mirrors StaticBoardDisplay: the canvas is aria-hidden and the
- * bezel is `role="img"`, named from the clipped grid text (issue #205).
+ * bezel is `role="img"`, named from the clipped grid text (issue #205). Like
+ * BoardDisplay, `announceUpdates` adds a polite live region for mirrored boards.
  */
 
-import { memo, useLayoutEffect, useMemo, useRef } from "react";
+import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
   characterSetForModel,
@@ -40,11 +46,15 @@ import {
   layoutLedMessage,
   ledBackgroundMask,
   type LedFrame,
+  type LedLayout,
   type LedLayoutOptions,
   type LedMatrixPresetId,
   rasterizeLedLayout,
 } from "../../lib/led-matrix";
+import { type LedTransitionId, resolveLedTransition } from "../../lib/led-transition-registry";
+import { type LedTransitionSpec, planLedTransition } from "../../lib/led-transitions";
 import { cn } from "../../lib/utils";
+import { useReducedMotion } from "./reduced-motion";
 
 export type LedPixelShape = "round" | "square";
 
@@ -73,11 +83,29 @@ export interface LedMatrixDisplayProps extends LedLayoutOptions {
    * The device model (../../lib/devices) this preview stands for — a
    * built-in id or a model object (an output plugin's). Wins over `preset`
    * (which is the model's pre-taxonomy id) and brings the model's geometry,
-   * font, colour, appearance and character set. An unknown id is no device:
-   * the board renders at the explicit or default size and reports the id on
-   * `data-unknown-model`.
+   * font, colour, appearance, character set and animation capability. An
+   * unknown id is no device: the board renders at the explicit or default
+   * size, snaps, and reports the id on `data-unknown-model`.
    */
   model?: DeviceModelRef;
+  /**
+   * Animate message changes: an entry of the transition menu
+   * (../../lib/led-transition-registry — `"none"`, `"flip"`, `"cascade"`,
+   * `"slide"`, `"wipe"`, `"fade"`, `"dissolve"`) or a spec with timings.
+   *
+   * Precedence: this explicit choice, when the device can run it, else the
+   * device's default — flip when the model's API is fast enough, otherwise
+   * none. A device frame budget (a Pixoo's 32 frames) is always applied. A
+   * choice the device cannot run falls back to its default, and the housing
+   * says so (`data-transition-fallback`). Without a model or preset there is
+   * no device to ask: an explicit choice runs as written and the default is
+   * none. `prefers-reduced-motion: reduce` snaps regardless, with no opt-out.
+   */
+  transition?: LedTransitionId | LedTransitionSpec;
+  /** Announce message changes through a polite live region. Off by default,
+   *  for the reasons BoardDisplay gives: only a mirrored, genuinely live
+   *  board wants it; an editor preview would announce every keystroke. */
+  announceUpdates?: boolean;
   className?: string;
   /** Fixed accessible label for a shown message; overrides `messageLabel`. */
   previewLabel?: string;
@@ -136,7 +164,7 @@ function traceDot(path: Path2D, round: boolean, cx: number, cy: number, size: nu
 /**
  * Per-canvas scratch that survives between paints: the path of every LED in
  * its off state (geometry only, so it is built once per size/shape and
- * refilled every paint) and the 1px-per-LED canvas the bloom is drawn from.
+ * refilled every frame) and the 1px-per-LED canvas the bloom is drawn from.
  * Kept off React state because it belongs to the canvas element, not a render.
  */
 interface PaintCache {
@@ -151,7 +179,8 @@ const paintCaches = new WeakMap<HTMLCanvasElement, PaintCache>();
 /**
  * Paint a frame. Every LED is first filled off from one cached path, then lit
  * pixels are batched into one path per colour on top — so a 128×64 panel is
- * a handful of fills per paint, not 8,192.
+ * a handful of fills per frame, not 8,192, and a transition at 60fps builds
+ * only the lit paths.
  */
 function paintLedFrame(
   canvas: HTMLCanvasElement,
@@ -190,8 +219,8 @@ function paintLedFrame(
     cache = { key, grid, small, image: null };
     paintCaches.set(canvas, cache);
   }
-  // Setting the size clears the canvas; only do it when it changes, so a
-  // repaint does not reallocate the backing store.
+  // Setting the size clears the canvas; only do it when it changes, so an
+  // animation frame does not reallocate the backing store.
   if (canvas.width !== backingW) canvas.width = backingW;
   if (canvas.height !== backingH) canvas.height = backingH;
 
@@ -279,6 +308,8 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
   monochrome,
   letterCase,
   charset: charsetProp,
+  transition,
+  announceUpdates = false,
   className,
   previewLabel,
   messageLabel = defaultMessageLabel,
@@ -327,19 +358,39 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
     return layout.text ? messageLabel(layout.text) : NO_TEXT_LABEL;
   }, [message, layout.text, previewLabel, messageLabel, emptyLabel]);
 
+  // Reduced motion, decided here as BoardDisplay does (issue #180): under
+  // `reduce` a change snaps. There is no opt-out prop — a consumer can turn
+  // the transition off, not back on against the user's preference.
+  const prefersReducedMotion = useReducedMotion();
+  const resolved = resolveLedTransition(transition, deviceModel);
+  const activeTransition: LedTransitionSpec | undefined =
+    prefersReducedMotion || resolved.spec === "none" ? undefined : resolved.spec;
+  const transitionKey = activeTransition
+    ? `${activeTransition.kind}:${activeTransition.durationMs ?? ""}:${activeTransition.stepMs ?? ""}:${activeTransition.scrambleSteps ?? ""}:${activeTransition.stagger ?? ""}:${activeTransition.halfFlap ?? ""}:${activeTransition.maxFrames ?? ""}`
+    : "";
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // What the canvas currently shows — the last settled layout and frame, or
+  // the point a transition in flight had reached when a new message
+  // interrupted it — so the next transition starts from there rather than
+  // from a frame that was never reached.
+  const shownRef = useRef<{ layout: () => LedLayout; frame: () => LedFrame } | null>(null);
   // Layout effect, not a passive one: the board is painted before the browser
   // shows it, so there is no blank-panel frame and VRT never races the paint.
   // It repaints when the device pixel ratio changes too — a window dragged
   // from a 1x to a 2x monitor would otherwise keep a soft 1x backing store.
   // A `(resolution: Ndppx)` query only reports leaving N, so after each
   // change the query is re-armed for the new ratio: 1 → 2 → 1.5 repaints
-  // every time, not just the first.
+  // every time, not just the first. A transition repaints through the same
+  // closure without touching it.
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const look: LedLook = { shape, dotRatio, offColor, substrateColor };
-    const paint = () => paintLedFrame(canvas, frame, pitch, look, glow, blockMask);
+    let raf = 0;
+    let current: LedFrame = frame;
+    let mask: Uint8Array | null = blockMask;
+    const paint = () => paintLedFrame(canvas, current, pitch, look, glow, mask);
     let query: MediaQueryList | null = null;
     const onChange = () => {
       paint();
@@ -351,12 +402,88 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
       query.addEventListener("change", onChange);
     };
     watch();
-    paint();
-    return () => query?.removeEventListener("change", onChange);
-  }, [frame, blockMask, pitch, shape, dotRatio, offColor, substrateColor, glow]);
+
+    const previous = shownRef.current;
+    const from = previous ? previous.layout() : null;
+    const plan =
+      activeTransition && previous && from && from !== layout
+        ? planLedTransition(from, layout, activeTransition, previous.frame())
+        : null;
+    shownRef.current = { layout: () => layout, frame: () => frame };
+
+    if (!plan || plan.durationMs === 0) {
+      paint();
+    } else {
+      const scratch = { width: frame.width, height: frame.height, pixels: new Uint8ClampedArray(frame.pixels.length) };
+      const start = performance.now();
+      let elapsed = 0;
+      shownRef.current = { layout: () => plan.layoutAt(elapsed), frame: () => plan.frameAt(elapsed) };
+      // The mask follows the layout in flight (a per-cell kind's blocks move
+      // with its cells); layoutAt returns cached layouts, so this is cheap.
+      let maskedLayout: LedLayout | null = null;
+      const maskFor = (t: number) => {
+        const at = plan.layoutAt(t);
+        if (at !== maskedLayout) {
+          maskedLayout = at;
+          mask = ledBackgroundMask(at);
+        }
+      };
+      const tick = (now: number) => {
+        elapsed = now - start;
+        if (elapsed >= plan.durationMs) {
+          // Settle on the memoized frame itself, never the last sample.
+          current = frame;
+          mask = blockMask;
+          shownRef.current = { layout: () => layout, frame: () => frame };
+          paint();
+          return;
+        }
+        current = plan.frameAt(elapsed, scratch);
+        maskFor(elapsed);
+        paint();
+        raf = requestAnimationFrame(tick);
+      };
+      current = plan.frameAt(0, scratch);
+      maskFor(0);
+      paint();
+      raf = requestAnimationFrame(tick);
+    }
+    return () => {
+      cancelAnimationFrame(raf);
+      query?.removeEventListener("change", onChange);
+    };
+    // `transitionKey` stands in for `activeTransition`, whose object identity
+    // changes on every render when it is written inline as a spec.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frame, layout, blockMask, pitch, shape, dotRatio, offColor, substrateColor, glow, transitionKey]);
+
+  // Live region, same shape as BoardDisplay's (issue #206): armed empty when
+  // the feature arrives, disarmed when it is switched off (so a change made
+  // while it was off is not replayed when it comes back), then carrying the
+  // text of each later change. An `aria-label` changing is silent to a
+  // screen reader; only a change inside a live region is announced.
+  //
+  // It announces when the change *arrives*, not when a transition settles:
+  // the announcement is the new message, which is what the board is turning
+  // towards, and a screen-reader user should not wait out a five-second drum
+  // roll to hear it — the flap board announces at the same moment.
+  const [announced, setAnnounced] = useState(() => ({ text: "", of: layout.text, armed: announceUpdates }));
+  if (announceUpdates && !announced.armed) {
+    setAnnounced({ text: "", of: layout.text, armed: true });
+  } else if (!announceUpdates && announced.armed) {
+    setAnnounced({ text: "", of: layout.text, armed: false });
+  } else if (announceUpdates && announced.of !== layout.text) {
+    setAnnounced({ text: layout.text, of: layout.text, armed: true });
+  }
 
   return (
     <div className="flex w-full min-w-0 justify-center">
+      {/* Outside the role="img": an image's subtree is not exposed to AT. */}
+      {announceUpdates && (
+        <div className="sr-only" aria-live="polite" aria-atomic="true" data-slot="led-matrix-display-announcer">
+          {announced.text}
+        </div>
+      )}
       {/* The housing is a flex item that may shrink below its content
           (min-w-0); inside it, a box at the matrix's natural width capped at
           100% holds a canvas that fills it. So a matrix wider than its slot
@@ -373,6 +500,10 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
         data-monochrome={mono ? "" : undefined}
         data-model={deviceModel?.id}
         data-unknown-model={unknownModel}
+        data-transition={activeTransition ? activeTransition.kind : "none"}
+        data-transition-source={resolved.source}
+        data-transition-fallback={resolved.source === "fallback" ? resolved.requested : undefined}
+        data-transition-frames={activeTransition?.maxFrames}
         className={cn("min-w-0 max-w-full rounded-lg border-[3px] p-2 sm:p-3", className)}
         style={{
           backgroundColor: bezel ?? "var(--color-board-bezel-dark)",

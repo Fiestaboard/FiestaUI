@@ -7,8 +7,11 @@
  */
 
 import type { CharacterSetInput } from "./character-sets";
-import { ACME_SIGN_CHARSET, ACME_SIGN_V2_CHARSET } from "./charset-golden-cases";
+import { ACME_SIGN_CHARSET, ACME_SIGN_MODEL, ACME_SIGN_V2_CHARSET } from "./charset-golden-cases";
+import type { DeviceModelId } from "./devices";
 import type { LedLayoutOptions, LedMatrixSpec } from "./led-matrix";
+import type { LedTransitionId } from "./led-transition-registry";
+import type { LedTransitionSpec } from "./led-transitions";
 
 export interface GoldenLayoutCase {
   name: string;
@@ -18,6 +21,74 @@ export interface GoldenLayoutCase {
   /** A plugin's set, as declared; the generator and the test materialise it. */
   charset?: CharacterSetInput;
 }
+
+export interface GoldenTransitionCase {
+  name: string;
+  from: string;
+  to: string;
+  spec: LedMatrixSpec;
+  options?: Omit<LedLayoutOptions, "charset">;
+  /** A spec as written, or an id resolved through `model`'s capabilities. */
+  transition: LedTransitionId | LedTransitionSpec;
+  /** A built-in model: `transition` is resolved against its animation
+   *  capability (`resolveLedTransition`), so its frame budget applies. */
+  model?: DeviceModelId;
+  /**
+   * A plugin's model, declared as its manifest would (plain JSON, the set
+   * inline). The generator and the test materialise the set, resolve
+   * `transition` against the model, and lay both messages out with that set
+   * — so the flip scrambles only through the plugin's own characters.
+   */
+  pluginModel?: GoldenPluginModel;
+  /** Sampling rate for a continuous transition; a sequenced one ignores it. */
+  fps?: number;
+  /**
+   * A layout to draw first and throw away — with its own plugin set and its
+   * own custom glyphs — before this case's layouts. The frames must be
+   * byte-identical to the same case without it: glyph identity is a stable
+   * key, not a process-local number, so nothing laid out earlier (in this
+   * process, or in a port's) can change how a cell scrambles.
+   */
+  before?: { message: string; spec: LedMatrixSpec; charset: CharacterSetInput };
+}
+
+/**
+ * Another plugin set with its own custom glyphs — a `¥` the ACME sign lacks,
+ * declared (and laid out) before the sign's `€` — for the golden that proves
+ * the flip does not depend on what was laid out first.
+ */
+export const ACME_SIGN_YEN_CHARSET: CharacterSetInput = {
+  ...ACME_SIGN_CHARSET,
+  id: "acme_sign_yen",
+  label: "ACME sign (yen)",
+  chars: [...ACME_SIGN_CHARSET.chars!, "¥"],
+  glyphs: { "¥": ["#.#", ".#.", "###", ".#.", ".#."], "€": ACME_SIGN_CHARSET.glyphs!["€"] },
+};
+
+/** A plugin device-model declaration: JSON, with its character set inline. */
+export type GoldenPluginModel = Readonly<Record<string, unknown>> & { readonly charset: CharacterSetInput };
+
+/**
+ * A generic sequence-capable device, declared as a plugin manifest would: a
+ * 64×64 RGB panel that takes an uploaded sequence of up to 32 frames held
+ * at least 80 ms each, in the 3×5 face over the built-in set. It pins the
+ * 32-frame budget machinery (compression, the default flip fitting whole)
+ * that the Pixoo 64 used to pin before its hardware test showed it snaps
+ * (`DEVICE_MODELS.divoom_pixoo64`): the budget rules are a property of the
+ * sequence contract, not of one device.
+ */
+export const SEQUENCE_PANEL_MODEL = {
+  id: "sequence_panel_64",
+  label: "Sequence panel 64×64",
+  technology: "led_matrix",
+  family: "sequence_http",
+  geometry: { kind: "pixels", width: 64, height: 64 },
+  color: { kind: "rgb", bitDepth: 24 },
+  charset: { id: "sequence_panel_3x5", extends: "led_3x5" },
+  animation: { delivery: "sequence", maxFps: 12.5, maxFrames: 32, minFrameMs: 80 },
+  font: "3x5",
+  appearance: { pixelShape: "square", dotRatio: 0.9 },
+} as const satisfies GoldenPluginModel;
 
 export const GOLDEN_LAYOUT_CASES: readonly GoldenLayoutCase[] = [
   { name: "awtrix 3x5 clip", message: "72° {66}OK TOO LONG", spec: { width: 32, height: 8, font: "3x5" } },
@@ -105,5 +176,108 @@ export const GOLDEN_LAYOUT_CASES: readonly GoldenLayoutCase[] = [
     message: "{black/white:{icon:snow}{icon:sun}}{icon:snow}{icon:sun}",
     spec: { width: 16, height: 5, font: "3x5" },
     options: { monochrome: "#ffb000" },
+  },
+];
+
+/**
+ * Transition cases: from, to and a spec (or a model whose budget resolves it)
+ * → `ledTransitionFrames`, exactly the frame sequence a device receives. The
+ * flip's scramble is seeded, so these pin FiestaBoard's own scramble, not
+ * Vestaboard's character order.
+ */
+export const GOLDEN_TRANSITION_CASES: readonly GoldenTransitionCase[] = [
+  {
+    name: "flip, seeded scramble, 3x5",
+    from: "AB 12",
+    to: "CD 99",
+    spec: { width: 24, height: 5, font: "3x5" },
+    transition: { kind: "flip", stepMs: 80, scrambleSteps: 4, stagger: 2, halfFlap: false },
+  },
+  {
+    name: "flip with half-flaps, sampled at 25 fps",
+    from: "{black/white:ON}",
+    to: "{black/white:OK}",
+    spec: { width: 12, height: 5, font: "3x5" },
+    transition: { kind: "flip", stepMs: 80, scrambleSteps: 3, stagger: 0 },
+    fps: 25,
+  },
+  {
+    // Compressed to a sequence player's hard budget: the scramble keeps up
+    // to maxFrames − 2 steps and the stagger takes what is left (here 30 and
+    // 0), one frame per step and no half-flaps; the last frame is the target.
+    name: "sequence device 32-frame budget",
+    from: "72° SUNNY\n{66} AQI 42",
+    to: "61° RAIN\n{63} AQI 90",
+    spec: { width: 32, height: 16, font: "3x5" },
+    transition: { kind: "flip", scrambleSteps: 40, stagger: 20 },
+    pluginModel: SEQUENCE_PANEL_MODEL,
+  },
+  {
+    // The default flip on a 32-frame sequence player fits whole: 6 + 6 + 2 = 14 frames.
+    name: "sequence device default flip, monochrome amber",
+    from: "{black/white:OPEN} 9-5",
+    to: "{black/white:SHUT} 5-9",
+    spec: { width: 32, height: 16, font: "3x5" },
+    options: { monochrome: "#ffb000" },
+    transition: "flip",
+    pluginModel: SEQUENCE_PANEL_MODEL,
+  },
+  {
+    // A plugin sign under its own 12-frame sequence budget, amber, in its
+    // own set: the default flip (14 frames) is compressed to 12, and every
+    // scrambled glyph is one the sign has — no lowercase, no sun; its € (a
+    // custom bitmap) is in the pool and shows mid-scramble, drawn with it.
+    name: "acme sign 12-frame budget, own charset",
+    from: "OPEN 9-5 {icon:up}\n{black/white:OK} €12",
+    to: "SHUT 5-9 {icon:down}\n{black/white:NO} €99",
+    spec: { width: 48, height: 12, font: "3x5" },
+    options: { monochrome: "#ffb000" },
+    transition: "flip",
+    pluginModel: ACME_SIGN_MODEL,
+  },
+  {
+    // The same flip after a different plugin set (with its own ¥ and €) was
+    // laid out first: every frame must be byte-identical to the case above.
+    // On a process-global glyph registry the ¥ would have taken the €'s
+    // number and every cell changing to or from € would scramble
+    // differently; with stable keys nothing laid out earlier matters.
+    name: "acme sign flip after another set laid out first (no global glyph state)",
+    before: { message: "¥€", spec: { width: 48, height: 12, font: "3x5" }, charset: ACME_SIGN_YEN_CHARSET },
+    from: "OPEN 9-5 {icon:up}\n{black/white:OK} €12",
+    to: "SHUT 5-9 {icon:down}\n{black/white:NO} €99",
+    spec: { width: 48, height: 12, font: "3x5" },
+    options: { monochrome: "#ffb000" },
+    transition: "flip",
+    pluginModel: ACME_SIGN_MODEL,
+  },
+  {
+    name: "fade quantised to 8 frames",
+    from: "AB",
+    to: "CA",
+    spec: { width: 12, height: 5, font: "3x5" },
+    transition: { kind: "fade", durationMs: 777, maxFrames: 8 },
+  },
+  {
+    name: "fade continuous at 10 fps",
+    from: "HI",
+    to: "YO",
+    spec: { width: 12, height: 5, font: "3x5" },
+    transition: { kind: "fade", durationMs: 300 },
+    fps: 10,
+  },
+  {
+    name: "wipe quantised to 6 frames, 5x7 with a tile",
+    from: "HI {63}",
+    to: "YO {66}",
+    spec: { width: 32, height: 8, font: "5x7" },
+    transition: { kind: "wipe", durationMs: 480, maxFrames: 6 },
+  },
+  {
+    name: "dissolve continuous at 20 fps",
+    from: "{red:AB}",
+    to: "{blue:CD}",
+    spec: { width: 12, height: 5, font: "3x5" },
+    transition: { kind: "dissolve", durationMs: 200 },
+    fps: 20,
   },
 ];

@@ -537,8 +537,10 @@ split-flap projection. So a typed `°` draws a degree sign and a typed `♥`,
 `❤` or `{icon:heart}` draws the red heart, whatever board the message was
 written for — the panel can draw both, and FiestaBoard core hands LED
 outputs rich cells with their identity intact. There is no `code62Glyph`
-layout option; `LedLayout.options` carries only `monochrome` and a plugin
-set's `glyphs`, which win over the face's for the same character (section 5).
+layout option; `LedLayout.options` carries only `monochrome`, a plugin
+set's `glyphs`, which win over the face's for the same character (section 5),
+and the `charset` the layout was drawn with, when one was given — the pool
+a flip's scramble draws from (section 8.2).
 
 **Block colour.** `{fg/bg:TEXT}` lights the glyph box in `bg` and draws the
 glyph in `fg` over it; where the next cell is in the same block the column
@@ -683,12 +685,59 @@ requirement; the flip is FiestaBoard's, not an imitation:
   from the **device's own character set** — uppercase, lowercase when the set
   has it, digits, punctuation, its icons and its colour tiles
   (`ledScramblePool(set)`; never blank, never anything the set cannot draw)
-  — then lands on its target.
-- It is **deterministic**: each cell is seeded from its position and its
-  change (`hash32(cellIndex, fromGlyph, toGlyph, cols, rows)` into
-  mulberry32), so the preview, `ledTransitionFrames` and the frames a device
-  receives are identical and repeatable; a different change scrambles
-  differently (tested).
+  — then lands on its target. The set is the one the layout was drawn with
+  (`LedLayout.options.charset`, from the `charset` layout option — a plugin
+  device's own, its custom glyphs drawn with their bitmaps), or, when none
+  was given, the built-in set of the layout's face. A plugin sign with no
+  lowercase never scrambles through lowercase; one with a `€` scrambles
+  through it (golden: the ACME sign under its 12-frame budget).
+- **The pool**, precisely: the set of glyph keys (section 7.2) of every
+  entry in `chars` (a character is itself when the face or the set's
+  `glyphs` draws it, else blank), of `tile:63` … `tile:69` when the set has
+  `tiles`, and of `icon:<name>` for every entry in `icons`; blank removed;
+  deduplicated; **sorted by key in code-point order** (the order of the
+  keys' UTF-8 bytes — a port that sorts the encoded bytes gets it for
+  free). So the pool is a function of the set's contents alone: not of the
+  order a manifest lists its characters in, and not of anything laid out
+  earlier in the process. `ledScramblePool` is exported so a port can
+  compare its pool before it compares frames.
+- It is **deterministic across processes**: each changing cell is seeded
+  from its position and its change by **stable glyph key**, never by any
+  per-process number. `ledFlipSeed(cellIndex, fromKey, toKey, cols, rows)`
+  is FNV-1a (32-bit; offset basis `0x811c9dc5`, prime `0x01000193`, `h ^=
+byte; h = (h × prime) mod 2³²` per byte) over exactly these bytes, in this
+  order:
+
+  ```
+  u32le(cellIndex) ‖ u32le(cols) ‖ u32le(rows) ‖ utf8(fromKey) ‖ 0x00 ‖ utf8(toKey) ‖ 0x00
+  ```
+
+  — three unsigned 32-bit little-endian integers (`cellIndex` is row-major,
+  `row × cols + col`), then each key as UTF-8 followed by one NUL byte (keys
+  never contain NUL, so the layout is unambiguous). The seed feeds
+  mulberry32 (`a += 0x6d2b79f5; t = imul(a ^ (a >>> 15), 1 | a); t = (t +
+imul(t ^ (t >>> 7), 61 | t)) ^ t; (t ^ (t >>> 14)) >>> 0) / 2³²`), and the
+  cell's plan is read from it in this order: its delay,
+  `floor(r × (stagger + 1))` when `stagger > 0` (no draw otherwise, delay
+  0); then, per scramble step, `pool[floor(r × n)]`, and if that glyph
+  equals the previous one shown (the
+  cell's old glyph for the first step) or the target, and `n > 2`, one more
+  draw: `pool[(i + 1 + floor(r × (n − 1))) mod n]`where`i`is the first
+  pick's index. Pinned seeds:`(0, "A", "B", 6, 1) = 3714565441`,
+  `(3, "A", "€", 6, 2) = 990692943`, `(0, " ", "tile:63", 8, 1) =
+2711017083`, `(5, "icon:sun", "¥", 12, 2) = 2318610564`— computed
+  independently in Python and asserted in`led-transitions.test.ts`. So the
+  preview, `ledTransitionFrames`, the frames a device receives and the
+  Python port's are identical and repeatable; a different change scrambles
+  differently (tested); laying out another set first changes nothing
+  (golden: the ACME flip after another set's `¥€`, byte-identical to the
+  standalone case; and a `vi.resetModules` test that a fresh module graph
+  agrees with a primed one). Hashing glyph _keys_ is the point: an earlier
+  revision hashed the glyph's index in a process-local table that custom
+  glyphs were appended to on first sight (FiestaBoard #2170), so two
+  processes could scramble a cell changing to or from a plugin's glyph
+  differently.
+
 - The run length is a **parameter**: `scrambleSteps` (default 6) and
   `stagger` (default up to 6 steps of seeded per-cell delay, so the board
   settles as a cascade; `0` runs every cell in step). Frames =
@@ -703,9 +752,12 @@ requirement; the flip is FiestaBoard's, not an imitation:
   intermediate letters and icons take the target cell's colour; a
   monochrome panel stays monochrome throughout (tested).
 - Under `maxFrames` the stagger is shortened first (it is the cascade; the
-  scramble is the flip), then the scramble; the last frame is always the
-  target. The Pixoo's 32 frames hold the default flip whole (14 frames); a
-  62-frame request is compressed to exactly 32.
+  scramble is the flip), then the scramble: `scrambleSteps = min(scrambleSteps,
+maxFrames − 2)`, then `stagger = min(stagger, maxFrames − 2 −
+scrambleSteps)`; the last frame is always the target. A 32-frame sequence
+  budget holds the default flip whole (14 frames); a 62-frame request is
+  compressed to exactly 32 (scramble 30, stagger 0). A set with an empty
+  scramble pool (nothing drawable) runs `scrambleSteps = 0`.
 
 The split-flap `BoardDisplay` is untouched: it imitates real Vestaboard
 hardware and keeps Vestaboard's order. Nothing in the LED path depends on
@@ -735,16 +787,21 @@ rest, `none`). The coarse, budgeted flip is _derived_ from "flip" by the
 device (`transitionSpecForDevice`), never a separate entry: a user picks
 Flip; the device decides how many frames that is.
 
-| Capability                                 | Default                                               | Devices                                                                   |
-| ------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------------------- |
-| stream at ≥ 25 fps, or sequence ≥ 8 frames | `flip`: 80 ms, half-flaps, budget applied             | HUB75 (60), WLED DDP (40), MAX7219 / P10 (50), Pixoo (32 frames), Tronbyt |
-| stream at 5–25 fps                         | coarse flip: `stepMs = max(80, frame)`, no half-flaps | —                                                                         |
-| < 5 fps, unmeasured, or no frame interface | `none` (snap)                                         | AWTRIX (unmeasured), split-flap (the hardware cascades itself)            |
+| Capability                                 | Default                                               | Devices                                                                |
+| ------------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| stream at ≥ 25 fps, or sequence ≥ 8 frames | `flip`: 80 ms, half-flaps, budget applied             | HUB75 (60), WLED DDP (40), MAX7219 / P10 (50), Tronbyt (sequence)      |
+| stream at 5–25 fps                         | coarse flip: `stepMs = max(80, frame)`, no half-flaps | —                                                                      |
+| < 5 fps, unmeasured, or no frame interface | `none` (snap)                                         | Pixoo 64 (2 fps, measured — it snaps), AWTRIX (unmeasured), split-flap |
 
 `transitionsForModel(ref)` lists the menu judged against a device — a
 streamed device by push rate, a sequence player by its frame budget, a
 device with no frame interface gives "None" only — with a `reason` for every
-unavailable entry and a "runs as" note for every degraded one.
+unavailable entry and a "runs as" note for every degraded one. A
+`split_flap` model gives "None" only whatever its `animation` says (the
+built-in Vestaboards stream at ~1 fps, written frame by frame by
+FiestaBoard core; the virtual panel at 0.5): LED transitions do not apply
+to a board whose own flap cascade animates every change, and the reason
+says so rather than talking about push rates.
 `defaultTransitionIdForModel(ref)` is flip when the device can show it, else
 none. `resolveLedTransition(choice, ref)`: an explicit choice (a board or
 page setting; later a plugin's request) wins over the model's default; an
@@ -760,9 +817,12 @@ Where the setting lives in the FiestaBoard app: **per board** as the default
 
 ### 8.5 In the component and the picker
 
-`transition` accepts a registry id or a spec. Off by default: a static
-preview never schedules a frame, which matters for a dashboard of
-thumbnails. When on, the layout effect plans a transition from what the
+`transition` accepts a registry id or a spec. Unset, it is the **device
+default** (`resolveLedTransition(undefined, model)`: flip where the device
+is fast enough, else none — the owner's rule in 8.4); `"none"` opts out.
+Without a model or preset there is no device to ask and a change snaps, so
+a dashboard of size-only thumbnails never schedules a frame. When a
+transition runs, the layout effect plans a transition from what the
 canvas currently shows to the new layout and runs one `requestAnimationFrame`
 loop (one closure, which also serves DPR repaints); a message that lands
 mid-transition retargets from `layoutAt(now)` / `frameAt(now)` rather than
@@ -929,7 +989,7 @@ Not exported, deliberately: `LED_GLYPHS`, `ledGlyphKey`, `drawLedGlyph`,
 `CharacterSetSpecimen`, `LedTransitionPicker`; `Editor/*PickerContent`):
 every preset, colour text and icons beside split-flap, mixed case,
 monochrome, block text, each transition kind, `Pixoo64Featured`,
-`Pixoo64Budget`, `DefaultTransitionByDevice`, `OnePluginEveryBoard`,
+`SequenceDeviceBudget`, `DefaultTransitionByDevice`, `OnePluginEveryBoard`,
 `OneMessageEveryCharset`, `SmallMatrixVsFlagship`, `TodaysSplitFlap`, the
 specimen comparisons and the pickers with LED sets — 70 stories, all in the
 component inventory.
@@ -964,9 +1024,16 @@ tests) that fail when the TypeScript and the files disagree:
   behind a drawn icon, and the same fallbacks in a block on a monochrome
   panel. Frames are RGB888, row-major, origin top-left. The transition
   cases (a seeded-scramble flip, one with half-flaps sampled at 25 fps, the
-  Pixoo 32-frame budget resolved through the model, a fade quantised to 8
-  frames over 777 ms, a continuous fade at 10 fps → the exact frame
-  sequence, `ledTransitionFrames(plan, fps)`) land with Task 4. The cases
+  Pixoo 32-frame budget resolved through the model, the default flip whole
+  on a Pixoo in monochrome, the ACME plugin sign under its 12-frame budget
+  (`pluginModel`: the declaration with its set inline, so the scramble
+  draws only the sign's characters, `€` included), the same ACME flip
+  **after another plugin set was laid out first** (`before`: a `¥€` message
+  in a set with its own `¥` — the frames are byte-identical to the standalone
+  case, which is what proves glyph identity carries no process state), a fade quantised to 8
+  frames over 777 ms, a continuous fade at 10 fps, a wipe quantised to 6
+  frames and a continuous dissolve at 20 fps → the exact frame sequence,
+  `ledTransitionFrames(plan, fps)`) land with Task 4. The cases
   are data (`src/lib/led-golden-cases.ts`); the generator and the drift test
   read one list.
 - `charset-golden.json` — **golden character-set cases**

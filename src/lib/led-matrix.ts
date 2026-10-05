@@ -349,8 +349,11 @@ export interface LedLayout {
   /** The options the cells were resolved with — needed to draw any other
    *  glyph into the same cells, which is what a transition does. `glyphs` is
    *  this layout's own custom-glyph table (its set's bitmaps, keyed by
-   *  character): the only place a character the face lacks is drawn from. */
-  options: Readonly<Pick<LedLayoutOptions, "monochrome"> & { glyphs?: CharacterSet["glyphs"] }>;
+   *  character): the only place a character the face lacks is drawn from.
+   *  `charset` is the set the layout was drawn with, when one was given:
+   *  the pool a flip's scramble draws from, so a plugin device scrambles
+   *  only through its own characters (its custom bitmaps in `glyphs`). */
+  options: Readonly<Pick<LedLayoutOptions, "monochrome"> & { glyphs?: CharacterSet["glyphs"]; charset?: CharacterSet }>;
   ops: LedDrawOp[];
   /**
    * The text the matrix shows, for its accessible name: rows joined with a
@@ -513,7 +516,11 @@ export function layoutLedMessage(message: string, spec: LedMatrixSpec, options: 
   const monochrome = resolveHexOption(options.monochrome, undefined);
   const textColor = monochrome ?? resolveHexOption(options.textColor, DEFAULT_LED_TEXT_COLOR)!;
   const custom = options.charset?.glyphs;
-  const resolved: LedLayout["options"] = { monochrome, ...(custom ? { glyphs: custom } : {}) };
+  const resolved: LedLayout["options"] = {
+    monochrome,
+    ...(custom ? { glyphs: custom } : {}),
+    ...(options.charset ? { charset: options.charset } : {}),
+  };
   if (grid.rows === 0 || grid.cols === 0) return layoutLedCells(grid, [], resolved);
 
   const lines = message.split("\n");

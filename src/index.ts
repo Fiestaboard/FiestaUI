@@ -106,7 +106,8 @@ export {
 } from "./lib/board-icons";
 export * from "./lib/board-previews";
 // The LED matrix preview renderer: one canvas painted from the frame the
-// data layer below produces. Static in this release; transitions follow.
+// data layer below produces, animated between messages by the transition
+// engine.
 export {
   LedMatrixDisplay,
   type LedMatrixDisplayProps,
@@ -115,8 +116,7 @@ export {
 // The LED data layer: bitmap fonts, character sets, device models and the
 // layout → raster pipeline. Curated named exports — the glyph table and the
 // cell-level drawing functions are renderer plumbing (`@internal`) and stay
-// unexported; the transition engine and the glyph and picker components
-// come in later PRs.
+// unexported; the glyph and picker components come in later PRs.
 export {
   CHARACTER_SET_IDS,
   CHARACTER_SETS,
@@ -198,6 +198,39 @@ export {
   renderLedFrame,
   renderLedGlyph,
 } from "./lib/led-matrix";
+// LED transitions: the engine (a pure function of time between two layouts,
+// sampled by the preview and by device adapters) and the menu a device model
+// is judged against. The seeded scramble's hash and generator stay internal;
+// `ledScramblePool` and `ledFlipSeed` are exported so a port can prove its
+// pool and its seeds match before it compares frames.
+export {
+  defaultTransitionIdForModel,
+  isLedTransitionId,
+  LED_TRANSITION_IDS,
+  LED_TRANSITIONS,
+  type LedTransitionAvailability,
+  type LedTransitionEntry,
+  type LedTransitionId,
+  type ResolvedLedTransition,
+  resolveLedTransition,
+  transitionsForModel,
+  transitionSpecForDevice,
+} from "./lib/led-transition-registry";
+export {
+  DEFAULT_LED_FLIP_STAGGER,
+  DEFAULT_LED_FLIP_STEP_MS,
+  DEFAULT_LED_SCRAMBLE_STEPS,
+  DEFAULT_LED_TRANSITION_MS,
+  LED_TRANSITION_KINDS,
+  ledFlipSeed,
+  ledScramblePool,
+  type LedTransition,
+  ledTransitionFrames,
+  type LedTransitionKind,
+  type LedTransitionSpec,
+  MIN_CASCADE_SLOT_MS,
+  planLedTransition,
+} from "./lib/led-transitions";
 // Data display — derived metrics rendered for reading, not editing (#229).
 export * from "./components/data/bar-list";
 export * from "./components/data/stat-strip";
