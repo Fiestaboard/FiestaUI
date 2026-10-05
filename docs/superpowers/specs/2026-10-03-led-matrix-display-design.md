@@ -26,7 +26,7 @@ flap board takes and degrade gracefully in both directions.
 
 | Device                   | Pixels               | Colour | Raw frame in?                    | Animation                                 |
 | ------------------------ | -------------------- | ------ | -------------------------------- | ----------------------------------------- |
-| Divoom Pixoo 64          | 64×64                | RGB    | yes (base64 RGB888 per frame)    | uploaded sequence, ≤ 32 frames, ~80 ms    |
+| Divoom Pixoo 64          | 64×64                | RGB    | yes (base64 RGB888 per frame)    | single frames only — it snaps (measured)  |
 | AWTRIX 3 / Ulanzi TC001  | 32×8                 | RGB    | yes (`draw`/`db`, RGB565)        | no measured frame rate — treated as none  |
 | HUB75 (Pi / ESP32)       | 64×32, 64×64, 128×64 | RGB    | via a small daemon               | stream, 30–60 fps pushed                  |
 | WLED 2D (ESP32 + WS2812) | 16×16 … 32×32+       | RGB    | yes (DDP, E1.31, `seg.i`)        | stream, 25–40 fps                         |
@@ -44,18 +44,18 @@ serpentine reorder, or a 1-bit threshold.
 
 - **Pixoo 64.** `Draw/SendHttpGif` takes one POST per frame (`PicNum`,
   `PicOffset`, `PicSpeed` ms, `PicData` base64 RGB888, `PicWidth` 64) and the
-  device plays the animation locally after a ~5 s "Loading.." overlay.
-  Community limits: frames capped at 32 (pixoo-homeassistant PR #158,
-  "repeated long pushes make the device unresponsive") to ~40 (pixoo-toolkit,
-  "before potential device crash"); pushes spaced ~150 ms–1 s; the device
-  stops responding after ~300 pushes until rebooted; `Draw/ResetHttpGifId`
-  before each animation; `Draw/CommandList` cannot batch frames. Streaming at
-  80 ms is impossible; a sequence of ≤ 32 frames is the model. The official
-  doc's "≤ 60 frames" is unverified (JS-rendered page). —
-  github.com/cyanheads/pixoo-toolkit (AGENTS.md),
-  github.com/gickowtf/pixoo-homeassistant/pull/158,
-  github.com/SomethingWithComputers/pixoo, github.com/Grayda/pixoo_api
-  (NOTES.md).
+  device plays the animation locally. **Measured** (hardware test on a Pixoo
+  64, FiestaBoard program, 2026-10-04): an uploaded animation **loops
+  forever** — there is no play-once; more than ~3 uploaded frames first show
+  a ~6 s "LOADING…" overlay; landing on a still after an animation glitches
+  for ~5 s; a single-frame push is clean in ~0.5 s; 40 frames play and ~55 is
+  the most it takes. Applying the owner's rule (flip only when the device is
+  fast enough): **the Pixoo snaps** — `{ delivery: "stream", maxFps: 2 }`,
+  one frame per change, the default transition `none`, and the adapter never
+  uploads a sequence. The earlier community figures (a 32-frame cap, a ~300-
+  push freeze, a ~5 s overlay — pixoo-toolkit, pixoo-homeassistant PR #158,
+  SomethingWithComputers/pixoo, Grayda/pixoo_api) are superseded by the
+  measurement and kept in the sources for reference.
 - **AWTRIX 3.** `draw` ops over HTTP/MQTT; a full 8×32 `db` bitmap returned
   `ErrorParsingJson` (issue #214); `TSPEED` 500 ms, `ATIME` 7 s; no documented
   push rate and none measured. Modelled as UNMEASURED → "none" until a client
@@ -130,9 +130,12 @@ precedents are AWTRIX's fragment arrays and Pixlet's per-widget `color`.
    character order. The split-flap `BoardDisplay` keeps that order because it
    imitates real hardware.
 9. **The Pixoo 64 is the first test device**: 3×5 face by default (10 × 16
-   cells), a 32-frame budget per transition, the adapter to start with a push
-   counter that reboots or drops to single frames before ~250 pushes and
-   animates only on change — to be confirmed in a hardware spike.
+   cells). The hardware spike (2026-10-04) found that uploaded animations
+   loop and show a "LOADING…" overlay while single frames are clean, so the
+   Pixoo snaps: one frame per change, no sequence budget, default
+   transition `none` (section 2). The 32-frame sequence machinery stays,
+   pinned on a generic sequence-capable fixture device, for the plugins
+   that can play one.
 10. **Monochrome is a layout option, tinting is not.** `monochrome: "#rrggbb"`
     is in the frame (every lit pixel takes the panel colour); brightness and
     gamma are preview-only and deferred.
@@ -230,8 +233,10 @@ to one fragment, which is what the AWTRIX adapter will emit.
 only case, so nothing changes unless asked. The accessible name follows the
 case drawn.
 
-**Code 62 and the heart.** Code 62 follows `code62Glyph` (degree by default;
-a Note's set fixes heart). `♥` draws in red, the same treatment as the flap;
+**Code 62 and the heart.** A split-flap board draws code 62 as the glyph its
+flap carries (`code62Glyph`, degree by default; a Note's set fixes heart). An
+LED has no code 62: it draws `°` and `♥` as written, and `layoutLedMessage`
+takes no `code62Glyph`. `♥` draws in red, the same treatment as the flap;
 `{icon:heart}` is the ♥ **character**, not an icon, and a span's colours
 carry onto it. `extendedMarkup` changes nothing about a typed heart: the
 token keeps its Unicode identity in every mode (`❤` normalised to `♥`), and
@@ -294,7 +299,7 @@ interface CharacterSet {
   blockSpans: boolean;
   code62Glyph?: Code62Glyph; // fixed by hardware (flap sets); unset = caller's choice (LED)
   font?: LedFontId; // the face an LED set is drawn with
-  glyphs?: Record<string, readonly string[]>; // a plugin's own bitmaps, `#`/`.` rows in the face's size
+  glyphs?: Record<string, readonly string[]>; // a plugin's own bitmaps, `#`/`.` rows in the face's size; wins over the face's glyph for the same char
 }
 ```
 
@@ -318,7 +323,39 @@ on an unknown id with the list of built-ins, `tryResolveCharacterSet` returns
 the reason, `materializeCharacterSet(input, known?)` resolves `extends`
 (fields left out are inherited; `chars`, `icons`, `glyphs` given replace the
 parent's), and `validateCharacterSet(json) → { ok, errors[] }` never throws
-and accepts a partial declaration when it `extends` a known set.
+and accepts a partial declaration when it `extends` a known set. Both
+reject a key that is not a set field, partial declaration or not — the
+schema's `additionalProperties: false`, and a typo is a field the author
+meant; `materializeCharacterSet` validates the declaration as given before
+it inherits anything, and the whole result after.
+
+**The `extends` merge rule** (Task 2, mirrored in the schema's description):
+
+- A field the declaration gives **replaces** the parent's, per field. The
+  arrays (`chars`, `icons`) and `glyphs` are replaced **wholesale**, never
+  merged: a set that says `chars: ["A", "B"]` over `led_3x5` draws A and B.
+- A field left out is **inherited** from the parent (a built-in, or one of
+  the `known` sets passed in).
+- `version` is **never inherited**: it is the declaration's own, default 1.
+  A plugin must bump `version` whenever its set's content changes, because
+  consumers cache by (`id`, `version`).
+- A set that extends nothing must be complete; the schema enforces the same
+  with `if`/`else` on `extends`.
+- A key that is not a set field is an **error**, never dropped — in a
+  partial declaration too (`materializeCharacterSet` throws, the schema's
+  `additionalProperties: false` agrees).
+
+**Glyph precedence.** A set's own `glyphs` entry **wins** over the shared
+face's glyph for the same character (FiestaBoard D17 rule 5): a sign that
+redraws `0` gets its zero, and the face still draws everything the set
+leaves alone. The `acme_sign_v2` golden pins it.
+
+**Tile spelling.** Tokens are never rewritten in FiestaUI: a colour tile
+keeps the spelling it was parsed with (`"red"` stays `"red"`, `"63"` stays
+`"63"`), through `charsetFallback`, `validateMessage` and the layout. The
+LED glyph table gives `{red}` and `{63}` one glyph (identity, not
+normalisation), and FiestaBoard core normalises at its CellFrame boundary.
+The golden fixtures pin the parsed spelling.
 
 ## 6. Device taxonomy and plugin-declared devices
 
@@ -334,9 +371,10 @@ interface DeviceModel {
   color: { kind: "rgb", bitDepth: 24 } | { kind: "monochrome", color: "#rrggbb", bitDepth: 1 | 8 } | { kind: "tiles" };
   charset: CharacterSetId | CharacterSet;    // a built-in id or an embedded set
   charsetByCode62?: Record<Code62Glyph, …>;  // a Flagship's set follows its flap: characterSetForModel(model, code62Glyph)
-  animation: { delivery: "stream" | "sequence" | "none"; maxFps; maxFrames?; minFrameMs?; notes; sources };
+  animation: { delivery: "stream" | "sequence" | "none"; maxFps; maxFrames?; minFrameMs?; notes?; sources? };
+                                             // notes/sources: research prose, in the fixture and plugin data only
   font?: LedFontId;
-  appearance?: {                             // preview-only; never reaches device bytes (ships in PR 2)
+  appearance?: {                             // preview-only; never reaches device bytes (Task 2)
     pixelShape?: "round" | "square"; dotRatio?; offColor?; substrateColor?; bezel?; boardColors?;
     options?: Record<string, readonly string[]>;  // fields a board may override, e.g. { board_color: ["black", "white"] }
   };
@@ -397,10 +435,16 @@ DeviceModelId | DeviceModel`): `LedMatrixDisplay.model`,
   The plugin owns the defaults. A board-level override is honoured only for
   a field `options` lists. Nothing here ever reaches the device bytes: font,
   letter case and monochrome are layout options, not appearance. The
-  prototype's top-level `pixelShape` moves into `appearance.pixelShape` in
-  PR 2. It has never been published, so there is no deprecated alias, and the
-  Pixoo plugin's `output/device-models.json` is updated to match before its
-  v0.1.0 tag.
+  prototype's top-level `pixelShape` moved into `appearance.pixelShape` in
+  Task 2, with no alias (it had never been published; the validators reject
+  the old field), and the LED presets carry no appearance at all — a
+  consumer reads it from `deviceModelForPreset(preset).appearance`. Every
+  built-in is filled in: the Pixoo is square dots at 0.82 of pitch, off LED
+  `#171717` on a `#0a0a0a` substrate (TC001 and Tidbyt the same; bare-LED
+  panels round at 0.72); the Vestaboard models offer
+  `boardColors: ["black", "white"]` with `options: { board_color: […] }`.
+  The Pixoo plugin's `output/device-models.json` is updated to match before
+  its v0.1.0 tag.
 - Tested end to end with a plugin-declared 48×12 amber one-colour sign
   (`src/lib/plugin-device.test.ts`): a 3×5 set of its own with a `€` bitmap
   and three icons, a 12-frame sequence API → validation, layout with its
@@ -452,12 +496,49 @@ Layout and raster are separate stages so that everything planned for later
 `Uint8ClampedArray` of `width × height × 3` bytes, row-major, origin
 top-left, no serpentine order; a 128×64 frame is 24.6 KB.
 
-Each `LedCell` is `{ glyph, color, background? }`; `LED_GLYPHS` (internal)
-is an identity table for membership only — nothing reads meaning into its
-order. A cell with no glyph draws blank. Text is one colour per board
+Each `LedCell` is `{ glyph, color, background? }`. **`glyph` is a stable
+key**, a string that means the same thing in every process — the browser
+preview, a second browser session, FiestaBoard's Python port — so any two of
+them agree on which cells changed and (section 8.2) seed a flip the same
+way:
+
+| Glyph         | Key           | Rule                                                                                                                                                       |
+| ------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| blank         | `" "`         | An unlit cell; also every character nothing can draw.                                                                                                      |
+| a character   | the character | One Unicode character, exactly as spelled (`"A"`, `"€"`, `"♥"`, `"°"`). It is itself when the face has it **or** the layout's own set has a bitmap for it. |
+| a colour tile | `tile:<code>` | The canonical **numeric** code: `{red}` and `{63}` are `tile:63`; `{black}`, `{70}` and `{71}` are `tile:70`. The token keeps its spelling.                |
+| an icon       | `icon:<name>` | The canonical name after alias resolution (`{icon:storm}` is `icon:bolt`).                                                                                 |
+
+Nothing is numbered. `LED_GLYPHS` (internal) is a **frozen membership
+table** of the keys the built-in faces draw — nothing reads meaning into its
+order, and nothing is ever added to it. **Custom glyphs are per layout**: a
+plugin set's own bitmaps (`CharacterSet.glyphs`, section 5) travel on the
+layout as its own table, `LedLayout.options.glyphs`, which is the only
+place a character beyond the face is resolved and drawn from. There is no
+process-global registry of custom glyphs, so a layout drawn without a set
+(or with another set) after one drew `€` still has a blank `€` cell — a
+cell that is blank, not a non-blank glyph that happens to draw nothing —
+and laying out A, then B, then A again gives identical cells, ops and
+frames (tested). The face tables (`LED_FONTS`) are frozen for the same
+reason. Precedence is unchanged: a set's bitmap wins over the face's for
+the same character. A cell with no glyph draws blank. Text is one colour per board
 (`textColor`, default `#ffffff`, AWTRIX's own default, not tinted in the
-frame); an unparseable colour falls back to the default rather than
-rasterising to invisible black.
+frame). `textColor` and `monochrome` are normalised to lowercase `#rrggbb` —
+trimmed, the `#` optional, so a settings screen's `FFB000` and a picker's
+`#ffb000` are one colour in the cells and in `LedLayout.options` — and
+anything that is not six hex digits (`#fff`, `rgba(…)`, a colour name) is
+the fallback: the default text colour, or unset for `monochrome`, rather
+than rasterising to invisible black.
+
+**Identity, not projection.** The layout parses each line with `parseLine`
+(extended markup on, case per `letterCase`) and fills the grid itself; it
+does not go through `messageToGrid`, whose `applyCode62Glyph` is the
+split-flap projection. So a typed `°` draws a degree sign and a typed `♥`,
+`❤` or `{icon:heart}` draws the red heart, whatever board the message was
+written for — the panel can draw both, and FiestaBoard core hands LED
+outputs rich cells with their identity intact. There is no `code62Glyph`
+layout option; `LedLayout.options` carries only `monochrome` and a plugin
+set's `glyphs`, which win over the face's for the same character (section 5).
 
 **Block colour.** `{fg/bg:TEXT}` lights the glyph box in `bg` and draws the
 glyph in `fg` over it; where the next cell is in the same block the column
@@ -468,8 +549,14 @@ unlit: the gutter is 1 px and cannot be split, lighting it in either colour
 would claim a row the other block does not own, and an unlit line between
 two differently coloured fields is what a split-flap board draws between any
 two tiles. A tile inside a block on a mono panel draws as an unlit square
-(inverse), not nothing. `ledBackgroundMask(layout)` reports the block fields
-so the preview can keep its bloom off them.
+(inverse), not nothing. An **icon inside a block** is a block cell whatever
+its split-flap fallback: `parseLine` keeps the span's colours on the tile
+token it emits for `{black/white:{icon:sun}}` (section 15, 5), and the
+layout reads them off any token type — the field lights first, gutter
+joined, then the icon's glyph draws over it in its own colour, or, on a face
+without the icon, its fallback tile fills the glyph box (an unlit square on
+a mono panel). `ledBackgroundMask(layout)` reports the block fields so the
+preview can keep its bloom off them.
 
 **Monochrome.** `monochrome: "#rrggbb"` is a `LedLayoutOptions` field, so it
 is in the frame: every lit pixel — text, spans, tiles, icons, the heart —
@@ -540,7 +627,7 @@ prop goes: a prop that changes the bytes a device receives goes in
 | Group                      | Props                                                     | Lives in                              |
 | -------------------------- | --------------------------------------------------------- | ------------------------------------- |
 | What the panel **is**      | `model`, `preset`, `matrixWidth`, `matrixHeight`, `font`  | `DeviceModel` / `LedMatrixSpec`       |
-| What the panel **draws**   | `textColor`, `monochrome`, `letterCase`, `code62Glyph`    | `LedLayoutOptions` — props extend it  |
+| What the panel **draws**   | `textColor`, `monochrome`, `letterCase`                   | `LedLayoutOptions` — props extend it  |
 | How the preview **paints** | `size` (`sm                                               | md                                    | lg`or px),`pixelShape`, `glow` | component only, never in the frame |
 | How a change **arrives**   | `transition`, `announceUpdates`                           | component + the transition registry   |
 | Naming                     | `previewLabel`, `messageLabel`, `emptyLabel`, `className` | same contract as `StaticBoardDisplay` |
@@ -799,18 +886,18 @@ charsetSupports, charsetIssue, charsetFallback, charsetHasChar, charsetHasIcon, 
 iconsInSet, charsInSet, charsetDiff, charsetLineage, characterSetForDevice
 
 // src/lib/devices.ts
-DEVICE_MODELS, DEVICE_MODEL_IDS, DEVICE_FAMILIES, type DeviceModel, DeviceModelId, DeviceModelRef, DisplayTechnology, …
+DEVICE_MODELS, DEVICE_MODEL_IDS, DEVICE_FAMILIES, type DeviceModel, DeviceModelId, DeviceModelRef, DisplayTechnology, DeviceAppearance, …
 isDeviceModelId, resolveDeviceModel, tryResolveDeviceModel, validateDeviceModel
 deviceModelForDeviceType, deviceModelForPreset, characterSetForModel(ref, code62Glyph?), ledSpecForModel, modelsByTechnology
 
 // src/lib/led-matrix.ts
 interface LedMatrixSpec { width; height; font? }
 LED_MATRIX_PRESETS, LED_MONO_COLORS, MIN_MATRIX_SIZE, MAX_MATRIX_SIZE, DEFAULT_LED_TEXT_COLOR, parseHexColor
-interface LedLayoutOptions { textColor?; code62Glyph?; monochrome?; letterCase?: "upper" | "mixed"; charset? }
+interface LedLayoutOptions { textColor?; monochrome?; letterCase?: "upper" | "mixed"; charset? }   // no code62Glyph: an LED draws ° and ♥ as written
 ledGridLayout(spec) → LedGridLayout
 layoutLedMessage(message, spec, options) → LedLayout { grid, cells: LedCell[], options, ops: LedDrawOp[], text }
 rasterizeLedLayout(layout) → LedFrame;  renderLedFrame(message, spec, options) → LedFrame
-renderLedGlyph(token, font, { textColor?, code62Glyph?, monochrome?, charset? }) → LedFrame
+renderLedGlyph(token, font, { textColor?, monochrome?, charset? }) → LedFrame
 ledBackgroundMask(layout);  frameToAscii(frame);  frameToBits(frame)
 
 // src/lib/led-transitions.ts
@@ -828,14 +915,14 @@ resolveLedTransition(choice, ref) → ResolvedLedTransition { id, spec, source: 
 
 // src/components/board
 <LedMatrixDisplay message model? preset? matrixWidth? matrixHeight? font?
-  textColor? monochrome? letterCase? code62Glyph? size? pixelShape? glow?
+  textColor? monochrome? letterCase? size? pixelShape? glow?
   transition? announceUpdates? previewLabel? messageLabel? emptyLabel? className? />
 <CharacterGlyph token charset?|model? code62Glyph? size?|height? markUnsupported? decorative? label? … />
 <CharacterSetSpecimen charset compareTo? … />
 <LedTransitionPicker model? value? defaultValue? onValueChange? … />
 ```
 
-Not exported, deliberately: `LED_GLYPHS`, `ledGlyphIndex`, `drawLedGlyph`,
+Not exported, deliberately: `LED_GLYPHS`, `ledGlyphKey`, `drawLedGlyph`,
 `layoutLedCells`, `rasterizeLedOps`, `ledCellForToken` — renderer plumbing.
 
 **Storybook coverage** (`App/Board/LedMatrixDisplay`, `CharacterGlyph`,
@@ -856,20 +943,47 @@ tests) that fail when the TypeScript and the files disagree:
 
 - `led-fonts.json` — both faces, every glyph, lowercase and icons.
 - `board-icons.json` — names, labels, colours, flap fallbacks, aliases.
-- `character-sets.json`, `device-models.json` — the built-ins.
+- `character-sets.json`, `device-models.json` — the built-ins. The models
+  carry `animation.notes` / `sources`, merged in by the generator from
+  `scripts/ci/device-model-notes.json`; the runtime built-ins omit both, so
+  the bundle holds only what rendering needs.
 - `character-set.schema.json`, `device-model.schema.json` — the shapes a
-  plugin loader validates against.
-- `led-golden.json` — **golden cases**: layout cases (message + spec +
-  options → `LedLayout.text` + RGB888 frame as base64) covering both faces,
-  mixed case, monochrome, spans, blocks, icons, aliases, the heart flap and
-  the Pixoo grid; transition cases (a seeded-scramble flip, one with
-  half-flaps sampled at 25 fps, the Pixoo 32-frame budget resolved through
-  the model, a fade quantised to 8 frames over 777 ms, a continuous fade at
-  10 fps → the exact frame sequence). Frames are RGB888, row-major, origin
-  top-left; a transition's `frames` is `ledTransitionFrames(plan, fps)`,
-  exactly what a device receives. The cases are data
-  (`src/lib/led-golden-cases.ts`); the generator and the drift test read one
-  list.
+  plugin loader validates against (Draft 7). `src/lib/device-schemas.test.ts`
+  validates every fixture and the fictional 48×12 amber sign with Ajv in
+  strict mode, registering the schemas **by `$id` only**, and pins the
+  hand-written validators to the schemas on a table of valid and invalid
+  documents. `scripts/ci/tests/schema-refs.test.mjs` checks statically that
+  every `$ref` resolves, per RFC 3986, to a shipped schema's `$id`.
+- `led-golden.json` — **golden layout cases** (message + spec + options, or
+  a plugin set → `LedLayout.text` + RGB888 frame as base64) covering both
+  faces, mixed case, monochrome, spans, blocks, icons, aliases, the degree
+  sign and typed hearts, the Pixoo grid, the ACME set's `€` glyph over
+  `led_3x5`, the ACME v2 set's `0` **overriding the face's**, icon fallbacks
+  **drawn** — tile fallbacks (snow, partly) and blank fallbacks (bus, bell)
+  on the 3×5 face, each bare, in a colour span and in a block — a block
+  behind a drawn icon, and the same fallbacks in a block on a monochrome
+  panel. Frames are RGB888, row-major, origin top-left. The transition
+  cases (a seeded-scramble flip, one with half-flaps sampled at 25 fps, the
+  Pixoo 32-frame budget resolved through the model, a fade quantised to 8
+  frames over 777 ms, a continuous fade at 10 fps → the exact frame
+  sequence, `ledTransitionFrames(plan, fps)`) land with Task 4. The cases
+  are data (`src/lib/led-golden-cases.ts`); the generator and the drift test
+  read one list.
+- `charset-golden.json` — **golden character-set cases**
+  (`src/lib/charset-golden-cases.ts`): four plugin-style sets as declared and
+  as `materializeCharacterSet` makes them — `acme_sign_v1` **extends
+  `led_3x5` and carries its own `€` bitmap** (FiestaBoard D17's required
+  case), `acme_sign_v2` bumps `version` and **overrides the face's `0`**
+  (`glyphs` replace wholesale, so it carries `€` again), `lobby_flap`
+  extends `vestaboard_v2` (version 2) and says nothing else, so it inherits
+  everything **except `version`** and is version 1, `ticker_mono_v2`
+  extends nothing and has no tiles; a
+  `charsetFallback` table with every branch (identity, uppercase, span
+  colours kept or dropped, blocks kept without colour spans, `°` ↔ `♥`,
+  icons to a tile or a character with their colours kept, tiles and icons
+  on a set without tiles, blank); and `validateMessage` over whole messages
+  with every issue's row, col, token, reason and fallback. Tokens keep the
+  spelling they were parsed with (`"red"`, `"63"`).
 
 The split-flap parser contract lives beside them in
 `scripts/ci/tests/board-characters.test.mjs`.
@@ -932,17 +1046,51 @@ under `extendedMarkup`), so both parsers read the message the same way:
 5. An icon whose fallback is a colour tile dropped the surrounding span's
    colours in the parser's emitted token; the colours now carry through on
    the tile token (`{ type: "color", code, icon, color?, background? }`), as
-   they already did on a character fallback. `charsetFallback` (Task 2) must
-   keep them too when it degrades an icon to a tile.
+   they already did on a character fallback. `charsetFallback` (Task 2) keeps
+   them too when it degrades an icon to a tile: the degraded tile carries
+   the span's `color` / `background` as informational fields, as a parsed
+   tile does, and the golden fixtures pin it.
+
+From FiestaBoard #2165, the Python port of the Task 2 data layer, six more,
+fixed on the Task 2 layer with a golden or a unit test each so no port can
+miss them again:
+
+6. A set's `glyphs` entry **wins** over the face's glyph for the same
+   character (D17 rule 5). The code checked the face first; the docs were
+   right. Golden: `plugin glyph overrides the face's` (`acme_sign_v2`).
+7. Icon fallbacks were described but never **drawn** in a golden. Goldens
+   now draw tile fallbacks and blank fallbacks bare, in a colour span and in
+   a block, in colour and monochrome. (Both built-in faces carry every icon
+   whose fallback is a character — `up`, `down`, `fog` — so that branch is
+   pinned by a unit test against a face stripped of its icons.)
+8. `{black/white:{icon:sun}}` drew **no block field**, while
+   `{black/white:{icon:bus}}` did: the layout read a span's colours only off
+   a `char` token, and a tile-fallback icon is a `color` token (5 above).
+   It reads them off any token now; the field lights, gutter joined, and the
+   icon or its tile draws over it. Goldens: `block behind a drawn icon`,
+   `tile-fallback icons bare, in a colour span, in a block`, `icon fallbacks
+in a block, monochrome`.
+9. `textColor` / `monochrome` are **normalised**: trimmed, `#` optional,
+   lowercase `#rrggbb`; anything else is the documented fallback. Before,
+   `ffb000` passed validation but was carried unnormalised.
+10. A partial `extends` declaration with an unknown key is **rejected**
+    (`materializeCharacterSet` throws, as the schema's
+    `additionalProperties: false` does); it used to be dropped silently. The
+    device-model validator already rejected unknown keys, at the top level
+    and in an embedded set; the agreement tables now say so.
+11. `version` is **not inherited**: the `lobby_flap` golden materialises a
+    child of `vestaboard_v2` (version 2) as version 1.
 
 ## 16. Risks
 
-- **Pixoo push freeze and the "Loading.." overlay.** Every uploaded
-  animation first shows a ~5 s overlay; frames must be pushed ~150 ms–1 s
-  apart, so a 32-frame change takes 5–32 s to upload; the device stops
-  responding after ~300 pushes — about nine animated changes at 32 frames —
-  until rebooted; more than ~32–40 frames can crash it. Mitigation decided:
-  a push counter in the adapter that reboots or drops to single-frame
+- **Pixoo push freeze and the "Loading.." overlay — resolved by the
+  hardware test (2026-10-04).** Uploaded animations loop forever, more than
+  ~3 frames show a ~6 s "LOADING…" overlay, a still after an animation
+  glitches for ~5 s, and a single-frame push is clean in ~0.5 s. Decision:
+  the Pixoo snaps (`stream`, nominal 2 fps, default `none`); the adapter
+  pushes one frame per change and never uploads a sequence, so the push
+  counter and reboot mitigations are moot. The earlier plan follows for the
+  record: a push counter in the adapter that reboots or drops to single-frame
   pushes before ~250 pushes, animate only on a changed value, 32 frames
   kept; 16 frames (~18 changes between reboots, still a cascade — the menu's
   flip minimum is 8) is one number in the model if the spike says so. If the
@@ -962,8 +1110,10 @@ under `extendedMarkup`), so both parsers read the message the same way:
   carry the edge.
 - **AWTRIX unmeasured.** Modelled as "none" until a push rate is measured on
   a TC001; a wrong guess either way is one number in the model.
-- **Unverified figures** called out above: Pixoo's official frame cap, Tom
-  Thumb's descender detail, Tronbyt's default delay, MAX7219/P10 host fps.
+- **Unverified figures** called out above: Tom Thumb's descender detail,
+  Tronbyt's default delay, MAX7219/P10 host fps. (The Pixoo's frame cap was
+  measured on 2026-10-04: 40 frames play, ~55 is the most it takes — moot
+  now that it snaps.)
 
 ### Decided: legacy shortcuts become icon aliases (FiestaBoard plan D16)
 
