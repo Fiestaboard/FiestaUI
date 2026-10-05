@@ -238,6 +238,16 @@ export const INVENTORY = [
       { name: "BoardBackdrop", summary: "A field of split-flap rows used as a page backdrop." },
       { name: "BoardTeaser", summary: "One-line teaser strip for cards and lists." },
       {
+        name: "CharacterGlyph",
+        summary:
+          "One token from a character set on its own — LED dots or a flap tile, with the set's fallback when unsupported.",
+      },
+      {
+        name: "CharacterSetSpecimen",
+        summary:
+          "A specimen of one character set — every glyph, tile and icon — marking what it adds or lacks against another.",
+      },
+      {
         name: "LedMatrixDisplay",
         summary: "An LED matrix (AWTRIX, HUB75, Pixoo…) — the same message set in a bitmap font, painted on a canvas.",
       },

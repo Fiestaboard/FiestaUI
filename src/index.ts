@@ -105,6 +105,26 @@ export {
   resolveBoardIconName,
 } from "./lib/board-icons";
 export * from "./lib/board-previews";
+// One token from a character set, drawn the way its board draws it (LED
+// dots or a flap tile), and a specimen sheet of a whole set: the glyph
+// surface the editor pickers build on. Curated: the per-renderer internals
+// stay unexported.
+export {
+  CharacterGlyph,
+  type CharacterGlyphLabels,
+  characterGlyphName,
+  type CharacterGlyphProps,
+  characterGlyphRenderer,
+  type CharacterGlyphSize,
+  characterGlyphToken,
+  DEFAULT_CHARACTER_GLYPH_LABELS,
+} from "./components/board/character-glyph";
+export {
+  CharacterSetSpecimen,
+  type CharacterSetSpecimenLabels,
+  type CharacterSetSpecimenProps,
+  DEFAULT_CHARACTER_SET_SPECIMEN_LABELS,
+} from "./components/board/character-set-specimen";
 // The LED matrix preview renderer: one canvas painted from the frame the
 // data layer below produces, animated between messages by the transition
 // engine.
@@ -116,7 +136,7 @@ export {
 // The LED data layer: bitmap fonts, character sets, device models and the
 // layout → raster pipeline. Curated named exports — the glyph table and the
 // cell-level drawing functions are renderer plumbing (`@internal`) and stay
-// unexported; the glyph and picker components come in later PRs.
+// unexported; the picker components come in a later PR.
 export {
   CHARACTER_SET_IDS,
   CHARACTER_SETS,

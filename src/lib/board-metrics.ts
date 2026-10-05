@@ -190,6 +190,32 @@ function joinScale(pick: (step: TileStep) => string): Record<BoardSize, string> 
 /** Tile width + height. */
 export const sizeClasses: Record<BoardSize, string> = joinScale((step) => step.size);
 
+/**
+ * Tile height only, for something that is not a tile but must stand as tall
+ * as one at every breakpoint (an LED glyph beside a flap tile): its width is
+ * its own. Picked out of `sizeClasses` rather than authored again, so the
+ * two cannot drift; the class text still exists literally above, which is
+ * what Tailwind's scanner needs.
+ */
+export const tileHeightClasses: Record<BoardSize, string> = joinScale((step) =>
+  step.size
+    .split(" ")
+    .filter((c) => /(^|:)h-\[/.test(c))
+    .join(" "),
+);
+
+/**
+ * Tile height in px at the base (phone) breakpoint for each size — the one
+ * authored number each scale starts from. The intrinsic height of anything
+ * drawn to the tile scale without CSS (an SVG's `height` attribute in SSR,
+ * jsdom, or an email), before `tileHeightClasses` grows it at wider viewports.
+ */
+export const TILE_BASE_HEIGHT: Record<BoardSize, number> = {
+  sm: TILE_SCALE.sm.base!.h,
+  md: TILE_SCALE.md.base!.h,
+  lg: TILE_SCALE.lg.base!.h,
+};
+
 /** Glyph font-size. */
 export const textSizeClasses: Record<BoardSize, string> = joinScale((step) => step.text);
 
