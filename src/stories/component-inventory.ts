@@ -237,6 +237,10 @@ export const INVENTORY = [
       { name: "BoardDisplay", summary: "The animated display, with flap cascade and a live region." },
       { name: "BoardBackdrop", summary: "A field of split-flap rows used as a page backdrop." },
       { name: "BoardTeaser", summary: "One-line teaser strip for cards and lists." },
+      {
+        name: "LedMatrixDisplay",
+        summary: "An LED matrix (AWTRIX, HUB75, Pixoo…) — the same message set in a bitmap font, painted on a canvas.",
+      },
     ],
   },
   {

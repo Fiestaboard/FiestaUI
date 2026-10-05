@@ -105,10 +105,18 @@ export {
   resolveBoardIconName,
 } from "./lib/board-icons";
 export * from "./lib/board-previews";
+// The LED matrix preview renderer: one canvas painted from the frame the
+// data layer below produces. Static in this release; transitions follow.
+export {
+  LedMatrixDisplay,
+  type LedMatrixDisplayProps,
+  type LedPixelShape,
+} from "./components/board/led-matrix-display";
 // The LED data layer: bitmap fonts, character sets, device models and the
 // layout → raster pipeline. Curated named exports — the glyph table and the
 // cell-level drawing functions are renderer plumbing (`@internal`) and stay
-// unexported; the transition engine and the components come in later PRs.
+// unexported; the transition engine and the glyph and picker components
+// come in later PRs.
 export {
   CHARACTER_SET_IDS,
   CHARACTER_SETS,
