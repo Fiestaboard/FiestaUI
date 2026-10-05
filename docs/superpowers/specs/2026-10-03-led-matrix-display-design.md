@@ -374,6 +374,10 @@ interface DeviceModel {
   animation: { delivery: "stream" | "sequence" | "none"; maxFps; maxFrames?; minFrameMs?; notes?; sources? };
                                              // notes/sources: research prose, in the fixture and plugin data only
   font?: LedFontId;
+  layoutOptions?: {                          // LED only; CHANGES DEVICE BYTES (§7.6): what a board may choose
+    tileGap?: { allowed: ("gap" | "fill")[]; default?: "gap" | "fill" };
+    blockPadding?: { allowed: (0 | 1)[]; default?: 0 | 1 };
+  };                                         // a field left out is unrestricted with the renderer default
   appearance?: {                             // preview-only; never reaches device bytes (Task 2)
     pixelShape?: "round" | "square"; dotRatio?; offColor?; substrateColor?; bezel?; boardColors?;
     options?: Record<string, readonly string[]>;  // fields a board may override, e.g. { board_color: ["black", "white"] }
@@ -578,7 +582,10 @@ layout reads them off any token type — the field lights first, gutter
 joined, then the icon's glyph draws over it in its own colour, or, on a face
 without the icon, its fallback tile fills the glyph box (an unlit square on
 a mono panel). `ledBackgroundMask(layout)` reports the block fields so the
-preview can keep its bloom off them.
+preview can keep its bloom off them. What the gutters _between_ fields do
+is the subject of §7.6: `tileGap: "fill"` extends the same-colour join to
+colour tiles, and `blockPadding: 1` grows a block's field one pixel
+outward; both are layout options that change the bytes.
 
 **Monochrome.** `monochrome: "#rrggbb"` is a `LedLayoutOptions` field, so it
 is in the frame: every lit pixel — text, spans, tiles, icons, the heart —
@@ -646,13 +653,13 @@ Props fall into five groups, and the groups are the rule for where a future
 prop goes: a prop that changes the bytes a device receives goes in
 `LedLayoutOptions`; one that only changes the canvas does not.
 
-| Group                      | Props                                                     | Lives in                              |
-| -------------------------- | --------------------------------------------------------- | ------------------------------------- |
-| What the panel **is**      | `model`, `preset`, `matrixWidth`, `matrixHeight`, `font`  | `DeviceModel` / `LedMatrixSpec`       |
-| What the panel **draws**   | `textColor`, `monochrome`, `letterCase`                   | `LedLayoutOptions` — props extend it  |
-| How the preview **paints** | `size` (`sm                                               | md                                    | lg`or px),`pixelShape`, `glow` | component only, never in the frame |
-| How a change **arrives**   | `transition`, `announceUpdates`                           | component + the transition registry   |
-| Naming                     | `previewLabel`, `messageLabel`, `emptyLabel`, `className` | same contract as `StaticBoardDisplay` |
+| Group                      | Props                                                                                                              | Lives in                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| What the panel **is**      | `model`, `preset`, `matrixWidth`, `matrixHeight`, `font`                                                           | `DeviceModel` / `LedMatrixSpec`       |
+| What the panel **draws**   | `textColor`, `monochrome`, `letterCase`, `charset`, `tileGap`, `blockPadding` (§7.6; the model gates the last two) | `LedLayoutOptions` — props extend it  |
+| How the preview **paints** | `size` (`sm                                                                                                        | md                                    | lg`or px),`pixelShape`, `glow` | component only, never in the frame |
+| How a change **arrives**   | `transition`, `announceUpdates`                                                                                    | component + the transition registry   |
+| Naming                     | `previewLabel`, `messageLabel`, `emptyLabel`, `className`                                                          | same contract as `StaticBoardDisplay` |
 
 `model` (a built-in id or a plugin's object) supplies geometry, face, colour,
 pixel shape, charset and transition default; explicit props win over the
@@ -715,6 +722,148 @@ is for the flaps alone. `DisplayPreview frame="tv"` therefore only goes bare
 for split-flap models. `LedMatrixDisplay bezel={false}` (the substrate and its
 dots alone) stays available for a host that wants it, and the TvFrame stories
 show it ("FiestaPanel LED matrix, bare").
+
+### 7.6 Tile gap and block padding
+
+Two layout options the owner asked for after running the renderer on a
+real Pixoo 64 (2026-10-04): "colour blocks of text with a 1 px border
+between each character make the board feel blotchy", and "text on an
+overlay background is hard to read because we don't have that bg colour as
+a 1 px bookend". Both **change the bytes a device receives**, so by the §7.4
+rule they are `LedLayoutOptions` (`tileGap?: "gap" | "fill"`, default
+`"gap"`; `blockPadding?: 0 | 1`, default `0`), carried on
+`LedLayout.options` when set, pinned by goldens, and ported to Python
+exactly. Neither reflows anything: the grid, the margin, every glyph box
+and every glyph pixel are the same in every combination; only pixels
+_outside_ the glyph boxes change. The defaults draw exactly what the
+renderer drew before the options existed — `"gap"` with padding `0` is
+byte-identical to every earlier golden.
+
+**Vocabulary.** A cell's **glyph box** is its `glyphWidth × glyphHeight`
+rectangle. The **gutters** are the `spacingX` / `spacingY` (1 px in both
+faces) between boxes inside the grid's used rectangle, including the
+corner pixel where four boxes meet; the **margin** is everything outside
+the used rectangle. A cell's **field** is the colour its whole box is lit
+in, or none:
+
+| Cell                                                              | Field                                                                                     |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| a block cell (`{fg/bg:…}`, whatever it draws over the field)      | its background — on a monochrome panel, the panel colour                                  |
+| a colour tile (`{red}`, `{63}`)                                   | the tile's colour; the panel colour on a mono panel; none for `{black}` / `{70}` / `{71}` |
+| an icon the face cannot draw, whose split-flap fallback is a tile | that tile (it _is_ what the cell draws)                                                   |
+| a character, a drawn icon, a colour-span letter, a blank          | none                                                                                      |
+
+**The rule, per pixel.** For every pixel `p` of the matrix that lies in no
+glyph box, let `B(p)` be the cells whose glyph box _grown by one pixel on
+every side_ contains `p`: the two cells either side of an edge gutter, the
+four around a corner, one or two for a margin pixel. Let `F` be the set of
+distinct fields of the cells in `B(p)` (cells without a field contribute
+nothing).
+
+1. If `F` is empty, or holds more than one colour, `p` is **unlit**.
+   _Different colours never merge_: a tile beside a tile of another colour,
+   two blocks of different colours (stacked or side by side), a padded
+   block beside a tile of another colour — the gutter between them and
+   every corner that borders both stay dark, the 1-px line a split-flap
+   board draws between any two tiles.
+2. Otherwise `F = {C}`, and `p` lights in `C` if either claims it:
+   - **fill** (`tileGap: "fill"`): `p` is a gutter pixel (inside the used
+     rectangle — never the margin) and **every** cell in `B(p)` has field
+     `C`: both cells of an edge gutter, all four of a corner. Three same
+     cells around a corner with a blank fourth leave the corner unlit.
+   - **padding** (`blockPadding: 1`): some cell in `B(p)` is a block cell
+     with background `C`. Gutter and margin alike, corners included, so a
+     block's field is a clean rectangle one pixel outside its boxes.
+3. A pixel past the matrix edge does not exist: padding at the edge is
+   clipped there, never wrapped or shifted. A pixel inside _any_ glyph box
+   is never claimed — a blank neighbour's box stays dark, and the glyph
+   pixels on a block stay exactly as today.
+
+**Precedence decisions, spelled out.**
+
+- A colour tile beside a block of the same colour is one lit field: with
+  `"fill"` the gutter between them lights (claim: fill — every neighbour
+  fields `C`); with `"gap"` and padding `1` it lights too (claim: padding).
+  Both are "a lit field of colour `C`" and the pixel is `C` either way.
+- A padded block beside a tile of **another** colour: the tile vetoes
+  (rule 1) — the gutter and the two corners the tile borders stay unlit,
+  while the block's other sides are padded. "Padding only claims pixels
+  that are otherwise unlit, and never against another colour."
+- Where two padded blocks of different colours would claim one pixel, it
+  stays unlit (rule 1), mirroring the stacked-rows rule of §7.2. Same
+  colour: lit, one slab.
+- A field that does not claim still vetoes; a cell with no field (a red
+  letter, a blank, `{black}`) neither claims nor vetoes, so padding runs
+  right up to a neighbouring letter — the bookend the owner asked for — and
+  a corner bordered by a padded block, two same-colour tiles and `{70}` is
+  lit by the padding.
+- **Monochrome:** every field is the panel colour, so "same colour" is
+  "lit": with `"fill"` every lit neighbour merges (tiles, blocks and
+  padding alike), `{black}` stays an off cell nothing merges with, and the
+  inverse glyphs on a padded block keep a crisp one-pixel border. The bits
+  of a mono layout equal the bits of the RGB layout of the same message
+  with every field in one colour.
+- **Bloom (preview only):** `ledBackgroundMask` marks a block's box, its
+  joined gutters and its padding — any lit gutter pixel one of whose
+  bordering cells is a block of that colour — so the inverse glyphs stay
+  crisp; a gutter two tiles share is lit as a tile and glows like one.
+
+**How `"gap"` and `"fill"` relate to the block-colour rule of §7.2.** In
+`"gap"` mode a block cell draws its rect exactly as before: the box, joined
+to the gutter on its right when the right neighbour is a block of the same
+background, and to the gutter below when the cell below is — and when both
+join, the corner between them, _whatever the diagonal cell is_. That rule
+already was "fill, for blocks", drawn one rect per cell; `"fill"` is the
+same join extended to every field (tiles, and tiles beside blocks) with
+the symmetric four-cell corner rule above, drawn by the per-pixel pass
+instead of by the rects. The two agree on every pixel of a message without
+colour tiles **except one**: the corner under the end of a longer upper
+block row (three same-colour block cells around a corner, the fourth
+blank) is lit in `"gap"` (the upper-left cell's rect reaches it) and unlit
+in `"fill"` (the fourth cell does not qualify). Goldens pin both. The
+asymmetry in `"gap"` is kept because `"gap"` must stay byte-identical;
+`"fill"` is new and gets the rule the owner stated.
+
+**Implementation.** `layoutLedCells` draws each block's rect (the joined
+rect in `"gap"`, the bare box in `"fill"`), the glyphs, then the gutter and
+margin pixels `ledGutterPixels` yields, merged into one `rect` op per
+horizontal run; `rasterizeLedLayout` is unchanged. Transitions need
+nothing new: a flip's mid-way layouts are `layoutLedCells(to.grid, cells,
+to.options)` and so carry both options, the half-flap paints only the top
+half of a glyph box over the cell's own background, and `frameAt(duration)`
+is the static frame byte for byte (tested for every kind). `renderLedGlyph`
+(one glyph box, no gutters) is unaffected.
+
+**The model gates the choice.** `DeviceModel.layoutOptions` (§6; schema and
+`validateDeviceModel` check it; `led_matrix` models only) declares which
+values a board may choose and the default:
+
+```ts
+layoutOptions?: {
+  tileGap?: { allowed: ("gap" | "fill")[]; default?: "gap" | "fill" };
+  blockPadding?: { allowed: (0 | 1)[]; default?: 0 | 1 };
+}
+```
+
+A field left out is **unrestricted** — every value allowed, the renderer's
+default — so a plugin published before the options existed renders exactly
+as the built-in it mirrors (the contract test compares the _resolved_
+policy, `layoutPolicyForModel`). A declared field allows what it lists;
+`default` must be one of them and, left out, is the renderer's default when
+allowed, else the first allowed value. Every built-in LED model declares
+both with both values and today's defaults; split-flap models declare
+nothing. `ledSpecForModel` carries the model's defaults on the spec
+(`LedMatrixSpec.tileGap` / `.blockPadding`), which `layoutLedMessage` and
+`layoutLedCellGrid` use when the options do not say; an explicit option
+wins. `ledLayoutOptionsForModel(model, requested)` is the board-settings
+path: an explicit value the model allows, else the model's default with the
+reason in `ignored` — never a throw. `LedMatrixDisplay` (`tileGap`,
+`blockPadding` props; `data-tile-gap="fill"` / `data-block-padding="1"` on
+the housing when drawn so) goes through it and warns in a dev build;
+`DisplayPreview` passes both through for LED models and a split-flap board
+ignores them. Storybook: `LedMatrixDisplay` "Tile gap and block padding
+(2×2)" and its monochrome twin, `DisplayPreview` "Pixoo 64, fill and
+padding".
 
 ## 8. Transitions
 
@@ -1159,9 +1308,11 @@ tests) that fail when the TypeScript and the files disagree:
 - `character-sets.json`, `device-models.json` — the built-ins. The models
   carry `animation.notes` / `sources`, merged in by the generator from
   `scripts/ci/device-model-notes.json`; the runtime built-ins omit both, so
-  the bundle holds only what rendering needs.
+  the bundle holds only what rendering needs. Every LED model carries its
+  `layoutOptions` (§7.6): both tile gaps, both paddings, today's defaults.
 - `character-set.schema.json`, `device-model.schema.json` — the shapes a
-  plugin loader validates against (Draft 7). `src/lib/device-schemas.test.ts`
+  plugin loader validates against (Draft 7); the device schema carries
+  `layoutOptions` and refuses it on a split-flap model. `src/lib/device-schemas.test.ts`
   validates every fixture and the fictional 48×12 amber sign with Ajv in
   strict mode, registering the schemas **by `$id` only**, and pins the
   hand-written validators to the schemas on a table of valid and invalid
@@ -1175,8 +1326,19 @@ tests) that fail when the TypeScript and the files disagree:
   **drawn** — tile fallbacks (snow, partly) and blank fallbacks (bus, bell)
   on the 3×5 face, each bare, in a colour span and in a block — a block
   behind a drawn icon, and the same fallbacks in a block on a monochrome
-  panel. Frames are RGB888, row-major, origin top-left. The transition
-  cases (a seeded-scramble flip, one with half-flaps sampled at 25 fps, the
+  panel; and the §7.6 options — `"fill"` merging tiles horizontally,
+  vertically and at a four-way corner with another colour kept apart, an L
+  of three leaving its corner unlit, a white tile merging with a white
+  block and not a blue one, the one stacked-block corner where `"gap"` and
+  `"fill"` differ (both pinned), padding mid-grid, clipped at the matrix
+  edge, two adjacent padded blocks of different colours, stacked rows of
+  one colour then another, padding beside tiles in `"gap"` and in `"fill"`,
+  monochrome with both on, the Pixoo 3×5 page with both on, and a
+  **cells-in** case (`cells`: the parsed grid laid out with
+  `layoutLedCellGrid`, byte-identical to its message). Frames are RGB888,
+  row-major, origin top-left. The transition
+  cases (a seeded-scramble flip, one with half-flaps sampled at 25 fps, a
+  half-flap flip with `"fill"` and padding `1` on, the
   Pixoo 32-frame budget resolved through the model, the default flip whole
   on a Pixoo in monochrome, the ACME plugin sign under its 12-frame budget
   (`pluginModel`: the declaration with its set inline, so the scramble
@@ -1539,3 +1701,12 @@ condensed; the body above is the result.
   confirmed intentional.
 - Consolidation into this document; `Pixoo64Budget` story flips real pages;
   the fixture generator writes prettier-formatted JSON.
+
+### Revision 8 — tile gap and block padding (owner, after the Pixoo 64 test)
+
+- **Owner:** tile runs "feel blotchy" and block text lacks a bookend →
+  `tileGap: "gap" | "fill"` and `blockPadding: 0 | 1` as byte-changing
+  `LedLayoutOptions` (§7.6), one per-pixel claim rule for gutters and
+  margin, different colours never merging, `"gap"` byte-identical to
+  before; `DeviceModel.layoutOptions` declares what a board may choose;
+  goldens for every rule, a cells-in case and a half-flap transition case.

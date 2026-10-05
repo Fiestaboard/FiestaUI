@@ -712,3 +712,219 @@ describe("layoutLedCellGrid: a cell grid in, instead of a message", () => {
     expect(layout.text).toBe("€");
   });
 });
+
+describe("tileGap and blockPadding (spec §7.6)", () => {
+  // A 3 × 2 grid of 3×5 cells with a 1-px margin all round (14×13): cell
+  // (r, c)'s glyph box is x 1+4c…3+4c, y 1+6r…5+6r; the column gutters are
+  // x = 4 and 8, the row gutter y = 6, the margin x = 0 / 13 and y = 0 / 12.
+  const spec = { width: 14, height: 13, font: "3x5" } as const;
+  const OFF = [0, 0, 0];
+  const GREEN = [0x7e, 0xd3, 0x21]; // {66}
+  const BLUE = [0x4a, 0x90, 0xd9]; // {67} / blue
+  const AMBER = [0xff, 0xb0, 0x00];
+  const lit = (frame: ReturnType<typeof renderLedFrame>) => {
+    let n = 0;
+    for (let i = 0; i < frame.pixels.length; i += 3)
+      if (frame.pixels[i] || frame.pixels[i + 1] || frame.pixels[i + 2]) n++;
+    return n;
+  };
+
+  it('"gap" is the default and draws exactly what it drew before the option existed', () => {
+    for (const message of [
+      "{63}{63}{66}\n{63}{66}{66}",
+      "{black/white:II}\n{black/white:I}",
+      "{black/white:A}{white}{63}",
+    ]) {
+      const plain = renderLedFrame(message, spec);
+      expect(renderLedFrame(message, spec, { tileGap: "gap", blockPadding: 0 }).pixels).toEqual(plain.pixels);
+      expect(renderLedFrame(message, { ...spec, tileGap: "gap", blockPadding: 0 }).pixels).toEqual(plain.pixels);
+      const layout = layoutLedMessage(message, spec, { tileGap: "gap", blockPadding: 0 });
+      expect(layout.options).toEqual({ monochrome: undefined });
+    }
+    // A value that is not one of the two is unset.
+    expect(renderLedFrame("{63}{63}", spec, { tileGap: "wide" as never, blockPadding: 2 as never }).pixels).toEqual(
+      renderLedFrame("{63}{63}", spec).pixels,
+    );
+  });
+
+  it('"fill" lights the gutter between same-colour tiles, not between different ones, and not the margin', () => {
+    const frame = renderLedFrame("{63}{63}{66}\n{63}{66}{66}", spec, { tileGap: "fill" });
+    expect(pixel(frame, 4, 1)).toEqual(RED); // red | red
+    expect(pixel(frame, 8, 1)).toEqual(OFF); // red | green
+    expect(pixel(frame, 2, 6)).toEqual(RED); // red over red
+    expect(pixel(frame, 6, 6)).toEqual(OFF); // red over green
+    expect(pixel(frame, 10, 6)).toEqual(GREEN); // green over green
+    expect(pixel(frame, 4, 6)).toEqual(OFF); // corner: red red / red green
+    expect(pixel(frame, 8, 6)).toEqual(OFF); // corner: red green / green green
+    for (let x = 0; x < 14; x++) expect(pixel(frame, x, 0), `margin x=${x}`).toEqual(OFF);
+    for (let y = 0; y < 13; y++) expect(pixel(frame, 0, y), `margin y=${y}`).toEqual(OFF);
+    // Glyph boxes are untouched: the same cells, grid and text.
+    const plain = layoutLedMessage("{63}{63}{66}\n{63}{66}{66}", spec);
+    const filled = layoutLedMessage("{63}{63}{66}\n{63}{66}{66}", spec, { tileGap: "fill" });
+    expect(filled.cells).toEqual(plain.cells);
+    expect(filled.grid).toEqual(plain.grid);
+    expect(filled.text).toBe(plain.text);
+    expect(filled.options).toEqual({ monochrome: undefined, tileGap: "fill" });
+  });
+
+  it('"fill" lights a corner only when all four cells are the same field, and an L of three leaves it unlit', () => {
+    const square = renderLedFrame("{63}{63}\n{63}{63}", spec, { tileGap: "fill" });
+    expect(pixel(square, 4, 6)).toEqual(RED);
+    const ell = renderLedFrame("{63}{63}\n{63}", spec, { tileGap: "fill" });
+    expect(pixel(ell, 4, 1)).toEqual(RED);
+    expect(pixel(ell, 2, 6)).toEqual(RED);
+    expect(pixel(ell, 4, 6)).toEqual(OFF);
+    // Blocks follow the same four-cell rule under "fill" — the one pixel
+    // where "fill" differs from "gap" for a message without tiles, whose
+    // rect (joined right and down) lights that corner.
+    expect(pixel(renderLedFrame("{black/white:II}\n{black/white:I}", spec), 4, 6)).toEqual(WHITE);
+    expect(pixel(renderLedFrame("{black/white:II}\n{black/white:I}", spec, { tileGap: "fill" }), 4, 6)).toEqual(OFF);
+    // Otherwise a block run and stacked rows join exactly as before.
+    const gap = renderLedFrame("{black/white:II}\n{black/white:II}", spec);
+    expect(renderLedFrame("{black/white:II}\n{black/white:II}", spec, { tileGap: "fill" }).pixels).toEqual(gap.pixels);
+  });
+
+  it('"fill" merges a tile with a block of the same colour, never with another colour; a span glyph has no field', () => {
+    const frame = renderLedFrame("{white}{black/white:A}{red/blue:B}\n{white}{66}{red:I}", spec, { tileGap: "fill" });
+    expect(pixel(frame, 4, 1)).toEqual(WHITE); // white tile | white block
+    expect(pixel(frame, 8, 1)).toEqual(OFF); // white block | blue block
+    expect(pixel(frame, 2, 6)).toEqual(WHITE); // white tile over white tile
+    expect(pixel(frame, 6, 6)).toEqual(OFF); // white block over green tile
+    expect(pixel(frame, 8, 7)).toEqual(OFF); // green tile | red letters: a glyph is not a field
+    // An off tile is no field: nothing merges with {black}.
+    expect(pixel(renderLedFrame("{70}{70}", spec, { tileGap: "fill" }), 4, 1)).toEqual(OFF);
+    // A tile-fallback icon is the tile it draws.
+    expect(pixel(renderLedFrame("{icon:snow}{icon:snow}", spec, { tileGap: "fill" }), 4, 1)).toEqual([
+      0x9b, 0x59, 0xb6,
+    ]);
+  });
+
+  it("blockPadding 1 grows a block's field one pixel into the gutters and margin, corners included, glyphs untouched", () => {
+    const padded = renderLedFrame(" {black/white:I} ", spec, { blockPadding: 1 });
+    // Cell (0,1)'s box is x 5…7, y 1…5; the ring around it is x 4…8, y 0…6.
+    for (let x = 4; x <= 8; x++) {
+      expect(pixel(padded, x, 0), `top x=${x}`).toEqual(WHITE);
+      expect(pixel(padded, x, 6), `bottom x=${x}`).toEqual(WHITE);
+    }
+    for (let y = 0; y <= 6; y++) {
+      expect(pixel(padded, 4, y), `left y=${y}`).toEqual(WHITE);
+      expect(pixel(padded, 8, y), `right y=${y}`).toEqual(WHITE);
+    }
+    expect(pixel(padded, 3, 0)).toEqual(OFF); // not two pixels
+    expect(pixel(padded, 3, 1)).toEqual(OFF); // the blank neighbour's glyph box is never claimed
+    expect(pixel(padded, 6, 1)).toEqual(OFF); // "I" row 0 is ###: glyph pixels stay unlit
+    expect(pixel(padded, 5, 1)).toEqual(OFF);
+    expect(pixel(padded, 5, 2)).toEqual(WHITE); // ".#." → x=5 is field
+    const plain = renderLedFrame(" {black/white:I} ", spec);
+    expect(lit(padded) - lit(plain)).toBe(20); // the ring around a 3×5 box is 5 wide and 7 tall: 2·5 + 2·7 − 4
+    expect(layoutLedMessage("{black/white:I}", spec, { blockPadding: 1 }).options).toEqual({
+      monochrome: undefined,
+      blockPadding: 1,
+    });
+  });
+
+  it("padding never leaves the matrix, and the gutter two different-colour padded blocks would share stays unlit", () => {
+    // No margin: a 15×5 matrix holds 4 cells edge to edge.
+    const edge = renderLedFrame("{black/white:OPEN}", { width: 15, height: 5, font: "3x5" }, { blockPadding: 1 });
+    expect(edge.width).toBe(15);
+    expect(pixel(edge, 0, 2)).toEqual(OFF); // "O" row 2 is #.# → x=0 is the glyph
+    expect(pixel(edge, 3, 2)).toEqual(WHITE); // the gutter inside the run was the block's already
+    const two = renderLedFrame("{black/white:A}{white/red:B}", spec, { blockPadding: 1 });
+    expect(pixel(two, 4, 1)).toEqual(OFF);
+    expect(pixel(two, 4, 0)).toEqual(OFF);
+    expect(pixel(two, 4, 6)).toEqual(OFF);
+    expect(pixel(two, 0, 1)).toEqual(WHITE);
+    expect(pixel(two, 8, 1)).toEqual(RED);
+    // Stacked rows of different colours: the row gutter and the margin
+    // pixel level with it stay unlit; a same-colour pair is one slab.
+    const stacked = renderLedFrame("{black/white:A}\n{white/blue:B}", spec, { blockPadding: 1 });
+    expect(pixel(stacked, 2, 6)).toEqual(OFF);
+    expect(pixel(stacked, 0, 6)).toEqual(OFF);
+    expect(pixel(stacked, 0, 5)).toEqual(WHITE);
+    expect(pixel(stacked, 0, 7)).toEqual(BLUE);
+    const slab = renderLedFrame("{black/white:A}\n{black/white:B}", spec, { blockPadding: 1 });
+    expect(pixel(slab, 0, 6)).toEqual(WHITE);
+    expect(pixel(slab, 4, 6)).toEqual(WHITE);
+  });
+
+  it("a padded block beside a tile: a same-colour tile merges, another colour vetoes the gutter and its corners", () => {
+    const frame = renderLedFrame("{black/white:A}{63}\n{white}{63}", spec, { blockPadding: 1 });
+    expect(pixel(frame, 4, 1)).toEqual(OFF); // white block | red tile
+    expect(pixel(frame, 4, 0)).toEqual(OFF); // the corner above it borders the red tile too
+    expect(pixel(frame, 4, 6)).toEqual(OFF); // and the four-way corner below
+    expect(pixel(frame, 2, 6)).toEqual(WHITE); // white block over white tile: padding lights it
+    expect(pixel(frame, 0, 6)).toEqual(WHITE); // and the margin pixel level with it (both white)
+    expect(pixel(frame, 0, 7)).toEqual(OFF); // the tile's own margin is not padded
+    // Padding does not fill the tiles' own gutters; "fill" does.
+    expect(pixel(frame, 6, 6)).toEqual(OFF);
+    expect(
+      pixel(renderLedFrame("{black/white:A}{63}\n{white}{63}", spec, { blockPadding: 1, tileGap: "fill" }), 6, 6),
+    ).toEqual(RED);
+  });
+
+  it("on a monochrome panel every field is the panel colour, so fill and padding merge all of them and inverse glyphs stay crisp", () => {
+    const frame = renderLedFrame("{black/white:I}{63}\n{66}{70}", spec, {
+      monochrome: "#ffb000",
+      tileGap: "fill",
+      blockPadding: 1,
+    });
+    expect(pixel(frame, 4, 1)).toEqual(AMBER); // block | tile
+    expect(pixel(frame, 2, 6)).toEqual(AMBER); // block over tile
+    expect(pixel(frame, 4, 6)).toEqual(AMBER); // the corner: padding, since the off tile beside it is no field, not another colour
+    expect(pixel(frame, 6, 6)).toEqual(OFF); // red tile over off tile: fill needs every cell lit
+    expect(pixel(frame, 0, 1)).toEqual(AMBER); // padding
+    expect(pixel(frame, 2, 1)).toEqual(OFF); // "I" row 0 is ###: the glyph is unlit
+    // "Same colour" on a mono panel is "lit": the bits equal the RGB render
+    // of the same message with every field in one colour.
+    expect(frameToBits(frame)).toEqual(
+      frameToBits(renderLedFrame("{black/white:I}{white}\n{white}{70}", spec, { tileGap: "fill", blockPadding: 1 })),
+    );
+    // The bits of the options are not the bits without them.
+    expect(frameToBits(frame)).not.toEqual(
+      frameToBits(renderLedFrame("{black/white:I}{63}\n{66}{70}", spec, { monochrome: "#ffb000" })),
+    );
+  });
+
+  it("the spec carries a device's defaults and an explicit option wins", () => {
+    const message = "{black/white:A}{white}{63}";
+    const viaSpec = renderLedFrame(message, { ...spec, tileGap: "fill", blockPadding: 1 });
+    expect(viaSpec.pixels).toEqual(renderLedFrame(message, spec, { tileGap: "fill", blockPadding: 1 }).pixels);
+    expect(
+      renderLedFrame(message, { ...spec, tileGap: "fill", blockPadding: 1 }, { tileGap: "gap", blockPadding: 0 })
+        .pixels,
+    ).toEqual(renderLedFrame(message, spec).pixels);
+    expect(layoutLedMessage(message, { ...spec, tileGap: "fill" }).options).toEqual({
+      monochrome: undefined,
+      tileGap: "fill",
+    });
+  });
+
+  it("cells-in draws the same bytes as message-in with both options", () => {
+    const message = "{black/white:A}{white}{63}\n{white}{63}{63}";
+    const cells = message.split("\n").map((line) => parseLine(line, 3, { extendedMarkup: true }));
+    const options = { tileGap: "fill", blockPadding: 1 } as const;
+    expect(rasterizeLedLayout(layoutLedCellGrid(cells, spec, options)).pixels).toEqual(
+      renderLedFrame(message, spec, options).pixels,
+    );
+    expect(layoutLedCellGrid(cells, spec, options).ops).toEqual(layoutLedMessage(message, spec, options).ops);
+  });
+
+  it("ledBackgroundMask covers a block's padding and the gutters it fills, not the gutters two tiles share", () => {
+    const layout = layoutLedMessage("{black/white:A}{white}{63}\n{white}{63}{63}", spec, {
+      tileGap: "fill",
+      blockPadding: 1,
+    });
+    const mask = ledBackgroundMask(layout)!;
+    const at = (x: number, y: number) => mask[y * 14 + x];
+    expect(at(0, 0)).toBe(1); // padding corner
+    expect(at(2, 0)).toBe(1); // padding above the block
+    expect(at(4, 1)).toBe(1); // block | white tile, lit as the block's field
+    expect(at(2, 6)).toBe(1); // block over white tile
+    expect(at(6, 6)).toBe(0); // white tile over red tile: unlit anyway
+    expect(at(10, 6)).toBe(0); // red tile over red tile: a tile gutter, glows
+    expect(at(8, 7)).toBe(0); // red | red in row 1
+    expect(at(9, 7)).toBe(0); // a tile's glyph box is never background
+    // Without blocks there is no mask, whatever fill lights.
+    expect(ledBackgroundMask(layoutLedMessage("{63}{63}", spec, { tileGap: "fill" }))).toBeNull();
+  });
+});

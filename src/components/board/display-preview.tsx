@@ -43,7 +43,7 @@ import {
 } from "../../lib/board-dimensions";
 import { isDevBuild } from "../../lib/dev";
 import { type DeviceModel, type DeviceModelRef, resolveDeviceModel } from "../../lib/devices";
-import { type BoardCellGrid, type LedLetterCase } from "../../lib/led-matrix";
+import { type BoardCellGrid, type LedBlockPadding, type LedLetterCase, type LedTileGap } from "../../lib/led-matrix";
 import { type LedTransitionId } from "../../lib/led-transition-registry";
 import { type LedTransitionSpec } from "../../lib/led-transitions";
 import { BoardDisplay } from "./board-display";
@@ -101,6 +101,15 @@ export interface DisplayPreviewProps {
    * only case. A split-flap board has no lowercase, so it ignores this.
    */
   letterCase?: LedLetterCase;
+  /**
+   * LED: light the 1-px gutter between same-colour tiles and block cells
+   * (`"fill"`) or keep it unlit (`"gap"`). Changes device bytes, so the
+   * model gates it: an explicit value its `layoutOptions` allows wins,
+   * anything else is the model's default. A split-flap board ignores it.
+   */
+  tileGap?: LedTileGap;
+  /** LED: extend a block span's field one pixel into the gutters and margin (`1`). Gated like `tileGap`. */
+  blockPadding?: LedBlockPadding;
   /** Note array: the board's notes wide / tall. */
   notesWide?: number;
   notesTall?: number;
@@ -227,6 +236,8 @@ export function DisplayPreview({
   extendedMarkup,
   size,
   letterCase,
+  tileGap,
+  blockPadding,
   notesWide,
   notesTall,
   gridRows,
@@ -270,7 +281,7 @@ export function DisplayPreview({
     board = (
       <LedMatrixDisplay
         model={model}
-        {...defined({ ...content, size, letterCase, transition, announceUpdates })}
+        {...defined({ ...content, size, letterCase, tileGap, blockPadding, transition, announceUpdates })}
         pixelShape={isPixelShape(pixelShape) ? pixelShape : undefined}
       />
     );

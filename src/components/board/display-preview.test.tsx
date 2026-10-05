@@ -111,6 +111,29 @@ describe("DisplayPreview", () => {
       expect(screen.getByRole("img", { name: "Board preview: HELLO" })).toBeInTheDocument();
     });
 
+    it("passes tileGap and blockPadding to an LED renderer (explicit over the model's default), and a split-flap board ignores them", () => {
+      render(<DisplayPreview model="divoom_pixoo64" message="{63}{63}" />);
+      expect(screen.getByRole("img")).not.toHaveAttribute("data-tile-gap");
+      expect(screen.getByRole("img")).not.toHaveAttribute("data-block-padding");
+      cleanup();
+      render(<DisplayPreview model="divoom_pixoo64" message="{63}{63}" tileGap="fill" blockPadding={1} />);
+      expect(screen.getByRole("img")).toHaveAttribute("data-tile-gap", "fill");
+      expect(screen.getByRole("img")).toHaveAttribute("data-block-padding", "1");
+      cleanup();
+      // The model's own default, when the board chooses nothing.
+      const padded: DeviceModel = {
+        ...DEVICE_MODELS.hub75_64x32,
+        id: "hub75_padded",
+        layoutOptions: { blockPadding: { allowed: [0, 1], default: 1 } },
+      };
+      render(<DisplayPreview model={padded} message="{black/white:HI}" />);
+      expect(screen.getByRole("img")).toHaveAttribute("data-block-padding", "1");
+      cleanup();
+      render(<DisplayPreview model="vestaboard_note" message="{63}{63}" tileGap="fill" blockPadding={1} />);
+      expect(screen.getByRole("img")).not.toHaveAttribute("data-tile-gap");
+      expect(screen.getByRole("img")).not.toHaveAttribute("data-block-padding");
+    });
+
     it("takes a model object the same as an id", () => {
       render(<DisplayPreview model={DEVICE_MODELS.vestaboard_note} message="HELLO" />);
       expect(tiles()).toBe(3 * 15);

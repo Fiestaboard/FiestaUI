@@ -22,7 +22,7 @@ import {
 import { DEVICE_MODEL_IDS, DEVICE_MODELS, type DeviceModel } from "./devices";
 import { LED_FONTS } from "./led-fonts";
 import { GOLDEN_LAYOUT_CASES, GOLDEN_TRANSITION_CASES } from "./led-golden-cases";
-import { layoutLedMessage, ledGlyphEntry, ledGlyphKey, rasterizeLedLayout } from "./led-matrix";
+import { layoutLedCellGrid, layoutLedMessage, ledGlyphEntry, ledGlyphKey, rasterizeLedLayout } from "./led-matrix";
 import { resolveLedTransition } from "./led-transition-registry";
 import { ledScramblePool, ledTransitionFrames, planLedTransition } from "./led-transitions";
 
@@ -104,9 +104,11 @@ describe("LED golden cases", () => {
       spec: expected.spec,
       ...(expected.options ? { options: expected.options } : {}),
       ...(expected.charset ? { charset: expected.charset } : {}),
+      ...(expected.cells ? { cells: expected.cells } : {}),
     });
     const charset = c.charset ? materializeCharacterSet(c.charset) : undefined;
-    const layout = layoutLedMessage(c.message, c.spec, { ...c.options, charset });
+    const options = { ...c.options, charset };
+    const layout = c.cells ? layoutLedCellGrid(c.cells, c.spec, options) : layoutLedMessage(c.message, c.spec, options);
     const frame = rasterizeLedLayout(layout);
     expect(layout.text).toBe(expected.text);
     expect({ width: frame.width, height: frame.height, frame: b64(frame.pixels) }).toEqual({
@@ -114,6 +116,31 @@ describe("LED golden cases", () => {
       height: expected.height,
       frame: expected.frame,
     });
+    // A cells-in case is the same bytes as its message laid out message-in.
+    if (c.cells) {
+      expect(b64(rasterizeLedLayout(layoutLedMessage(c.message, c.spec, options)).pixels)).toBe(expected.frame);
+    }
+  });
+
+  it("covers both tile gaps and both block paddings, in colour, in monochrome, on the Pixoo grid and cells-in", () => {
+    const withFill = GOLDEN_LAYOUT_CASES.filter((c) => c.options?.tileGap === "fill");
+    const withPadding = GOLDEN_LAYOUT_CASES.filter((c) => c.options?.blockPadding === 1);
+    expect(withFill.length).toBeGreaterThanOrEqual(5);
+    expect(withPadding.length).toBeGreaterThanOrEqual(5);
+    expect(withFill.some((c) => c.options?.monochrome && c.options.blockPadding === 1)).toBe(true);
+    expect(withFill.some((c) => c.spec.width === 64 && c.spec.height === 64 && c.spec.font === "3x5")).toBe(true);
+    expect(withFill.some((c) => c.cells !== undefined)).toBe(true);
+    expect(GOLDEN_TRANSITION_CASES.some((c) => c.options?.tileGap === "fill" && c.options.blockPadding === 1)).toBe(
+      true,
+    );
+    // Every case without the options is drawn as before they existed: the
+    // layouts carry neither key.
+    for (const c of GOLDEN_LAYOUT_CASES) {
+      if (c.options?.tileGap || c.options?.blockPadding) continue;
+      const layout = layoutLedMessage(c.message, c.spec, { ...c.options });
+      expect(layout.options, c.name).not.toHaveProperty("tileGap");
+      expect(layout.options, c.name).not.toHaveProperty("blockPadding");
+    }
   });
 
   it.each(GOLDEN_TRANSITION_CASES.map((c) => [c.name, c] as const))("transition: %s", (name, c) => {

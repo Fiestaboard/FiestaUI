@@ -44,12 +44,15 @@ import {
   type DeviceModel,
   deviceModelForPreset,
   type DeviceModelRef,
+  ledLayoutOptionsForModel,
   ledSpecForModel,
   tryResolveDeviceModel,
 } from "../../lib/devices";
 import { type LedFontId } from "../../lib/led-fonts";
 import {
   type BoardCellGrid,
+  DEFAULT_LED_BLOCK_PADDING,
+  DEFAULT_LED_TILE_GAP,
   layoutLedCellGrid,
   layoutLedMessage,
   ledBackgroundMask,
@@ -69,6 +72,13 @@ import { useReducedMotion } from "./reduced-motion";
 
 export type { LedPixelShape } from "./led-look";
 
+/**
+ * The props are the layout options (`textColor`, `monochrome`, `letterCase`,
+ * `charset`, and the byte-changing `tileGap` / `blockPadding`, which the
+ * device model gates: an explicit value the model does not allow falls back
+ * to the model's default, with a dev warning and `data-tile-gap` /
+ * `data-block-padding` reporting what was drawn) plus the component's own.
+ */
 export interface LedMatrixDisplayProps extends LedLayoutOptions {
   /** Board markup, laid out with `layoutLedMessage`. Ignored when `cells` is given. */
   message?: string | null;
@@ -330,6 +340,8 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
   monochrome,
   letterCase,
   charset: charsetProp,
+  tileGap: tileGapProp,
+  blockPadding: blockPaddingProp,
   transition,
   announceUpdates = false,
   className,
@@ -349,6 +361,26 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
   const pitch = typeof size === "number" ? Math.max(1, size) : PITCH[size];
   const mono = monochrome ?? (deviceModel?.color.kind === "monochrome" ? deviceModel.color.color : undefined);
   const charset = charsetProp ?? (deviceModel ? characterSetForModel(deviceModel) : undefined);
+  // The byte-changing layout choices, gated by the model: an explicit value
+  // it allows, else its default (a dev build says why). Without a model
+  // there is nothing to ask, and an explicit value stands.
+  const {
+    tileGap,
+    blockPadding,
+    ignored: ignoredLayout,
+  } = deviceModel
+    ? ledLayoutOptionsForModel(deviceModel, { tileGap: tileGapProp, blockPadding: blockPaddingProp })
+    : {
+        tileGap: tileGapProp ?? DEFAULT_LED_TILE_GAP,
+        blockPadding: blockPaddingProp ?? DEFAULT_LED_BLOCK_PADDING,
+        ignored: [],
+      };
+  const ignoredLayoutKey = ignoredLayout.join("\n");
+  useEffect(() => {
+    if (ignoredLayoutKey && isDevBuild()) {
+      for (const reason of ignoredLayoutKey.split("\n")) console.warn(`LedMatrixDisplay: ${reason}.`);
+    }
+  }, [ignoredLayoutKey]);
 
   // The look is the model's appearance, with the prop winning for the shape
   // (see ./led-look, shared with CharacterGlyph).
@@ -358,11 +390,11 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
 
   const layout = useMemo(() => {
     const spec = { width, height, font: fontId };
-    const options = { textColor, monochrome: mono, letterCase, charset };
+    const options = { textColor, monochrome: mono, letterCase, charset, tileGap, blockPadding };
     return cells !== undefined
       ? layoutLedCellGrid(cells, spec, options)
       : layoutLedMessage(message ?? "", spec, options);
-  }, [cells, message, width, height, fontId, textColor, mono, letterCase, charset]);
+  }, [cells, message, width, height, fontId, textColor, mono, letterCase, charset, tileGap, blockPadding]);
   const frame = useMemo(() => rasterizeLedLayout(layout), [layout]);
   // The block-span fields of what the canvas shows, kept off the bloom.
   const blockMask = useMemo(() => ledBackgroundMask(layout), [layout]);
@@ -532,6 +564,8 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
         data-font={fontId}
         data-pixel-shape={shape}
         data-monochrome={mono ? "" : undefined}
+        data-tile-gap={tileGap === "fill" ? "fill" : undefined}
+        data-block-padding={blockPadding === 1 ? "1" : undefined}
         data-model={deviceModel?.id}
         data-unknown-model={unknownModel}
         data-cells-mismatch={cellsMismatch ?? undefined}

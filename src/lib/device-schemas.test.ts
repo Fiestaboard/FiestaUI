@@ -211,6 +211,54 @@ const DEVICE_TABLE: Array<[string, boolean, () => unknown]> = [
   ],
   ["an unknown legacy device type", false, () => ({ ...flagship(), legacy: { deviceType: "mini" } })],
   ["a non-string legacy preset", false, () => ({ ...pixoo(), legacy: { preset: 64 } })],
+  ["the built-in layoutOptions (both gaps, both paddings, today's defaults)", true, pixoo],
+  [
+    "an LED model with no layoutOptions",
+    true,
+    () => {
+      const m = pixoo();
+      delete m.layoutOptions;
+      return m;
+    },
+  ],
+  [
+    "layoutOptions declaring one field only",
+    true,
+    () => ({ ...pixoo(), layoutOptions: { tileGap: { allowed: ["fill"] } } }),
+  ],
+  ["an empty layoutOptions", true, () => ({ ...pixoo(), layoutOptions: {} })],
+  [
+    "a split-flap model with layoutOptions",
+    false,
+    () => ({ ...flagship(), layoutOptions: { tileGap: { allowed: ["gap"] } } }),
+  ],
+  ["layoutOptions that is not an object", false, () => ({ ...pixoo(), layoutOptions: "fill" })],
+  ["an unknown layoutOptions field", false, () => ({ ...pixoo(), layoutOptions: { gutter: { allowed: ["fill"] } } })],
+  ["a tileGap choice that is not an object", false, () => ({ ...pixoo(), layoutOptions: { tileGap: "fill" } })],
+  ["a tileGap choice without allowed", false, () => ({ ...pixoo(), layoutOptions: { tileGap: { default: "fill" } } })],
+  ["an empty tileGap.allowed", false, () => ({ ...pixoo(), layoutOptions: { tileGap: { allowed: [] } } })],
+  [
+    "a repeated tileGap.allowed value",
+    false,
+    () => ({ ...pixoo(), layoutOptions: { tileGap: { allowed: ["gap", "gap"] } } }),
+  ],
+  ["an unknown tileGap value", false, () => ({ ...pixoo(), layoutOptions: { tileGap: { allowed: ["gap", "wide"] } } })],
+  [
+    "an unknown tileGap default",
+    false,
+    () => ({ ...pixoo(), layoutOptions: { tileGap: { allowed: ["gap"], default: "wide" } } }),
+  ],
+  ["a blockPadding of 2", false, () => ({ ...pixoo(), layoutOptions: { blockPadding: { allowed: [0, 2] } } })],
+  [
+    "a blockPadding given as a string",
+    false,
+    () => ({ ...pixoo(), layoutOptions: { blockPadding: { allowed: ["1"] } } }),
+  ],
+  [
+    "an unknown key inside a choice",
+    false,
+    () => ({ ...pixoo(), layoutOptions: { blockPadding: { allowed: [1], values: [1] } } }),
+  ],
 ];
 
 const CHARSET_TABLE: Array<[string, boolean, () => unknown]> = [
@@ -278,6 +326,12 @@ describe("validateDeviceModel agrees with device-model.schema.json", () => {
     expect(validDevice(d), `schema: ${schemaErrors(validDevice)}`).toBe(valid);
     const r = validateDeviceModel(d);
     expect(r.ok, `validateDeviceModel: ${r.errors.join("; ")}`).toBe(valid);
+  });
+
+  it("the TS validator is stricter where the schema cannot say: a layoutOptions default must be one of allowed", () => {
+    const d = { ...pixoo(), layoutOptions: { tileGap: { allowed: ["gap"], default: "fill" } } };
+    expect(validDevice(d)).toBe(true);
+    expect(validateDeviceModel(d).errors).toEqual(["layoutOptions.tileGap.default: one of allowed"]);
   });
 });
 

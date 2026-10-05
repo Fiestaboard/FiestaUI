@@ -109,8 +109,17 @@ await write(
 const b64 = (frame) => Buffer.from(frame.pixels).toString("base64");
 const layouts = golden.GOLDEN_LAYOUT_CASES.map((c) => {
   const charset = c.charset ? sets.materializeCharacterSet(c.charset) : undefined;
-  const layout = led.layoutLedMessage(c.message, c.spec, { ...c.options, charset });
+  const options = { ...c.options, charset };
+  // A cells-in case lays out the parsed grid; its message must draw the same.
+  const layout = c.cells
+    ? led.layoutLedCellGrid(c.cells, c.spec, options)
+    : led.layoutLedMessage(c.message, c.spec, options);
   const frame = led.rasterizeLedLayout(layout);
+  if (c.cells) {
+    const viaMessage = led.rasterizeLedLayout(led.layoutLedMessage(c.message, c.spec, options));
+    if (b64(viaMessage) !== b64(frame))
+      throw new Error(`layout case "${c.name}": cells and message draw different frames`);
+  }
   return { ...c, text: layout.text, width: frame.width, height: frame.height, frame: b64(frame) };
 });
 // Transition cases: a spec as written, or an id/spec resolved through a
@@ -146,7 +155,7 @@ const seqs = golden.GOLDEN_TRANSITION_CASES.map((c) => {
 });
 await write("led-golden.json", {
   about:
-    "Golden cases for ports of FiestaUI's LED layout, raster and transitions. Frames are RGB888, row-major, origin top-left, base64. A layout case with `charset` lays out with that plugin set materialised (materializeCharacterSet) over the built-in it extends. A transition case's `resolvedSpec` is `transition` as written, or resolved through `model`'s (a built-in id) or `pluginModel`'s (a plugin declaration, its set inline and materialised) animation capability (resolveLedTransition) so the device's frame budget applies; with `pluginModel` both messages lay out with its set, so the flip's scramble draws only from it; a case with `before` first lays that message out with that set (materialised) and discards it, and its frames must be byte-identical to the same case without it — glyph identity is a stable key (the character, `tile:<numeric code>`, `icon:<name>`, `\" \"` blank), the flip seed is FNV-1a over u32le(cellIndex) ‖ u32le(cols) ‖ u32le(rows) ‖ utf8(fromKey) ‖ 0x00 ‖ utf8(toKey) ‖ 0x00 into mulberry32, and the scramble pool is the set's glyph keys sorted in code-point order; `frames` is ledTransitionFrames(planLedTransition(from, to, resolvedSpec), fps ?? 30) — exactly the sequence a device receives, the last frame always the settled `to`. Regenerate with `node scripts/ci/led-fixtures.mjs`.",
+    'Golden cases for ports of FiestaUI\'s LED layout, raster and transitions. Frames are RGB888, row-major, origin top-left, base64. A layout case with `charset` lays out with that plugin set materialised (materializeCharacterSet) over the built-in it extends; one with `cells` lays out that parsed grid with layoutLedCellGrid and must draw the same frame as its `message`. `options.tileGap` ("gap" default | "fill") and `options.blockPadding` (0 default | 1) change device bytes by the rules in design spec §7.6: "fill" lights a gutter pixel when every cell around it (two for an edge, four for a corner) is a lit field of one colour — a colour tile, a block cell, a tile-fallback icon; padding 1 lights every gutter or margin pixel bordering a block cell in the block\'s colour; a pixel bordered by fields of two colours is never lit; the margin is never lit by fill; nothing is lit outside the matrix or inside a glyph box; in "gap" a block\'s rect still joins a same-colour block cell to its right and below, as it always did. A transition case\'s `resolvedSpec` is `transition` as written, or resolved through `model`\'s (a built-in id) or `pluginModel`\'s (a plugin declaration, its set inline and materialised) animation capability (resolveLedTransition) so the device\'s frame budget applies; with `pluginModel` both messages lay out with its set, so the flip\'s scramble draws only from it; a case with `before` first lays that message out with that set (materialised) and discards it, and its frames must be byte-identical to the same case without it — glyph identity is a stable key (the character, `tile:<numeric code>`, `icon:<name>`, `" "` blank), the flip seed is FNV-1a over u32le(cellIndex) ‖ u32le(cols) ‖ u32le(rows) ‖ utf8(fromKey) ‖ 0x00 ‖ utf8(toKey) ‖ 0x00 into mulberry32, and the scramble pool is the set\'s glyph keys sorted in code-point order; `frames` is ledTransitionFrames(planLedTransition(from, to, resolvedSpec), fps ?? 30) — exactly the sequence a device receives, the last frame always the settled `to`. Regenerate with `node scripts/ci/led-fixtures.mjs`.',
   layouts,
   transitions: seqs,
 });

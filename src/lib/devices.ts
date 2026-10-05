@@ -44,7 +44,20 @@ import {
   type ValidationResult,
 } from "./character-sets";
 import { LED_FONTS, type LedFontId } from "./led-fonts";
-import { LED_MATRIX_PRESETS, type LedMatrixPresetId, type LedMatrixSpec } from "./led-matrix";
+import {
+  DEFAULT_LED_BLOCK_PADDING,
+  DEFAULT_LED_TILE_GAP,
+  isLedBlockPadding,
+  isLedTileGap,
+  LED_BLOCK_PADDINGS,
+  LED_MATRIX_PRESETS,
+  LED_TILE_GAPS,
+  type LedBlockPadding,
+  type LedLayoutOptions,
+  type LedMatrixPresetId,
+  type LedMatrixSpec,
+  type LedTileGap,
+} from "./led-matrix";
 
 export type DisplayTechnology = "split_flap" | "led_matrix";
 
@@ -139,6 +152,30 @@ export interface DeviceAppearance {
 }
 
 /**
+ * Which values of the byte-changing LED layout options (`tileGap`,
+ * `blockPadding` in {@link LedLayoutOptions}) a board on this model may
+ * choose, and which it gets when it chooses nothing. **Not appearance**:
+ * these change the frame a device is sent, so they are declared beside the
+ * geometry and the font, and FiestaBoard's settings screen offers exactly
+ * `allowed`. A field left out is unrestricted — every value, the renderer's
+ * default — so a plugin published before the options existed renders as
+ * the built-in it mirrors does. `default`, when given, must be in `allowed`;
+ * when left out it is the renderer's default if that is allowed, else the
+ * first allowed value ({@link layoutPolicyForModel}). Only an `led_matrix`
+ * model may declare this: a split-flap board has no LED layout.
+ */
+export interface DeviceLayoutOptions {
+  tileGap?: { allowed: readonly LedTileGap[]; default?: LedTileGap };
+  blockPadding?: { allowed: readonly LedBlockPadding[]; default?: LedBlockPadding };
+}
+
+/** {@link DeviceLayoutOptions} with nothing left out: what a model actually permits. */
+export interface LedLayoutPolicy {
+  tileGap: { allowed: readonly LedTileGap[]; default: LedTileGap };
+  blockPadding: { allowed: readonly LedBlockPadding[]; default: LedBlockPadding };
+}
+
+/**
  * Model ids are manufacturer-qualified where there is a manufacturer
  * (`divoom_pixoo64`, `ulanzi_tc001_awtrix`) and protocol-qualified where the
  * hardware is generic (`hub75_64x32`, `max7219_4in1`). The pre-taxonomy LED
@@ -184,6 +221,8 @@ export interface DeviceModel {
   animation: DeviceAnimation;
   /** LED only. */
   font?: LedFontId;
+  /** LED only: the byte-changing layout choices a board may make. See {@link DeviceLayoutOptions}. */
+  layoutOptions?: DeviceLayoutOptions;
   /** Preview-only look. See {@link DeviceAppearance}. */
   appearance?: DeviceAppearance;
   /** The pre-taxonomy identifiers this model answers to. A plugin's has none. */
@@ -202,9 +241,11 @@ const DEVICE_MODEL_KEYS = new Set([
   "charsetByCode62",
   "animation",
   "font",
+  "layoutOptions",
   "appearance",
   "legacy",
 ]);
+const LAYOUT_OPTION_KEYS = new Set(["tileGap", "blockPadding"]);
 const APPEARANCE_KEYS = new Set([
   "pixelShape",
   "dotRatio",
@@ -253,6 +294,17 @@ const SQUARE_LED: DeviceAppearance = {
   substrateColor: LED_SUBSTRATE_COLOR,
 };
 
+/**
+ * Every built-in LED model lets a board choose either tile gap and either
+ * block padding, and draws the way it always has when the board chooses
+ * nothing. Tested on a Pixoo 64 (2026-10-04): "fill" takes the blotchiness
+ * out of tile runs, and a padded block gives inverse text its bookend.
+ */
+const LED_LAYOUT_OPTIONS: DeviceLayoutOptions = {
+  tileGap: { allowed: LED_TILE_GAPS, default: DEFAULT_LED_TILE_GAP },
+  blockPadding: { allowed: LED_BLOCK_PADDINGS, default: DEFAULT_LED_BLOCK_PADDING },
+};
+
 function ledModel(
   id: DeviceModelId,
   preset: LedMatrixPresetId,
@@ -271,6 +323,7 @@ function ledModel(
     charset: p.font === "3x5" ? "led_3x5" : "led_5x7",
     animation,
     font: p.font,
+    layoutOptions: LED_LAYOUT_OPTIONS,
     appearance,
     legacy: { preset },
   };
@@ -519,6 +572,39 @@ export function validateDeviceModel(json: unknown): ValidationResult {
   if (m.technology === "led_matrix" && isPlainObject(g) && g.kind !== "pixels") {
     errors.push("geometry.kind: an led_matrix model is measured in pixels");
   }
+  if (m.layoutOptions !== undefined) {
+    const lo = m.layoutOptions;
+    if (m.technology === "split_flap")
+      errors.push("layoutOptions: an led_matrix model's; a split-flap board has no LED layout");
+    if (!isPlainObject(lo)) errors.push("layoutOptions: an object");
+    else {
+      for (const key of Object.keys(lo))
+        if (!LAYOUT_OPTION_KEYS.has(key)) errors.push(`layoutOptions.${key}: not a field`);
+      const choice = (field: string, isValue: (v: unknown) => boolean, values: string) => {
+        const c = lo[field];
+        if (c === undefined) return;
+        if (!isPlainObject(c)) {
+          errors.push(`layoutOptions.${field}: an object with allowed (and default)`);
+          return;
+        }
+        for (const key of Object.keys(c))
+          if (key !== "allowed" && key !== "default") errors.push(`layoutOptions.${field}.${key}: not a field`);
+        const allowed = c.allowed;
+        if (
+          !Array.isArray(allowed) ||
+          allowed.length === 0 ||
+          !allowed.every(isValue) ||
+          new Set(allowed).size !== allowed.length
+        ) {
+          errors.push(`layoutOptions.${field}.allowed: a non-empty list of distinct values from ${values}`);
+        } else if (c.default !== undefined && !allowed.includes(c.default)) {
+          errors.push(`layoutOptions.${field}.default: one of allowed`);
+        }
+      };
+      choice("tileGap", isLedTileGap, '"gap" | "fill"');
+      choice("blockPadding", isLedBlockPadding, "0 | 1");
+    }
+  }
   if (m.appearance !== undefined) {
     const ap = m.appearance;
     if (!isPlainObject(ap)) errors.push("appearance: an object");
@@ -591,8 +677,70 @@ export function characterSetForModel(model: DeviceModel, code62Glyph?: Code62Gly
   return resolveCharacterSet(model.charset);
 }
 
-/** The LED spec a model renders at, for `layoutLedMessage`. */
+/**
+ * What a model permits for each byte-changing layout option, with nothing
+ * left out: a field the model does not declare allows every value with the
+ * renderer's default; a declared field allows what it lists, and its
+ * default is the one it names, else the renderer's default when that is
+ * allowed, else the first allowed value. A split-flap model has no LED
+ * layout and gets the unrestricted policy, which nothing reads.
+ */
+export function layoutPolicyForModel(model: DeviceModel): LedLayoutPolicy {
+  const lo = model.layoutOptions ?? {};
+  const resolve = <T>(choice: { allowed: readonly T[]; default?: T } | undefined, all: readonly T[], fallback: T) => {
+    if (!choice) return { allowed: all, default: fallback };
+    const allowed = choice.allowed;
+    const def = choice.default ?? (allowed.includes(fallback) ? fallback : allowed[0]);
+    return { allowed, default: def };
+  };
+  return {
+    tileGap: resolve(lo.tileGap, LED_TILE_GAPS, DEFAULT_LED_TILE_GAP),
+    blockPadding: resolve(lo.blockPadding, LED_BLOCK_PADDINGS, DEFAULT_LED_BLOCK_PADDING),
+  };
+}
+
+/**
+ * The layout options a board on this model draws with: each explicit
+ * choice when the model allows it, else the model's default — with the
+ * reason in `ignored`, for a dev warning; never a throw, since a stale
+ * board setting must not take the preview down. An unset choice is the
+ * model's default, which `ledSpecForModel` also carries, so a caller that
+ * passes nothing and one that passes the result here draw the same bytes.
+ */
+export function ledLayoutOptionsForModel(
+  model: DeviceModel,
+  requested: Pick<LedLayoutOptions, "tileGap" | "blockPadding"> = {},
+): { tileGap: LedTileGap; blockPadding: LedBlockPadding; ignored: string[] } {
+  const policy = layoutPolicyForModel(model);
+  const ignored: string[] = [];
+  const pick = <T>(name: string, value: T | undefined, choice: { allowed: readonly T[]; default: T }): T => {
+    if (value === undefined) return choice.default;
+    if (choice.allowed.includes(value)) return value;
+    ignored.push(
+      `${name}=${JSON.stringify(value)} is not a value ${model.id} allows (${name}: ${choice.allowed.map((v) => JSON.stringify(v)).join(", ")}); using ${JSON.stringify(choice.default)}`,
+    );
+    return choice.default;
+  };
+  return {
+    tileGap: pick("tileGap", requested.tileGap, policy.tileGap),
+    blockPadding: pick("blockPadding", requested.blockPadding, policy.blockPadding),
+    ignored,
+  };
+}
+
+/**
+ * The LED spec a model renders at, for `layoutLedMessage`: its pixels, its
+ * face, and its defaults for the byte-changing layout options
+ * ({@link layoutPolicyForModel}), which an explicit layout option overrides.
+ */
 export function ledSpecForModel(model: DeviceModel): LedMatrixSpec | null {
   if (model.geometry.kind !== "pixels") return null;
-  return { width: model.geometry.width, height: model.geometry.height, font: model.font };
+  const policy = layoutPolicyForModel(model);
+  return {
+    width: model.geometry.width,
+    height: model.geometry.height,
+    font: model.font,
+    tileGap: policy.tileGap.default,
+    blockPadding: policy.blockPadding.default,
+  };
 }

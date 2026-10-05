@@ -39,6 +39,27 @@ import { LED_FONTS, type LedFont, type LedFontId } from "./led-fonts";
 export const MIN_MATRIX_SIZE = 1;
 export const MAX_MATRIX_SIZE = 256;
 
+/**
+ * What the 1-px gutter between two adjacent cells does when both are lit
+ * fields of one colour (two colour tiles, two block cells, a tile beside a
+ * block): `"gap"` leaves it unlit, so a run of tiles still reads as cells;
+ * `"fill"` lights it in that colour, so a run reads as one solid field. A
+ * device byte, not a preview property: see `layoutLedCells` for the exact
+ * pixel rules, and the design spec §7.6.
+ */
+export type LedTileGap = "gap" | "fill";
+/** Whether a block span's field extends one pixel past its cells' glyph boxes (into the gutters and margin). */
+export type LedBlockPadding = 0 | 1;
+
+export const LED_TILE_GAPS: readonly LedTileGap[] = Object.freeze(["gap", "fill"]);
+export const LED_BLOCK_PADDINGS: readonly LedBlockPadding[] = Object.freeze([0, 1]);
+/** The renderer's own defaults: what every layout drew before the options existed. */
+export const DEFAULT_LED_TILE_GAP: LedTileGap = "gap";
+export const DEFAULT_LED_BLOCK_PADDING: LedBlockPadding = 0;
+
+export const isLedTileGap = (v: unknown): v is LedTileGap => v === "gap" || v === "fill";
+export const isLedBlockPadding = (v: unknown): v is LedBlockPadding => v === 0 || v === 1;
+
 export interface LedMatrixSpec {
   /** Pixels across. Clamped to [MIN_MATRIX_SIZE, MAX_MATRIX_SIZE]. */
   width: number;
@@ -46,6 +67,15 @@ export interface LedMatrixSpec {
   height: number;
   /** Bitmap font text is set in. Defaults to `"5x7"`. */
   font?: LedFontId;
+  /**
+   * The panel's default for {@link LedLayoutOptions.tileGap} — a device
+   * model's choice (`ledSpecForModel` fills it from the model's
+   * `layoutOptions`). An explicit layout option wins; unset here and there
+   * is {@link DEFAULT_LED_TILE_GAP}.
+   */
+  tileGap?: LedTileGap;
+  /** The panel's default for {@link LedLayoutOptions.blockPadding}; same precedence as `tileGap`. */
+  blockPadding?: LedBlockPadding;
 }
 
 export type LedMatrixPresetId =
@@ -216,6 +246,31 @@ export interface LedLayoutOptions {
    * sets add nothing beyond the face.
    */
   charset?: CharacterSet;
+  /**
+   * `"gap"` (default) keeps the 1-px gutter between adjacent cells unlit, as
+   * every layout drew before the option existed. `"fill"` lights the gutter
+   * between two cells that are lit fields of the **same** colour — two
+   * colour tiles, two block cells, a tile beside a block — so a run of tiles
+   * reads as one solid field instead of a row of squares; a corner pixel
+   * (where four cells meet) lights only when all four are fields of that
+   * colour, different colours never merge, and the margin is untouched. The
+   * grid does not reflow. On a monochrome panel every field is the panel
+   * colour, so every lit neighbour merges. Changes device bytes. Falls back
+   * to the spec's default ({@link LedMatrixSpec.tileGap}), then `"gap"`.
+   */
+  tileGap?: LedTileGap;
+  /**
+   * `1` extends every block span's field one pixel past the block's outer
+   * glyph-box edges — into the gutters and the margin, never past the matrix
+   * or into another cell's glyph box — so the glyphs on a block always have
+   * at least one pixel of their background around them. Corners included,
+   * so the field is a clean rectangle. Padding claims only pixels that are
+   * otherwise unlit, and a pixel two blocks of different colours would both
+   * claim, or that a field of another colour borders, stays unlit. `0`
+   * (default) draws the field over the glyph boxes only. Changes device
+   * bytes. Falls back to the spec's default, then `0`.
+   */
+  blockPadding?: LedBlockPadding;
 }
 
 /** One thing to draw: a bitmap glyph or a solid rectangle, in matrix pixels. */
@@ -352,8 +407,16 @@ export interface LedLayout {
    *  character): the only place a character the face lacks is drawn from.
    *  `charset` is the set the layout was drawn with, when one was given:
    *  the pool a flip's scramble draws from, so a plugin device scrambles
-   *  only through its own characters (its custom bitmaps in `glyphs`). */
-  options: Readonly<Pick<LedLayoutOptions, "monochrome"> & { glyphs?: CharacterSet["glyphs"]; charset?: CharacterSet }>;
+   *  only through its own characters (its custom bitmaps in `glyphs`).
+   *  `tileGap` and `blockPadding` are carried only when they are not the
+   *  renderer defaults (`"fill"`, `1`), so a transition's mid-way layouts
+   *  draw their fields exactly as the settled ones do. */
+  options: Readonly<
+    Pick<LedLayoutOptions, "monochrome" | "tileGap" | "blockPadding"> & {
+      glyphs?: CharacterSet["glyphs"];
+      charset?: CharacterSet;
+    }
+  >;
   ops: LedDrawOp[];
   /**
    * The text the matrix shows, for its accessible name: rows joined with a
@@ -448,14 +511,187 @@ function glyphText(glyph: LedGlyphKey, font: LedFont, custom?: CharacterSet["gly
 }
 
 /**
+ * A cell's **field**: the colour its whole glyph box is lit in, or `null`.
+ * A block cell's field is its background (whatever it draws over it); a
+ * colour tile's is the tile's colour — on a monochrome panel the panel
+ * colour, and `null` for an off tile (`{black}`, `{70}`, `{71}`); an icon a
+ * face cannot draw, whose split-flap fallback is a tile, is that tile. A
+ * character, a drawn icon and a blank have no field: their gutters are
+ * never filled and they never veto a neighbour's padding.
+ */
+function cellField(cell: LedCell, font: LedFont, mono: string | undefined): string | null {
+  if (cell.background) return cell.background;
+  const entry = ledGlyphEntry(cell.glyph);
+  let code: string | null = null;
+  if (entry.kind === "tile") code = entry.code;
+  else if (entry.kind === "icon" && !font.icons[entry.name]) {
+    const { fallback } = BOARD_ICONS[entry.name];
+    if (fallback !== null && /^\d\d$/.test(fallback)) code = fallback;
+  }
+  if (code === null) return null;
+  const hex = colorCodeToHex(code);
+  if (!hex) return null;
+  // As drawLedGlyph draws it: the panel colour on a monochrome panel.
+  return mono ? cell.color : hex;
+}
+
+/** The block rect a cell draws under its glyph in `"gap"` mode — today's rule, unchanged. */
+function gapModeBlockRect(grid: LedGridLayout, cells: readonly LedCell[], font: LedFont, row: number, col: number) {
+  const cell = cells[row * grid.cols + col];
+  // A block span lights the cell behind the glyph. Where the next cell —
+  // to the right, or below — is in the same block the gutter between
+  // them lights too, so a run reads as one pill and two stacked rows as
+  // one slab (and where both join, the corner between them). Two
+  // neighbours of *different* colours keep their gutter unlit: a lit
+  // gutter would belong to one of them and overstate it, and a 1-px
+  // gutter cannot be split, so the safe answer is the dark line a
+  // split-flap board already draws between any two tiles.
+  const right = col + 1 < grid.cols ? cells[row * grid.cols + col + 1] : undefined;
+  const below = row + 1 < grid.rows ? cells[(row + 1) * grid.cols + col] : undefined;
+  const joinRight = right?.background === cell.background;
+  const joinBelow = below?.background === cell.background;
+  return {
+    x: grid.originX + col * (font.glyphWidth + font.spacingX),
+    y: grid.originY + row * (font.glyphHeight + font.spacingY),
+    w: font.glyphWidth + (joinRight ? font.spacingX : 0),
+    h: font.glyphHeight + (joinBelow ? font.spacingY : 0),
+  };
+}
+
+/** One gutter or margin pixel lit by `tileGap: "fill"` or `blockPadding: 1`. */
+interface GutterPixel {
+  x: number;
+  y: number;
+  color: string;
+  /** Lit as part of a block's field (so the preview's bloom masks it), not a tile's. */
+  block: boolean;
+}
+
+/**
+ * @internal The pixels **outside every glyph box** that `tileGap: "fill"`
+ * and `blockPadding: 1` light, in row-major order. The port-ready rule —
+ * for every pixel `p` of the matrix that lies in no cell's glyph box, with
+ * `B(p)` the cells whose glyph box, grown by one pixel on every side,
+ * contains `p` (two cells for a gutter pixel between them, four for the
+ * corner where four cells meet, one or two for a margin pixel):
+ *
+ * 1. Let `F` be the set of distinct non-null fields ({@link cellField}) of
+ *    the cells in `B(p)`. If `F` is empty, or has more than one colour, `p`
+ *    is unlit — **different colours never merge**, and a field of another
+ *    colour beside a padded block vetoes the padding there too.
+ * 2. Otherwise `F = {C}`, and `p` lights in `C` if either claims it:
+ *    - **fill** (`tileGap: "fill"`): `p` is a gutter pixel — inside the
+ *      grid's used rectangle, so between cells, never in the margin — and
+ *      **every** cell in `B(p)` has field `C` (both cells of an edge gutter,
+ *      all four of a corner).
+ *    - **padding** (`blockPadding: 1`): some cell in `B(p)` is a block cell
+ *      with background `C` — in the gutters and the margin alike, corners
+ *      included, so the field is a clean rectangle.
+ * 3. A pixel past the matrix edge does not exist and is dropped.
+ *
+ * In `"gap"` mode a block run's own gutters are lit by its rects
+ * ({@link gapModeBlockRect}), as before this function existed, so the gutter
+ * between two same-colour block cells is lit in every mode; padding only
+ * adds pixels, never removes one. Glyph pixels are untouched in every mode.
+ */
+export function ledGutterPixels(
+  grid: LedGridLayout,
+  cells: readonly LedCell[],
+  options: LedLayout["options"],
+): GutterPixel[] {
+  const fill = options.tileGap === "fill";
+  const padding = options.blockPadding === 1;
+  const out: GutterPixel[] = [];
+  if ((!fill && !padding) || grid.rows === 0 || grid.cols === 0) return out;
+  const font = LED_FONTS[grid.font];
+  const { glyphWidth: gw, glyphHeight: gh, spacingX, spacingY } = font;
+  const usedW = grid.cols * (gw + spacingX) - spacingX;
+  const usedH = grid.rows * (gh + spacingY) - spacingY;
+  // Per column of pixels: the grid columns whose grown box covers it, and
+  // whether it lies inside a glyph box; per row of pixels likewise.
+  const colsAt = (x: number): number[] => {
+    const touching: number[] = [];
+    for (let c = 0; c < grid.cols; c++) {
+      const x0 = grid.originX + c * (gw + spacingX);
+      if (x >= x0 - 1 && x <= x0 + gw) touching.push(c);
+    }
+    return touching;
+  };
+  const rowsAt = (y: number): number[] => {
+    const touching: number[] = [];
+    for (let r = 0; r < grid.rows; r++) {
+      const y0 = grid.originY + r * (gh + spacingY);
+      if (y >= y0 - 1 && y <= y0 + gh) touching.push(r);
+    }
+    return touching;
+  };
+  const inBoxCol = (x: number) =>
+    colsAt(x).some((c) => x >= grid.originX + c * (gw + spacingX) && x < grid.originX + c * (gw + spacingX) + gw);
+  const inBoxRow = (y: number) =>
+    rowsAt(y).some((r) => y >= grid.originY + r * (gh + spacingY) && y < grid.originY + r * (gh + spacingY) + gh);
+  const fields = cells.map((cell) => cellField(cell, font, options.monochrome));
+
+  const xMin = Math.max(0, grid.originX - 1);
+  const xMax = Math.min(grid.width - 1, grid.originX + usedW);
+  const yMin = Math.max(0, grid.originY - 1);
+  const yMax = Math.min(grid.height - 1, grid.originY + usedH);
+  const colsByX = new Map<number, { cols: number[]; box: boolean; inside: boolean }>();
+  for (let x = xMin; x <= xMax; x++) {
+    colsByX.set(x, { cols: colsAt(x), box: inBoxCol(x), inside: x >= grid.originX && x < grid.originX + usedW });
+  }
+  for (let y = yMin; y <= yMax; y++) {
+    const rows = rowsAt(y);
+    const rowBox = inBoxRow(y);
+    const rowInside = y >= grid.originY && y < grid.originY + usedH;
+    for (let x = xMin; x <= xMax; x++) {
+      const { cols, box: colBox, inside: colInside } = colsByX.get(x)!;
+      if (colBox && rowBox) continue; // inside a glyph box: a glyph pixel or a field, never a gutter
+      // 1. One colour among the bordering fields, or nothing.
+      let color: string | null = null;
+      let conflict = false;
+      let every = true; // every bordering cell has a field
+      let block = false; // some bordering cell is a block of that colour
+      for (const r of rows) {
+        for (const c of cols) {
+          const i = r * grid.cols + c;
+          const f = fields[i];
+          if (f === null) {
+            every = false;
+            continue;
+          }
+          if (color === null) color = f;
+          else if (color !== f) conflict = true;
+          if (cells[i].background === f) block = true;
+        }
+      }
+      if (color === null || conflict) continue;
+      // 2. Claimed by fill (a gutter pixel every neighbour fields) or by padding (a block neighbour).
+      const byFill = fill && every && colInside && rowInside;
+      const byPadding = padding && block;
+      if (byFill || byPadding) out.push({ x, y, color, block });
+    }
+  }
+  return out;
+}
+
+/**
  * @internal Build a layout from resolved cells: the ops that draw them and the text
  * they show. {@link layoutLedMessage} is this after parsing; a transition is
  * this with some cells swapped for the glyphs they are passing through.
+ *
+ * Every cell draws its glyph box: a block cell lights its field first (in
+ * `"gap"` mode the rect joins the gutter to a same-colour block cell to the
+ * right or below, exactly as before `tileGap` existed; in `"fill"` mode the
+ * box alone), then the glyph, a tile or an icon over it. The pixels between
+ * and around the boxes that `"fill"` and `blockPadding` light come last,
+ * as one rect per horizontal run ({@link ledGutterPixels} has the rules).
+ * Nothing overlaps, so the order is cosmetic; the bytes are the same.
  */
 export function layoutLedCells(grid: LedGridLayout, cells: LedCell[], options: LedLayout["options"]): LedLayout {
   const font = LED_FONTS[grid.font];
   const cellW = font.glyphWidth + font.spacingX;
   const cellH = font.glyphHeight + font.spacingY;
+  const fill = options.tileGap === "fill";
   const ops: LedDrawOp[] = [];
   const lines: string[] = [];
   for (let row = 0; row < grid.rows; row++) {
@@ -464,27 +700,28 @@ export function layoutLedCells(grid: LedGridLayout, cells: LedCell[], options: L
       const cell = cells[row * grid.cols + col];
       const x = grid.originX + col * cellW;
       const y = grid.originY + row * cellH;
-      // A block span lights the cell behind the glyph. Where the next cell —
-      // to the right, or below — is in the same block the gutter between
-      // them lights too, so a run reads as one pill and two stacked rows as
-      // one slab. Two neighbours of *different* colours keep their gutter
-      // unlit: a lit gutter would belong to one of them and overstate it,
-      // and a 1-px gutter cannot be split, so the safe answer is the dark
-      // line a split-flap board already draws between any two tiles.
       if (cell.background) {
-        const right = col + 1 < grid.cols ? cells[row * grid.cols + col + 1] : undefined;
-        const below = row + 1 < grid.rows ? cells[(row + 1) * grid.cols + col] : undefined;
-        const joinRight = right?.background === cell.background;
-        const joinBelow = below?.background === cell.background;
-        const w = font.glyphWidth + (joinRight ? font.spacingX : 0);
-        const h = font.glyphHeight + (joinBelow ? font.spacingY : 0);
-        ops.push({ kind: "rect", x, y, w, h, color: cell.background });
+        const rect = fill
+          ? { x, y, w: font.glyphWidth, h: font.glyphHeight }
+          : gapModeBlockRect(grid, cells, font, row, col);
+        ops.push({ kind: "rect", ...rect, color: cell.background });
       }
       drawLedGlyph(ops, cell.glyph, x, y, font, cell.color, options);
       line += glyphText(cell.glyph, font, options.glyphs);
     }
     lines.push(line);
   }
+  // Gutter and margin pixels, merged into horizontal runs of one colour.
+  let run: { x: number; y: number; w: number; color: string } | null = null;
+  for (const p of ledGutterPixels(grid, cells, options)) {
+    if (run && run.y === p.y && run.color === p.color && run.x + run.w === p.x) {
+      run.w++;
+      continue;
+    }
+    if (run) ops.push({ kind: "rect", x: run.x, y: run.y, w: run.w, h: 1, color: run.color });
+    run = { x: p.x, y: p.y, w: 1, color: p.color };
+  }
+  if (run) ops.push({ kind: "rect", x: run.x, y: run.y, w: run.w, h: 1, color: run.color });
   return {
     width: grid.width,
     height: grid.height,
@@ -511,7 +748,7 @@ const BLANK_TOKEN: BoardToken = Object.freeze({ type: "char", value: " " });
  */
 export function layoutLedMessage(message: string, spec: LedMatrixSpec, options: LedLayoutOptions = {}): LedLayout {
   const grid = ledGridLayout(spec);
-  const { textColor, monochrome, custom, resolved } = resolveLayoutOptions(options);
+  const { textColor, monochrome, custom, resolved } = resolveLayoutOptions(options, spec);
   if (grid.rows === 0 || grid.cols === 0) return layoutLedCells(grid, [], resolved);
 
   const lines = message.split("\n");
@@ -554,7 +791,7 @@ export function layoutLedCellGrid(
   options: LedLayoutOptions = {},
 ): LedLayout {
   const grid = ledGridLayout(spec);
-  const { textColor, monochrome, custom, resolved } = resolveLayoutOptions(options);
+  const { textColor, monochrome, custom, resolved } = resolveLayoutOptions(options, spec);
   if (grid.rows === 0 || grid.cols === 0) return layoutLedCells(grid, [], resolved);
   const resolvedCells: LedCell[] = [];
   for (let row = 0; row < grid.rows; row++) {
@@ -583,9 +820,16 @@ export function ledCellGridMismatch(cells: BoardCellGrid, grid: LedGridLayout): 
  * The colours a layout draws with and the options it carries, from the
  * caller's. An unparseable colour (a colour picker's `rgba(…)`, a typo)
  * falls back to the default rather than rasterizing to black — invisible
- * text on an LED.
+ * text on an LED. `tileGap` and `blockPadding` come from the options, else
+ * the spec (a device model's defaults), else the renderer's defaults; a
+ * value that is not one of the two is treated as unset, and the defaults
+ * are left out of `resolved` so a layout drawn without them carries exactly
+ * what it did before the options existed.
  */
-function resolveLayoutOptions(options: LedLayoutOptions): {
+function resolveLayoutOptions(
+  options: LedLayoutOptions,
+  spec: Pick<LedMatrixSpec, "tileGap" | "blockPadding"> = {},
+): {
   textColor: string;
   monochrome: string | undefined;
   custom: CharacterSet["glyphs"] | undefined;
@@ -594,10 +838,22 @@ function resolveLayoutOptions(options: LedLayoutOptions): {
   const monochrome = resolveHexOption(options.monochrome, undefined);
   const textColor = monochrome ?? resolveHexOption(options.textColor, DEFAULT_LED_TEXT_COLOR)!;
   const custom = options.charset?.glyphs;
+  const tileGap = isLedTileGap(options.tileGap)
+    ? options.tileGap
+    : isLedTileGap(spec.tileGap)
+      ? spec.tileGap
+      : DEFAULT_LED_TILE_GAP;
+  const blockPadding = isLedBlockPadding(options.blockPadding)
+    ? options.blockPadding
+    : isLedBlockPadding(spec.blockPadding)
+      ? spec.blockPadding
+      : DEFAULT_LED_BLOCK_PADDING;
   const resolved: LedLayout["options"] = {
     monochrome,
     ...(custom ? { glyphs: custom } : {}),
     ...(options.charset ? { charset: options.charset } : {}),
+    ...(tileGap !== DEFAULT_LED_TILE_GAP ? { tileGap } : {}),
+    ...(blockPadding !== DEFAULT_LED_BLOCK_PADDING ? { blockPadding } : {}),
   };
   return { textColor, monochrome, custom, resolved };
 }
@@ -753,26 +1009,37 @@ export function frameToBits(frame: LedFrame): Uint8Array {
  * lit as themselves and glow like any lit LED.
  */
 export function ledBackgroundMask(layout: LedLayout): Uint8Array | null {
-  const { grid, cells, width, height } = layout;
+  const { grid, cells, width, height, options } = layout;
   if (!cells.some((c) => c.background)) return null;
   const font = LED_FONTS[grid.font];
-  const cellW = font.glyphWidth + font.spacingX;
-  const cellH = font.glyphHeight + font.spacingY;
+  const fill = options.tileGap === "fill";
   const mask = new Uint8Array(width * height);
   for (let row = 0; row < grid.rows; row++) {
     for (let col = 0; col < grid.cols; col++) {
       const cell = cells[row * grid.cols + col];
       if (!cell.background) continue;
-      const right = col + 1 < grid.cols ? cells[row * grid.cols + col + 1] : undefined;
-      const below = row + 1 < grid.rows ? cells[(row + 1) * grid.cols + col] : undefined;
-      const w = font.glyphWidth + (right?.background === cell.background ? font.spacingX : 0);
-      const h = font.glyphHeight + (below?.background === cell.background ? font.spacingY : 0);
-      const x0 = grid.originX + col * cellW;
-      const y0 = grid.originY + row * cellH;
-      for (let y = y0; y < Math.min(height, y0 + h); y++) {
-        for (let x = x0; x < Math.min(width, x0 + w); x++) mask[y * width + x] = 1;
+      // The same rect the layout draws: the box alone under "fill", joined
+      // to a same-colour neighbour right and below under "gap".
+      const {
+        x: x0,
+        y: y0,
+        w,
+        h,
+      } = fill
+        ? {
+            x: grid.originX + col * (font.glyphWidth + font.spacingX),
+            y: grid.originY + row * (font.glyphHeight + font.spacingY),
+            w: font.glyphWidth,
+            h: font.glyphHeight,
+          }
+        : gapModeBlockRect(grid, cells, font, row, col);
+      for (let y = Math.max(0, y0); y < Math.min(height, y0 + h); y++) {
+        for (let x = Math.max(0, x0); x < Math.min(width, x0 + w); x++) mask[y * width + x] = 1;
       }
     }
   }
+  // A gutter or padding pixel lit as part of a block's field is background
+  // too; one two tiles share is lit as a tile and glows like one.
+  for (const p of ledGutterPixels(grid, cells, options)) if (p.block) mask[p.y * width + p.x] = 1;
   return mask;
 }
