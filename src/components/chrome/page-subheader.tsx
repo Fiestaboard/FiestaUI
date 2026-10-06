@@ -157,7 +157,11 @@ export const PageSubheader = memo(function PageSubheader({
                 >
                   {shown.title}
                 </Heading>
-                {shown.description != null && <p className="text-muted-foreground mt-1 text-sm">{shown.description}</p>}
+                {shown.description != null && (
+                  // A div, not a p: the description is a node, and a consumer
+                  // putting a badge row or a stack in it would nest blocks in a p.
+                  <div className="text-muted-foreground mt-1 text-sm">{shown.description}</div>
+                )}
               </div>
               {shown.action}
             </div>

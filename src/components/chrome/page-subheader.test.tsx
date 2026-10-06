@@ -95,3 +95,15 @@ describe("PageSubheader", () => {
     expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
   });
 });
+
+describe("PageSubheader description", () => {
+  it("can hold block content — it is not a <p>", () => {
+    render(
+      <PageSubheader
+        detail={{ ...LIVING_ROOM, description: <div data-testid="meta">badge and author</div> }}
+        breadcrumbLabel="Breadcrumb"
+      />,
+    );
+    expect(screen.getByTestId("meta").parentElement?.tagName).toBe("DIV");
+  });
+});
