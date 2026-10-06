@@ -157,7 +157,10 @@ export const PageHeader = memo(function PageHeader({
         // `-m-1 p-1`: Reveal clips, and the focus ring is a 4px box-shadow
         // outside the button — without the room it would be cut off on the
         // action a keyboard user is most likely to land on. Net layout: 0.
-        <Reveal open={!collapsed} innerClassName="-m-1 p-1">
+        // `flex`: the slot's children were flex items of the header row, and
+        // an inline Badge dropped into a block box picks up a line box and
+        // sits a few pixels lower (VRT caught it). Same gaps as the row.
+        <Reveal open={!collapsed} innerClassName="-m-1 flex flex-wrap items-start gap-x-6 gap-y-3 p-1">
           {children}
         </Reveal>
       )}

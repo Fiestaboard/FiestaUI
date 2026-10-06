@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { cn } from "../../lib/utils";
 
 interface RevealProps {
@@ -39,7 +41,7 @@ interface RevealProps {
  * Reduced motion snaps rather than fades: the state change is the information,
  * and it survives without the tween.
  */
-export function Reveal({ open, children, className, innerClassName }: RevealProps) {
+export const Reveal = memo(function Reveal({ open, children, className, innerClassName }: RevealProps) {
   return (
     <div
       data-slot="reveal"
@@ -62,4 +64,4 @@ export function Reveal({ open, children, className, innerClassName }: RevealProp
       </div>
     </div>
   );
-}
+});

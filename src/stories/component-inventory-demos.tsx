@@ -98,10 +98,11 @@ import {
   NavListSectionContent,
   NavListSectionTrigger,
 } from "../components/chrome/nav-list";
-import { PageCard, PageSection } from "../components/chrome/page-card";
+import { PageCard, PageOutlet, PageSection } from "../components/chrome/page-card";
 import { PageHeader, PageIconGradientDefs } from "../components/chrome/page-header";
 import { PageInset } from "../components/chrome/page-inset";
 import { PageLayout } from "../components/chrome/page-layout";
+import { PageSubheader } from "../components/chrome/page-subheader";
 import { PageToolbar } from "../components/chrome/page-toolbar";
 import { Pagination } from "../components/chrome/pagination";
 import { SkipToContent } from "../components/chrome/skip-to-content";
@@ -1361,6 +1362,39 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         <PageSection title="Weekday mornings" description="Runs 07:00 – 09:00, Monday to Friday.">
           <span className="text-muted-foreground text-sm">Two pages, rotating every 30 seconds.</span>
         </PageSection>
+      </PageCard>
+    </Frame>
+  ),
+  PageSubheader: () => (
+    <Frame className="max-w-2xl">
+      <PageCard>
+        <PageHeader icon={Calendar} title="Displays" description="Every board and screen." collapsed />
+        <PageSubheader
+          breadcrumbLabel="Breadcrumb"
+          detail={{
+            id: "living-room",
+            title: "Living Room",
+            description: "Vestaboard · Flagship",
+            crumbs: [{ label: "Displays", href: "#displays" }],
+          }}
+        />
+        <PageOutlet>
+          <PageSection title="What it shows now">
+            <span className="text-muted-foreground text-sm">The item's own sections follow.</span>
+          </PageSection>
+        </PageOutlet>
+      </PageCard>
+    </Frame>
+  ),
+  PageOutlet: () => (
+    <Frame className="max-w-2xl">
+      <PageCard>
+        <PageHeader icon={Calendar} title="Displays" description="Every board and screen." />
+        <PageOutlet>
+          <PageSection title="Living Room">
+            <span className="text-muted-foreground text-sm">Swapped per route; the header above stays put.</span>
+          </PageSection>
+        </PageOutlet>
       </PageCard>
     </Frame>
   ),

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, memo, useEffect, useRef, useState } from "react";
 
 import { Heading } from "../typography/heading";
 import {
@@ -80,10 +80,16 @@ export interface PageSubheaderProps {
  * synchronously, which drops focus from the crumb the reader just clicked —
  * left alone it lands on `<body>`.
  *
- * NOT MEMOIZED, on purpose: consumers build `detail` inline (its `action` is
- * JSX), so a `memo` would never hit — it would only add a comparison.
+ * MEMOIZED per the chrome rule (scripts/ci/tests/chrome-memo.test.mjs). It
+ * only pays off when the consumer memoizes `detail`; one built inline (its
+ * `action` is JSX) re-renders this block with its parent, which is cheap.
  */
-export function PageSubheader({ detail, breadcrumbLabel, renderLink, className }: PageSubheaderProps) {
+export const PageSubheader = memo(function PageSubheader({
+  detail,
+  breadcrumbLabel,
+  renderLink,
+  className,
+}: PageSubheaderProps) {
   // Derive-during-render rather than an effect: the collapse must paint the
   // last item on the very frame `detail` goes null. State, not a ref written
   // in render — that trips react-hooks/refs; the cost is one cheap re-render
@@ -160,4 +166,4 @@ export function PageSubheader({ detail, breadcrumbLabel, renderLink, className }
       </Reveal>
     </div>
   );
-}
+});
