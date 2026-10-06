@@ -216,3 +216,39 @@ export const PageSection = memo(function PageSection({
     </div>
   );
 });
+
+interface PageOutletProps extends React.ComponentProps<"div"> {
+  children: React.ReactNode;
+  /** Under `PageCard fillHeight`: pass the height through to a `PageSection fill` inside. */
+  fill?: boolean;
+}
+
+/**
+ * THE PART OF THE CARD THAT CHANGES WITH THE ROUTE. A section layout renders
+ * `PageHeader`, `PageSubheader`, then this around its router outlet; key it by
+ * the location and the body cross-fades in while the header above it holds
+ * still — the whole point of keeping the header mounted.
+ *
+ * WHY IT IS A BLOCK OF ITS OWN. The fade needs a box, and a box breaks the
+ * card's dividers: a `PageSection` that is the box's first child draws no
+ * top rule, and `PageCard`'s toolbar padding only reaches DIRECT children. So
+ * this draws the rule the first block lost and re-applies the toolbar's
+ * padding one level down. Everything else pads itself, as in `PageCard`.
+ */
+export const PageOutlet = memo(function PageOutlet({ children, fill, className, ...rest }: PageOutletProps) {
+  return (
+    <div
+      data-slot="page-outlet"
+      className={cn(
+        "animate-page-enter border-t",
+        "[&>[data-slot=page-toolbar]]:mb-0 [&>[data-slot=page-toolbar]]:py-6",
+        "[&>[data-slot=page-toolbar]:not(:first-child)]:border-t",
+        fill && "flex min-h-0 flex-1 flex-col",
+        className,
+      )}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+});

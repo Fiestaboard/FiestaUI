@@ -1377,6 +1377,21 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
 }
 
+/* PageOutlet: the route body settling in under a section header that holds
+   still. The same keyframe the app's whole-<main> transition uses, at the
+   same speed, so a drill-in and a top-level navigation feel like one family. */
+.animate-page-enter {
+  animation: page-enter var(--motion-duration-slow) var(--motion-ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-enter {
+    animation: none;
+  }
+}
+.reduce-motion .animate-page-enter {
+  animation: none;
+}
+
 @keyframes slide-up-enter {
   from {
     opacity: 0;

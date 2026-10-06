@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { StaticBoardDisplay } from "../board/static-board-display";
+import { ScaledBoardDisplay } from "../board/scaled-board-display";
 import { Tabs, TabsList, TabsTrigger } from "../containment/tabs";
 import { Badge } from "../feedback/badge";
 import { Button } from "../forms/button";
@@ -25,7 +25,7 @@ import { Input } from "../forms/input";
 import { Switch } from "../forms/switch";
 import { BoardSelector } from "./board-selector";
 import { MainContent } from "./main-content";
-import { PageCard, PageSection } from "./page-card";
+import { PageCard, PageOutlet, PageSection } from "./page-card";
 import { PAGE_HUES, PageHeader, type PageHue } from "./page-header";
 import { PageLayout } from "./page-layout";
 import { PageSubheader, type PageSubheaderDetail } from "./page-subheader";
@@ -199,13 +199,7 @@ function SectionLayout({
           {action}
         </PageHeader>
         <PageSubheader detail={detail} breadcrumbLabel="Breadcrumb" renderLink={renderLink} />
-        <div
-          key={bodyKey}
-          className="motion-reduce:animate-none"
-          style={{ animation: "page-enter var(--motion-duration-slow) var(--motion-ease-out)" }}
-        >
-          {children}
-        </div>
+        <PageOutlet key={bodyKey}>{children}</PageOutlet>
       </PageCard>
     </PageLayout>
   );
@@ -241,7 +235,7 @@ function Tile({
       }}
       className="focus-ring border-border hover:border-brand bg-card flex flex-col gap-3 rounded-xl border-2 p-3 transition-colors"
     >
-      <StaticBoardDisplay message={message} size="sm" deviceType={device} className="pointer-events-none" />
+      <ScaledBoardDisplay message={message} size="sm" deviceType={device} isStatic className="pointer-events-none" />
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium">{title}</span>
         <span className="text-muted-foreground block truncate text-xs">{meta}</span>
@@ -309,7 +303,9 @@ function DisplaysSection({ item, navigate, renderLink }: SectionProps) {
         <>
           <PageSection title="What it shows now">
             <div className="flex justify-center">
-              <StaticBoardDisplay message={display.message} size="md" deviceType={display.device} />
+              <div className="w-full max-w-3xl">
+                <ScaledBoardDisplay message={display.message} size="md" deviceType={display.device} isStatic />
+              </div>
             </div>
           </PageSection>
           <PageSection title="Settings">
@@ -381,7 +377,9 @@ function PagesSection({ item, navigate, renderLink }: SectionProps) {
                 />
               ))}
             </div>
-            <StaticBoardDisplay message={page.message} size="sm" />
+            <div className="w-full lg:w-80">
+              <ScaledBoardDisplay message={page.message} size="sm" isStatic />
+            </div>
           </div>
         </PageSection>
       ) : (
@@ -449,7 +447,9 @@ function IntegrationsSection({ item, params, navigate, renderLink }: SectionProp
         <>
           <PageSection title="On your board">
             <div className="flex justify-center">
-              <StaticBoardDisplay message={plugin.message} size="md" />
+              <div className="w-full max-w-3xl">
+                <ScaledBoardDisplay message={plugin.message} size="md" isStatic />
+              </div>
             </div>
           </PageSection>
           <PageSection title="About">
