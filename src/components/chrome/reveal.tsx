@@ -24,6 +24,10 @@ interface RevealProps {
  * accessibility tree; `inert` removes it from both, which `aria-hidden` alone
  * would not (a focusable inside an aria-hidden region is an axe violation).
  *
+ * IT CLIPS WHILE OPEN TOO — that is what makes the tween possible. Anything
+ * focusable that sits flush with the edge needs room for the 4px focus ring
+ * inside `innerClassName` (`-m-1 p-1` nets out to zero layout).
+ *
  * Reduced motion snaps rather than fades: the state change is the information,
  * and it survives without the tween.
  */
