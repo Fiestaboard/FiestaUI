@@ -270,17 +270,22 @@ export const PageOutlet = memo(function PageOutlet({ children, fill, className, 
     <div
       data-slot="page-outlet"
       data-enter={enter ? "" : undefined}
-      className={cn(
-        "border-t",
-        enter && "animate-page-outlet-enter",
-        TOOLBAR_AS_BLOCK,
-        "[&>[data-slot=page-toolbar]:not(:first-child)]:border-t",
-        fill && "flex min-h-0 flex-1 flex-col",
-        className,
-      )}
+      // The rule sits on this box and the fade on the one inside it, so the
+      // hairline under the header never dips: on the way back to the hub the
+      // sub-header's own rule clips away, and this one must already be there.
+      className={cn("border-t", fill && "flex min-h-0 flex-1 flex-col", className)}
       {...rest}
     >
-      {children}
+      <div
+        className={cn(
+          enter && "animate-page-outlet-enter",
+          TOOLBAR_AS_BLOCK,
+          "[&>[data-slot=page-toolbar]:not(:first-child)]:border-t",
+          fill && "flex min-h-0 flex-1 flex-col",
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 });
