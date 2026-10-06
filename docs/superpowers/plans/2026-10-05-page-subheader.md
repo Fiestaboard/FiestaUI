@@ -31,10 +31,12 @@
 ### Task 1: `Reveal` primitive
 
 **Files:**
+
 - Create: `src/components/chrome/reveal.tsx`
 - Test: `src/components/chrome/reveal.test.tsx`
 
 **Interfaces:**
+
 - Produces: `Reveal({ open: boolean; children; className?; innerClassName? })` — internal (not exported from `src/index.ts`).
 
 - [ ] **Step 1: failing test**
@@ -46,14 +48,22 @@ import { Reveal } from "./reveal";
 
 describe("Reveal", () => {
   it("is inert and marked closed when not open", () => {
-    render(<Reveal open={false}><button>hidden</button></Reveal>);
+    render(
+      <Reveal open={false}>
+        <button>hidden</button>
+      </Reveal>,
+    );
     const root = document.querySelector("[data-slot=reveal]")!;
     expect(root).toHaveAttribute("data-state", "closed");
     expect(root).toHaveAttribute("inert");
     expect(screen.queryByRole("button")).toBeNull();
   });
   it("is reachable when open", () => {
-    render(<Reveal open><button>shown</button></Reveal>);
+    render(
+      <Reveal open>
+        <button>shown</button>
+      </Reveal>,
+    );
     expect(document.querySelector("[data-slot=reveal]")).toHaveAttribute("data-state", "open");
     expect(screen.getByRole("button", { name: "shown" })).toBeInTheDocument();
   });
@@ -94,13 +104,21 @@ export function Reveal({ open, children, className, innerClassName }: RevealProp
 
 ```tsx
 it("tucks the description and action away when collapsed", () => {
-  render(<PageHeader icon={Monitor} title="Displays" description="Every board" collapsed><button>Add</button></PageHeader>);
+  render(
+    <PageHeader icon={Monitor} title="Displays" description="Every board" collapsed>
+      <button>Add</button>
+    </PageHeader>,
+  );
   expect(screen.getByRole("heading", { level: 1, name: "Displays" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Add" })).toBeNull();
   for (const r of document.querySelectorAll("[data-slot=reveal]")) expect(r).toHaveAttribute("inert");
 });
 it("renders as before when not collapsed", () => {
-  render(<PageHeader icon={Monitor} title="Displays" description="Every board"><button>Add</button></PageHeader>);
+  render(
+    <PageHeader icon={Monitor} title="Displays" description="Every board">
+      <button>Add</button>
+    </PageHeader>,
+  );
   expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
   expect(screen.getByText("Every board")).toBeVisible();
 });
@@ -113,8 +131,12 @@ it("renders as before when not collapsed", () => {
 **Files:** Create `src/components/chrome/page-subheader.tsx`, `page-subheader.test.tsx`; Modify `page-card.tsx` (slot rule), `src/index.ts` (export).
 
 **Interfaces:**
+
 ```ts
-export interface PageSubheaderCrumb { label: string; href: string }
+export interface PageSubheaderCrumb {
+  label: string;
+  href: string;
+}
 export interface PageSubheaderDetail {
   title: string;
   description?: React.ReactNode;
@@ -129,6 +151,7 @@ export interface PageSubheaderProps {
   className?: string;
 }
 ```
+
 Behaviour: open iff `detail != null`; while closed it renders the last non-null detail; on a closed→open transition, or a title change while open, focuses the h2 (`tabIndex={-1}`); never on first mount. Root `data-slot="page-subheader"`; padding (`px-6 pb-6`) and top rule live INSIDE the Reveal so nothing remains when collapsed.
 
 - [ ] **Step 1: failing tests** — (a) `detail=null` on mount → nothing focusable, `inert`; (b) mounted open → nav named by `breadcrumbLabel`, crumb link `href`, current item `aria-current="page"`, h2 title, focus NOT moved; (c) rerender null→detail → `document.activeElement` is the h2; (d) rerender detail→null → still renders last title text, `data-state=closed`; (e) A→B → h2 text B and focused; (f) `renderLink` used for crumbs.
