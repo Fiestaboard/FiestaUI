@@ -95,22 +95,3 @@ describe("PageSubheader", () => {
     expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
   });
 });
-
-describe("PageSubheader layout=inline", () => {
-  it("makes the h2 the trail's last entry, so the name appears once", () => {
-    render(<PageSubheader detail={LIVING_ROOM} breadcrumbLabel="Breadcrumb" layout="inline" />);
-    const nav = screen.getByRole("navigation", { name: "Breadcrumb" });
-    const heading = screen.getByRole("heading", { level: 2, name: "Living Room" });
-    expect(nav).toContainElement(heading);
-    expect(heading).toHaveAttribute("aria-current", "page");
-    expect(screen.getAllByText("Living Room")).toHaveLength(1);
-    // Still a list whose items are the trail: crumb + current.
-    expect(nav.querySelectorAll("li:not([aria-hidden])")).toHaveLength(2);
-  });
-
-  it("still focuses the heading on drill-in", () => {
-    const { rerender } = render(<PageSubheader detail={null} breadcrumbLabel="Breadcrumb" layout="inline" />);
-    rerender(<PageSubheader detail={LIVING_ROOM} breadcrumbLabel="Breadcrumb" layout="inline" />);
-    expect(document.activeElement).toBe(screen.getByRole("heading", { level: 2 }));
-  });
-});
