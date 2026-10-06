@@ -1379,9 +1379,9 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 
 /* PageOutlet: the route body settling in under a section header that holds
    still. FADE ONLY — the sub-header above is already growing, and a translate
-   on top of that growth read as the body sliding twice. It waits out the fast
-   tier and runs the base tier, so it finishes with the header's Reveal
-   (fast + base = the slow tier) rather than after it. */
+   on top of that growth read as the body sliding twice. Base tier, no delay,
+   so it starts and ends with the header's Reveal: a delay left the card
+   blank between the old body leaving and the new one arriving. */
 @keyframes page-outlet-enter {
   from {
     opacity: 0;
@@ -1391,7 +1391,7 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
 }
 .animate-page-outlet-enter {
-  animation: page-outlet-enter var(--motion-duration-base) var(--motion-ease-out) var(--motion-duration-fast) both;
+  animation: page-outlet-enter var(--motion-duration-base) var(--motion-ease-out) both;
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-page-outlet-enter {

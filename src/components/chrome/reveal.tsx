@@ -31,7 +31,10 @@ interface RevealProps {
  * OPACITY RUNS AHEAD OF THE HEIGHT. On the way out the content is gone in the
  * fast tier while the box takes the base tier to close, so nothing is ever
  * visible as a sliver (a button squeezed to a 4px orange bar was the tell).
- * On the way in it waits one fast tier for the box to make room, then fades.
+ * On the way in it fades over the same base tier the box grows on, with NO
+ * delay: a delayed fade left the card blank for ~100ms right after the click
+ * (the old body is already gone), which read as exactly the reload this
+ * exists to remove.
  *
  * Reduced motion snaps rather than fades: the state change is the information,
  * and it survives without the tween.
@@ -51,7 +54,7 @@ export function Reveal({ open, children, className, innerClassName }: RevealProp
       <div
         className={cn(
           "min-h-0 overflow-hidden transition-opacity ease-out motion-reduce:transition-none",
-          open ? "opacity-100 duration-base delay-[var(--motion-duration-fast)]" : "opacity-0 duration-fast",
+          open ? "opacity-100 duration-base" : "opacity-0 duration-fast",
           innerClassName,
         )}
       >
