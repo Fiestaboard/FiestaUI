@@ -131,9 +131,7 @@ export const PageSubheader = memo(function PageSubheader({
                 >
                   {shown.title}
                 </Heading>
-                {shown.description != null && (
-                  <p className="text-muted-foreground mt-1 text-sm">{shown.description}</p>
-                )}
+                {shown.description != null && <p className="text-muted-foreground mt-1 text-sm">{shown.description}</p>}
               </div>
               {shown.action}
             </div>
