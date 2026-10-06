@@ -39,7 +39,7 @@ const LIVING_ROOM: PageSubheaderDetail = {
 };
 
 /** The shape it ships in: under a section header, inside the route's card. */
-function InCard({ detail }: { detail: PageSubheaderDetail | null }) {
+function InCard({ detail, layout }: { detail: PageSubheaderDetail | null; layout?: "stacked" | "inline" }) {
   return (
     <PageCard>
       <PageHeader
@@ -51,7 +51,7 @@ function InCard({ detail }: { detail: PageSubheaderDetail | null }) {
       >
         <Button>Add display</Button>
       </PageHeader>
-      <PageSubheader detail={detail} breadcrumbLabel="Breadcrumb" />
+      <PageSubheader detail={detail} breadcrumbLabel="Breadcrumb" layout={layout} />
       <PageSection title="What it shows now">
         <div className="bg-muted h-32 rounded-lg" />
       </PageSection>
@@ -96,4 +96,10 @@ export const Interactive: Story = {
       </div>
     );
   },
+};
+
+/** One row: the h2 is the breadcrumb's current entry. */
+export const Inline: Story = {
+  args: { detail: LIVING_ROOM, breadcrumbLabel: "Breadcrumb", layout: "inline" },
+  render: (args) => <InCard detail={args.detail} layout={args.layout} />,
 };

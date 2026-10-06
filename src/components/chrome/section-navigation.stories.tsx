@@ -14,7 +14,7 @@ import {
   TrainFront,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { ScaledBoardDisplay } from "../board/scaled-board-display";
 import { Tabs, TabsList, TabsTrigger } from "../containment/tabs";
@@ -153,6 +153,9 @@ function makeLink(navigate: Navigate) {
   };
 }
 
+/** Which PageSubheader layout the demo shows — the open design question. */
+const TrailLayout = createContext<"stacked" | "inline">("stacked");
+
 // ─── The section layout: what each FiestaBoard section route becomes ──────
 
 interface SectionLayoutProps {
@@ -198,7 +201,12 @@ function SectionLayout({
         <PageHeader icon={icon} hue={hue} title={title} description={description} collapsed={detail != null}>
           {action}
         </PageHeader>
-        <PageSubheader detail={detail} breadcrumbLabel="Breadcrumb" renderLink={renderLink} />
+        <PageSubheader
+          detail={detail}
+          breadcrumbLabel="Breadcrumb"
+          renderLink={renderLink}
+          layout={useContext(TrailLayout)}
+        />
         <PageOutlet key={bodyKey}>{children}</PageOutlet>
       </PageCard>
     </PageLayout>
@@ -548,7 +556,13 @@ const LABELS = {
   logoButtonAriaLabel: "FiestaBoard home",
 };
 
-function SectionNavigationDemo({ initialPath = "/displays" }: { initialPath?: string }) {
+function SectionNavigationDemo({
+  initialPath = "/displays",
+  layout = "stacked",
+}: {
+  initialPath?: string;
+  layout?: "stacked" | "inline";
+}) {
   const [path, navigate] = useMiniRouter(initialPath);
   const [collapsed, setCollapsed] = useState(false);
   const [board, setBoard] = useState("living-room");
@@ -640,7 +654,7 @@ function SectionNavigationDemo({ initialPath = "/displays" }: { initialPath?: st
         )}
       />
       <MainContent collapsed={collapsed} maxWidth={1680}>
-        {route}
+        <TrailLayout value={layout}>{route}</TrailLayout>
       </MainContent>
     </div>
   );
@@ -667,4 +681,9 @@ export const DeepLink: Story = {
 /** The Marketplace tab: an item opened from here returns to the tab, not the section root. */
 export const FromMarketplace: Story = {
   render: () => <SectionNavigationDemo initialPath="/integrations?tab=marketplace" />,
+};
+
+/** The alternative: the h2 is the trail's last entry, so the item's name appears once. */
+export const InlineTrail: Story = {
+  render: () => <SectionNavigationDemo layout="inline" />,
 };
