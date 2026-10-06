@@ -1370,7 +1370,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <PageCard>
         <PageHeader icon={Calendar} title="Displays" description="Every board and screen." collapsed />
         <PageSubheader
-          breadcrumbLabel="Breadcrumb"
+          breadcrumbLabel="Displays breadcrumb"
           detail={{
             id: "living-room",
             title: "Living Room",
