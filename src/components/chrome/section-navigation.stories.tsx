@@ -283,6 +283,7 @@ function DisplaysSection({ item, navigate, renderLink }: SectionProps) {
       detail={
         display
           ? {
+              id: display.id,
               title: display.name,
               description: display.output,
               crumbs: [{ label: "Displays", href: "/displays" }],
@@ -349,6 +350,7 @@ function PagesSection({ item, navigate, renderLink }: SectionProps) {
       detail={
         page
           ? {
+              id: page.id,
               title: page.name,
               crumbs: [{ label: "Pages", href: "/pages" }],
               action: (
@@ -422,6 +424,7 @@ function IntegrationsSection({ item, params, navigate, renderLink }: SectionProp
       detail={
         plugin
           ? {
+              id: plugin.id,
               title: plugin.name,
               description: (
                 <span className="inline-flex flex-wrap items-center gap-2">

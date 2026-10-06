@@ -4,11 +4,12 @@ import { describe, expect, it } from "vitest";
 import { PageSubheader, type PageSubheaderDetail } from "./page-subheader";
 
 const LIVING_ROOM: PageSubheaderDetail = {
+  id: "living-room",
   title: "Living Room",
   description: "Vestaboard · Flagship",
   crumbs: [{ label: "Displays", href: "/displays" }],
 };
-const KITCHEN: PageSubheaderDetail = { ...LIVING_ROOM, title: "Kitchen" };
+const KITCHEN: PageSubheaderDetail = { ...LIVING_ROOM, id: "kitchen", title: "Kitchen" };
 
 function root(): HTMLElement {
   return document.querySelector<HTMLElement>("[data-slot=page-subheader]")!;
@@ -59,6 +60,13 @@ describe("PageSubheader", () => {
   it("does not refocus when the same item re-renders", () => {
     const { rerender } = render(<PageSubheader detail={LIVING_ROOM} breadcrumbLabel="Breadcrumb" />);
     rerender(<PageSubheader detail={{ ...LIVING_ROOM }} breadcrumbLabel="Breadcrumb" />);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("does not refocus when the same item is renamed (a title bound to a name field)", () => {
+    const { rerender } = render(<PageSubheader detail={LIVING_ROOM} breadcrumbLabel="Breadcrumb" />);
+    rerender(<PageSubheader detail={{ ...LIVING_ROOM, title: "Living Roo" }} breadcrumbLabel="Breadcrumb" />);
+    expect(screen.getByRole("heading", { level: 2, name: "Living Roo" })).toBeInTheDocument();
     expect(document.activeElement).toBe(document.body);
   });
 

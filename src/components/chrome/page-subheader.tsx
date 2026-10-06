@@ -1,4 +1,4 @@
-import { Fragment, memo, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import { Heading } from "../typography/heading";
 import {
@@ -17,12 +17,23 @@ export interface PageSubheaderCrumb {
 }
 
 export interface PageSubheaderDetail {
+  /**
+   * Which item this is — a board id, a plugin id, a page id. Focus moves when
+   * THIS changes, never when the title does: a route that binds the title to
+   * its own name field would otherwise pull focus out of the field on every
+   * keystroke.
+   */
+  id: string;
   /** The item's name — the h2, and the trail's current entry. */
   title: string;
   description?: React.ReactNode;
   /** Right-aligned slot on the heading row — the item's own actions. */
   action?: React.ReactNode;
-  /** Crumbs BEFORE the item, outermost first. Usually one: the section. */
+  /**
+   * Crumbs BEFORE the item, outermost first. Usually one: the section. The
+   * href is the consumer's to choose — point it at where the reader came from
+   * (a list's `?tab=`, a filter), not just the section root.
+   */
   crumbs: PageSubheaderCrumb[];
 }
 
@@ -66,13 +77,11 @@ export interface PageSubheaderProps {
  * focus: nothing moved, and stealing it would skip the page's own landmarks.
  * Returning focus to the list on the way back is the consumer's: only it
  * knows which tile was opened.
+ *
+ * NOT MEMOIZED, on purpose: consumers build `detail` inline (its `action` is
+ * JSX), so a `memo` would never hit — it would only add a comparison.
  */
-export const PageSubheader = memo(function PageSubheader({
-  detail,
-  breadcrumbLabel,
-  renderLink,
-  className,
-}: PageSubheaderProps) {
+export function PageSubheader({ detail, breadcrumbLabel, renderLink, className }: PageSubheaderProps) {
   // Derive-during-render rather than an effect: the collapse must paint the
   // last item on the very frame `detail` goes null.
   const [last, setLast] = useState(detail);
@@ -81,15 +90,15 @@ export const PageSubheader = memo(function PageSubheader({
   const open = detail != null;
 
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const title = detail?.title ?? null;
-  const previousTitle = useRef(title);
+  const id = detail?.id ?? null;
+  const previousId = useRef(id);
   useEffect(() => {
-    if (title != null && title !== previousTitle.current) {
+    if (id != null && id !== previousId.current) {
       // preventScroll: scroll position on navigation is the router's call.
       headingRef.current?.focus({ preventScroll: true });
     }
-    previousTitle.current = title;
-  }, [title]);
+    previousId.current = id;
+  }, [id]);
 
   return (
     <div data-slot="page-subheader" data-state={open ? "open" : "closed"} className={className}>
@@ -98,7 +107,7 @@ export const PageSubheader = memo(function PageSubheader({
           // Padding and the rule live INSIDE the reveal, so a closed block
           // leaves neither a gap nor a second hairline against the section
           // below it.
-          <div className="border-t px-6 pt-5 pb-6">
+          <div className="border-t px-6 py-6">
             <Breadcrumb aria-label={breadcrumbLabel}>
               <BreadcrumbList>
                 {shown.crumbs.map((crumb) => (
@@ -127,7 +136,10 @@ export const PageSubheader = memo(function PageSubheader({
                   level={2}
                   size="xl"
                   tabIndex={-1}
-                  className="outline-none [overflow-wrap:anywhere] [text-wrap:balance]"
+                  // text-lg below sm: at the h1's mobile 24px, a 20px h2 read as
+                  // its peer. focus-ring, not outline-none: a keyboard user
+                  // who lands here by drilling in should see where they are.
+                  className="focus-ring rounded-sm text-lg [overflow-wrap:anywhere] [text-wrap:balance] sm:text-xl"
                 >
                   {shown.title}
                 </Heading>
@@ -140,4 +152,4 @@ export const PageSubheader = memo(function PageSubheader({
       </Reveal>
     </div>
   );
-});
+}

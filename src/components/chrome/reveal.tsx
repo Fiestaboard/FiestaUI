@@ -28,6 +28,11 @@ interface RevealProps {
  * focusable that sits flush with the edge needs room for the 4px focus ring
  * inside `innerClassName` (`-m-1 p-1` nets out to zero layout).
  *
+ * OPACITY RUNS AHEAD OF THE HEIGHT. On the way out the content is gone in the
+ * fast tier while the box takes the base tier to close, so nothing is ever
+ * visible as a sliver (a button squeezed to a 4px orange bar was the tell).
+ * On the way in it waits one fast tier for the box to make room, then fades.
+ *
  * Reduced motion snaps rather than fades: the state change is the information,
  * and it survives without the tween.
  */
@@ -38,12 +43,20 @@ export function Reveal({ open, children, className, innerClassName }: RevealProp
       data-state={open ? "open" : "closed"}
       inert={!open}
       className={cn(
-        "grid transition-[grid-template-rows,opacity] duration-base ease-out-cubic motion-reduce:transition-none",
-        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+        "grid transition-[grid-template-rows] duration-base ease-out-cubic motion-reduce:transition-none",
+        open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         className,
       )}
     >
-      <div className={cn("min-h-0 overflow-hidden", innerClassName)}>{children}</div>
+      <div
+        className={cn(
+          "min-h-0 overflow-hidden transition-opacity ease-out motion-reduce:transition-none",
+          open ? "opacity-100 duration-base delay-[var(--motion-duration-fast)]" : "opacity-0 duration-fast",
+          innerClassName,
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 }

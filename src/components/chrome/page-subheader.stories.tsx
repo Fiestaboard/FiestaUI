@@ -26,6 +26,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const LIVING_ROOM: PageSubheaderDetail = {
+  id: "living-room",
   title: "Living Room",
   description: "Vestaboard · Flagship",
   crumbs: [{ label: "Displays", href: "#displays" }],

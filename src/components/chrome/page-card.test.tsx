@@ -134,3 +134,28 @@ describe("PageOutlet", () => {
     expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
   });
 });
+
+describe("PageOutlet entrance", () => {
+  it("does not animate the body the card mounted with", () => {
+    render(
+      <PageCard>
+        <PageOutlet>first</PageOutlet>
+      </PageCard>,
+    );
+    expect(slot("page-outlet")).not.toHaveAttribute("data-enter");
+  });
+
+  it("animates a body that arrives after the card is up", () => {
+    const { rerender } = render(
+      <PageCard>
+        <PageOutlet key="a">first</PageOutlet>
+      </PageCard>,
+    );
+    rerender(
+      <PageCard>
+        <PageOutlet key="b">second</PageOutlet>
+      </PageCard>,
+    );
+    expect(slot("page-outlet")).toHaveAttribute("data-enter");
+  });
+});
