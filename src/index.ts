@@ -215,6 +215,16 @@ export {
   tryResolveDeviceModel,
   validateDeviceModel,
 } from "./lib/devices";
+// Bitmap layers: a page's pixel canvases, rasterised by FiestaBoard core and
+// drawn over the cells (`layers` on the layout options, LedMatrixDisplay and
+// DisplayPreview). The decoder takes `rgba` as bytes or base64.
+export {
+  type DecodedLedBitmapLayer,
+  decodeLedBitmapLayer,
+  decodeLedBitmapRgba,
+  type LedBitmapLayer,
+  ledMonochromeLit,
+} from "./lib/led-bitmap-layers";
 export { LED_FONTS, type LedFont, type LedFontId } from "./lib/led-fonts";
 export {
   type BoardCellGrid,

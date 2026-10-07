@@ -43,6 +43,7 @@ import {
 } from "../../lib/board-dimensions";
 import { isDevBuild } from "../../lib/dev";
 import { type DeviceModel, type DeviceModelRef, resolveDeviceModel } from "../../lib/devices";
+import { type LedBitmapLayer } from "../../lib/led-bitmap-layers";
 import { type LedFontId } from "../../lib/led-fonts";
 import { type BoardCellGrid, type LedBlockPadding, type LedLetterCase, type LedTileGap } from "../../lib/led-matrix";
 import { type LedTransitionId } from "../../lib/led-transition-registry";
@@ -68,6 +69,14 @@ export interface DisplayPreviewProps {
   /** A grid of parsed cells (`BoardToken[][]`), as FiestaBoard core hands
    *  it after parsing the markup once. Wins over `message`. */
   cells?: BoardCellGrid;
+  /**
+   * LED: bitmaps drawn over the content — a page's pixel canvases, as
+   * FiestaBoard core rasterised them (`{ x, y, width, height, rgba }`,
+   * `rgba` as bytes or base64 RGBA). Passed to `LedMatrixDisplay` only; a
+   * split-flap board has no pixels and ignores them (its canvas areas are
+   * blank cells in `cells`).
+   */
+  layers?: readonly LedBitmapLayer[];
   /**
    * Board-level appearance settings, keyed by the board setting name:
    * `{ board_color: "white" }`. A setting is honoured only when the model's
@@ -242,6 +251,7 @@ export function DisplayPreview({
   model: modelRef,
   message,
   cells,
+  layers,
   appearance,
   transition,
   animated = false,
@@ -295,7 +305,7 @@ export function DisplayPreview({
     board = (
       <LedMatrixDisplay
         model={model}
-        {...defined({ ...content, size, letterCase, tileGap, blockPadding, font, transition, announceUpdates })}
+        {...defined({ ...content, size, letterCase, tileGap, blockPadding, font, layers, transition, announceUpdates })}
         pixelShape={isPixelShape(pixelShape) ? pixelShape : undefined}
       />
     );

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { type DeviceModel, deviceModelForPreset } from "../../lib/devices";
+import type { LedBitmapLayer } from "../../lib/led-bitmap-layers";
 import { SEQUENCE_PANEL_MODEL } from "../../lib/led-golden-cases";
 import { LED_MATRIX_PRESETS, LED_MONO_COLORS, type LedMatrixPresetId } from "../../lib/led-matrix";
 import { transitionsForModel } from "../../lib/led-transition-registry";
@@ -706,4 +707,105 @@ export const SequenceDeviceBudget: Story = {
   render: (args) => (
     <Cycler messages={PIXOO_PAGES}>{(message) => <LedMatrixDisplay {...args} message={message} />}</Cycler>
   ),
+};
+
+/* ---------------------------------------------------------------------- *
+ * Bitmap layers: a page's pixel canvases, as FiestaBoard core hands them over.
+ * Core rasterises every canvas (gradients, shapes, plugin art) and sends
+ * finished RGBA; the preview only draws it. These bitmaps are generated here
+ * so the stories need no fixtures.
+ * ---------------------------------------------------------------------- */
+
+/** A `width × height` RGBA bitmap from `pixel(x, y)` → `[r, g, b, a]`. */
+function bitmap(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  pixel: (x: number, y: number) => readonly [number, number, number, number],
+): LedBitmapLayer {
+  const rgba = new Uint8ClampedArray(width * height * 4);
+  for (let py = 0; py < height; py++) {
+    for (let px = 0; px < width; px++) rgba.set(pixel(px, py), (py * width + px) * 4);
+  }
+  return { x, y, width, height, rgba };
+}
+
+const mix = (a: number, b: number, t: number) => Math.round(a + (b - a) * t);
+
+/**
+ * A landscape: a dusk sky graded from deep blue to orange, a sun with a soft
+ * rim, and two rolling hills — the kind of scene a canvas's shapes describe.
+ */
+function landscape(width: number, height: number): LedBitmapLayer {
+  const sun = { cx: width * 0.68, cy: height * 0.42, r: Math.max(4, width / 9) };
+  return bitmap(0, 0, width, height, (x, y) => {
+    const far = height * 0.72 + Math.sin(x / 7) * 3;
+    const near = height * 0.84 + Math.sin(x / 5 + 2) * 2.5;
+    if (y >= near) return [24, mix(110, 70, (y - near) / (height - near)), 40, 255];
+    if (y >= far) return [44, 150, 64, 255];
+    const d = Math.hypot(x + 0.5 - sun.cx, y + 0.5 - sun.cy);
+    if (d <= sun.r) return [255, mix(230, 170, d / sun.r), mix(90, 40, d / sun.r), 255];
+    const t = y / far;
+    return [mix(20, 255, t * t), mix(30, 120, t), mix(110, 60, t), 255];
+  });
+}
+
+/** Full-bleed generative art: a plasma field, a different colour almost every pixel. */
+function plasma(size: number): LedBitmapLayer {
+  return bitmap(0, 0, size, size, (x, y) => {
+    const v = Math.sin(x / 5) + Math.sin(y / 7) + Math.sin((x + y) / 9) + Math.sin(Math.hypot(x - 32, y - 32) / 4);
+    const t = (v + 4) / 8;
+    return [
+      Math.round(128 + 127 * Math.sin(Math.PI * 2 * t)),
+      Math.round(128 + 127 * Math.sin(Math.PI * 2 * t + 2.1)),
+      Math.round(128 + 127 * Math.sin(Math.PI * 2 * t + 4.2)),
+      255,
+    ];
+  });
+}
+
+/**
+ * A page on a Pixoo 64 with a canvas over its top eight rows (bled to the
+ * top, left and right edges) and two rows of text below it. In the 3×5 face
+ * the grid is 10 × 16 starting at y = 2, so row 9 starts at y = 50: the
+ * canvas covers y 0–48 and the gutter above the text stays dark.
+ */
+export const Pixoo64Canvas: Story = {
+  args: {
+    message: "\n\n\n\n\n\n\n\nSunny 72°\nHi 78 {66} Lo 61",
+    preset: "pixoo64",
+    letterCase: "mixed",
+    size: "md",
+    layers: [landscape(64, 49)],
+  },
+};
+
+/**
+ * A full-bleed art layer — a page that is only a canvas, as the
+ * generative-art plugin draws one. Thousands of colours: the preview paints
+ * them through one image rather than a path per colour.
+ */
+export const FullBleedArt: Story = {
+  args: { message: "", preset: "pixoo64", size: "md", layers: [plasma(64)] },
+};
+
+/**
+ * A layer on a single-colour panel: a pixel lights in the panel colour where
+ * its luma is at least 50% and stays dark below it, so the grey ramp on the
+ * left reads as a hard edge half-way and the sun as a solid disc.
+ */
+export const MonochromeLayer: Story = {
+  args: {
+    message: "    72°",
+    preset: "max7219",
+    size: "lg",
+    layers: [
+      bitmap(0, 0, 15, 8, (x, y) => {
+        const d = Math.hypot(x + 0.5 - 11, y + 0.5 - 4);
+        if (d <= 3.2) return [255, 200, 40, 255];
+        return x < 7 ? [x * 36, x * 36, x * 36, 255] : [0, 0, 0, 0];
+      }),
+    ],
+  },
 };

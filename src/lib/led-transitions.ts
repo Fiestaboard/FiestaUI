@@ -40,6 +40,15 @@
  * hardware, a real brightness ramp) and `dissolve` (pixels switch in a fixed
  * pseudo-random order).
  *
+ * **Bitmap layers** (a page's pixel canvases, `LedLayout.layers`) ride along.
+ * Per-pixel kinds need nothing special: they work on the rasterised frames,
+ * layers included. Per-cell kinds redraw their mid-way layouts with the
+ * **old layers for the first half of their frames and the new ones for the
+ * second half** — a flip's frame `f` of `F` uses the new layers when
+ * `2f ≥ F − 1`, a cascade's slot `n` of `N` changed cells when `2n ≥ N` —
+ * and layers always stay on top of a half-turned flap. A change of layers
+ * alone moves no cell, so a per-cell kind snaps it.
+ *
  * A device **frame budget** (`maxFrames`) is a hard limit on the whole
  * transition, first frame to final frame inclusive: a flip shortens its
  * scramble and stagger to fit, a continuous kind is quantised to that many
@@ -358,6 +367,20 @@ function paintHalfFlap(
   }
 }
 
+/** The layers a per-cell kind's mid-way layout draws: the old ones, or (`after`) the new. */
+function layersAt(from: LedLayout, to: LedLayout, after: boolean) {
+  return (after ? to.layers : from.layers) ?? [];
+}
+
+/** Paint a layout's bitmap ops over a frame again — after a half-flap, so layers stay on top. */
+function repaintLayers(frame: LedFrame, layout: LedLayout) {
+  if (!layout.layers) return;
+  rasterizeLedOps(
+    frame,
+    layout.ops.filter((op) => op.kind === "bitmap"),
+  );
+}
+
 /** One changing cell's plan: its delay, and the glyphs it shows after `from`, ending on its target. */
 interface CellScramble {
   index: number;
@@ -442,7 +465,7 @@ function planFlip(
     if (!layout) {
       const cells = [...from.cells];
       for (const plan of plans) cells[plan.index] = { ...to.cells[plan.index], glyph: glyphAt(plan, f) };
-      layout = layoutLedCells(to.grid, cells, to.options);
+      layout = layoutLedCells(to.grid, cells, to.options, layersAt(from, to, 2 * f >= frames - 1));
       layoutCache.set(f, layout);
     }
     return layout;
@@ -463,6 +486,7 @@ function planFlip(
             paintHalfFlap(frame, scratch, layout, plan.index, layout.cells[plan.index], next);
           }
         }
+        repaintLayers(frame, layout);
       }
       cache = { key, frame };
     }
@@ -517,7 +541,7 @@ function planCascade(
     if (n >= changed.length) return to;
     const cells = [...from.cells];
     for (let j = 0; j < n; j++) cells[changed[j]] = to.cells[changed[j]];
-    return layoutLedCells(to.grid, cells, to.options);
+    return layoutLedCells(to.grid, cells, to.options, layersAt(from, to, 2 * n >= changed.length));
   };
 
   return {
@@ -536,6 +560,7 @@ function planCascade(
         const frame = rasterizeLedLayout(layout);
         const i = changed[n];
         paintHalfFlap(frame, scratch, layout, i, { ...to.cells[i], glyph: layout.cells[i].glyph }, to.cells[i].glyph);
+        repaintLayers(frame, layout);
         cache = { key: n, layout, frame };
       }
       return copyInto(cache.frame, out);

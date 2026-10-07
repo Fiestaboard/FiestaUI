@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type BoardToken, parseLine } from "../../lib/board-characters";
 import { DEVICE_MODELS, type DeviceModel } from "../../lib/devices";
 import { SEQUENCE_PANEL_MODEL } from "../../lib/led-golden-cases";
+import type { LedLayout } from "../../lib/led-matrix";
 import * as transitions from "../../lib/led-transitions";
 import { LedMatrixDisplay } from "./led-matrix-display";
 import { reducedMotionQuery } from "./reduced-motion";
@@ -669,5 +670,139 @@ describe("LedMatrixDisplay font", () => {
   it("with only a preset (no model), an explicit face still wins, as it always has", () => {
     render(<LedMatrixDisplay message="HI" preset="hub75_64x32" font="3x5" />);
     expect(screen.getByRole("img")).toHaveAttribute("data-font", "3x5");
+  });
+});
+
+describe("LedMatrixDisplay bitmap layers", () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const solid = (rgba: [number, number, number, number], x = 0, y = 0, width = 4, height = 4) => {
+    const data = new Uint8ClampedArray(width * height * 4);
+    for (let i = 0; i < width * height; i++) data.set(rgba, i * 4);
+    return { x, y, width, height, rgba: data };
+  };
+
+  it("reports how many layers it draws, and draws none without the prop", () => {
+    render(<LedMatrixDisplay message="HI" preset="pixoo64" layers={[solid([255, 0, 0, 255])]} />);
+    expect(screen.getByRole("img")).toHaveAttribute("data-layers", "1");
+    cleanup();
+    render(<LedMatrixDisplay message="HI" preset="pixoo64" />);
+    expect(screen.getByRole("img")).not.toHaveAttribute("data-layers");
+  });
+
+  it("a board showing only a canvas is not empty: it takes the no-text label", () => {
+    render(<LedMatrixDisplay message="" preset="pixoo64" layers={[solid([255, 0, 0, 255])]} />);
+    expect(screen.getByRole("img", { name: "LED matrix preview" })).toBeInTheDocument();
+    cleanup();
+    render(<LedMatrixDisplay message="" preset="pixoo64" />);
+    expect(screen.getByRole("img", { name: "Empty LED matrix display" })).toBeInTheDocument();
+  });
+
+  it("transitions from the layers it showed to the new ones, with the message as before", () => {
+    vi.useFakeTimers();
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+      return setTimeout(() => cb(performance.now()), 16) as unknown as number;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => clearTimeout(id));
+    planSpy.mockClear();
+    try {
+      const red = [solid([255, 0, 0, 255])];
+      const blue = [solid([0, 0, 255, 255])];
+      const { rerender } = render(
+        <LedMatrixDisplay message="AB" preset="hub75_64x32" layers={red} transition="fade" />,
+      );
+      rerender(<LedMatrixDisplay message="AB" preset="hub75_64x32" layers={blue} transition="fade" />);
+      expect(planSpy).toHaveBeenCalledTimes(1);
+      const [from, to] = planSpy.mock.calls[0] as [LedLayout, LedLayout];
+      expect([...from.layers![0].rgba.subarray(0, 4)]).toEqual([255, 0, 0, 255]);
+      expect([...to.layers![0].rgba.subarray(0, 4)]).toEqual([0, 0, 255, 255]);
+      const plan = planSpy.mock.results[0].value as transitions.LedTransition;
+      expect(plan.durationMs).toBeGreaterThan(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("LedMatrixDisplay painting a photo-like layer", () => {
+  /** A 2D context with what paintLedFrame calls, counting the costly calls. */
+  function mockContext() {
+    const calls = { fill: 0, drawImage: 0 };
+    const ctx = {
+      fillStyle: "",
+      globalAlpha: 1,
+      globalCompositeOperation: "source-over",
+      imageSmoothingEnabled: false,
+      imageSmoothingQuality: "low",
+      fillRect() {},
+      clearRect() {},
+      fill() {
+        calls.fill++;
+      },
+      save() {},
+      restore() {},
+      drawImage() {
+        calls.drawImage++;
+      },
+      putImageData() {},
+      createImageData: (w: number, h: number) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }),
+    };
+    return { ctx, calls };
+  }
+
+  function withPath2D(run: () => void) {
+    const hadPath2D = "Path2D" in globalThis;
+    if (!hadPath2D) {
+      (globalThis as { Path2D?: unknown }).Path2D = class {
+        moveTo() {}
+        arc() {}
+        rect() {}
+        roundRect() {}
+      };
+    }
+    try {
+      run();
+    } finally {
+      if (!hadPath2D) delete (globalThis as { Path2D?: unknown }).Path2D;
+    }
+  }
+
+  /** 64×64 pixels, every one a different colour. */
+  function photo() {
+    const rgba = new Uint8ClampedArray(64 * 64 * 4);
+    for (let i = 0; i < 64 * 64; i++) rgba.set([(i * 7) & 255, (i >> 4) & 255, 1 + ((i * 13) % 255), 255], i * 4);
+    return { x: 0, y: 0, width: 64, height: 64, rgba };
+  }
+
+  it("paints 4,096 colours in a handful of fills, not one path per colour", () => {
+    const { ctx, calls } = mockContext();
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+    withPath2D(() => {
+      const start = performance.now();
+      render(<LedMatrixDisplay message="" preset="pixoo64" layers={[photo()]} />);
+      const elapsed = performance.now() - start;
+      // One lit-dot mask and the off grid; the colours come from one image.
+      expect(calls.fill).toBeLessThanOrEqual(3);
+      expect(calls.drawImage).toBeGreaterThanOrEqual(2);
+      // Benchmark-ish: generous for a slow CI box, far below what 4,096 paths cost a real browser.
+      expect(elapsed).toBeLessThan(1500);
+    });
+  });
+
+  it("keeps one path per colour for an ordinary text frame (a few colours)", () => {
+    const { ctx, calls } = mockContext();
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+    withPath2D(() => {
+      render(<LedMatrixDisplay message="{red:AB} CD" preset="pixoo64" glow={false} />);
+      // Two colours (red, white): each filled before and after the off grid, plus the grid.
+      expect(calls.fill).toBe(5);
+      expect(calls.drawImage).toBe(0);
+    });
   });
 });

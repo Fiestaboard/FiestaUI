@@ -9,6 +9,7 @@
 import type { CharacterSetInput } from "./character-sets";
 import { ACME_SIGN_CHARSET, ACME_SIGN_MODEL, ACME_SIGN_V2_CHARSET } from "./charset-golden-cases";
 import type { DeviceModelId } from "./devices";
+import type { LedBitmapLayer } from "./led-bitmap-layers";
 import type { BoardCellGrid, LedLayoutOptions, LedMatrixSpec } from "./led-matrix";
 import type { LedTransitionId } from "./led-transition-registry";
 import type { LedTransitionSpec } from "./led-transitions";
@@ -58,7 +59,47 @@ export interface GoldenTransitionCase {
    * process, or in a port's) can change how a cell scrambles.
    */
   before?: { message: string; spec: LedMatrixSpec; charset: CharacterSetInput };
+  /** Bitmap layers (base64 RGBA) the `from` layout draws over its cells. */
+  fromLayers?: readonly LedBitmapLayer[];
+  /** Bitmap layers (base64 RGBA) the `to` layout draws over its cells. */
+  toLayers?: readonly LedBitmapLayer[];
 }
+
+/**
+ * A golden bitmap layer: `width × height` RGBA pixels from `pixel(x, y)`,
+ * as the base64 FiestaBoard core's APIs carry. Deterministic, so the
+ * fixture holds the same bytes on every run.
+ */
+function goldenLayer(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  pixel: (x: number, y: number) => readonly [number, number, number, number],
+): LedBitmapLayer {
+  let binary = "";
+  for (let py = 0; py < height; py++) {
+    for (let px = 0; px < width; px++) binary += String.fromCharCode(...pixel(px, py));
+  }
+  return { x, y, width, height, rgba: btoa(binary) };
+}
+
+/** A sky-to-orange vertical gradient with every other pixel of the top-left 2×2 transparent. */
+const GOLDEN_SKY = goldenLayer(-2, -1, 7, 5, (x, y) => [
+  40 * y,
+  60 + 20 * y,
+  220 - 40 * y,
+  x < 2 && y < 2 && (x + y) % 2 === 0 ? 0 : 255,
+]);
+/** A solid green block hanging off the bottom-right corner (clipped on two sides). */
+const GOLDEN_CORNER = goldenLayer(13, 8, 5, 5, () => [30, 200, 60, 255]);
+/** A luma ramp across the monochrome threshold, with one transparent pixel. */
+const GOLDEN_RAMP = goldenLayer(0, 9, 16, 2, (x, y) => {
+  const v = x * 17; // 0 … 255
+  return y === 0 ? [v, v, v, x === 8 ? 0 : 255] : [255, x * 16, 0, 255];
+});
+const GOLDEN_RED_BAR = goldenLayer(0, 3, 12, 2, (x) => [255, 0, 16 * x, 255]);
+const GOLDEN_BLUE_BAR = goldenLayer(0, 3, 12, 2, (x) => [0, 16 * x, 255, x === 0 ? 0 : 255]);
 
 /**
  * Another plugin set with its own custom glyphs — a `¥` the ACME sign lacks,
@@ -99,6 +140,24 @@ export const SEQUENCE_PANEL_MODEL = {
 } as const satisfies GoldenPluginModel;
 
 export const GOLDEN_LAYOUT_CASES: readonly GoldenLayoutCase[] = [
+  {
+    // Bitmap layers (a page's canvases, rasterised by core) over the cells:
+    // alpha > 0 overwrites, alpha 0 leaves the glyph pixels under it, a later
+    // layer paints over an earlier one, and both are clipped to the matrix.
+    name: "bitmap layers over text, alpha and clipping",
+    message: "HI {63}\nYO",
+    spec: { width: 16, height: 11, font: "3x5" },
+    options: { layers: [GOLDEN_SKY, GOLDEN_CORNER] },
+  },
+  {
+    // On a monochrome panel a layer pixel with alpha > 0 lights in the panel
+    // colour at ≥ 50% luma (299·r + 587·g + 114·b ≥ 127500) and is unlit
+    // below it; alpha 0 leaves what is under.
+    name: "bitmap layer on a monochrome red panel",
+    message: "HI {63}\nYO",
+    spec: { width: 16, height: 11, font: "3x5" },
+    options: { monochrome: "#ff3b1f", layers: [GOLDEN_RAMP] },
+  },
   { name: "awtrix 3x5 clip", message: "72° {66}OK TOO LONG", spec: { width: 32, height: 8, font: "3x5" } },
   { name: "5x7 weather with tiles", message: "72° SUNNY\nHI 78 LO 61\n{65}{65} UV 6", spec: { width: 64, height: 32 } },
   {
@@ -450,5 +509,29 @@ export const GOLDEN_TRANSITION_CASES: readonly GoldenTransitionCase[] = [
     spec: { width: 12, height: 5, font: "3x5" },
     transition: { kind: "dissolve", durationMs: 200 },
     fps: 20,
+  },
+  {
+    // A per-cell kind keeps the old layers for the first half of its frames
+    // and the new layers for the second half (frame f of F: new when
+    // 2f ≥ F − 1), and the layers stay on top of every half-turned flap.
+    name: "flip with half-flaps, layers swapped half-way",
+    from: "AB",
+    to: "CD",
+    spec: { width: 12, height: 5, font: "3x5" },
+    transition: { kind: "flip", stepMs: 80, scrambleSteps: 3, stagger: 1 },
+    fps: 25,
+    fromLayers: [GOLDEN_RED_BAR],
+    toLayers: [GOLDEN_BLUE_BAR],
+  },
+  {
+    // A per-pixel kind works on the rasterised frames, layers included: a
+    // change of layers alone fades like any other change of pixels.
+    name: "fade between layers alone",
+    from: "HI",
+    to: "HI",
+    spec: { width: 12, height: 5, font: "3x5" },
+    transition: { kind: "fade", durationMs: 200, maxFrames: 5 },
+    fromLayers: [GOLDEN_RED_BAR],
+    toLayers: [GOLDEN_BLUE_BAR],
   },
 ];

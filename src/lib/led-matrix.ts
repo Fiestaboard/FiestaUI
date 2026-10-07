@@ -33,6 +33,12 @@ import { type BoardToken, parseLine } from "./board-characters";
 import { BOARD_COLORS, COLOR_CODE_MAP, resolveColorCode } from "./board-colors";
 import { BOARD_ICON_NAMES, BOARD_ICONS, type BoardIconName } from "./board-icons";
 import type { CharacterSet } from "./character-sets";
+import {
+  type DecodedLedBitmapLayer,
+  decodeLedBitmapLayers,
+  type LedBitmapLayer,
+  ledMonochromeRgba,
+} from "./led-bitmap-layers";
 import { LED_FONTS, type LedFont, type LedFontId } from "./led-fonts";
 
 /** Matrix size bounds. 256 covers a chain of four 64-wide HUB75 panels. */
@@ -271,12 +277,30 @@ export interface LedLayoutOptions {
    * bytes. Falls back to the spec's default, then `0`.
    */
   blockPadding?: LedBlockPadding;
+  /**
+   * Bitmaps drawn over the cells — a page's pixel canvases, rasterised by
+   * FiestaBoard core ({@link LedBitmapLayer}; `rgba` as bytes or base64).
+   * Each becomes one `"bitmap"` op after every cell op, in order, so a later
+   * layer paints over an earlier one and every layer over the text. A pixel
+   * with alpha > 0 overwrites, alpha 0 leaves what is under, and a layer is
+   * clipped to the matrix; on a `monochrome` panel a pixel lights in the
+   * panel colour at ≥ 50% luma and is unlit otherwise (./led-bitmap-layers
+   * has the exact rule). A layer that cannot be decoded is dropped. Unset or
+   * empty draws exactly what it drew before layers existed.
+   */
+  layers?: readonly LedBitmapLayer[];
 }
 
-/** One thing to draw: a bitmap glyph or a solid rectangle, in matrix pixels. */
+/**
+ * One thing to draw, in matrix pixels: a bitmap glyph, a solid rectangle, or
+ * an RGBA bitmap (a layer — `rgba` is `width × height × 4` bytes, row-major;
+ * on a monochrome panel it is already thresholded to the panel colour or
+ * black, so a port and a device adapter read the bytes the panel shows).
+ */
 export type LedDrawOp =
   | { kind: "glyph"; x: number; y: number; rows: readonly string[]; color: string }
-  | { kind: "rect"; x: number; y: number; w: number; h: number; color: string };
+  | { kind: "rect"; x: number; y: number; w: number; h: number; color: string }
+  | { kind: "bitmap"; x: number; y: number; width: number; height: number; rgba: Uint8ClampedArray };
 
 /**
  * The identity of a glyph, as a **stable key** that means the same thing in
@@ -418,6 +442,14 @@ export interface LedLayout {
     }
   >;
   ops: LedDrawOp[];
+  /**
+   * The bitmap layers drawn over the cells, decoded — the last ops are their
+   * `"bitmap"` ops. Absent when there are none, so a layout without layers
+   * is exactly what it was before they existed. A transition reads it: a
+   * per-cell kind redraws mid-way layouts with the old layers for the first
+   * half of its frames and the new ones after (./led-transitions).
+   */
+  layers?: readonly DecodedLedBitmapLayer[];
   /**
    * The text the matrix shows, for its accessible name: rows joined with a
    * space, colour tiles and undrawable characters as blanks, icons as their
@@ -687,7 +719,12 @@ export function ledGutterPixels(
  * as one rect per horizontal run ({@link ledGutterPixels} has the rules).
  * Nothing overlaps, so the order is cosmetic; the bytes are the same.
  */
-export function layoutLedCells(grid: LedGridLayout, cells: LedCell[], options: LedLayout["options"]): LedLayout {
+export function layoutLedCells(
+  grid: LedGridLayout,
+  cells: LedCell[],
+  options: LedLayout["options"],
+  layers: readonly DecodedLedBitmapLayer[] = [],
+): LedLayout {
   const font = LED_FONTS[grid.font];
   const cellW = font.glyphWidth + font.spacingX;
   const cellH = font.glyphHeight + font.spacingY;
@@ -722,6 +759,12 @@ export function layoutLedCells(grid: LedGridLayout, cells: LedCell[], options: L
     run = { x: p.x, y: p.y, w: 1, color: p.color };
   }
   if (run) ops.push({ kind: "rect", x: run.x, y: run.y, w: run.w, h: 1, color: run.color });
+  // Bitmap layers last, over everything the cells drew.
+  const panel = options.monochrome ? parseHexColor(options.monochrome) : null;
+  for (const layer of layers) {
+    const { x, y, width, height } = layer;
+    ops.push({ kind: "bitmap", x, y, width, height, rgba: panel ? ledMonochromeRgba(layer.rgba, panel) : layer.rgba });
+  }
   return {
     width: grid.width,
     height: grid.height,
@@ -729,6 +772,7 @@ export function layoutLedCells(grid: LedGridLayout, cells: LedCell[], options: L
     cells,
     options,
     ops,
+    ...(layers.length > 0 ? { layers } : {}),
     text: lines.join(" ").replace(/\s+/g, " ").trim(),
   };
 }
@@ -749,7 +793,8 @@ const BLANK_TOKEN: BoardToken = Object.freeze({ type: "char", value: " " });
 export function layoutLedMessage(message: string, spec: LedMatrixSpec, options: LedLayoutOptions = {}): LedLayout {
   const grid = ledGridLayout(spec);
   const { textColor, monochrome, custom, resolved } = resolveLayoutOptions(options, spec);
-  if (grid.rows === 0 || grid.cols === 0) return layoutLedCells(grid, [], resolved);
+  const layers = decodeLedBitmapLayers(options.layers);
+  if (grid.rows === 0 || grid.cols === 0) return layoutLedCells(grid, [], resolved, layers);
 
   const lines = message.split("\n");
   const parseOptions = { extendedMarkup: true, preserveCase: options.letterCase === "mixed" };
@@ -761,7 +806,7 @@ export function layoutLedMessage(message: string, spec: LedMatrixSpec, options: 
       cells.push(ledCellForToken(tokens[col] ?? BLANK_TOKEN, textColor, monochrome, custom));
     }
   }
-  return layoutLedCells(grid, cells, resolved);
+  return layoutLedCells(grid, cells, resolved, layers);
 }
 
 /** A grid of parsed cells, row-major: what FiestaBoard core hands a preview. */
@@ -792,7 +837,8 @@ export function layoutLedCellGrid(
 ): LedLayout {
   const grid = ledGridLayout(spec);
   const { textColor, monochrome, custom, resolved } = resolveLayoutOptions(options, spec);
-  if (grid.rows === 0 || grid.cols === 0) return layoutLedCells(grid, [], resolved);
+  const layers = decodeLedBitmapLayers(options.layers);
+  if (grid.rows === 0 || grid.cols === 0) return layoutLedCells(grid, [], resolved, layers);
   const resolvedCells: LedCell[] = [];
   for (let row = 0; row < grid.rows; row++) {
     const line = cells[row];
@@ -800,7 +846,7 @@ export function layoutLedCellGrid(
       resolvedCells.push(ledCellForToken(line?.[col] ?? BLANK_TOKEN, textColor, monochrome, custom));
     }
   }
-  return layoutLedCells(grid, resolvedCells, resolved);
+  return layoutLedCells(grid, resolvedCells, resolved, layers);
 }
 
 /**
@@ -931,7 +977,11 @@ export function renderLedGlyph(
   return rasterizeLedLayout(layout);
 }
 
-/** @internal Paint ops into a frame in order. Off-matrix pixels are dropped. */
+/**
+ * @internal Paint ops into a frame in order. Off-matrix pixels are dropped.
+ * A bitmap op overwrites each pixel whose alpha is above 0 with its RGB and
+ * leaves the rest (alpha is coverage, not a blend).
+ */
 export function rasterizeLedOps(frame: LedFrame, ops: readonly LedDrawOp[]): void {
   const { width, height, pixels } = frame;
   const set = (x: number, y: number, rgb: readonly [number, number, number]) => {
@@ -942,6 +992,10 @@ export function rasterizeLedOps(frame: LedFrame, ops: readonly LedDrawOp[]): voi
     pixels[i + 2] = rgb[2];
   };
   for (const op of ops) {
+    if (op.kind === "bitmap") {
+      paintBitmap(frame, op);
+      continue;
+    }
     const rgb = parseHexColor(op.color) ?? [0, 0, 0];
     if (op.kind === "rect") {
       for (let dy = 0; dy < op.h; dy++) for (let dx = 0; dx < op.w; dx++) set(op.x + dx, op.y + dy, rgb);
@@ -952,6 +1006,26 @@ export function rasterizeLedOps(frame: LedFrame, ops: readonly LedDrawOp[]): voi
       for (let dx = 0; dx < line.length; dx++) {
         if (line.charCodeAt(dx) === 35 /* # */) set(op.x + dx, op.y + dy, rgb);
       }
+    }
+  }
+}
+
+/** One bitmap op into a frame, clipped to it: alpha > 0 overwrites, alpha 0 leaves. */
+function paintBitmap(frame: LedFrame, op: Extract<LedDrawOp, { kind: "bitmap" }>): void {
+  const { width, height, pixels } = frame;
+  const x0 = Math.max(0, op.x);
+  const y0 = Math.max(0, op.y);
+  const x1 = Math.min(width, op.x + op.width);
+  const y1 = Math.min(height, op.y + op.height);
+  const { rgba } = op;
+  for (let y = y0; y < y1; y++) {
+    let src = ((y - op.y) * op.width + (x0 - op.x)) * 4;
+    let dst = (y * width + x0) * 3;
+    for (let x = x0; x < x1; x++, src += 4, dst += 3) {
+      if (rgba[src + 3] === 0) continue;
+      pixels[dst] = rgba[src];
+      pixels[dst + 1] = rgba[src + 1];
+      pixels[dst + 2] = rgba[src + 2];
     }
   }
 }
@@ -1009,7 +1083,7 @@ export function frameToBits(frame: LedFrame): Uint8Array {
  * lit as themselves and glow like any lit LED.
  */
 export function ledBackgroundMask(layout: LedLayout): Uint8Array | null {
-  const { grid, cells, width, height, options } = layout;
+  const { grid, cells, width, height, options, ops } = layout;
   if (!cells.some((c) => c.background)) return null;
   const font = LED_FONTS[grid.font];
   const fill = options.tileGap === "fill";
@@ -1041,5 +1115,14 @@ export function ledBackgroundMask(layout: LedLayout): Uint8Array | null {
   // A gutter or padding pixel lit as part of a block's field is background
   // too; one two tiles share is lit as a tile and glows like one.
   for (const p of ledGutterPixels(grid, cells, options)) if (p.block) mask[p.y * width + p.x] = 1;
+  // A layer pixel drawn over a field is a lit LED of its own, not background.
+  for (const op of ops) {
+    if (op.kind !== "bitmap") continue;
+    for (let y = Math.max(0, op.y); y < Math.min(height, op.y + op.height); y++) {
+      for (let x = Math.max(0, op.x); x < Math.min(width, op.x + op.width); x++) {
+        if (op.rgba[((y - op.y) * op.width + (x - op.x)) * 4 + 3] !== 0) mask[y * width + x] = 0;
+      }
+    }
+  }
   return mask;
 }
