@@ -23,18 +23,10 @@ name: Downstream Upgrade
 #
 # See docs/superpowers/specs/2026-08-01-downstream-upgrade-design.md.
 
+# Started by release.yml's dispatch after every publish, or by hand. Never as a
+# called job of the release: that would hold the release queue for the whole
+# Claude run (see release.yml and scripts/ci/tests/release-decoupled.test.mjs).
 on:
-  workflow_call:
-    inputs:
-      version:
-        description: "Released FiestaUI version (X.Y.Z, no leading v)"
-        required: true
-        type: string
-      adopt:
-        description: "Run the design-system adoption pass after a green bump"
-        required: false
-        type: boolean
-        default: true
   workflow_dispatch:
     inputs:
       version:
