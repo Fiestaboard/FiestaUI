@@ -109,16 +109,16 @@ function FlipDemo() {
   );
 }
 
-/** A flip asked of the plugin's Pixoo: the model's `animation` decides, and it says the device snaps. */
+/** A flip asked of the plugin's Pixoo: the model's `animation` decides, and it says the flip is coarse. */
 export const Pixoo64Flip: Story = {
   name: "Pixoo 64, flip transition",
   render: () => (
     <Stack gap="6">
       <Intro title="Flip, as the plugin's declaration resolves it">
-        The plugin declares <Code>stream</Code> delivery at 2 frames a second — the verified safe still-push rate, after
-        its hardware lab found uploaded animations loop forever behind a loading overlay — so an asked-for flip falls
-        back to <Code>none</Code> with that reason, and the change cuts straight to the next page, exactly as the device
-        does. Press Next message to see it.
+        The plugin declares <Code>stream</Code> delivery at 5 frames a second — the rate its hardware labs measured for
+        single-frame pushes, after finding uploaded animations loop forever behind a loading overlay — so an asked-for
+        flip runs coarse, one frame per 200 ms step with no half-flaps, exactly as the device streams it. Press Next
+        message to see it.
       </Intro>
       <FlipDemo />
     </Stack>

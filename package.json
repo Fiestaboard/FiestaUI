@@ -85,7 +85,7 @@
     "@codemirror/language": "^6.12.4",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.8",
-    "@fiestaboard/output-divoom-pixoo": "github:Fiestaboard/fiestaboard-output--divoom-pixoo#0b99e5b51ff8472938b04770816e0ac9697edcba",
+    "@fiestaboard/output-divoom-pixoo": "github:Fiestaboard/fiestaboard-output--divoom-pixoo#49e5514a6e10a6511d641af4cb869dfa1a0788c4",
     "@lezer/highlight": "^1.2.3",
     "@storybook/addon-a11y": "^10.5.5",
     "@storybook/react-vite": "^10.5.5",

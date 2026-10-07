@@ -79,12 +79,18 @@ describe("DisplayPreview", () => {
       expect(board).toHaveAttribute("data-model", "divoom_pixoo64");
       expect(board).toHaveAttribute("data-matrix-width", "64");
       expect(board).toHaveAttribute("data-font", "3x5");
-      // The Pixoo 64 snaps (hardware test, 2026-10-04): an asked-for
-      // dissolve falls back to its default, none, with the reason attached.
-      expect(board).toHaveAttribute("data-transition", "none");
-      expect(board).toHaveAttribute("data-transition-source", "fallback");
-      expect(board).toHaveAttribute("data-transition-fallback", "dissolve");
+      // The Pixoo 64 streams at 5 fps (hardware labs, 2026-10-04/05): an
+      // asked-for dissolve runs.
+      expect(board).toHaveAttribute("data-transition", "dissolve");
+      expect(board).toHaveAttribute("data-transition-source", "explicit");
       expect(housing()).toHaveAttribute("data-technology", "led_matrix");
+      cleanup();
+      // A device too slow for it (the AWTRIX, a nominal 2 fps) falls back to
+      // its default, none, with the reason attached.
+      render(<DisplayPreview model="ulanzi_tc001_awtrix" message="HELLO" transition="dissolve" />);
+      expect(screen.getByRole("img")).toHaveAttribute("data-transition", "none");
+      expect(screen.getByRole("img")).toHaveAttribute("data-transition-source", "fallback");
+      expect(screen.getByRole("img")).toHaveAttribute("data-transition-fallback", "dissolve");
       cleanup();
       // A sequence player carries its frame budget into the transition.
       render(

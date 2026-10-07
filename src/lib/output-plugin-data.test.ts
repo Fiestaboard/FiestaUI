@@ -230,10 +230,10 @@ describe("@fiestaboard/output-divoom-pixoo", () => {
     expect(declared!.animation.sources?.length).toBeGreaterThan(0);
   });
 
-  it("is the Pixoo FiestaUI renders: 64×64 RGB, led_3x5 in the 3×5 face, snapping at 2 fps, square dots", () => {
-    // v0.2.0 (PR #1, commit 0b99e5b): the camera-timed hardware lab found
-    // uploaded animations loop and overlay, so the plugin declares a still
-    // push rate of 2 a second and no sequence budget — the Pixoo snaps.
+  it("is the Pixoo FiestaUI renders: 64×64 RGB, led_3x5 in the 3×5 face, streaming at 5 fps, square dots", () => {
+    // v0.4.0 (PR #2, commit 02d1759): the camera-timed hardware labs found
+    // uploaded animations loop and overlay but single frames stream cleanly
+    // at 5 a second, so the plugin declares that and no sequence budget.
     expect(declared).toMatchObject({
       technology: "led_matrix",
       family: "divoom",
@@ -241,14 +241,14 @@ describe("@fiestaboard/output-divoom-pixoo", () => {
       color: { kind: "rgb", bitDepth: 24 },
       charset: "led_3x5",
       font: "3x5",
-      animation: { delivery: "stream", maxFps: 2 },
+      animation: { delivery: "stream", maxFps: 5 },
       appearance: { pixelShape: "square" },
       legacy: { preset: "pixoo64" },
     });
     expect(declared!.animation).not.toHaveProperty("maxFrames");
     expect(declared!.animation).not.toHaveProperty("minFrameMs");
     expect(declared).not.toHaveProperty("pixelShape");
-    expect(defaultTransitionIdForModel(declared!)).toBe("none");
+    expect(defaultTransitionIdForModel(declared!)).toBe("flip");
   });
 
   it("is compared on the face choice only once it declares one (the built-in is ahead until the pin bumps)", () => {

@@ -212,11 +212,12 @@ describe("what 'fast enough' means, through the transition menu", () => {
     expect(defaultTransitionIdForModel(DEVICE_MODELS.wled_32x32)).toBe("flip");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.max7219_4in1)).toBe("flip");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.p10_hub12_32x16)).toBe("flip");
-    // The Pixoo 64 snaps: its hardware test (2026-10-04) found uploaded
-    // animations loop and show a "LOADING…" overlay, so it is held at its
-    // verified safe still-push rate, 2 fps, below every entry's minimum.
-    expect(flipFor(DEVICE_MODELS.divoom_pixoo64.animation)).toBeNull();
-    expect(defaultTransitionIdForModel(DEVICE_MODELS.divoom_pixoo64)).toBe("none");
+    // The Pixoo 64 streams single frames at 5 a second (hardware labs,
+    // 2026-10-04/05): a coarse flip, one frame per 200 ms step.
+    expect(flipFor(DEVICE_MODELS.divoom_pixoo64.animation)).toMatchObject({
+      spec: { kind: "flip", stepMs: 200, halfFlap: false },
+    });
+    expect(defaultTransitionIdForModel(DEVICE_MODELS.divoom_pixoo64)).toBe("flip");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.tidbyt_tronbyt)).toBe("flip");
     // UNMEASURED: held at a nominal 2 fps, below every animated entry's minimum.
     expect(DEVICE_MODELS.ulanzi_tc001_awtrix.animation).toEqual({ delivery: "stream", maxFps: 2 });
@@ -226,16 +227,16 @@ describe("what 'fast enough' means, through the transition menu", () => {
 });
 
 describe("the Pixoo 64, the first test device", () => {
-  it("is id divoom_pixoo64 with legacy preset pixoo64, 3×5 by default, and snaps (one frame per change)", () => {
+  it("is id divoom_pixoo64 with legacy preset pixoo64, 3×5 by default, and streams at 5 fps", () => {
     const pixoo = DEVICE_MODELS.divoom_pixoo64;
     expect(pixoo.legacy).toEqual({ preset: "pixoo64" });
     expect(pixoo.font).toBe("3x5");
     // 10 × 16 cells clears FiestaBoard's 3 × 15 floor; 5×7 would give 8 × 10.
     expect(characterSetForModel(pixoo).id).toBe("led_3x5");
-    // Hardware test, 2026-10-04: uploaded animations loop and show a
-    // "LOADING…" overlay, single frames are clean — so no sequence budget,
-    // and a nominal 2 fps keeps the default transition on "none".
-    expect(pixoo.animation).toEqual({ delivery: "stream", maxFps: 2 });
+    // Hardware labs, 2026-10-04/05: uploaded animations loop and show a
+    // "LOADING…" overlay, single frames are clean and take 5 a second — so
+    // no sequence budget, and transitions stream frame by frame.
+    expect(pixoo.animation).toEqual({ delivery: "stream", maxFps: 5 });
     expect(pixoo.geometry).toEqual({ kind: "pixels", width: 64, height: 64 });
   });
 });

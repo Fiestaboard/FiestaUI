@@ -401,13 +401,14 @@ export const DEVICE_MODELS: Readonly<Record<DeviceModelId, DeviceModel>> = {
   // streamed frame by frame. `maxFrames` is the hard budget a transition is
   // compressed into; `maxFps` is only the playback cadence authored at
   // (1000 / minFrameMs), not a measured device limit.
-  // The Pixoo SNAPS. Hardware test on a Pixoo 64 (FiestaBoard program,
-  // 2026-10-04): an uploaded animation loops forever (no play-once), more
-  // than ~3 frames show a ~6 s "LOADING…" overlay first, and landing on a
-  // still afterwards glitches for ~5 s — while a single-frame push is clean
-  // in ~0.5 s. So one frame per change: stream at a nominal 2 fps, below
-  // every animated entry's minimum, which keeps the default transition on
-  // "none". The researched 32-frame sequence budget is superseded.
+  // The Pixoo STREAMS at 5 fps. Hardware labs on a Pixoo 64 (FiestaBoard
+  // program, 2026-10-04/05, camera-timed): an uploaded animation loops
+  // forever, shows a "LOADING…" overlay beyond ~3 frames and glitches for
+  // ~5 s landing on a still — but single-frame pushes paced at 5 a second
+  // each show once, cleanly, and the last always lands (~0.19 s per push,
+  // so 6 a second cannot be sent). Every LED transition, streamed that way,
+  // reads as intended on the panel. The researched 32-frame sequence budget
+  // is superseded.
   //
   // NOTE (deprecation planned, not yet applied): the Pixoo's declaration of
   // record is its output plugin's, @fiestaboard/output-divoom-pixoo
@@ -424,7 +425,7 @@ export const DEVICE_MODELS: Readonly<Record<DeviceModelId, DeviceModel>> = {
   // gets 5×7. `font` / `charset` stay 3×5: the face an existing board, and
   // a FiestaBoard that predates the choice, keeps drawing in.
   divoom_pixoo64: {
-    ...ledModel("divoom_pixoo64", "pixoo64", "divoom", { delivery: "stream", maxFps: 2 }, SQUARE_LED),
+    ...ledModel("divoom_pixoo64", "pixoo64", "divoom", { delivery: "stream", maxFps: 5 }, SQUARE_LED),
     layoutOptions: { ...LED_LAYOUT_OPTIONS, font: { allowed: ["5x7", "3x5"], default: "5x7" } },
   },
   // UNMEASURED: no documented push rate and no test device. Held at a nominal
