@@ -253,20 +253,62 @@ test("a note board draws a heart whatever the flagship setting says", async () =
 // code-62 glyph.
 
 /**
- * Mount a board and sample what every tile shows (the `data-current-char` the
- * drum reports, and the text the flap halves actually draw) while it runs.
- * Returns the set of drum glyphs and the set of drawn glyphs seen *while a tile
- * was animating or transitioning* — the static landing is covered above.
+ * Mount a board and record everything every tile shows while it runs: each
+ * value the drum reports (`data-current-char`) and each glyph the flap halves
+ * draw. Returns the set of drum glyphs and the set of drawn glyphs.
  *
- * Sampling stops as soon as the drum has passed code 62 (either glyph), or
- * after `sampleMs`: jsdom's timers drift under load, so a fixed window would
- * make the pass depend on the machine.
+ * Recorded with a MutationObserver attached BEFORE the first render, not
+ * sampled. A tile shows code 62 for a single flip, and a 3 ms poll misses that
+ * flip whenever CI is loaded (seen on main: the drum read ?, A, 63, C, 64 and
+ * skipped 62). An observer sees every attribute and text change however late
+ * the timers run, so the pass no longer depends on the machine. Watching from
+ * before mount also catches a first loading tick that lands on code 62.
+ *
+ * Recording stops shortly after the drum has passed code 62 (either glyph), so
+ * the halves of the next flip, which show the departing glyph, are seen too;
+ * or after `sampleMs`.
  */
-async function sampleDrum(props, { nextProps = null, sampleMs = 4000 } = {}) {
+async function sampleDrum(props, { nextProps = null, sampleMs = 8000 } = {}) {
   const dom = installDom();
   try {
     const harness = await import(`${bundleUrl}?run=${++runCounter}`);
     const container = dom.window.document.getElementById("root");
+
+    const drum = new Set();
+    const drawn = new Set();
+    const addText = (node) => {
+      if (node.nodeType === 3) drawn.add(node.data);
+      else if (node.nodeType === 1) {
+        if (node.tagName === "SPAN") drawn.add(node.textContent);
+        for (const span of node.querySelectorAll("span")) drawn.add(span.textContent);
+        if (node.hasAttribute("data-current-char")) drum.add(node.getAttribute("data-current-char"));
+        for (const tile of node.querySelectorAll("[data-current-char]"))
+          drum.add(tile.getAttribute("data-current-char"));
+      }
+    };
+    const observer = new dom.window.MutationObserver((records) => {
+      for (const r of records) {
+        if (r.type === "attributes") {
+          if (r.oldValue !== null) drum.add(r.oldValue);
+          drum.add(r.target.getAttribute("data-current-char"));
+        } else if (r.type === "characterData") {
+          drawn.add(r.oldValue);
+          drawn.add(r.target.data);
+        } else {
+          for (const node of r.addedNodes) addText(node);
+        }
+      }
+    });
+    observer.observe(container, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      characterDataOldValue: true,
+      attributes: true,
+      attributeFilter: ["data-current-char"],
+      attributeOldValue: true,
+    });
+
     const root = harness.mount(container);
     const base = { size: "sm", flapSpeed: "hardware", ...props };
 
@@ -274,27 +316,17 @@ async function sampleDrum(props, { nextProps = null, sampleMs = 4000 } = {}) {
     await settle();
     if (nextProps) root.render({ ...base, ...nextProps });
 
-    const drum = new Set();
-    const drawn = new Set();
     const startedAt = Date.now();
     const passedCode62 = () => drum.has("♥") || drum.has("°") || drawn.has("♥") || drawn.has("°");
-    let lastSample = 0;
+    let seenAt = 0;
     while (Date.now() - startedAt < sampleMs) {
-      await new Promise((r) => setTimeout(r, 3));
-      for (const tile of container.querySelectorAll("[data-current-char]")) {
-        const moving =
-          tile.getAttribute("data-is-animating") === "true" || tile.getAttribute("data-is-transitioning") === "true";
-        if (!moving) continue;
-        drum.add(tile.getAttribute("data-current-char"));
-        for (const span of tile.querySelectorAll("span")) drawn.add(span.textContent);
-      }
-      // One more step after code 62 is seen, so the halves of the next flip
-      // (which show the departing glyph) are sampled too.
+      await new Promise((r) => setTimeout(r, 10));
       if (passedCode62()) {
-        if (lastSample === 0) lastSample = Date.now();
-        else if (Date.now() - lastSample > 60) break;
+        if (seenAt === 0) seenAt = Date.now();
+        else if (Date.now() - seenAt > 120) break;
       }
     }
+    observer.disconnect();
 
     root.unmount();
     await settle();

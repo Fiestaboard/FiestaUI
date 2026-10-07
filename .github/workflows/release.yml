@@ -40,10 +40,6 @@ on:
 permissions:
   contents: write # push the version commit + tag straight to main
   id-token: write # OIDC credential for npm Trusted Publishing
-  # The called downstream-upgrade.yml requests issues: write (adoption pass
-  # files component-request issues); a reusable workflow may not request more
-  # than its caller grants, so omitting this fails the run at startup.
-  issues: write
 
 concurrency:
   group: release
@@ -273,11 +269,36 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-  # After a successful publish, keep the evergreen upgrade PR on
-  # Fiestaboard/FiestaBoard pointed at this release.
+  # After a successful publish, keep the evergreen upgrade PRs downstream
+  # pointed at this release, by DISPATCHING downstream-upgrade.yml as its own
+  # run rather than calling it as a job of this one.
+  #
+  # It used to be `uses: ./.github/workflows/downstream-upgrade.yml` here. A
+  # called workflow is part of this run, so it sat inside `concurrency: release`
+  # (cancel-in-progress: false) — and its FiestaBoard leg runs Claude to fix the
+  # bump, routinely 45+ minutes. Every later merge's release queued behind it:
+  # a version that took one minute to publish reached npm an hour late
+  # (v8.1.0's upgrade ran 04:06–04:53 while the next release waited).
+  # Dispatched, the upgrade runs under its own `downstream-upgrade` group, which
+  # cancels an in-flight run for an older version, and this run ends as soon as
+  # the package is out. scripts/ci/tests/release-decoupled.test.mjs pins it.
+  #
+  # A workflow_dispatch made with GITHUB_TOKEN does start a run (it is one of
+  # the two events exempt from the GITHUB_TOKEN no-trigger rule).
   downstream-upgrade:
+    name: Dispatch downstream upgrade
     needs: release
-    uses: ./.github/workflows/downstream-upgrade.yml
-    with:
-      version: ${{ needs.release.outputs.version }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write # create the workflow_dispatch event
+    steps:
+      - name: Dispatch downstream-upgrade.yml
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh workflow run downstream-upgrade.yml \
+            --repo "$GITHUB_REPOSITORY" --ref main -f version="$VERSION"
+          echo "Dispatched downstream upgrade to v${VERSION}." >> "$GITHUB_STEP_SUMMARY"
