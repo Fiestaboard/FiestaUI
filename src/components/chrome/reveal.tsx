@@ -55,8 +55,11 @@ export const Reveal = memo(function Reveal({ open, children, className, innerCla
     >
       <div
         className={cn(
-          "min-h-0 overflow-hidden transition-opacity ease-out motion-reduce:transition-none",
-          open ? "opacity-100 duration-base" : "opacity-0 duration-fast",
+          "min-h-0 overflow-hidden transition-[opacity,transform] ease-out motion-reduce:transition-none",
+          // A few px of travel alongside the opacity so the overflow clip reads
+          // as a slide rather than a horizontal cut through mid-glyph in the
+          // first frames (opacity already hides most of it).
+          open ? "translate-y-0 opacity-100 duration-base" : "-translate-y-1 opacity-0 duration-fast",
           innerClassName,
         )}
       >

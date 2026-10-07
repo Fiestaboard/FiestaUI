@@ -139,7 +139,14 @@ export const PageHeader = memo(function PageHeader({
     <div
       data-slot="page-header"
       className={cn(
-        "mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 px-6 animate-card-fade-in",
+        "mb-6 flex flex-wrap items-start justify-between gap-x-6 px-6 animate-card-fade-in",
+        // The action Reveal is a 0px-tall but still-wrapped flex line when
+        // collapsed, so the row gap would otherwise survive the tuck and leave
+        // a phantom 12px band under the h1. Drop it to 0 while collapsed and
+        // tween it on the Reveal's own tier so it opens and closes with the
+        // action rather than snapping.
+        "transition-[row-gap] duration-base ease-out-cubic",
+        collapsed ? "gap-y-0" : "gap-y-3",
         className,
       )}
       style={{ animationDelay }}
@@ -160,7 +167,15 @@ export const PageHeader = memo(function PageHeader({
         // `flex`: the slot's children were flex items of the header row, and
         // an inline Badge dropped into a block box picks up a line box and
         // sits a few pixels lower (VRT caught it). Same gaps as the row.
-        <Reveal open={!collapsed} innerClassName="-m-1 flex flex-wrap items-start gap-x-6 gap-y-3 p-1">
+        // `ml-auto`: on its own wrapped line the action Reveal shrink-wraps,
+        // so `justify-between` lands it at the h1's left edge. `ml-auto` eats
+        // the leading free space to right-align it under the description, and
+        // is a no-op in the single-line case the row already right-aligns.
+        <Reveal
+          open={!collapsed}
+          className="ml-auto"
+          innerClassName="-m-1 flex flex-wrap items-start gap-x-6 gap-y-3 p-1"
+        >
           {children}
         </Reveal>
       )}
