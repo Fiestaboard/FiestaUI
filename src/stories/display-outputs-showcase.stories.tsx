@@ -170,8 +170,8 @@ export const Overview: Story = {
         <Text>
           Transitions are a menu judged against each device's frame budget: FiestaBoard's own flip, which scrambles
           through the board's own characters, is the default wherever the device can show it, and a sequence player's
-          frame budget is honoured by compressing, never truncating. The Pixoo 64 snaps: its hardware test showed
-          uploaded animations loop and overlay. Under reduced motion every change snaps.
+          frame budget is honoured by compressing, never truncating. The Pixoo 64 streams single frames at 5 a second,
+          so it gets a coarse flip. Under reduced motion every change snaps.
         </Text>
       </Stack>
       <Figure caption="A HUB75 128×64 through DisplayPreview: colour spans, a tile bar, icons, lowercase in the 5×7 face.">
@@ -736,7 +736,7 @@ function DefaultsTable() {
  * The six kinds on one device, the per-device defaults from the registry
  * (flip wherever the device can show one, else none), and a sequence
  * player's menu with every entry compressed into its 32-frame budget — the
- * generic `sequence_panel_64` fixture model, since the Pixoo 64 snaps.
+ * generic `sequence_panel_64` fixture model, since the Pixoo 64 streams.
  */
 export const Transitions: Story = {
   render: () => (

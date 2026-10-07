@@ -40,6 +40,12 @@ describe("the transition menu", () => {
       degraded: true,
     });
     expect(transitionSpecForDevice("slide", slow)).toEqual({ spec: { kind: "slide" }, degraded: false });
+    // 5 a second is enough for every entry (a Pixoo 64 streams at 5).
+    const five = { ...fast, maxFps: 5 };
+    for (const id of ["cascade", "slide", "wipe", "fade", "dissolve"] as const) {
+      expect(transitionSpecForDevice(id, five)).toEqual({ spec: { kind: id }, degraded: false });
+    }
+    expect(transitionSpecForDevice("slide", { ...fast, maxFps: 4 })).toBeNull();
     const crawl = { ...fast, maxFps: 2 };
     expect(transitionSpecForDevice("flip", crawl)).toBeNull();
     expect(transitionSpecForDevice("none", crawl)).toEqual({ spec: "none", degraded: false });
@@ -90,17 +96,20 @@ describe("the transition menu", () => {
     const sequence = transitionsForModel(SEQUENCE_MODEL);
     expect(sequence.every((a) => a.available)).toBe(true);
     expect(sequence.filter((a) => a.id !== "none").every((a) => a.degraded && /32 frames/.test(a.reason!))).toBe(true);
-    // The Pixoo 64 snaps (hardware test, 2026-10-04): its verified safe
-    // still-push rate is 2 a second, so only None is on its menu.
+    // The Pixoo 64 streams single frames at 5 a second (hardware labs,
+    // 2026-10-04/05): the whole menu, with a coarse flip.
     const pixoo = transitionsForModel(DEVICE_MODELS.divoom_pixoo64);
-    expect(pixoo.filter((a) => a.available).map((a) => a.id)).toEqual(["none"]);
-    expect(pixoo.find((a) => a.id === "flip")!.reason).toMatch(/push rate is 2\./);
+    expect(pixoo.filter((a) => a.available).map((a) => a.id)).toEqual(LED_TRANSITION_IDS);
+    expect(pixoo.find((a) => a.id === "flip")).toMatchObject({
+      degraded: true,
+      spec: { stepMs: 200, halfFlap: false },
+    });
   });
 
   it("defaults to flip when the device can show it, otherwise none — nothing else", () => {
     expect(defaultTransitionIdForModel(DEVICE_MODELS.hub75_128x64)).toBe("flip");
     expect(defaultTransitionIdForModel(SEQUENCE_MODEL)).toBe("flip");
-    expect(defaultTransitionIdForModel(DEVICE_MODELS.divoom_pixoo64)).toBe("none");
+    expect(defaultTransitionIdForModel(DEVICE_MODELS.divoom_pixoo64)).toBe("flip");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.ulanzi_tc001_awtrix)).toBe("none");
     expect(defaultTransitionIdForModel(DEVICE_MODELS.vestaboard_flagship)).toBe("none");
   });

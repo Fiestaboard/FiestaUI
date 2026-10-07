@@ -264,9 +264,9 @@ describe("LedMatrixDisplay", () => {
       expect(screen.getByRole("img")).toHaveAttribute("data-transition", "flip");
       expect(screen.getByRole("img")).toHaveAttribute("data-transition-source", "default");
       cleanup();
-      // The Pixoo 64 snaps (its hardware test showed uploads loop and overlay).
+      // The Pixoo 64 streams single frames at 5 fps: a coarse flip by default.
       render(<LedMatrixDisplay message="HI" preset="pixoo64" />);
-      expect(screen.getByRole("img")).toHaveAttribute("data-transition", "none");
+      expect(screen.getByRole("img")).toHaveAttribute("data-transition", "flip");
       cleanup();
       render(<LedMatrixDisplay message="HI" preset="awtrix" />);
       expect(screen.getByRole("img")).toHaveAttribute("data-transition", "none");

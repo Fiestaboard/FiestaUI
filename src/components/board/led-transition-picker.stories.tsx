@@ -29,7 +29,7 @@ export const Hub75: Story = {
   args: { model: "hub75_64x32", columns: "2" },
 };
 
-/** The Pixoo 64 snaps (its hardware test showed uploaded animations loop and overlay): only None is available, and Flip's card and the list under the group say why. */
+/** The Pixoo 64 streams single frames at 5 a second (hardware labs, 2026-10-04/05): every entry is available, and Flip's card says it is coarse (one frame per step, no half-flaps). */
 export const Pixoo64: Story = {
   args: { model: "divoom_pixoo64", columns: "2" },
 };

@@ -489,9 +489,9 @@ const PIXOO_PAGES = [
  * from the model's `appearance`) in the 3×5 font, with mixed case, colour
  * spans, icons and inverse-video pills on one page. Its hardware test
  * (2026-10-04) found that an uploaded animation loops forever and shows a
- * "LOADING…" overlay first, while a single-frame push is clean in half a
- * second — so the Pixoo **snaps**: its default transition is None, and
- * "Next message" cuts straight to the next page, exactly as the device does.
+ * "LOADING…" overlay first, while single-frame pushes stream cleanly at 5 a
+ * second (2026-10-05) — so the Pixoo **streams**: its default transition is
+ * a coarse flip, and "Next message" plays it frame by frame, as the device does.
  */
 export const Pixoo64Featured: Story = {
   args: { message: PIXOO_PAGES[0], preset: "pixoo64", letterCase: "mixed", size: "md" },
@@ -647,8 +647,8 @@ const describeDefault = (id: LedMatrixPresetId) => {
 /**
  * Every LED model with the transition its API earns by default: full flip
  * for streams at ≥ 25 fps (HUB75, WLED, local MAX7219/P10), a coarse flip for
- * a sequence player (Tronbyt), none for the Pixoo 64 (it snaps — hardware
- * test, 2026-10-04) and for AWTRIX, each captioned with the registry's
+ * a sequence player (Tronbyt) and the Pixoo 64 (a 5 fps stream — hardware
+ * labs, 2026-10-04/05), none for AWTRIX, each captioned with the registry's
  * reason. Press "Next message" and compare.
  */
 export const DefaultTransitionByDevice: Story = {
