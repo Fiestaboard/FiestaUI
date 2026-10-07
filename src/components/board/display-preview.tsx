@@ -43,6 +43,7 @@ import {
 } from "../../lib/board-dimensions";
 import { isDevBuild } from "../../lib/dev";
 import { type DeviceModel, type DeviceModelRef, resolveDeviceModel } from "../../lib/devices";
+import { type LedFontId } from "../../lib/led-fonts";
 import { type BoardCellGrid, type LedBlockPadding, type LedLetterCase, type LedTileGap } from "../../lib/led-matrix";
 import { type LedTransitionId } from "../../lib/led-transition-registry";
 import { type LedTransitionSpec } from "../../lib/led-transitions";
@@ -113,6 +114,15 @@ export interface DisplayPreviewProps {
   tileGap?: LedTileGap;
   /** LED: extend a block span's field one pixel into the gutters and margin (`1`). Gated like `tileGap`. */
   blockPadding?: LedBlockPadding;
+  /**
+   * LED: the board's face — FiestaBoard's per-board text size (`"5x7"`
+   * Large, `"3x5"` Small) — which sets the character grid (a Pixoo 64 is
+   * 8 × 10 in 5×7, 10 × 16 in 3×5). Gated like `tileGap` by the model's
+   * `layoutOptions.font`: a face it offers wins and the set follows it; any
+   * other is ignored for the model's own `font`. Unset is the model's own
+   * `font`. A split-flap board ignores it.
+   */
+  font?: LedFontId;
   /** Note array: the board's notes wide / tall. */
   notesWide?: number;
   notesTall?: number;
@@ -241,6 +251,7 @@ export function DisplayPreview({
   letterCase,
   tileGap,
   blockPadding,
+  font,
   notesWide,
   notesTall,
   gridRows,
@@ -284,7 +295,7 @@ export function DisplayPreview({
     board = (
       <LedMatrixDisplay
         model={model}
-        {...defined({ ...content, size, letterCase, tileGap, blockPadding, transition, announceUpdates })}
+        {...defined({ ...content, size, letterCase, tileGap, blockPadding, font, transition, announceUpdates })}
         pixelShape={isPixelShape(pixelShape) ? pixelShape : undefined}
       />
     );

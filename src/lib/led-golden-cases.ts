@@ -132,6 +132,15 @@ export const GOLDEN_LAYOUT_CASES: readonly GoldenLayoutCase[] = [
     options: { letterCase: "mixed" },
   },
   {
+    // The same page on a Pixoo board set to Large (layoutOptions.font,
+    // `ledSpecForModel(pixoo, { font: "5x7" })`): 8 × 10 cells instead of
+    // 10 × 16, so "09:30 Standup" clips at ten columns.
+    name: "pixoo 5x7 large grid",
+    message: "Mon Oct 3\n{icon:bell} 09:30 Standup",
+    spec: { width: 64, height: 64, font: "5x7" },
+    options: { letterCase: "mixed" },
+  },
+  {
     // A plugin's set over a built-in: its own € bitmap draws, an icon it
     // has (up) draws, one it lacks (sun) draws the 3×5 face's glyph anyway
     // (the layout draws what the face can; the set gates the editor), and

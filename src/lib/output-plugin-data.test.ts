@@ -98,11 +98,24 @@ const id = (m: unknown) => (m as { id?: unknown })?.id;
  * undeclared field means every value with the renderer's default — which
  * is exactly what the built-ins declare, so the two still draw identically.
  */
-function renderingFacts(model: DeviceModel) {
+function renderingFacts(model: DeviceModel, { faceChoice = true }: { faceChoice?: boolean } = {}) {
   const { notes: _notes, sources: _sources, ...animation } = model.animation;
   const { layoutOptions: _declared, ...rest } = model;
-  return { ...rest, animation, layoutPolicy: layoutPolicyForModel(model) };
+  const { font: fontPolicy, ...policy } = layoutPolicyForModel(model);
+  return { ...rest, animation, layoutPolicy: faceChoice ? { ...policy, font: fontPolicy } : policy };
 }
+
+/**
+ * The one field a built-in may be AHEAD of its pinned plugin on: the face
+ * choice (`layoutOptions.font`). A plugin published before the choice
+ * existed declares none, which means "the model's own face only"; the
+ * built-in offering more is a superset that draws identically for every
+ * board that chooses nothing, because `font` and `charset` — the face such
+ * a board and an older FiestaBoard draw in — are still compared exactly.
+ * Once the pinned plugin declares a face choice it is compared in full,
+ * so bumping the pin to a plugin that declares it is what closes this gap.
+ */
+const pluginOffersFaceChoice = (m: DeviceModel) => m.layoutOptions?.font !== undefined;
 
 describe("the output-plugin devDependencies", () => {
   it("include the Pixoo, each pinned to a commit or a tag of its public repo", () => {
@@ -195,9 +208,12 @@ describe.each(PLUGINS.map((p) => [p.name, p] as const))("%s", (_name, plugin) =>
       // transition into the same budget. Only the research prose is allowed to
       // differ — the plugin carries `notes` and `sources`; the runtime built-in
       // deliberately does not (bundle budget, see devices.ts).
-      expect(renderingFacts(declared), `${plugin.name}: ${i} disagrees with the built-in`).toEqual(
-        renderingFacts(builtIn),
+      const faceChoice = pluginOffersFaceChoice(declared);
+      expect(renderingFacts(declared, { faceChoice }), `${plugin.name}: ${i} disagrees with the built-in`).toEqual(
+        renderingFacts(builtIn, { faceChoice }),
       );
+      // Ahead, never different: the plugin's one face is one the built-in offers.
+      if (!faceChoice) expect(layoutPolicyForModel(builtIn).font.allowed).toContain(declared.font);
       expect(builtIn.animation.notes).toBeUndefined();
       expect(builtIn.animation.sources).toBeUndefined();
     }
@@ -233,5 +249,17 @@ describe("@fiestaboard/output-divoom-pixoo", () => {
     expect(declared!.animation).not.toHaveProperty("minFrameMs");
     expect(declared).not.toHaveProperty("pixelShape");
     expect(defaultTransitionIdForModel(declared!)).toBe("none");
+  });
+
+  it("is compared on the face choice only once it declares one (the built-in is ahead until the pin bumps)", () => {
+    // The built-in offers 5×7 and 3×5 (2026-10-06 camera test). The pinned
+    // plugin predates the choice; when a pin that declares it lands, the
+    // parity test above compares it in full and this branch goes away.
+    expect(DEVICE_MODELS.divoom_pixoo64.layoutOptions?.font).toEqual({ allowed: ["5x7", "3x5"], default: "5x7" });
+    if (!pluginOffersFaceChoice(declared!)) {
+      expect(layoutPolicyForModel(declared!).font).toEqual({ allowed: ["3x5"], default: "3x5" });
+    } else {
+      expect(layoutPolicyForModel(declared!).font).toEqual(layoutPolicyForModel(DEVICE_MODELS.divoom_pixoo64).font);
+    }
   });
 });

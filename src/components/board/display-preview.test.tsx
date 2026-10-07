@@ -134,6 +134,28 @@ describe("DisplayPreview", () => {
       expect(screen.getByRole("img")).not.toHaveAttribute("data-block-padding");
     });
 
+    it("passes font to an LED renderer when the model offers it, changing the grid; a face it does not offer is ignored for model.font", () => {
+      const twelve = "ABCDEFGHIJKL"; // 12 columns: whole in 3×5 (16 across), cut to 10 in 5×7
+      render(<DisplayPreview model="divoom_pixoo64" message={twelve} />);
+      expect(screen.getByRole("img")).toHaveAttribute("data-font", "3x5");
+      expect(screen.getByRole("img", { name: `LED matrix preview: ${twelve}` })).toBeInTheDocument();
+      cleanup();
+      render(<DisplayPreview model="divoom_pixoo64" message={twelve} font="5x7" />);
+      expect(screen.getByRole("img")).toHaveAttribute("data-font", "5x7");
+      expect(screen.getByRole("img", { name: "LED matrix preview: ABCDEFGHIJ" })).toBeInTheDocument();
+      cleanup();
+      // HUB75 64×32 offers only 5×7: a 3×5 request is dropped, with a dev warning.
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      render(<DisplayPreview model="hub75_64x32" message="HI" font="3x5" />);
+      expect(screen.getByRole("img")).toHaveAttribute("data-font", "5x7");
+      expect(warn).toHaveBeenCalledWith(
+        'LedMatrixDisplay: font="3x5" is not a value hub75_64x32 allows (font: "5x7"); using "5x7".',
+      );
+      cleanup();
+      render(<DisplayPreview model="vestaboard_note" message="HI" font="3x5" />);
+      expect(screen.getByRole("img")).toHaveAttribute("data-slot", "static-board-display");
+    });
+
     it("takes a model object the same as an id", () => {
       render(<DisplayPreview model={DEVICE_MODELS.vestaboard_note} message="HELLO" />);
       expect(tiles()).toBe(3 * 15);

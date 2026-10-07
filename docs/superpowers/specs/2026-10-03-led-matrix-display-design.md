@@ -399,7 +399,8 @@ interface DeviceModel {
   layoutOptions?: {                          // LED only; CHANGES DEVICE BYTES (§7.6): what a board may choose
     tileGap?: { allowed: ("gap" | "fill")[]; default?: "gap" | "fill" };
     blockPadding?: { allowed: (0 | 1)[]; default?: 0 | 1 };
-  };                                         // a field left out is unrestricted with the renderer default
+    font?: { allowed: LedFontId[]; default?: LedFontId };  // a board's face ("text size"), §7.6
+  };                                         // tileGap/blockPadding left out: unrestricted; font left out: [model.font]
   appearance?: {                             // preview-only; never reaches device bytes (Task 2)
     pixelShape?: "round" | "square"; dotRatio?; offColor?; substrateColor?; bezel?; boardColors?;
     options?: Record<string, readonly string[]>;  // fields a board may override, e.g. { board_color: ["black", "white"] }
@@ -886,6 +887,31 @@ the housing when drawn so) goes through it and warns in a dev build;
 ignores them. Storybook: `LedMatrixDisplay` "Tile gap and block padding
 (2×2)" and its monochrome twin, `DisplayPreview` "Pixoo 64, fill and
 padding".
+
+**A board's face (text size).** `layoutOptions.font: { allowed, default? }`
+lets a board choose its face — FiestaBoard's per-board text size, 5×7
+Large / 3×5 Small. A face changes the grid (a Pixoo 64 is 8 × 10 cells in
+5×7, 10 × 16 in 3×5), so unlike the other two a `font` left out is **not**
+unrestricted: it allows only `model.font`. Declared, `allowed` must include
+`model.font`, the model must declare `font`, and `model.charset` must be the
+built-in set drawn in it — the set is _derived_ from the face, never
+declared beside it: `ledCharsetForFont(f)` is the built-in LED set whose
+`font` is `f` (`led_5x7`, `led_3x5`), so an inline or custom set cannot
+offer a choice (schema and `validateDeviceModel` agree; `default ∈ allowed`
+is the validator's alone, as for the other two). `default` is the face a
+NEW board gets and may differ from `model.font`, which stays the face a
+board that chose nothing — and a consumer older than the field — draws in.
+So `ledLayoutOptionsForModel` resolves an unset or refused `font` to
+`model.font`, not to the policy default; `ledSpecForModel(model, { font })`
+and `modelWithLedFont(model, font)` (a copy with `font` and its derived
+`charset` swapped) throw for a face the model does not offer.
+`LedMatrixDisplay` / `DisplayPreview` take a `font` prop gated like
+`tileGap` (with a bare `preset` and no `model`, `LedMatrixDisplay`'s `font`
+still wins as it always has). The built-in Pixoo 64 offers
+`["5x7", "3x5"]`, default `"5x7"`, and keeps `font: "3x5"` /
+`charset: "led_3x5"` — a camera test (2026-10-06) found 3×5 lowercase
+illegible and 5×7 far more readable. Golden: "pixoo 5x7 large grid".
+Storybook: `DisplayPreview` "Pixoo 64, text size Large vs Small".
 
 ## 8. Transitions
 
@@ -1740,3 +1766,12 @@ condensed; the body above is the result.
   margin, different colours never merging, `"gap"` byte-identical to
   before; `DeviceModel.layoutOptions` declares what a board may choose;
   goldens for every rule, a cells-in case and a half-flap transition case.
+
+### Revision 9 — per-board text size (owner, after the 2026-10-06 camera test)
+
+- **Owner:** 3×5 lowercase is illegible on a Pixoo 64 across a room; 5×7 is
+  far more readable → `layoutOptions.font` lets a board choose its face
+  (§7.6), the set derived from the face (`ledCharsetForFont`,
+  `modelWithLedFont`); the built-in Pixoo offers both, gives NEW boards 5×7,
+  and keeps `font: "3x5"` for existing boards and older consumers; models
+  without the field are unchanged byte for byte.
