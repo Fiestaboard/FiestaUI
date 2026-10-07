@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { createContext, memo, useContext, useEffect, useRef, useState } from "react";
 
 import { cn } from "../../lib/utils";
 import { Card, CardDescription, CardTitle } from "../containment/card";
@@ -59,26 +59,47 @@ interface PageCardProps {
  * their `data-slot`s, so a route that has not migrated renders exactly as it
  * does now.
  */
+/**
+ * A toolbar inside the card is a block: margin swapped for block padding.
+ * Shared with `PageOutlet`, which has to say the same thing one level down —
+ * one string so the two cannot drift. (A literal, so Tailwind still sees it.)
+ */
+const TOOLBAR_AS_BLOCK = "[&>[data-slot=page-toolbar]]:mb-0 [&>[data-slot=page-toolbar]]:py-6";
+
+/**
+ * Whether the card has painted once. `PageOutlet` reads it when IT mounts to
+ * tell "the body the page loaded with" (no entrance — the header and `main`
+ * are already making one) from "a body that replaced another" (fade in).
+ * A ref, so flipping it costs no render.
+ */
+const PageCardMounted = createContext<React.RefObject<boolean> | null>(null);
+
 export const PageCard = memo(function PageCard({ children, className, fillHeight }: PageCardProps) {
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+  }, []);
   return (
-    <Card
-      data-slot="page-card"
-      className={cn(
-        // Card's own rhythm is off — the blocks own it.
-        "gap-0 overflow-hidden py-0",
-        // `PageHeader` and `PageToolbar` predate this component and pad
-        // themselves horizontally but not vertically, spacing with a bottom
-        // margin instead. Inside a card they are blocks: swap the margin for
-        // block padding, and give the toolbar the rule above it.
-        "[&>[data-slot=page-header]]:mb-0 [&>[data-slot=page-header]]:py-6",
-        "[&>[data-slot=page-toolbar]]:mb-0 [&>[data-slot=page-toolbar]]:py-6",
-        "[&>[data-slot=page-toolbar]]:border-t",
-        fillHeight && "min-h-0 flex-1",
-        className,
-      )}
-    >
-      {children}
-    </Card>
+    <PageCardMounted value={mounted}>
+      <Card
+        data-slot="page-card"
+        className={cn(
+          // Card's own rhythm is off — the blocks own it.
+          "gap-0 overflow-hidden py-0",
+          // `PageHeader` and `PageToolbar` predate this component and pad
+          // themselves horizontally but not vertically, spacing with a bottom
+          // margin instead. Inside a card they are blocks: swap the margin for
+          // block padding, and give the toolbar the rule above it.
+          "[&>[data-slot=page-header]]:mb-0 [&>[data-slot=page-header]]:py-6",
+          TOOLBAR_AS_BLOCK,
+          "[&>[data-slot=page-toolbar]]:border-t",
+          fillHeight && "min-h-0 flex-1",
+          className,
+        )}
+      >
+        {children}
+      </Card>
+    </PageCardMounted>
   );
 });
 
@@ -213,6 +234,58 @@ export const PageSection = memo(function PageSection({
       ) : (
         children
       )}
+    </div>
+  );
+});
+
+interface PageOutletProps extends React.ComponentProps<"div"> {
+  children: React.ReactNode;
+  /** Under `PageCard fillHeight`: pass the height through to a `PageSection fill` inside. */
+  fill?: boolean;
+}
+
+/**
+ * THE PART OF THE CARD THAT CHANGES WITH THE ROUTE. A section layout renders
+ * `PageHeader`, `PageSubheader`, then this around its router outlet; key it by
+ * the location and the body cross-fades in while the header above it holds
+ * still — the whole point of keeping the header mounted.
+ *
+ * WHY IT IS A BLOCK OF ITS OWN. The fade needs a box, and a box breaks the
+ * card's dividers: a `PageSection` that is the box's first child draws no
+ * top rule, and `PageCard`'s toolbar padding only reaches DIRECT children. So
+ * this draws the rule the first block lost and re-applies the toolbar's
+ * padding one level down. Everything else pads itself, as in `PageCard`.
+ *
+ * NO ENTRANCE ON FIRST LOAD. The body the card mounted with arrives with the
+ * page, which is already making its entrance (`main`'s transition, the
+ * header's fade-in); a third animation on top read as the page stuttering in.
+ * Only a body that REPLACES another — the outlet remounting under a card that
+ * was already up — fades.
+ */
+export const PageOutlet = memo(function PageOutlet({ children, fill, className, ...rest }: PageOutletProps) {
+  const cardMounted = useContext(PageCardMounted);
+  // Read once, at this outlet's mount: was the card already on screen?
+  const [enter] = useState(() => cardMounted?.current ?? false);
+  return (
+    <div
+      data-slot="page-outlet"
+      data-enter={enter ? "" : undefined}
+      // The rule sits on this box and the fade on the one inside it, so the
+      // hairline under the header never dips: on the way back to the hub the
+      // sub-header's own rule clips away, and this one must already be there.
+      className={cn("border-t", fill && "flex min-h-0 flex-1 flex-col", className)}
+      {...rest}
+    >
+      <div
+        className={cn(
+          enter && "animate-page-outlet-enter",
+          TOOLBAR_AS_BLOCK,
+          "[&>[data-slot=page-toolbar]:not(:first-child)]:border-t",
+          fill && "flex min-h-0 flex-1 flex-col",
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 });

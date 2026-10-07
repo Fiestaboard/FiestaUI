@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { GalleryHorizontalEnd } from "lucide-react";
 import { describe, expect, it } from "vitest";
 
-import { PageCard, PageSection } from "./page-card";
+import { PageCard, PageOutlet, PageSection } from "./page-card";
 import { PageHeader } from "./page-header";
 import { PageToolbar } from "./page-toolbar";
 
@@ -117,5 +117,45 @@ describe("PageSection", () => {
     );
     expect(screen.getByText("Interface language and region.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument();
+  });
+});
+
+describe("PageOutlet", () => {
+  it("stamps the slot PageCard divides against, and renders the route body", () => {
+    render(
+      <PageCard>
+        <PageOutlet>
+          <PageSection title="Settings">body</PageSection>
+        </PageOutlet>
+      </PageCard>,
+    );
+    expect(slot("page-outlet")).not.toBeNull();
+    expect(slot("page-outlet")?.parentElement).toBe(slot("page-card"));
+    expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
+  });
+});
+
+describe("PageOutlet entrance", () => {
+  it("does not animate the body the card mounted with", () => {
+    render(
+      <PageCard>
+        <PageOutlet>first</PageOutlet>
+      </PageCard>,
+    );
+    expect(slot("page-outlet")).not.toHaveAttribute("data-enter");
+  });
+
+  it("animates a body that arrives after the card is up", () => {
+    const { rerender } = render(
+      <PageCard>
+        <PageOutlet key="a">first</PageOutlet>
+      </PageCard>,
+    );
+    rerender(
+      <PageCard>
+        <PageOutlet key="b">second</PageOutlet>
+      </PageCard>,
+    );
+    expect(slot("page-outlet")).toHaveAttribute("data-enter");
   });
 });

@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { memo } from "react";
 
 import { cn } from "../../lib/utils";
+import { Reveal } from "./reveal";
 
 // Render-invariant styles, hoisted so re-renders reuse one object each.
 const DEFS_SVG_STYLE: React.CSSProperties = { position: "absolute" };
@@ -73,6 +74,15 @@ interface PageHeaderProps {
    * Omitted, it falls back to hashing `title`.
    */
   hue?: PageHue;
+  /**
+   * The route has drilled into one of its items (a `PageSubheader` below is
+   * open). The h1 stays exactly where it is — it is the hub the reader came
+   * from, and the thing that must not move — while the description and the
+   * action slot tuck away: both describe the LIST, and the list is no longer
+   * on screen. Animated with the sub-header's own expand, so the card's
+   * height trades one block for the other instead of jumping.
+   */
+  collapsed?: boolean;
 }
 
 /**
@@ -122,6 +132,7 @@ export const PageHeader = memo(function PageHeader({
   className,
   animationDelay = "0ms",
   hue,
+  collapsed = false,
 }: PageHeaderProps) {
   const resolved = hue ?? pageHue(title);
   return (
@@ -138,9 +149,21 @@ export const PageHeader = memo(function PageHeader({
           <Icon className={cn("h-6 w-6 flex-shrink-0", HUE_CLASS[resolved])} aria-hidden="true" />
           {title}
         </h1>
-        <p className="page-description">{description}</p>
+        <Reveal open={!collapsed}>
+          <p className="page-description">{description}</p>
+        </Reveal>
       </div>
-      {children}
+      {children != null && (
+        // `-m-1 p-1`: Reveal clips, and the focus ring is a 4px box-shadow
+        // outside the button — without the room it would be cut off on the
+        // action a keyboard user is most likely to land on. Net layout: 0.
+        // `flex`: the slot's children were flex items of the header row, and
+        // an inline Badge dropped into a block box picks up a line box and
+        // sits a few pixels lower (VRT caught it). Same gaps as the row.
+        <Reveal open={!collapsed} innerClassName="-m-1 flex flex-wrap items-start gap-x-6 gap-y-3 p-1">
+          {children}
+        </Reveal>
+      )}
     </div>
   );
 });

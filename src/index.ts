@@ -73,6 +73,7 @@ export * from "./components/chrome/page-card";
 export * from "./components/chrome/page-header";
 export * from "./components/chrome/page-inset";
 export * from "./components/chrome/page-layout";
+export * from "./components/chrome/page-subheader";
 export * from "./components/chrome/page-toolbar";
 export * from "./components/chrome/pagination";
 export * from "./components/chrome/sidebar";

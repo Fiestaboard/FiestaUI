@@ -1377,6 +1377,38 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
   }
 }
 
+/* PageOutlet: the route body settling in under a section header that holds
+   still. FADE ONLY — the sub-header above is already growing, and a translate
+   on top of that growth read as the body sliding twice. Base tier, no delay,
+   so it starts and ends with the header's Reveal: a delay left the card
+   blank between the old body leaving and the new one arriving. */
+@keyframes page-outlet-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-page-outlet-enter {
+  animation: page-outlet-enter var(--motion-duration-base) var(--motion-ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-outlet-enter {
+    animation: none;
+  }
+}
+/* The app's own reduce-motion setting, for the same two pieces. Reveal's
+   media-query guard is a Tailwind variant on the component; this is the
+   class the app stamps on <html>, which no variant can see. */
+.reduce-motion .animate-page-outlet-enter {
+  animation: none;
+}
+.reduce-motion [data-slot="reveal"],
+.reduce-motion [data-slot="reveal"] > * {
+  transition: none;
+}
+
 @keyframes slide-up-enter {
   from {
     opacity: 0;

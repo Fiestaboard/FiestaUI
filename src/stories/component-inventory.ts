@@ -199,6 +199,14 @@ export const INVENTORY = [
         summary: "The whole route in one card — heading, toolbar and content as divider-separated blocks.",
       },
       { name: "PageSection", summary: "A titled block inside a PageCard; what a content Card becomes." },
+      {
+        name: "PageSubheader",
+        summary: "Breadcrumb and item heading that expand under a section's header when the route drills in.",
+      },
+      {
+        name: "PageOutlet",
+        summary: "The route body inside a PageCard; fades in when it replaces another under a still header.",
+      },
       { name: "PageToolbar", summary: "Left/right toolbar row that sits under a PageHeader." },
       {
         name: "PageInset",
