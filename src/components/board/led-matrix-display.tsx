@@ -24,6 +24,13 @@
  * hands every output the same grid, so a preview must take that grid as it
  * is. Both go through the same layout, so they draw the same bytes.
  *
+ * A page's pixel canvases arrive as `layers`: RGBA bitmaps FiestaBoard core
+ * rasterised, drawn over the cells by the same layout and raster (a
+ * `"bitmap"` op per layer) with the same dot look. A photo-like layer can
+ * hold thousands of colours, which the one-path-per-colour painter cannot
+ * afford, so past {@link MAX_COLOR_PATHS} colours a frame paints its lit
+ * dots through an image instead (see `paintLedFrame`).
+ *
  * A message change can animate (`transition`): the old and new layouts are
  * handed to ../../lib/led-transitions, which is a pure function of time, and a
  * `requestAnimationFrame` loop paints `frameAt(t)` until it settles on exactly
@@ -178,6 +185,18 @@ const PITCH = { sm: 4, md: 6, lg: 9 } as const;
  */
 const MIN_ROUND_DOT = 4;
 
+/**
+ * The most distinct colours a frame paints as one `Path2D` per colour. Text,
+ * tiles and icons use a handful; a photo-like layer (a 64×64 canvas can be
+ * 4,096 colours) goes past this, and the frame paints its lit dots through
+ * one image instead: one path for every lit dot, filled once and coloured
+ * by the frame drawn at one pixel per LED (`source-in`, nearest-neighbour)
+ * — two fills and a few `drawImage`s whatever the colour count, where 4,096
+ * paths would be 8,192 fills. Below it the per-colour paths stay, so every
+ * frame without many colours paints exactly as it always has.
+ */
+const MAX_COLOR_PATHS = 64;
+
 /** Backing-store budget, just under Safari's 16,777,216-pixel canvas cap. */
 const MAX_CANVAS_PIXELS = 16_000_000;
 
@@ -208,6 +227,13 @@ interface PaintCache {
   small: HTMLCanvasElement;
   /** The bloom source, `small`'s size; allocated once per size and refilled every paint. */
   image: ImageData | null;
+  /**
+   * A many-colour frame's scratch (see {@link MAX_COLOR_PATHS}): `colors` is
+   * the frame at one pixel per LED (lit pixels opaque, the rest
+   * transparent), `dots` the backing-size canvas its coloured dots are
+   * composed on. Created on the first such frame, reused after.
+   */
+  dense: { colors: HTMLCanvasElement; image: ImageData | null; dots: HTMLCanvasElement } | null;
 }
 const paintCaches = new WeakMap<HTMLCanvasElement, PaintCache>();
 
@@ -256,7 +282,7 @@ function paintLedFrame(
     const small = document.createElement("canvas");
     small.width = width;
     small.height = height;
-    cache = { key, grid, small, image: null };
+    cache = { key, grid, small, image: null, dense: null };
     paintCaches.set(canvas, cache);
   }
   // Setting the size clears the canvas; only do it when it changes, so an
@@ -264,27 +290,43 @@ function paintLedFrame(
   if (canvas.width !== backingW) canvas.width = backingW;
   if (canvas.height !== backingH) canvas.height = backingH;
 
+  // One path per colour while there are few colours; past MAX_COLOR_PATHS
+  // the lit dots are painted through an image instead (`dots`).
   const lit = new Map<number, Path2D>();
-  for (let y = 0; y < height; y++) {
+  let dots: HTMLCanvasElement | null = null;
+  for (let y = 0; y < height && !dots; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 3;
       const rgb = (pixels[i] << 16) | (pixels[i + 1] << 8) | pixels[i + 2];
       if (rgb === 0) continue;
       let path = lit.get(rgb);
       if (!path) {
+        if (lit.size === MAX_COLOR_PATHS) {
+          dots = paintDenseDots(cache, frame, step, round, dot, backingW, backingH);
+          break;
+        }
         path = new Path2D();
         lit.set(rgb, path);
       }
       traceDot(path, round, (x + 0.5) * step, (y + 0.5) * step, dot);
     }
   }
+  if (dots) lit.clear();
+  const anyLit = dots !== null || lit.size > 0;
+  const paintLit = () => {
+    if (dots) {
+      ctx.drawImage(dots, 0, 0);
+      return;
+    }
+    for (const [rgb, path] of lit) {
+      ctx.fillStyle = `#${rgb.toString(16).padStart(6, "0")}`;
+      ctx.fill(path);
+    }
+  };
 
   ctx.fillStyle = look.substrateColor;
   ctx.fillRect(0, 0, backingW, backingH);
-  for (const [rgb, path] of lit) {
-    ctx.fillStyle = `#${rgb.toString(16).padStart(6, "0")}`;
-    ctx.fill(path);
-  }
+  paintLit();
 
   // Bloom: the frame drawn at one pixel per LED, then stretched back over the
   // matrix with smoothing on — bilinear upscaling *is* the blur. That works in
@@ -299,7 +341,7 @@ function paintLedFrame(
   // (`{black/white:…}`) crisp inside a lit block instead of greyed by their
   // neighbours' bloom. (Bloom under every dot was tried first and flattened
   // the lit panels; it was not kept.)
-  if (glow && lit.size > 0) {
+  if (glow && anyLit) {
     const sctx = cache.small.getContext("2d");
     if (sctx) {
       // The bloom source is the lit glyph and tile pixels only: a block
@@ -328,10 +370,64 @@ function paintLedFrame(
   // grid, so the off dots cost a single fill however many LEDs there are.
   ctx.fillStyle = look.offColor;
   ctx.fill(cache.grid);
-  for (const [rgb, path] of lit) {
-    ctx.fillStyle = `#${rgb.toString(16).padStart(6, "0")}`;
-    ctx.fill(path);
+  paintLit();
+}
+
+/**
+ * The lit dots of a many-colour frame, coloured, on a backing-size canvas:
+ * every lit dot traced into one path and filled once, then the frame drawn
+ * over it at one pixel per LED, scaled up without smoothing, with
+ * `source-in` — so each dot takes its own LED's colour and keeps the dot
+ * shape (round, rounded or square) the path gave it. Unlit pixels are
+ * transparent in the colour image and untraced in the path, so they stay
+ * clear for the off grid. Two `drawImage`s of the result (under and over the
+ * bloom, as the per-colour paths are filled) finish the paint.
+ */
+function paintDenseDots(
+  cache: PaintCache,
+  frame: LedFrame,
+  step: number,
+  round: boolean,
+  dot: number,
+  backingW: number,
+  backingH: number,
+): HTMLCanvasElement | null {
+  const { width, height, pixels } = frame;
+  if (!cache.dense) {
+    const colors = document.createElement("canvas");
+    colors.width = width;
+    colors.height = height;
+    cache.dense = { colors, image: null, dots: document.createElement("canvas") };
   }
+  const { colors, dots } = cache.dense;
+  const cctx = colors.getContext("2d");
+  if (dots.width !== backingW) dots.width = backingW;
+  if (dots.height !== backingH) dots.height = backingH;
+  const dctx = dots.getContext("2d");
+  if (!cctx || !dctx) return null;
+  const image = (cache.dense.image ??= cctx.createImageData(width, height));
+  const path = new Path2D();
+  for (let p = 0, i = 0; p < width * height; p++, i += 3) {
+    const on = pixels[i] !== 0 || pixels[i + 1] !== 0 || pixels[i + 2] !== 0;
+    image.data[p * 4] = pixels[i];
+    image.data[p * 4 + 1] = pixels[i + 1];
+    image.data[p * 4 + 2] = pixels[i + 2];
+    image.data[p * 4 + 3] = on ? 255 : 0;
+    if (on) {
+      const x = p % width;
+      traceDot(path, round, (x + 0.5) * step, ((p - x) / width + 0.5) * step, dot);
+    }
+  }
+  cctx.putImageData(image, 0, 0);
+  dctx.save();
+  dctx.clearRect(0, 0, backingW, backingH);
+  dctx.fillStyle = "#ffffff";
+  dctx.fill(path);
+  dctx.globalCompositeOperation = "source-in";
+  dctx.imageSmoothingEnabled = false;
+  dctx.drawImage(colors, 0, 0, backingW, backingH);
+  dctx.restore();
+  return dots;
 }
 
 export const LedMatrixDisplay = memo(function LedMatrixDisplay({
@@ -351,6 +447,7 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
   charset: charsetProp,
   tileGap: tileGapProp,
   blockPadding: blockPaddingProp,
+  layers,
   transition,
   announceUpdates = false,
   className,
@@ -409,11 +506,11 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
 
   const layout = useMemo(() => {
     const spec = { width, height, font: fontId };
-    const options = { textColor, monochrome: mono, letterCase, charset, tileGap, blockPadding };
+    const options = { textColor, monochrome: mono, letterCase, charset, tileGap, blockPadding, layers };
     return cells !== undefined
       ? layoutLedCellGrid(cells, spec, options)
       : layoutLedMessage(message ?? "", spec, options);
-  }, [cells, message, width, height, fontId, textColor, mono, letterCase, charset, tileGap, blockPadding]);
+  }, [cells, message, width, height, fontId, textColor, mono, letterCase, charset, tileGap, blockPadding, layers]);
   const frame = useMemo(() => rasterizeLedLayout(layout), [layout]);
   // The block-span fields of what the canvas shows, kept off the bloom.
   const blockMask = useMemo(() => ledBackgroundMask(layout), [layout]);
@@ -436,7 +533,8 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
   // Named from what the matrix shows, not the whole message — see LedLayout.text.
   // A cell grid is "empty" when it draws nothing at all: a cleared board
   // arrives as a grid of blanks, not as a missing one.
-  const empty = cells !== undefined ? layout.ops.length === 0 && layout.text === "" : !message;
+  // A board showing only a canvas (layers, no text) is not empty either.
+  const empty = cells !== undefined ? layout.ops.length === 0 && layout.text === "" : !message && !layout.layers;
   const label = useMemo(() => {
     if (empty) return emptyLabel;
     if (previewLabel !== undefined) return previewLabel;
@@ -588,6 +686,7 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
         data-model={deviceModel?.id}
         data-unknown-model={unknownModel}
         data-cells-mismatch={cellsMismatch ?? undefined}
+        data-layers={layout.layers?.length}
         data-transition={activeTransition ? activeTransition.kind : "none"}
         data-transition-source={resolved.source}
         data-transition-fallback={resolved.source === "fallback" ? resolved.requested : undefined}

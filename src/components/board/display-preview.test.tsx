@@ -468,3 +468,38 @@ describe("DisplayPreview", () => {
     });
   });
 });
+
+describe("DisplayPreview bitmap layers", () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const layer = { x: 0, y: 0, width: 2, height: 2, rgba: new Uint8ClampedArray(16).fill(255) };
+
+  it("hands layers to an LED matrix", () => {
+    render(<DisplayPreview model="divoom_pixoo64" message="HI" layers={[layer, layer]} />);
+    expect(slot()).toBe("led-matrix-display");
+    expect(screen.getByRole("img")).toHaveAttribute("data-layers", "2");
+  });
+
+  it("a split-flap board ignores them: the same board, with or without layers", () => {
+    const { container } = render(<DisplayPreview model="vestaboard_flagship" message="HELLO" />);
+    const without = container.innerHTML;
+    cleanup();
+    const { container: withLayers } = render(
+      <DisplayPreview model="vestaboard_flagship" message="HELLO" layers={[layer]} transition="flip" />,
+    );
+    expect(slot()).toBe("board-display");
+    expect(screen.getByRole("img")).not.toHaveAttribute("data-layers");
+    cleanup();
+    const { container: staticWithLayers } = render(
+      <DisplayPreview model="vestaboard_flagship" message="HELLO" layers={[layer]} />,
+    );
+    expect(staticWithLayers.innerHTML).toBe(without);
+    expect(withLayers).toBeDefined();
+  });
+});

@@ -170,6 +170,8 @@ describe("LED golden cases", () => {
       ...(expected.pluginModel ? { pluginModel: expected.pluginModel } : {}),
       ...(expected.fps ? { fps: expected.fps } : {}),
       ...(expected.before ? { before: expected.before } : {}),
+      ...(expected.fromLayers ? { fromLayers: expected.fromLayers } : {}),
+      ...(expected.toLayers ? { toLayers: expected.toLayers } : {}),
     });
     if (c.before)
       layoutLedMessage(c.before.message, c.before.spec, { charset: materializeCharacterSet(c.before.charset) });
@@ -180,8 +182,8 @@ describe("LED golden cases", () => {
     expect(json(spec)).toEqual(expected.resolvedSpec);
     expect(spec).not.toBe("none");
     const layoutOptions = { ...c.options, charset: pluginCharset };
-    const from = layoutLedMessage(c.from, c.spec, layoutOptions);
-    const to = layoutLedMessage(c.to, c.spec, layoutOptions);
+    const from = layoutLedMessage(c.from, c.spec, { ...layoutOptions, layers: c.fromLayers });
+    const to = layoutLedMessage(c.to, c.spec, { ...layoutOptions, layers: c.toLayers });
     const tr = planLedTransition(from, to, spec as Exclude<typeof spec, "none">);
     expect({ durationMs: tr.durationMs, frameCount: tr.frameCount, width: tr.to.width, height: tr.to.height }).toEqual({
       durationMs: expected.durationMs,
@@ -196,8 +198,10 @@ describe("LED golden cases", () => {
     for (const c of GOLDEN_TRANSITION_CASES) {
       const g = golden.transitions.find((t: { name: string }) => t.name === c.name);
       const charset = c.pluginModel ? materializeCharacterSet(c.pluginModel.charset) : undefined;
-      const from = rasterizeLedLayout(layoutLedMessage(c.from, c.spec, { ...c.options, charset }));
-      const to = rasterizeLedLayout(layoutLedMessage(c.to, c.spec, { ...c.options, charset }));
+      const from = rasterizeLedLayout(
+        layoutLedMessage(c.from, c.spec, { ...c.options, charset, layers: c.fromLayers }),
+      );
+      const to = rasterizeLedLayout(layoutLedMessage(c.to, c.spec, { ...c.options, charset, layers: c.toLayers }));
       expect(g.frames[0], c.name).toBe(b64(from.pixels));
       expect(g.frames.at(-1), c.name).toBe(b64(to.pixels));
       if (g.frameCount !== null) expect(g.frames, c.name).toHaveLength(g.frameCount);
