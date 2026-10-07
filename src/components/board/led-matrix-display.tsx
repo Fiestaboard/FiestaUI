@@ -46,6 +46,7 @@ import {
   type DeviceModelRef,
   ledLayoutOptionsForModel,
   ledSpecForModel,
+  modelWithLedFont,
   tryResolveDeviceModel,
 } from "../../lib/devices";
 import { type LedFontId } from "../../lib/led-fonts";
@@ -104,7 +105,15 @@ export interface LedMatrixDisplayProps extends LedLayoutOptions {
   matrixWidth?: number;
   /** Pixels down. Defaults to the preset's, else 32. */
   matrixHeight?: number;
-  /** Bitmap font. Defaults to the preset's, else `"5x7"`. */
+  /**
+   * Bitmap font — a board's face ("text size": `"5x7"` Large, `"3x5"`
+   * Small), which sets the character grid. With a `model` it is gated like
+   * `tileGap`: a face the model's `layoutOptions.font` offers wins and the
+   * set follows it (`modelWithLedFont`); any other is ignored for the
+   * model's own `font`, with a dev warning. Without a model it stands as
+   * given — over a `preset`'s, as it always has. Defaults to the model's or
+   * preset's face, else `"5x7"`.
+   */
   font?: LedFontId;
   /** LED pitch: `sm` 4, `md` 6, `lg` 9 CSS px per LED, or an explicit number
    *  of CSS px. Defaults to `"md"`. */
@@ -352,29 +361,39 @@ export const LedMatrixDisplay = memo(function LedMatrixDisplay({
 }: LedMatrixDisplayProps) {
   const lookup = model !== undefined ? tryResolveDeviceModel(model) : undefined;
   const unknownModel = lookup?.error !== undefined ? String(model) : undefined;
-  const deviceModel: DeviceModel | undefined = lookup?.model ?? (preset ? deviceModelForPreset(preset) : undefined);
-  // Geometry, face and look come from the model itself (a plugin's has no preset).
-  const geometry = deviceModel ? ledSpecForModel(deviceModel) : null;
-  const width = matrixWidth ?? geometry?.width ?? 64;
-  const height = matrixHeight ?? geometry?.height ?? 32;
-  const fontId = font ?? geometry?.font ?? "5x7";
-  const pitch = typeof size === "number" ? Math.max(1, size) : PITCH[size];
-  const mono = monochrome ?? (deviceModel?.color.kind === "monochrome" ? deviceModel.color.color : undefined);
-  const charset = charsetProp ?? (deviceModel ? characterSetForModel(deviceModel) : undefined);
+  const explicitModel = lookup?.model;
+  const deviceModel: DeviceModel | undefined = explicitModel ?? (preset ? deviceModelForPreset(preset) : undefined);
   // The byte-changing layout choices, gated by the model: an explicit value
   // it allows, else its default (a dev build says why). Without a model
-  // there is nothing to ask, and an explicit value stands.
+  // there is nothing to ask, and an explicit value stands. The face is
+  // gated only by a `model`: with a bare `preset`, `font` has always won.
   const {
     tileGap,
     blockPadding,
+    font: gatedFont,
     ignored: ignoredLayout,
   } = deviceModel
-    ? ledLayoutOptionsForModel(deviceModel, { tileGap: tileGapProp, blockPadding: blockPaddingProp })
+    ? ledLayoutOptionsForModel(deviceModel, {
+        tileGap: tileGapProp,
+        blockPadding: blockPaddingProp,
+        font: explicitModel ? font : undefined,
+      })
     : {
         tileGap: tileGapProp ?? DEFAULT_LED_TILE_GAP,
         blockPadding: blockPaddingProp ?? DEFAULT_LED_BLOCK_PADDING,
+        font: undefined,
         ignored: [],
       };
+  // A board's face swaps the model's set with it (5×7 draws led_5x7).
+  const faceModel = explicitModel && gatedFont ? modelWithLedFont(explicitModel, gatedFont) : deviceModel;
+  // Geometry, face and look come from the model itself (a plugin's has no preset).
+  const geometry = faceModel ? ledSpecForModel(faceModel) : null;
+  const width = matrixWidth ?? geometry?.width ?? 64;
+  const height = matrixHeight ?? geometry?.height ?? 32;
+  const fontId = (explicitModel ? gatedFont : font) ?? geometry?.font ?? "5x7";
+  const pitch = typeof size === "number" ? Math.max(1, size) : PITCH[size];
+  const mono = monochrome ?? (deviceModel?.color.kind === "monochrome" ? deviceModel.color.color : undefined);
+  const charset = charsetProp ?? (faceModel ? characterSetForModel(faceModel) : undefined);
   const ignoredLayoutKey = ignoredLayout.join("\n");
   useEffect(() => {
     if (ignoredLayoutKey && isDevBuild()) {

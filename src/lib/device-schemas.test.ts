@@ -89,12 +89,24 @@ const pixoo = () => json(DEVICE_MODELS.divoom_pixoo64);
 const flagship = () => json(DEVICE_MODELS.vestaboard_flagship);
 const led5x7 = () => json(CHARACTER_SETS.led_5x7);
 const v1 = () => json(CHARACTER_SETS.vestaboard_v1);
+const withFont = (font: unknown) => {
+  const m = pixoo();
+  return { ...m, layoutOptions: { ...m.layoutOptions, font } };
+};
 
 const DEVICE_TABLE: Array<[string, boolean, () => unknown]> = [
   ["a built-in LED model", true, pixoo],
   ["a built-in split-flap model with charsetByCode62", true, flagship],
   ["the plugin sign with an embedded partial set", true, () => json(ACME_SIGN_MODEL)],
-  ["an embedded full set", true, () => ({ ...pixoo(), charset: led5x7() })],
+  [
+    "an embedded full set (on a model offering no face choice)",
+    true,
+    () => {
+      const m = { ...pixoo(), charset: led5x7() };
+      delete m.layoutOptions!.font;
+      return m;
+    },
+  ],
   [
     "no appearance, no legacy, no font",
     true,
@@ -103,6 +115,8 @@ const DEVICE_TABLE: Array<[string, boolean, () => unknown]> = [
       delete m.appearance;
       delete m.legacy;
       delete m.font;
+      // A model with no face of its own has no face choice to offer.
+      delete m.layoutOptions!.font;
       return m;
     },
   ],
@@ -259,6 +273,33 @@ const DEVICE_TABLE: Array<[string, boolean, () => unknown]> = [
     false,
     () => ({ ...pixoo(), layoutOptions: { blockPadding: { allowed: [1], values: [1] } } }),
   ],
+  ["the built-in Pixoo's face choice (5×7 and 3×5, NEW boards 5×7, its own face 3×5)", true, pixoo],
+  ["a face choice of one", true, () => withFont({ allowed: ["3x5"] })],
+  [
+    "a face choice on a 5×7 model with its paired set",
+    true,
+    () => ({ ...withFont({ allowed: ["5x7", "3x5"], default: "3x5" }), font: "5x7", charset: "led_5x7" }),
+  ],
+  ["a face choice that is not an object", false, () => withFont("5x7")],
+  ["a face choice without allowed", false, () => withFont({ default: "5x7" })],
+  ["an empty face choice", false, () => withFont({ allowed: [] })],
+  ["a repeated face", false, () => withFont({ allowed: ["3x5", "3x5"] })],
+  ["an unknown face", false, () => withFont({ allowed: ["3x5", "8x8"] })],
+  ["an unknown face default", false, () => withFont({ allowed: ["3x5"], default: "8x8" })],
+  ["an unknown key inside the face choice", false, () => withFont({ allowed: ["3x5"], sizes: ["3x5"] })],
+  ["a face choice that leaves out the model's own face", false, () => withFont({ allowed: ["5x7"] })],
+  [
+    "a face choice on a model with no face of its own",
+    false,
+    () => {
+      const m = pixoo();
+      delete m.font;
+      return m;
+    },
+  ],
+  ["a face choice whose set is drawn in the other face", false, () => ({ ...pixoo(), charset: "led_5x7" })],
+  ["a face choice with a flap set", false, () => ({ ...pixoo(), charset: "vestaboard_v2" })],
+  ["a face choice with an embedded set", false, () => ({ ...pixoo(), charset: json(CHARACTER_SETS.led_3x5) })],
 ];
 
 const CHARSET_TABLE: Array<[string, boolean, () => unknown]> = [
@@ -332,6 +373,9 @@ describe("validateDeviceModel agrees with device-model.schema.json", () => {
     const d = { ...pixoo(), layoutOptions: { tileGap: { allowed: ["gap"], default: "fill" } } };
     expect(validDevice(d)).toBe(true);
     expect(validateDeviceModel(d).errors).toEqual(["layoutOptions.tileGap.default: one of allowed"]);
+    const f = withFont({ allowed: ["3x5"], default: "5x7" });
+    expect(validDevice(f)).toBe(true);
+    expect(validateDeviceModel(f).errors).toEqual(["layoutOptions.font.default: one of allowed"]);
   });
 });
 

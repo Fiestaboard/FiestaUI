@@ -41,6 +41,12 @@ const meta = {
       description:
         "LED: light the gutter between same-colour tiles and blocks (fill) or not (gap). Gated by the model's layoutOptions; unset is the model's default",
     },
+    font: {
+      control: "select",
+      options: [undefined, "5x7", "3x5"],
+      description:
+        "LED: the board's face (text size: 5x7 Large, 3x5 Small), which sets the grid. Gated by the model's layoutOptions.font; unset is the model's own font",
+    },
     blockPadding: {
       control: "select",
       options: [undefined, 0, 1],
@@ -129,6 +135,30 @@ export const Pixoo64FillAndPadding: Story = {
     tileGap: "fill",
     blockPadding: 1,
   },
+};
+
+/**
+ * Text size on the Pixoo 64 — the face a board chooses, offered by the
+ * model's `layoutOptions.font`. Large (5×7, the face a NEW board gets) is
+ * 8 × 10 cells; Small (3×5, the model's own `font`, which an existing board
+ * keeps) is 10 × 16. A camera test (2026-10-06) found 3×5 lowercase
+ * illegible across a room and 5×7 far more readable; the cost is the grid,
+ * so the same page clips at ten columns in Large.
+ */
+export const Pixoo64TextSize: Story = {
+  name: "Pixoo 64, text size Large vs Small",
+  args: {
+    model: "divoom_pixoo64",
+    message: "Mon Oct 3\n{icon:bell} 09:30\nStandup\n{icon:sun} 72° Sunny\n{66}{66}{66} 3 left",
+    letterCase: "mixed",
+    size: "sm",
+  },
+  render: (args) => (
+    <div className="flex flex-wrap items-start justify-center gap-6">
+      <DisplayPreview {...args} font="5x7" previewLabel="Large text (5×7)" />
+      <DisplayPreview {...args} font="3x5" previewLabel="Small text (3×5)" />
+    </div>
+  ),
 };
 
 export const Hub75_128x64: Story = {

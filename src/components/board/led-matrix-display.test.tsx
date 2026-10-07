@@ -628,3 +628,46 @@ describe("LedMatrixDisplay tileGap and blockPadding", () => {
     expect(screen.getByRole("img")).toHaveAttribute("data-block-padding", "1");
   });
 });
+
+describe("LedMatrixDisplay font", () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const blankGrid = (rows: number, cols: number): BoardToken[][] =>
+    Array.from({ length: rows }, () =>
+      Array.from({ length: cols }, () => ({ type: "char", value: " " }) as BoardToken),
+    );
+
+  it("a face the model offers sets the grid: the Pixoo is 8×10 in 5×7 and 10×16 in its own 3×5", () => {
+    render(<LedMatrixDisplay cells={blankGrid(8, 10)} model="divoom_pixoo64" font="5x7" />);
+    expect(screen.getByRole("img")).toHaveAttribute("data-font", "5x7");
+    expect(screen.getByRole("img")).not.toHaveAttribute("data-cells-mismatch");
+    cleanup();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<LedMatrixDisplay cells={blankGrid(8, 10)} model="divoom_pixoo64" />);
+    expect(screen.getByRole("img")).toHaveAttribute("data-font", "3x5");
+    expect(screen.getByRole("img")).toHaveAttribute("data-cells-mismatch");
+    cleanup();
+    render(<LedMatrixDisplay cells={blankGrid(10, 16)} model="divoom_pixoo64" font="3x5" />);
+    expect(screen.getByRole("img")).not.toHaveAttribute("data-cells-mismatch");
+  });
+
+  it("a face the model does not offer is ignored for the model's own, with a dev warning and no throw", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<LedMatrixDisplay message="HI" model="hub75_64x32" font="3x5" />);
+    expect(screen.getByRole("img")).toHaveAttribute("data-font", "5x7");
+    expect(warn).toHaveBeenCalledWith(
+      'LedMatrixDisplay: font="3x5" is not a value hub75_64x32 allows (font: "5x7"); using "5x7".',
+    );
+  });
+
+  it("with only a preset (no model), an explicit face still wins, as it always has", () => {
+    render(<LedMatrixDisplay message="HI" preset="hub75_64x32" font="3x5" />);
+    expect(screen.getByRole("img")).toHaveAttribute("data-font", "3x5");
+  });
+});

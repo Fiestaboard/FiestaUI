@@ -35,6 +35,7 @@ import type { Code62Glyph } from "./board-characters";
 import type { DeviceType } from "./board-dimensions";
 import {
   CHARACTER_SET_IDS,
+  CHARACTER_SETS,
   type CharacterSet,
   type CharacterSetId,
   type CharacterSetInput,
@@ -153,7 +154,7 @@ export interface DeviceAppearance {
 
 /**
  * Which values of the byte-changing LED layout options (`tileGap`,
- * `blockPadding` in {@link LedLayoutOptions}) a board on this model may
+ * `blockPadding` in {@link LedLayoutOptions}, and the face, `font`) a board on this model may
  * choose, and which it gets when it chooses nothing. **Not appearance**:
  * these change the frame a device is sent, so they are declared beside the
  * geometry and the font, and FiestaBoard's settings screen offers exactly
@@ -167,12 +168,28 @@ export interface DeviceAppearance {
 export interface DeviceLayoutOptions {
   tileGap?: { allowed: readonly LedTileGap[]; default?: LedTileGap };
   blockPadding?: { allowed: readonly LedBlockPadding[]; default?: LedBlockPadding };
+  /**
+   * The faces a board may be set in — FiestaBoard's per-board "text size"
+   * (5×7 Large, 3×5 Small). Unlike the other two, an undeclared `font` is
+   * **not** unrestricted: it is the model's own face only (`[model.font]`),
+   * because a face changes the grid. Declared, `allowed` must include
+   * `model.font`, and `model.charset` must be the built-in set drawn in
+   * `model.font` (`led_3x5` for 3×5): a board's set is *derived* from its
+   * face ({@link ledCharsetForFont}, {@link modelWithLedFont}), so an inline
+   * or custom set cannot offer a choice. `default` is the face a NEW board
+   * is created with and may differ from `model.font`; `model.font` stays the
+   * face a consumer that predates the choice (or a board that chose
+   * nothing) draws in.
+   */
+  font?: { allowed: readonly LedFontId[]; default?: LedFontId };
 }
 
 /** {@link DeviceLayoutOptions} with nothing left out: what a model actually permits. */
 export interface LedLayoutPolicy {
   tileGap: { allowed: readonly LedTileGap[]; default: LedTileGap };
   blockPadding: { allowed: readonly LedBlockPadding[]; default: LedBlockPadding };
+  /** The faces a board may choose; `default` is a NEW board's (see {@link DeviceLayoutOptions.font}). */
+  font: { allowed: readonly LedFontId[]; default: LedFontId };
 }
 
 /**
@@ -245,7 +262,7 @@ const DEVICE_MODEL_KEYS = new Set([
   "appearance",
   "legacy",
 ]);
-const LAYOUT_OPTION_KEYS = new Set(["tileGap", "blockPadding"]);
+const LAYOUT_OPTION_KEYS = new Set(["tileGap", "blockPadding", "font"]);
 const APPEARANCE_KEYS = new Set([
   "pixelShape",
   "dotRatio",
@@ -400,7 +417,16 @@ export const DEVICE_MODELS: Readonly<Record<DeviceModelId, DeviceModel>> = {
   // exported, until the next major. It is not tagged `@deprecated` because
   // the id is also a `DeviceModelId` and a `legacy.preset` target, which a
   // tag on this property could not cover.
-  divoom_pixoo64: ledModel("divoom_pixoo64", "pixoo64", "divoom", { delivery: "stream", maxFps: 2 }, SQUARE_LED),
+  //
+  // Text size (camera test on a Pixoo 64, 2026-10-06): 3×5 lowercase is
+  // illegible across a room and 5×7 far more readable, so a board may
+  // choose its face — 5×7 (8 × 10 cells) or 3×5 (10 × 16) — and a NEW board
+  // gets 5×7. `font` / `charset` stay 3×5: the face an existing board, and
+  // a FiestaBoard that predates the choice, keeps drawing in.
+  divoom_pixoo64: {
+    ...ledModel("divoom_pixoo64", "pixoo64", "divoom", { delivery: "stream", maxFps: 2 }, SQUARE_LED),
+    layoutOptions: { ...LED_LAYOUT_OPTIONS, font: { allowed: ["5x7", "3x5"], default: "5x7" } },
+  },
   // UNMEASURED: no documented push rate and no test device. Held at a nominal
   // 2 fps — below every animated entry's minimum — so it stays on "none"
   // until someone measures it.
@@ -603,6 +629,34 @@ export function validateDeviceModel(json: unknown): ValidationResult {
       };
       choice("tileGap", isLedTileGap, '"gap" | "fill"');
       choice("blockPadding", isLedBlockPadding, "0 | 1");
+      const fonts = Object.keys(LED_FONTS);
+      choice("font", isLedFontId, fonts.map((f) => JSON.stringify(f)).join(" | "));
+      // A face choice derives the set from the face, so the model's own pair
+      // must be the built-in one: its font, and the set drawn in it.
+      const fc = lo.font;
+      if (fc !== undefined) {
+        if (m.font === undefined) errors.push("font: required when layoutOptions.font is declared");
+        else if (isLedFontId(m.font)) {
+          // Only a well-formed list is checked for it; a malformed one already said so.
+          if (
+            isPlainObject(fc) &&
+            Array.isArray(fc.allowed) &&
+            fc.allowed.length > 0 &&
+            fc.allowed.every(isLedFontId) &&
+            new Set(fc.allowed).size === fc.allowed.length
+          ) {
+            if (!fc.allowed.includes(m.font)) {
+              errors.push(`layoutOptions.font.allowed: must include the model's own font ("${m.font}")`);
+            }
+          }
+          const paired = ledCharsetForFont(m.font);
+          if (m.charset !== paired) {
+            errors.push(
+              `charset: "${paired}" (the built-in set drawn in font "${m.font}") when layoutOptions.font is declared`,
+            );
+          }
+        }
+      }
     }
   }
   if (m.appearance !== undefined) {
@@ -687,6 +741,7 @@ export function characterSetForModel(model: DeviceModel, code62Glyph?: Code62Gly
  */
 export function layoutPolicyForModel(model: DeviceModel): LedLayoutPolicy {
   const lo = model.layoutOptions ?? {};
+  const own = ownLedFont(model);
   const resolve = <T>(choice: { allowed: readonly T[]; default?: T } | undefined, all: readonly T[], fallback: T) => {
     if (!choice) return { allowed: all, default: fallback };
     const allowed = choice.allowed;
@@ -696,6 +751,9 @@ export function layoutPolicyForModel(model: DeviceModel): LedLayoutPolicy {
   return {
     tileGap: resolve(lo.tileGap, LED_TILE_GAPS, DEFAULT_LED_TILE_GAP),
     blockPadding: resolve(lo.blockPadding, LED_BLOCK_PADDINGS, DEFAULT_LED_BLOCK_PADDING),
+    // Undeclared is the model's own face only: a face changes the grid, so
+    // no model gains one it never declared.
+    font: resolve(lo.font, [own], own),
   };
 }
 
@@ -709,8 +767,8 @@ export function layoutPolicyForModel(model: DeviceModel): LedLayoutPolicy {
  */
 export function ledLayoutOptionsForModel(
   model: DeviceModel,
-  requested: Pick<LedLayoutOptions, "tileGap" | "blockPadding"> = {},
-): { tileGap: LedTileGap; blockPadding: LedBlockPadding; ignored: string[] } {
+  requested: Pick<LedLayoutOptions, "tileGap" | "blockPadding"> & { font?: LedFontId } = {},
+): { tileGap: LedTileGap; blockPadding: LedBlockPadding; font: LedFontId; ignored: string[] } {
   const policy = layoutPolicyForModel(model);
   const ignored: string[] = [];
   const pick = <T>(name: string, value: T | undefined, choice: { allowed: readonly T[]; default: T }): T => {
@@ -724,6 +782,10 @@ export function ledLayoutOptionsForModel(
   return {
     tileGap: pick("tileGap", requested.tileGap, policy.tileGap),
     blockPadding: pick("blockPadding", requested.blockPadding, policy.blockPadding),
+    // Unset (or refused) is the model's own face, not the policy default:
+    // that default is the face a NEW board is created with, and a board
+    // that chose nothing draws exactly what it drew before the choice existed.
+    font: pick("font", requested.font, { allowed: policy.font.allowed, default: ownLedFont(model) }),
     ignored,
   };
 }
@@ -732,15 +794,63 @@ export function ledLayoutOptionsForModel(
  * The LED spec a model renders at, for `layoutLedMessage`: its pixels, its
  * face, and its defaults for the byte-changing layout options
  * ({@link layoutPolicyForModel}), which an explicit layout option overrides.
+ * `font` sets a board's chosen face (the grid follows it); it must be one the
+ * model offers, else this throws — gate a stored board setting with
+ * {@link ledLayoutOptionsForModel} first. Unset, the face is `model.font`.
  */
-export function ledSpecForModel(model: DeviceModel): LedMatrixSpec | null {
+export function ledSpecForModel(model: DeviceModel, options: { font?: LedFontId } = {}): LedMatrixSpec | null {
   if (model.geometry.kind !== "pixels") return null;
   const policy = layoutPolicyForModel(model);
+  if (options.font !== undefined) assertLedFontOffered(model, options.font);
   return {
     width: model.geometry.width,
     height: model.geometry.height,
-    font: model.font,
+    font: options.font ?? model.font,
     tileGap: policy.tileGap.default,
     blockPadding: policy.blockPadding.default,
   };
+}
+
+const isLedFontId = (v: unknown): v is LedFontId => typeof v === "string" && Object.hasOwn(LED_FONTS, v);
+
+/** The face a model draws in when nothing is chosen: its own, else the renderer's default. */
+function ownLedFont(model: DeviceModel): LedFontId {
+  return model.font ?? DEFAULT_LED_FONT;
+}
+
+/** The renderer's face when a spec names none (`ledGridLayout`). */
+const DEFAULT_LED_FONT: LedFontId = "5x7";
+
+function assertLedFontOffered(model: DeviceModel, font: LedFontId): void {
+  const { allowed } = layoutPolicyForModel(model).font;
+  if (!allowed.includes(font)) {
+    throw new Error(
+      `${model.id} does not offer font "${font}" (font: ${allowed.map((f) => JSON.stringify(f)).join(", ")})`,
+    );
+  }
+}
+
+/**
+ * The built-in LED character set drawn in a face — `led_5x7` for 5×7,
+ * `led_3x5` for 3×5. A board's set is derived from its face this way, never
+ * declared beside it (see {@link DeviceLayoutOptions.font}).
+ */
+export function ledCharsetForFont(font: LedFontId): CharacterSetId {
+  const id = CHARACTER_SET_IDS.find((i) => CHARACTER_SETS[i].font === font);
+  if (!id) throw new Error(`No built-in LED character set is drawn in font "${font}"`);
+  return id;
+}
+
+/**
+ * The model a board that chose `font` draws as: a copy with `font` and its
+ * derived `charset` ({@link ledCharsetForFont}) swapped in, everything else
+ * (layout choices included) the same — so `ledSpecForModel`,
+ * `characterSetForModel` and the editor all follow the board's face. The
+ * model's own face returns the model itself. A face the model does not
+ * offer throws: gate a stored setting with {@link ledLayoutOptionsForModel}.
+ */
+export function modelWithLedFont(model: DeviceModel, font: LedFontId): DeviceModel {
+  if (font === ownLedFont(model)) return model;
+  assertLedFontOffered(model, font);
+  return { ...model, font, charset: ledCharsetForFont(font) };
 }

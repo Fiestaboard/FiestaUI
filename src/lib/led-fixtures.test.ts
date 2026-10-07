@@ -19,7 +19,7 @@ import {
   GOLDEN_PLUGIN_CHARSETS,
   goldenCharacterSet,
 } from "./charset-golden-cases";
-import { DEVICE_MODEL_IDS, DEVICE_MODELS, type DeviceModel } from "./devices";
+import { DEVICE_MODEL_IDS, DEVICE_MODELS, type DeviceModel, layoutPolicyForModel, ledSpecForModel } from "./devices";
 import { LED_FONTS } from "./led-fonts";
 import { GOLDEN_LAYOUT_CASES, GOLDEN_TRANSITION_CASES } from "./led-golden-cases";
 import { layoutLedCellGrid, layoutLedMessage, ledGlyphEntry, ledGlyphKey, rasterizeLedLayout } from "./led-matrix";
@@ -141,6 +141,20 @@ describe("LED golden cases", () => {
       expect(layout.options, c.name).not.toHaveProperty("tileGap");
       expect(layout.options, c.name).not.toHaveProperty("blockPadding");
     }
+  });
+
+  it("covers the Pixoo in both faces a board may choose, at the specs ledSpecForModel gives them", () => {
+    const pixoo = DEVICE_MODELS.divoom_pixoo64;
+    for (const font of layoutPolicyForModel(pixoo).font.allowed) {
+      const { tileGap: _g, blockPadding: _p, ...spec } = ledSpecForModel(pixoo, { font })!;
+      const c = GOLDEN_LAYOUT_CASES.find(
+        (g) => g.name === `pixoo ${font} ${font === "5x7" ? "large" : "default"} grid`,
+      );
+      expect(c?.spec, font).toEqual(spec);
+    }
+    const large = golden.layouts.find((g: { name: string }) => g.name === "pixoo 5x7 large grid");
+    // Ten columns: the icon, a space, "09:30", a space and "St".
+    expect(large.text).toBe("Mon Oct 3 bell 09:30 St");
   });
 
   it.each(GOLDEN_TRANSITION_CASES.map((c) => [c.name, c] as const))("transition: %s", (name, c) => {

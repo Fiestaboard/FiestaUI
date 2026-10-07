@@ -19,14 +19,17 @@ import {
   deviceModelForPreset,
   isDeviceModelId,
   layoutPolicyForModel,
+  ledCharsetForFont,
   ledLayoutOptionsForModel,
   ledSpecForModel,
   modelsByTechnology,
+  modelWithLedFont,
   resolveDeviceModel,
   tryResolveDeviceModel,
   validateDeviceModel,
 } from "./devices";
-import { LED_MATRIX_PRESETS, type LedMatrixPresetId } from "./led-matrix";
+import { LED_FONTS, type LedFontId } from "./led-fonts";
+import { LED_MATRIX_PRESETS, ledGridLayout, type LedMatrixPresetId } from "./led-matrix";
 import { defaultTransitionIdForModel, transitionSpecForDevice } from "./led-transition-registry";
 
 describe("device taxonomy", () => {
@@ -289,11 +292,17 @@ describe("appearance is preview-only data on every built-in", () => {
 describe("layoutOptions: the byte-changing layout choices a model allows", () => {
   it("every built-in LED model allows both tile gaps and both paddings and defaults to today's; split-flap models declare none", () => {
     for (const m of modelsByTechnology("led_matrix")) {
-      expect(m.layoutOptions, m.id).toEqual({
+      const { font: fontChoice, ...gapAndPadding } = m.layoutOptions!;
+      expect(gapAndPadding, m.id).toEqual({
         tileGap: { allowed: ["gap", "fill"], default: "gap" },
         blockPadding: { allowed: [0, 1], default: 0 },
       });
-      expect(layoutPolicyForModel(m), m.id).toEqual(m.layoutOptions);
+      // Only the Pixoo offers a second face; every other model keeps its one.
+      if (m.id !== "divoom_pixoo64") expect(fontChoice, m.id).toBeUndefined();
+      expect(layoutPolicyForModel(m), m.id).toEqual({
+        ...gapAndPadding,
+        font: fontChoice ?? { allowed: [m.font], default: m.font },
+      });
       expect(ledSpecForModel(m), m.id).toMatchObject({ tileGap: "gap", blockPadding: 0 });
     }
     for (const m of modelsByTechnology("split_flap")) expect(m.layoutOptions, m.id).toBeUndefined();
@@ -305,11 +314,13 @@ describe("layoutOptions: the byte-changing layout choices a model allows", () =>
     expect(layoutPolicyForModel(none)).toEqual({
       tileGap: { allowed: ["gap", "fill"], default: "gap" },
       blockPadding: { allowed: [0, 1], default: 0 },
+      font: { allowed: ["5x7"], default: "5x7" },
     });
     const fillOnly: DeviceModel = { ...base, layoutOptions: { tileGap: { allowed: ["fill"] } } };
     expect(layoutPolicyForModel(fillOnly)).toEqual({
       tileGap: { allowed: ["fill"], default: "fill" }, // the renderer default is not allowed → first allowed
       blockPadding: { allowed: [0, 1], default: 0 },
+      font: { allowed: ["5x7"], default: "5x7" },
     });
     const padded: DeviceModel = {
       ...base,
@@ -318,16 +329,18 @@ describe("layoutOptions: the byte-changing layout choices a model allows", () =>
     expect(layoutPolicyForModel(padded)).toEqual({
       tileGap: { allowed: ["fill", "gap"], default: "gap" }, // the renderer default, when allowed, whatever the order
       blockPadding: { allowed: [0, 1], default: 1 },
+      font: { allowed: ["5x7"], default: "5x7" },
     });
     expect(ledSpecForModel(padded)).toEqual({ width: 64, height: 32, font: "5x7", tileGap: "gap", blockPadding: 1 });
   });
 
   it("ledLayoutOptionsForModel honours an allowed choice, falls back to the default for one that is not, and never throws", () => {
     const base = DEVICE_MODELS.divoom_pixoo64;
-    expect(ledLayoutOptionsForModel(base)).toEqual({ tileGap: "gap", blockPadding: 0, ignored: [] });
+    expect(ledLayoutOptionsForModel(base)).toEqual({ tileGap: "gap", blockPadding: 0, font: "3x5", ignored: [] });
     expect(ledLayoutOptionsForModel(base, { tileGap: "fill", blockPadding: 1 })).toEqual({
       tileGap: "fill",
       blockPadding: 1,
+      font: "3x5",
       ignored: [],
     });
     const gapOnly: DeviceModel = {
@@ -342,7 +355,12 @@ describe("layoutOptions: the byte-changing layout choices a model allows", () =>
       "blockPadding=0 is not a value divoom_pixoo64 allows (blockPadding: 1); using 1",
     ]);
     // An unset choice is the model's default — the same thing the spec carries.
-    expect(ledLayoutOptionsForModel(gapOnly, {})).toEqual({ tileGap: "gap", blockPadding: 1, ignored: [] });
+    expect(ledLayoutOptionsForModel(gapOnly, {})).toEqual({
+      tileGap: "gap",
+      blockPadding: 1,
+      font: "3x5",
+      ignored: [],
+    });
   });
 
   it("validateDeviceModel checks the declaration: fields, values, distinctness, default ∈ allowed, LED only", () => {
@@ -376,5 +394,116 @@ describe("layoutOptions: the byte-changing layout choices a model allows", () =>
     expect(validateDeviceModel({ ...flagship, layoutOptions: { tileGap: { allowed: ["gap"] } } }).errors).toEqual([
       "layoutOptions: an led_matrix model's; a split-flap board has no LED layout",
     ]);
+  });
+});
+
+describe("layoutOptions.font: the LED face a board may choose", () => {
+  const pixoo = DEVICE_MODELS.divoom_pixoo64;
+  const hub75 = DEVICE_MODELS.hub75_64x32;
+  const json = <T>(v: T): T => JSON.parse(JSON.stringify(v));
+
+  it("ledCharsetForFont is the built-in LED set drawn in that face, and every face has exactly one", () => {
+    expect(ledCharsetForFont("5x7")).toBe("led_5x7");
+    expect(ledCharsetForFont("3x5")).toBe("led_3x5");
+    for (const font of Object.keys(LED_FONTS) as LedFontId[]) {
+      const sets = Object.values(CHARACTER_SETS).filter((s) => s.font === font);
+      expect(
+        sets.map((s) => s.id),
+        font,
+      ).toEqual([ledCharsetForFont(font)]);
+    }
+  });
+
+  it("the Pixoo offers Large (5×7) and Small (3×5), gives NEW boards Large, and keeps 3×5 as its own face for older cores", () => {
+    expect(pixoo.layoutOptions?.font).toEqual({ allowed: ["5x7", "3x5"], default: "5x7" });
+    expect(pixoo.font).toBe("3x5");
+    expect(pixoo.charset).toBe("led_3x5");
+    expect(layoutPolicyForModel(pixoo).font).toEqual({ allowed: ["5x7", "3x5"], default: "5x7" });
+  });
+
+  it("a model that declares no font choice allows only its own face, which is also its default", () => {
+    expect(layoutPolicyForModel(hub75).font).toEqual({ allowed: ["5x7"], default: "5x7" });
+    expect(layoutPolicyForModel(DEVICE_MODELS.ulanzi_tc001_awtrix).font).toEqual({ allowed: ["3x5"], default: "3x5" });
+    // A declared choice without a default defaults to the model's own face.
+    const noDefault: DeviceModel = { ...pixoo, layoutOptions: { font: { allowed: ["5x7", "3x5"] } } };
+    expect(layoutPolicyForModel(noDefault).font).toEqual({ allowed: ["5x7", "3x5"], default: "3x5" });
+  });
+
+  it("ledLayoutOptionsForModel honours an allowed face, keeps model.font when none is asked, and ignores one the model does not offer", () => {
+    // Unset is the model's own face — the bytes every consumer drew before
+    // the choice existed — not the policy default, which is for NEW boards.
+    expect(ledLayoutOptionsForModel(pixoo).font).toBe("3x5");
+    expect(ledLayoutOptionsForModel(pixoo, { font: "5x7" })).toEqual({
+      tileGap: "gap",
+      blockPadding: 0,
+      font: "5x7",
+      ignored: [],
+    });
+    expect(ledLayoutOptionsForModel(pixoo, { font: "3x5" }).font).toBe("3x5");
+    const r = ledLayoutOptionsForModel(hub75, { font: "3x5" });
+    expect(r.font).toBe("5x7");
+    expect(r.ignored).toEqual(['font="3x5" is not a value hub75_64x32 allows (font: "5x7"); using "5x7"']);
+  });
+
+  it("ledSpecForModel takes the face as an override: the Pixoo is 10×16 in 3×5 and 8×10 in 5×7", () => {
+    expect(ledSpecForModel(pixoo)).toMatchObject({ width: 64, height: 64, font: "3x5" });
+    const large = ledSpecForModel(pixoo, { font: "5x7" })!;
+    expect(large).toEqual({ width: 64, height: 64, font: "5x7", tileGap: "gap", blockPadding: 0 });
+    expect(ledGridLayout(large)).toMatchObject({ rows: 8, cols: 10 });
+    expect(ledGridLayout(ledSpecForModel(pixoo, { font: "3x5" })!)).toMatchObject({ rows: 10, cols: 16 });
+    expect(() => ledSpecForModel(hub75, { font: "3x5" })).toThrow(/hub75_64x32 does not offer font "3x5"/);
+  });
+
+  it("modelWithLedFont swaps the face and its derived set, leaves the rest alone, and refuses a face not offered", () => {
+    const large = modelWithLedFont(pixoo, "5x7");
+    expect(large).not.toBe(pixoo);
+    expect(large.font).toBe("5x7");
+    expect(large.charset).toBe("led_5x7");
+    expect(characterSetForModel(large).id).toBe("led_5x7");
+    const { font: _f, charset: _c, ...rest } = large;
+    const { font: _pf, charset: _pc, ...pixooRest } = pixoo;
+    expect(rest).toEqual(pixooRest);
+    expect(validateDeviceModel(json(large))).toEqual({ ok: true, errors: [] });
+    expect(ledSpecForModel(large)).toEqual(ledSpecForModel(pixoo, { font: "5x7" }));
+    // The model's own face is the model.
+    expect(modelWithLedFont(pixoo, "3x5")).toBe(pixoo);
+    expect(modelWithLedFont(hub75, "5x7")).toBe(hub75);
+    expect(() => modelWithLedFont(hub75, "3x5")).toThrow(/hub75_64x32 does not offer font "3x5" \(font: "5x7"\)/);
+    expect(pixoo.font).toBe("3x5"); // not mutated
+  });
+
+  it("validateDeviceModel checks the choice: known faces, distinct, non-empty, default ∈ allowed, own face ∈ allowed, a built-in set paired with the face", () => {
+    const base = json(pixoo);
+    const withFont = (font: unknown) => ({ ...base, layoutOptions: { ...base.layoutOptions, font } });
+    expect(validateDeviceModel(base).ok).toBe(true);
+    expect(validateDeviceModel(withFont({ allowed: ["3x5"] })).ok).toBe(true);
+    expect(validateDeviceModel(withFont("5x7")).errors).toEqual([
+      "layoutOptions.font: an object with allowed (and default)",
+    ]);
+    expect(validateDeviceModel(withFont({ allowed: [] })).errors).toEqual([
+      'layoutOptions.font.allowed: a non-empty list of distinct values from "3x5" | "5x7"',
+    ]);
+    expect(validateDeviceModel(withFont({ allowed: ["3x5", "3x5"] })).ok).toBe(false);
+    expect(validateDeviceModel(withFont({ allowed: ["3x5", "8x8"] })).ok).toBe(false);
+    expect(validateDeviceModel(withFont({ allowed: ["3x5"], default: "5x7" })).errors).toEqual([
+      "layoutOptions.font.default: one of allowed",
+    ]);
+    expect(validateDeviceModel(withFont({ allowed: ["5x7"] })).errors).toEqual([
+      'layoutOptions.font.allowed: must include the model\'s own font ("3x5")',
+    ]);
+    const noFont = withFont({ allowed: ["5x7", "3x5"] });
+    delete noFont.font;
+    expect(validateDeviceModel(noFont).errors).toEqual(["font: required when layoutOptions.font is declared"]);
+    expect(validateDeviceModel({ ...base, charset: "led_5x7" }).errors).toEqual([
+      'charset: "led_3x5" (the built-in set drawn in font "3x5") when layoutOptions.font is declared',
+    ]);
+    expect(validateDeviceModel({ ...base, charset: json(CHARACTER_SETS.led_3x5) }).errors).toEqual([
+      'charset: "led_3x5" (the built-in set drawn in font "3x5") when layoutOptions.font is declared',
+    ]);
+    // Without the choice, an inline set (or any pairing) is as valid as ever.
+    const { font: _choice, ...gapAndPadding } = base.layoutOptions!;
+    expect(
+      validateDeviceModel({ ...base, layoutOptions: gapAndPadding, charset: json(CHARACTER_SETS.led_3x5) }).ok,
+    ).toBe(true);
   });
 });
