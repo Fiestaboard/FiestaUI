@@ -47,6 +47,7 @@ export { default as FadeContent } from "./components/effects/react-bits/fade-con
 export * from "./components/feedback/skeleton";
 export * from "./components/feedback/spinner";
 export * from "./components/feedback/status-dot";
+export * from "./components/feedback/toaster";
 export * from "./components/forms/select";
 export * from "./components/forms/slider";
 export * from "./components/forms/swatch";

@@ -139,6 +139,10 @@ export const INVENTORY = [
       { name: "Skeleton", summary: "Loading placeholder block." },
       { name: "Spinner", summary: "Indeterminate progress at three sizes, with an accessible label." },
       { name: "StatusDot", summary: "Five status colours, three sizes, optional glow and pulse." },
+      {
+        name: "Toaster",
+        summary: "Transient notification stack with the kit icon set, popover tokens and localized labels.",
+      },
     ],
   },
   {
