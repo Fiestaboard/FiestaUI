@@ -166,7 +166,7 @@ export interface PromptInputSubmitProps extends Omit<React.ComponentProps<typeof
  * Send while ready, Stop while streaming. The Stop form is `type="button"`
  * so a click can never accidentally submit the form it sits in.
  */
-function PromptInputSubmit({ className, onStop, disabled, ...props }: PromptInputSubmitProps) {
+function PromptInputSubmit({ className, onStop, onClick, disabled, ...props }: PromptInputSubmitProps) {
   const { status, labels } = React.useContext(PromptInputContext);
   const streaming = status === "streaming";
   if (streaming) {
@@ -179,8 +179,13 @@ function PromptInputSubmit({ className, onStop, disabled, ...props }: PromptInpu
         variant="outline"
         aria-label={labels.stop}
         className={cn("rounded-full", className)}
-        onClick={onStop}
         {...props}
+        // Compose, never replace: a wrapper such as `TooltipTrigger asChild`
+        // injects its own onClick, which must not swallow Stop (#313).
+        onClick={(event) => {
+          onClick?.(event);
+          if (!event.defaultPrevented) onStop?.();
+        }}
       >
         <Square aria-hidden="true" className="size-3.5 fill-current" />
       </Button>
@@ -195,6 +200,7 @@ function PromptInputSubmit({ className, onStop, disabled, ...props }: PromptInpu
       aria-label={labels.send}
       disabled={disabled || status === "submitted"}
       className={cn("rounded-full", className)}
+      onClick={onClick}
       {...props}
     >
       <ArrowUp aria-hidden="true" />

@@ -153,8 +153,14 @@ function CopyButton({
         // often not the name worth announcing.
         aria-label={name}
         className={cn(className)}
-        onClick={handleCopy}
         {...props}
+        // After the spread, and composed: `onClick` is off the public type,
+        // but a wrapper such as `TooltipTrigger asChild` still injects one at
+        // runtime, and it must not replace the copy (#313).
+        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+          (props as { onClick?: React.MouseEventHandler<HTMLButtonElement> }).onClick?.(event);
+          void handleCopy();
+        }}
       >
         {copied ? <Check aria-hidden="true" className="text-success" /> : <Copy aria-hidden="true" />}
         {hasVisibleLabel ? (copied ? copiedLabel : children) : null}
