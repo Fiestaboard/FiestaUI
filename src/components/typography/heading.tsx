@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "../../lib/utils";
 
 // `leading-tight` (1.25), not `leading-none`: Heading is the general-purpose
-// h2-h4 primitive, so any title long enough to wrap — most of them at size="sm"
+// h1-h4 primitive, so any title long enough to wrap — most of them at size="sm"
 // in a narrow column, any of them on mobile — needs descender clearance.
 //
 // It rides on each `size` step rather than on the base (#199). Tailwind's
@@ -42,6 +42,12 @@ const headingVariants = cva("font-semibold tracking-tight", {
       base: "text-base leading-tight",
       lg: "text-lg leading-tight",
       xl: "text-xl leading-tight",
+      // Hero / splash steps (#320). Only a page's single top-level title needs
+      // to be this large — an offline splash, a standalone detail route — so
+      // in practice they pair with `level={1}`, but like every other step they
+      // stay independent of the semantic level.
+      "2xl": "text-2xl leading-tight",
+      "3xl": "text-3xl leading-tight",
     },
   },
   defaultVariants: {
@@ -51,22 +57,27 @@ const headingVariants = cva("font-semibold tracking-tight", {
 });
 
 interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement>, VariantProps<typeof headingVariants> {
-  /** Semantic heading element. h1 is reserved for PageHeader. */
-  level?: 2 | 3 | 4;
+  /**
+   * Semantic heading element. Use `1` for a page's single top-level title when
+   * the route doesn't render `PageHeader` (which emits its own h1) — a splash
+   * or hero screen, a standalone detail page. Never more than one h1 per page.
+   */
+  level?: 1 | 2 | 3 | 4;
   /** `React.HTMLAttributes` has no `ref` prop; React 19 forwards it through the spread. */
   ref?: React.Ref<HTMLHeadingElement>;
 }
 
 /**
- * Section heading primitive for h2–h4, carrying the unified title
- * typography (semibold + tight leading/tracking). Semantic `level` and
- * visual `size` are independent so document outline never fights layout.
+ * Heading primitive for h1–h4, carrying the unified title typography
+ * (semibold + tight leading/tracking). Semantic `level` and visual `size` are
+ * independent so document outline never fights layout — `level` still
+ * defaults to 2 and `size` to `base`, so an h1 is always an explicit choice.
  *
  * `tone` draws from the same status token set as `Text`, so a status section
  * title stays on-token instead of reaching for a raw `text-destructive`.
  */
 function Heading({ level = 2, size, tone, className, ...props }: HeadingProps) {
-  const Component = `h${level}` as "h2" | "h3" | "h4";
+  const Component = `h${level}` as "h1" | "h2" | "h3" | "h4";
   return <Component data-slot="heading" className={cn(headingVariants({ size, tone }), className)} {...props} />;
 }
 

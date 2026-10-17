@@ -13,12 +13,12 @@ const meta = {
   argTypes: {
     level: {
       control: "select",
-      options: [2, 3, 4],
-      description: "Semantic heading element (h2–h4); h1 belongs to PageHeader",
+      options: [1, 2, 3, 4],
+      description: "Semantic heading element (h1–h4); h1 only for a page title outside PageHeader",
     },
     size: {
       control: "select",
-      options: ["sm", "base", "lg", "xl"],
+      options: ["sm", "base", "lg", "xl", "2xl", "3xl"],
       description: "Visual size, decoupled from the semantic level",
     },
     tone: {
@@ -50,6 +50,29 @@ export const Levels: Story = {
       <Heading level={3}>h3 at the default base size</Heading>
       <Heading level={4} size="sm">
         h4 rendered at size sm
+      </Heading>
+    </Stack>
+  ),
+};
+
+/**
+ * `level={1}` is for the page's single top-level title on routes that don't
+ * render `PageHeader` (which owns its own h1): an offline / splash hero, a
+ * standalone detail page. The `2xl` / `3xl` steps exist for exactly that hero
+ * use; a detail-page title usually reads right at `xl`. Like every level, the
+ * size is still chosen separately — an h1 doesn't imply a hero size.
+ */
+export const PageTitle: Story = {
+  render: () => (
+    <Stack gap="6" className="max-w-[20rem]">
+      <Heading level={1} size="3xl">
+        You're offline
+      </Heading>
+      <Heading level={2} size="2xl">
+        2xl — a large secondary hero line
+      </Heading>
+      <Heading level={2} size="xl">
+        xl — a standalone detail page title
       </Heading>
     </Stack>
   ),
