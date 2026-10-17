@@ -122,6 +122,80 @@ describe("Button", () => {
 
       expect(onSubmit).not.toHaveBeenCalled();
     });
+
+    describe("loadingLabel", () => {
+      it("shows the busy copy and uses it as the accessible name", () => {
+        render(
+          <Button loading loadingLabel="Enabling…">
+            Get API key
+          </Button>,
+        );
+
+        const button = screen.getByRole("button", { name: "Enabling…" });
+        expect(button).toHaveAttribute("aria-busy", "true");
+        expect(screen.queryByRole("button", { name: /Get API key/ })).not.toBeInTheDocument();
+      });
+
+      it("keeps the idle label in the DOM to reserve its width", () => {
+        render(
+          <Button loading loadingLabel="Enabling…">
+            Get API key
+          </Button>,
+        );
+
+        // Hidden from the accessibility tree, but still laid out in the same
+        // grid cell so the button is as wide as the wider label.
+        const idle = screen.getByText("Get API key");
+        expect(idle).toHaveAttribute("aria-hidden", "true");
+        expect(idle).toHaveAttribute("data-slot", "button-label");
+      });
+
+      it("keeps the tab stop and the activation guard", async () => {
+        const user = userEvent.setup();
+        const onClick = vi.fn();
+        render(
+          <Button loading loadingLabel="Connecting…" onClick={onClick}>
+            Connect
+          </Button>,
+        );
+
+        await user.tab();
+        const button = screen.getByRole("button", { name: "Connecting…" });
+        expect(button).toHaveFocus();
+        expect(button).not.toBeDisabled();
+        await user.click(button);
+        await user.keyboard("{Enter}");
+        expect(onClick).not.toHaveBeenCalled();
+      });
+
+      it("names itself from children again once idle, keeping the busy width reserved", () => {
+        const { rerender } = render(
+          <Button loading loadingLabel="Restoring…">
+            Restore
+          </Button>,
+        );
+        rerender(
+          <Button loading={false} loadingLabel="Restoring…">
+            Restore
+          </Button>,
+        );
+
+        expect(screen.getByRole("button", { name: "Restore" })).not.toHaveAttribute("aria-busy");
+        // Still laid out (hidden) while idle, so the width does not jump when
+        // `loading` flips back on.
+        expect(screen.getByText("Restoring…").closest("[data-slot=button-loading-label]")).toHaveAttribute(
+          "aria-hidden",
+          "true",
+        );
+      });
+
+      it("leaves the spinner-over-label behaviour alone when omitted", () => {
+        render(<Button loading>Save</Button>);
+
+        expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+        expect(screen.getByText("Save")).not.toHaveAttribute("aria-hidden");
+      });
+    });
   });
 
   it("renders the caller's element through asChild", () => {

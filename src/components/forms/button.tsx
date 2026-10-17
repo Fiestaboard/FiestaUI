@@ -115,6 +115,7 @@ function Button({
   size = "default",
   asChild = false,
   loading = false,
+  loadingLabel,
   children,
   onClick,
   ref,
@@ -133,6 +134,18 @@ function Button({
      * still apply.
      */
     loading?: boolean;
+    /**
+     * The label to show while `loading`, for a button whose busy copy IS the
+     * status ("Enabling…", "Connecting…"). Rendered beside the spinner in
+     * place of `children`, and used as the accessible name for the duration.
+     *
+     * Both labels share one grid cell in BOTH states — the inactive one at
+     * `opacity-0` and `aria-hidden` — so the button is always as wide as the
+     * wider of the two and does not resize when `loading` flips. Busy semantics and the activation
+     * guard are unchanged. Omitted, `loading` behaves exactly as before.
+     * Ignored with `asChild`, whose content belongs to the caller.
+     */
+    loadingLabel?: React.ReactNode;
   }) {
   // `aria-disabled` is advisory only: unlike `disabled` it does NOT stop the
   // element from being activated. Without this guard a second click — or
@@ -154,21 +167,47 @@ function Button({
   // shifts, AND — unlike a visibility-hidden or removed label — it stays in
   // the accessibility tree, so the button keeps its accessible name instead of
   // silently renaming itself to "Loading" mid-interaction.
+  //
+  // With a `loadingLabel` the roles flip: the busy copy is visible and named,
+  // and the idle label is hidden from both sight and the accessibility tree,
+  // keeping only its width.
+  const hasLoadingLabel = loadingLabel != null && loadingLabel !== false;
+  const spinner = <Spinner size={SPINNER_SIZE_BY_BUTTON_SIZE[size ?? "default"]} label={null} />;
+  //
+  // The wrapper is rendered whenever a `loadingLabel` is set, idle too, so
+  // the same two-cell grid lays out in both states and the button is exactly
+  // as wide idle as busy. The `data-slot` is kept for the padding mirror.
+  const busy = loading && !asChild;
   const content =
-    loading && !asChild ? (
+    busy || (hasLoadingLabel && !asChild) ? (
       <span
         data-slot="button-loading"
         className="grid grid-cols-1 grid-rows-1 items-center justify-items-center [gap:inherit]"
       >
         <span
           data-slot="button-label"
-          className="col-start-1 row-start-1 inline-flex items-center [gap:inherit] opacity-0"
+          aria-hidden={(busy && hasLoadingLabel) || undefined}
+          className={cn("col-start-1 row-start-1 inline-flex items-center [gap:inherit]", busy && "opacity-0")}
         >
           {children}
         </span>
-        <span data-slot="button-spinner" className="col-start-1 row-start-1 inline-flex items-center">
-          <Spinner size={SPINNER_SIZE_BY_BUTTON_SIZE[size ?? "default"]} label={null} />
-        </span>
+        {hasLoadingLabel ? (
+          // The spinner and the busy copy share one cell laid over the idle
+          // label: visible while busy, an invisible width reservation while
+          // idle.
+          <span
+            data-slot="button-loading-label"
+            aria-hidden={!busy || undefined}
+            className={cn("col-start-1 row-start-1 inline-flex items-center [gap:inherit]", !busy && "opacity-0")}
+          >
+            {spinner}
+            {loadingLabel}
+          </span>
+        ) : (
+          <span data-slot="button-spinner" className="col-start-1 row-start-1 inline-flex items-center">
+            {spinner}
+          </span>
+        )}
       </span>
     ) : (
       children
