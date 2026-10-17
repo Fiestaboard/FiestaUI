@@ -199,6 +199,35 @@ export const LoadingWidthIsStable = () => (
   </div>
 );
 
+/**
+ * `loadingLabel` is for a button whose busy copy IS the status. The spinner
+ * sits beside the busy label, which becomes the accessible name ("Enabling…,
+ * busy"); the idle label stays laid out underneath at `opacity: 0`, so the
+ * button is as wide as the wider of the two — idle or busy — and never
+ * resizes when `loading` flips.
+ * Focus and the activation guard behave exactly as with plain `loading`.
+ */
+export const LoadingWithLabel = () => (
+  <div className="flex flex-col items-start gap-4">
+    <div className="flex items-center gap-3">
+      <Button variant="outline" loadingLabel="Enabling…">
+        Get API key from board
+      </Button>
+      <Button variant="outline" loading loadingLabel="Enabling…">
+        Get API key from board
+      </Button>
+      <span className="text-sm text-muted-foreground">busy label narrower</span>
+    </div>
+    <div className="flex items-center gap-3">
+      <Button loadingLabel="Testing connection…">Test</Button>
+      <Button loading loadingLabel="Testing connection…">
+        Test
+      </Button>
+      <span className="text-sm text-muted-foreground">busy label wider</span>
+    </div>
+  </div>
+);
+
 /** Spinner size tracks the button height across the whole scale. */
 export const LoadingSizes = () => (
   <div className="flex flex-wrap items-center gap-4">
