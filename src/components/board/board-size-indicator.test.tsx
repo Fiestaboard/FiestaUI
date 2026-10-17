@@ -60,6 +60,12 @@ describe("BoardSizeIndicator", () => {
     expect(indicator()).not.toHaveTextContent("·");
   });
 
+  it("trims surrounding whitespace from the layout label", () => {
+    render(<BoardSizeIndicator deviceType="note_array" notesWide={2} layoutLabel="  2 wide " />);
+    expect(indicator()).toHaveAccessibleName("3 rows by 30 columns, 2 wide");
+    expect(indicator().textContent).toBe("3 × 30 · 2 wide");
+  });
+
   it("clamps out-of-range note counts like resolveDimensions", () => {
     render(<BoardSizeIndicator deviceType="note_array" notesWide={99} notesTall={0} />);
     expect(indicator()).toHaveTextContent("3 × 120");

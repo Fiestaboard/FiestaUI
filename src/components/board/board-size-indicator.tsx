@@ -58,7 +58,7 @@ export function BoardSizeIndicator({
 }: BoardSizeIndicatorProps) {
   const { rows, cols } = resolveDimensions(deviceType, notesWide, notesTall, gridRows, gridCols);
   const l = { ...defaultBoardSizeIndicatorLabels, ...labels };
-  const layout = layoutLabel?.trim() ? layoutLabel : undefined;
+  const layout = layoutLabel?.trim() || undefined;
   const ariaLabel = layout ? l.dimensionsWithLayout(rows, cols, layout) : l.dimensions(rows, cols);
 
   return (
