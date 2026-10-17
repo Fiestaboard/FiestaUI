@@ -67,6 +67,7 @@ import { Task, TaskContent, TaskItem, TaskTrigger } from "../components/ai/task"
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "../components/ai/tool";
 import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
+import { BoardSizeIndicator } from "../components/board/board-size-indicator";
 import { BoardTeaser } from "../components/board/board-teaser";
 import { CharacterGlyph } from "../components/board/character-glyph";
 import { CharacterSetSpecimen } from "../components/board/character-set-specimen";
@@ -1652,6 +1653,9 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </div>
   ),
   BoardTeaser: () => <BoardTeaser teaser="AQI 42 GOOD" size="md" />,
+  BoardSizeIndicator: () => (
+    <BoardSizeIndicator deviceType="note_array" notesWide={2} notesTall={2} layoutLabel="2×2 grid" />
+  ),
   CharacterGlyph: () => (
     <div className="flex items-center gap-2">
       <CharacterGlyph token="{icon:sun}" charset="led_5x7" />

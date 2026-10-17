@@ -253,6 +253,7 @@ export const INVENTORY = [
       { name: "BoardDisplay", summary: "The animated display, with flap cascade and a live region." },
       { name: "BoardBackdrop", summary: "A field of split-flap rows used as a page backdrop." },
       { name: "BoardTeaser", summary: "One-line teaser strip for cards and lists." },
+      { name: "BoardSizeIndicator", summary: "Compact rows × cols readout, with the layout name for note arrays." },
       {
         name: "CharacterGlyph",
         summary:
