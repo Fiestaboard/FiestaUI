@@ -142,6 +142,7 @@ import { Alert, AlertDescription, AlertTitle } from "../components/feedback/aler
 import { Badge } from "../components/feedback/badge";
 import { Chip } from "../components/feedback/chip";
 import { EmptyState } from "../components/feedback/empty-state";
+import { Note } from "../components/feedback/note";
 import { Skeleton } from "../components/feedback/skeleton";
 import { Spinner } from "../components/feedback/spinner";
 import { StatusDot } from "../components/feedback/status-dot";
@@ -968,6 +969,17 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         <a href="#v5.11">5.11</a>
       </Chip>
     </Flex>
+  ),
+  Note: () => (
+    <Stack gap="3" className="w-full max-w-lg">
+      <Note icon={<Info />}>Transitions are only applied when sending through the local API.</Note>
+      <Note icon={<TriangleAlert />} title="Board not configured">
+        Add a board in Settings before using the debug tools.
+      </Note>
+      <Note size="md" icon={<Spinner />}>
+        Scanning the network for boards…
+      </Note>
+    </Stack>
   ),
   EmptyState: () => (
     <Frame>
