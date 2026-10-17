@@ -20,10 +20,11 @@ import { cn } from "../../lib/utils";
 const noteVariants = cva("flex w-full items-start rounded-md bg-muted/50 text-muted-foreground", {
   variants: {
     size: {
-      // The 12px settings note.
-      sm: "gap-2 p-2.5 text-xs [&_[data-slot=note-icon]>svg]:size-3.5",
+      // The 12px settings note. A Spinner is a <span data-slot="spinner">
+      // wrapping its svg, so it is matched by slot rather than by `>svg`.
+      sm: "gap-2 p-2.5 text-xs [&_[data-slot=note-icon]>[data-slot=spinner]]:size-3.5 [&_[data-slot=note-icon]>svg]:size-3.5",
       // The 14px wizard note.
-      md: "gap-2.5 p-3 text-sm [&_[data-slot=note-icon]>svg]:size-4",
+      md: "gap-2.5 p-3 text-sm [&_[data-slot=note-icon]>[data-slot=spinner]]:size-4 [&_[data-slot=note-icon]>svg]:size-4",
     },
   },
   defaultVariants: {
