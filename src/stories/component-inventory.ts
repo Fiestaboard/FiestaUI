@@ -132,6 +132,10 @@ export const INVENTORY = [
         summary: "Badge's operable counterpart — a link/button-shaped tag, optionally mono for versions.",
       },
       { name: "EmptyState", summary: "Icon, title, description and an action for a zero-result view." },
+      {
+        name: "Note",
+        summary: "Quiet, borderless inline explanation for a control — static prose, no live region, no hue.",
+      },
       { name: "Skeleton", summary: "Loading placeholder block." },
       { name: "Spinner", summary: "Indeterminate progress at three sizes, with an accessible label." },
       { name: "StatusDot", summary: "Five status colours, three sizes, optional glow and pulse." },

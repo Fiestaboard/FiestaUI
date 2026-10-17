@@ -38,6 +38,7 @@ const REGISTRY = [
   { label: "Badge", module: "badge", variantsExport: "badgeVariants", story: "AllVariants" },
   { label: "Button", module: "button", variantsExport: "buttonVariants", story: "AllVariants" },
   { label: "Button sizes", module: "button", variantsExport: "buttonVariants", story: "AllSizes", group: "size" },
+  { label: "Note sizes", module: "note", variantsExport: "noteVariants", story: "AllSizes", group: "size" },
 ];
 
 // Gaps that exist on main and are owned by other work. The assertion is
@@ -71,7 +72,7 @@ writeFileSync(
     `export const cva = (baseClasses, config) => Object.assign(base(baseClasses, config), { config });\n`,
 );
 
-const MODULE_DIR = { alert: "feedback", badge: "feedback", button: "forms" };
+const MODULE_DIR = { alert: "feedback", badge: "feedback", button: "forms", note: "feedback" };
 const modules = [...new Set(REGISTRY.map((entry) => entry.module))];
 await build({
   stdin: {

@@ -18,6 +18,7 @@ export * from "./components/feedback/alert";
 export * from "./components/feedback/badge";
 export * from "./components/feedback/chip";
 export * from "./components/feedback/empty-state";
+export * from "./components/feedback/note";
 export * from "./components/forms/button";
 export * from "./components/forms/checkbox";
 export * from "./components/forms/combobox";
