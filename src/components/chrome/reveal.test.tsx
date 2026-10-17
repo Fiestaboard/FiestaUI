@@ -31,4 +31,23 @@ describe("Reveal", () => {
     expect(reveal()).not.toHaveAttribute("inert");
     expect(screen.getByRole("button", { name: "shown" })).toBeInTheDocument();
   });
+
+  it("slides on the translate property while closed and carries none when open", () => {
+    const { rerender } = render(
+      <Reveal open={false}>
+        <span>x</span>
+      </Reveal>,
+    );
+    const inner = (): HTMLElement => reveal().firstElementChild as HTMLElement;
+    // Tailwind 4 translate utilities set `translate`, so the transition must
+    // name it or the slide snaps.
+    expect(inner().className).toContain("transition-[opacity,translate]");
+    expect(inner().className).toContain("-translate-y-1");
+    rerender(
+      <Reveal open>
+        <span>x</span>
+      </Reveal>,
+    );
+    expect(inner().className).not.toMatch(/(^|\s)-?translate-y-/);
+  });
 });
