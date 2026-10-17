@@ -15,6 +15,7 @@ const EXTERNAL = [
   /^class-variance-authority(\/|$)/,
   /^clsx(\/|$)/,
   /^tailwind-merge(\/|$)/,
+  /^sonner(\/|$)/,
   // Editor runtime. `@tiptap/pm` is imported by subpath (`@tiptap/pm/state`,
   // `/model`, `/history`), hence the trailing-slash alternative on every one
   // of these — a bare `/^@tiptap\/pm$/` would inline the ProseMirror halves.

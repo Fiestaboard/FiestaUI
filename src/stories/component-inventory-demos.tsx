@@ -146,6 +146,7 @@ import { Note } from "../components/feedback/note";
 import { Skeleton } from "../components/feedback/skeleton";
 import { Spinner } from "../components/feedback/spinner";
 import { StatusDot } from "../components/feedback/status-dot";
+import { toast, Toaster } from "../components/feedback/toaster";
 import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
@@ -1009,6 +1010,14 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <Spinner size="sm" label="Loading (small)" />
       <Spinner size="md" label="Loading (medium)" />
       <Spinner size="lg" label="Loading (large)" />
+    </Flex>
+  ),
+  Toaster: () => (
+    <Flex align="center" gap="2">
+      <Toaster />
+      <Button variant="outline" size="sm" onClick={() => toast.success("Settings saved")}>
+        Show toast
+      </Button>
     </Flex>
   ),
   StatusDot: () => (
