@@ -488,7 +488,7 @@ jobs:
         run: node scripts/vrt/verify-shots.mjs "${RUNNER_TEMP}/shots"
 
       - name: Compare against main's baseline
-        uses: fiestaboard/visual-regression-action@v1
+        uses: fiestaboard/visual-regression-action@v2
         with:
           screenshots-dir: ${{ runner.temp }}/shots
           # The tolerances the old in-repo compare shipped with: pixelmatch

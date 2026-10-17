@@ -19,7 +19,7 @@ Both are declared in one place, `VIEWPORTS` in `scripts/vrt/vrt.mjs`, and mirror
 - On every PR, CI shoots the same tree and hands it to the action's compare mode, which:
   1. Downloads the newest `vrt-baseline` artifact from a `main` run.
   2. Diffs per shot with pixelmatch — per-pixel threshold `0.1`, and a shot counts as changed when more than `0.05%` of its pixels differ (the same tolerances the old in-repo compare shipped with, now set as `threshold` / `diff-ratio` inputs in `ci.yml`).
-  3. Posts/updates a sticky PR comment — counts, per-shot table, pre-typed approval commands, an **Approve all** checkbox — writes the run's step summary, and uploads a single-file HTML **report artifact** (`vrt-report`) with side-by-side, swipe, overlay, and blink views plus a keyboard-driven review mode.
+  3. Posts/updates a sticky PR comment: counts, a checkbox for each changed or removed shot plus **Approve all**, and pre-typed approval commands. It also writes the run's step summary and uploads the **report artifact** (`vrt-report.html`). That's one HTML file, un-zipped, so the PR link opens it right in the browser. It has side-by-side, swipe, overlay, and blink views plus a keyboard-driven review mode.
   4. Fails the `Visual Regression` job when any shot changed or went missing **and hasn't been approved**.
 - Added stories never fail (there is nothing to compare against); removed shots do, because a disappearing screenshot is indistinguishable from a broken capture until a human says otherwise.
 - If no baseline artifact exists (first run, or retention lapsed), the compare reports everything as new and passes; the next `main` build reseeds.
@@ -28,9 +28,9 @@ Both are declared in one place, `VIEWPORTS` in `scripts/vrt/vrt.mjs`, and mirror
 
 Everything happens on the PR:
 
-1. The red check's comment lists what changed, with a **Download the visual report** link for reviewing (swipe/overlay/blink each change; the report assembles a precise `/vrt approve` command as you approve/reject).
+1. The red check's comment lists what changed, with an **Open the visual report** link. It opens in the browser: swipe, overlay, or blink each change, and the report assembles a precise `/vrt approve` command as you approve or reject.
 2. Accept with any of:
-   - **The checkbox** in the comment (approve everything at the current commit) — one click; only write-access users can tick it.
+   - **The checkboxes** in the comment: tick each shot you accept, or **Approve all**. The rerun starts once every shot is ticked, or Approve all is; while only some are, a status comment shows the count. Boxes pin the current commit, and only write-access users can tick them.
    - `/vrt approve all` as a comment (valid until the next push).
    - The per-shot command the report generated (commit-pinned, e.g. `/vrt approve ui-alert--default.png@ab12cd3 …`).
 3. The `VRT approvals` workflow reruns the failed check automatically (👀 on your comment, then a receipt comment that updates with the outcome). Approvals pin the commit, so pushing again invalidates them.
