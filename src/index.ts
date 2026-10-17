@@ -90,6 +90,7 @@ export { cn } from "./lib/utils";
 // Board preview — the split-flap Vestaboard display renderer + its data.
 export * from "./components/board/board-backdrop";
 export * from "./components/board/board-display";
+export * from "./components/board/board-size-indicator";
 export * from "./components/board/board-teaser";
 export * from "./components/board/scaled-board-display";
 export * from "./components/board/static-board-display";
