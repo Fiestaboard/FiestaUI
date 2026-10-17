@@ -47,6 +47,8 @@ const HARNESS = `
   import { createRoot } from "react-dom/client";
   import { BoardDisplay } from "./board-display";
 
+  export { act } from "react";
+
   export function mount(container) {
     const root = createRoot(container);
     return {
@@ -115,11 +117,26 @@ function installDom() {
   const put = (key, value) => {
     Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });
   };
+  // jsdom has no MessageChannel, and act() queues its work through one. Node's
+  // own would do, but its ports stay open and keep the test process alive
+  // after the last test; this one posts through setImmediate and holds nothing.
+  window.MessageChannel = class ImmediateChannel {
+    constructor() {
+      this.port1 = { onmessage: null, close() {} };
+      this.port2 = {
+        postMessage: (data) => setImmediate(() => this.port1.onmessage?.({ data })),
+        close() {},
+      };
+    }
+  };
   for (const key of globals) {
     saved.set(key, Reflect.get(globalThis, key));
     put(key, key === "window" ? window : window[key]);
   }
-  globalThis.IS_REACT_ACT_ENVIRONMENT = false;
+  // Every render, tick and unmount below goes through React's act(), which
+  // commits the work (effects included) before it returns. Without it, each
+  // step was a fixed sleep that a CPU-starved runner could outlast.
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
   return {
     window,
@@ -130,8 +147,41 @@ function installDom() {
   };
 }
 
-/** Let React commit and flush its passive effects. */
-const settle = () => new Promise((resolve) => setTimeout(resolve, 60));
+/**
+ * Replace `setInterval` with intervals the test fires by hand.
+ *
+ * The board advances its drum from intervals: the shared loading ticker, and
+ * each tile's stepper. On a real clock the hardware cadence is 16ms a flip,
+ * and on a loaded CI runner a single re-render of a 132-tile board takes far
+ * longer than that, so ticks pile up and React commits several steps at once.
+ * The drum then reports 61 then 63, and a test waiting to see code 62 never
+ * does (seen on CI as `saw ["?"," ","A","63","C"]`). Firing each interval once
+ * per step, inside act(), makes every step its own commit, however slow the
+ * machine.
+ */
+function manualIntervals() {
+  const real = { setInterval: globalThis.setInterval, clearInterval: globalThis.clearInterval };
+  const active = new Map();
+  let nextId = 1;
+  globalThis.setInterval = (fn, _ms, ...args) => {
+    const id = nextId++;
+    active.set(id, () => fn(...args));
+    return id;
+  };
+  globalThis.clearInterval = (id) => {
+    if (!active.delete(id)) real.clearInterval(id);
+  };
+  return {
+    /** Fire every active interval once: one flip for every moving tile. */
+    step() {
+      for (const cb of [...active.values()]) cb();
+    },
+    restore() {
+      globalThis.setInterval = real.setInterval;
+      globalThis.clearInterval = real.clearInterval;
+    },
+  };
+}
 
 /**
  * What the tiles actually drew, in reading order, with padding collapsed.
@@ -174,22 +224,18 @@ async function renderBoard(props, nextProps) {
     const root = harness.mount(container);
     const base = { size: "sm", animationsEnabled: false, ...props };
 
-    root.render(base);
-    await settle();
+    await harness.act(async () => root.render(base));
     const first = { drawn: drawnText(container), name: accessibleName(container) };
 
     let second = null;
     if (nextProps) {
-      root.render({ ...base, ...nextProps });
-      await settle();
+      await harness.act(async () => root.render({ ...base, ...nextProps }));
       second = { drawn: drawnText(container), name: accessibleName(container) };
     }
 
-    root.unmount();
-    // React schedules through MessageChannel, so unmount's work is still queued
-    // here. Let it drain before `restore()` closes the window, or a stray
-    // callback lands on a dead document after the test has ended.
-    await settle();
+    // Inside act(), so unmount's work has drained before `restore()` closes the
+    // window and no stray callback lands on a dead document.
+    await harness.act(async () => root.unmount());
     return { first, second };
   } finally {
     dom.restore();
@@ -257,19 +303,19 @@ test("a note board draws a heart whatever the flagship setting says", async () =
  * value the drum reports (`data-current-char`) and each glyph the flap halves
  * draw. Returns the set of drum glyphs and the set of drawn glyphs.
  *
- * Recorded with a MutationObserver attached BEFORE the first render, not
- * sampled. A tile shows code 62 for a single flip, and a 3 ms poll misses that
- * flip whenever CI is loaded (seen on main: the drum read ?, A, 63, C, 64 and
- * skipped 62). An observer sees every attribute and text change however late
- * the timers run, so the pass no longer depends on the machine. Watching from
- * before mount also catches a first loading tick that lands on code 62.
+ * Recorded with a MutationObserver attached BEFORE the first render, so a
+ * first loading tick that lands on code 62 is caught too. Time does not
+ * run on its own here: intervals are fired by hand (see manualIntervals), one
+ * step per act(), so every position the drum takes is committed and seen.
+ * Nothing depends on how fast the machine is.
  *
- * Recording stops shortly after the drum has passed code 62 (either glyph), so
+ * Steps stop two flips after the drum has passed code 62 (either glyph), so
  * the halves of the next flip, which show the departing glyph, are seen too;
- * or after `sampleMs`.
+ * or after `maxSteps`, enough to go round the whole drum twice.
  */
-async function sampleDrum(props, { nextProps = null, sampleMs = 8000 } = {}) {
+async function sampleDrum(props, { nextProps = null, maxSteps = 160 } = {}) {
   const dom = installDom();
+  const clock = manualIntervals();
   try {
     const harness = await import(`${bundleUrl}?run=${++runCounter}`);
     const container = dom.window.document.getElementById("root");
@@ -286,7 +332,7 @@ async function sampleDrum(props, { nextProps = null, sampleMs = 8000 } = {}) {
           drum.add(tile.getAttribute("data-current-char"));
       }
     };
-    const observer = new dom.window.MutationObserver((records) => {
+    const record = (records) => {
       for (const r of records) {
         if (r.type === "attributes") {
           if (r.oldValue !== null) drum.add(r.oldValue);
@@ -298,7 +344,10 @@ async function sampleDrum(props, { nextProps = null, sampleMs = 8000 } = {}) {
           for (const node of r.addedNodes) addText(node);
         }
       }
-    });
+    };
+    const observer = new dom.window.MutationObserver(record);
+    // Read what is queued now rather than waiting for the observer's callback.
+    const flush = () => record(observer.takeRecords());
     observer.observe(container, {
       subtree: true,
       childList: true,
@@ -312,26 +361,27 @@ async function sampleDrum(props, { nextProps = null, sampleMs = 8000 } = {}) {
     const root = harness.mount(container);
     const base = { size: "sm", flapSpeed: "hardware", ...props };
 
-    root.render(base);
-    await settle();
-    if (nextProps) root.render({ ...base, ...nextProps });
+    await harness.act(async () => root.render(base));
+    flush();
+    if (nextProps) {
+      await harness.act(async () => root.render({ ...base, ...nextProps }));
+      flush();
+    }
 
-    const startedAt = Date.now();
     const passedCode62 = () => drum.has("♥") || drum.has("°") || drawn.has("♥") || drawn.has("°");
-    let seenAt = 0;
-    while (Date.now() - startedAt < sampleMs) {
-      await new Promise((r) => setTimeout(r, 10));
-      if (passedCode62()) {
-        if (seenAt === 0) seenAt = Date.now();
-        else if (Date.now() - seenAt > 120) break;
-      }
+    let seenAtStep = -1;
+    for (let i = 0; i < maxSteps; i++) {
+      await harness.act(async () => clock.step());
+      flush();
+      if (seenAtStep < 0 && passedCode62()) seenAtStep = i;
+      if (seenAtStep >= 0 && i - seenAtStep >= 2) break;
     }
     observer.disconnect();
 
-    root.unmount();
-    await settle();
+    await harness.act(async () => root.unmount());
     return { drum, drawn };
   } finally {
+    clock.restore();
     dom.restore();
   }
 }
