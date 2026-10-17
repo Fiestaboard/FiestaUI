@@ -30,4 +30,32 @@ describe("PageHeader collapsed", () => {
     render(<PageHeader icon={Monitor} title="Displays" description="Every board" collapsed />);
     expect(document.querySelectorAll("[data-slot=reveal]")).toHaveLength(1);
   });
+
+  it("drops the row gap while collapsed so the tucked action leaves no band", () => {
+    const { rerender } = render(
+      <PageHeader icon={Monitor} title="Displays" description="Every board" collapsed>
+        <button type="button">Add</button>
+      </PageHeader>,
+    );
+    const header = (): HTMLElement => document.querySelector<HTMLElement>("[data-slot=page-header]")!;
+    expect(header().className).toContain("gap-y-0");
+    expect(header().className).not.toContain("gap-y-3");
+    rerender(
+      <PageHeader icon={Monitor} title="Displays" description="Every board">
+        <button type="button">Add</button>
+      </PageHeader>,
+    );
+    expect(header().className).toContain("gap-y-3");
+    expect(header().className).toContain("transition-[row-gap]");
+  });
+
+  it("right-aligns the action slot when it wraps onto its own line", () => {
+    render(
+      <PageHeader icon={Monitor} title="Displays" description="Every board">
+        <button type="button">Add</button>
+      </PageHeader>,
+    );
+    const action = screen.getByRole("button", { name: "Add" }).closest("[data-slot=reveal]");
+    expect(action).toHaveClass("ml-auto");
+  });
 });

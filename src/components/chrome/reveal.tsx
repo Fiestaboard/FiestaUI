@@ -55,8 +55,16 @@ export const Reveal = memo(function Reveal({ open, children, className, innerCla
     >
       <div
         className={cn(
-          "min-h-0 overflow-hidden transition-opacity ease-out motion-reduce:transition-none",
-          open ? "opacity-100 duration-base" : "opacity-0 duration-fast",
+          "min-h-0 overflow-hidden transition-[opacity,translate] ease-out motion-reduce:transition-none",
+          // A few px of travel alongside the opacity so the overflow clip reads
+          // as a slide rather than a horizontal cut through mid-glyph in the
+          // first frames (opacity already hides most of it). Tailwind 4's
+          // `translate-y-*` sets the `translate` property, not `transform`, so
+          // that is what the transition lists. The OPEN state carries no
+          // translate at all: even `translate: 0 0` makes the box a stacking
+          // context and containing block, which re-rasterises every open
+          // Reveal (PageSubheader, PageCard) for no visible gain.
+          open ? "opacity-100 duration-base" : "-translate-y-1 opacity-0 duration-fast",
           innerClassName,
         )}
       >
