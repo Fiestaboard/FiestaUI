@@ -23,7 +23,14 @@ import {
 } from "../../lib/board-characters";
 import { resolveColorCode } from "../../lib/board-colors";
 import { gapClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
-import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
+import {
+  charLeafBevelClass,
+  colorLeafClass,
+  SEAM_CLASS,
+  seamStyle,
+  smallTileMaterialClass,
+  tileMaterialClass,
+} from "./board-surfaces";
 
 export interface BoardTeaserProps {
   /** Literal board line, e.g. `"{66}AAPL +1.88%"`. */
@@ -86,14 +93,9 @@ export const BoardTeaser = memo(function BoardTeaser({
   // ../../lib/board-metrics so a teaser strip matches a full board row rendered
   // at the same size and the shared maps can't drift between renderers.
 
-  const tileBoxShadow =
-    size === "sm"
-      ? isWhiteBoard
-        ? "0 1px 2px rgba(0,0,0,0.15)"
-        : "0 1px 2px rgba(0,0,0,0.4)"
-      : isWhiteBoard
-        ? "0 2px 4px rgba(0,0,0,0.2), inset 0 1px 2px rgba(0,0,0,0.1), inset 0 -1px 2px rgba(255,255,255,0.5), inset 1px 0 1px rgba(0,0,0,0.08), inset -1px 0 1px rgba(255,255,255,0.4)"
-        : "0 2px 4px rgba(0,0,0,0.5), inset 0 1px 2px rgba(0,0,0,0.8), inset 0 -1px 1px rgba(255,255,255,0.08), inset 1px 0 1px rgba(0,0,0,0.5), inset -1px 0 1px rgba(255,255,255,0.05)";
+  // Bevel and drop shadow as shared classes, not inline box-shadows — see
+  // board-surfaces for why (Safari paints and parses those per tile).
+  const tileMaterial = size === "sm" ? smallTileMaterialClass[boardType] : tileMaterialClass[boardType];
 
   return (
     <div role="img" aria-label={label} data-slot="board-teaser" className={`inline-flex max-w-full ${className}`}>
@@ -108,10 +110,9 @@ export const BoardTeaser = memo(function BoardTeaser({
                 <div
                   key={colIdx}
                   data-teaser-tile=""
-                  className={`${sizeClasses[size]} ${radiusClasses[size]}`}
+                  className={`${sizeClasses[size]} ${radiusClasses[size]} ${tileMaterial}`}
                   style={{
                     backgroundColor: bgColor,
-                    boxShadow: tileBoxShadow,
                     contain: "layout style paint",
                   }}
                 />
@@ -121,23 +122,20 @@ export const BoardTeaser = memo(function BoardTeaser({
               <div
                 key={colIdx}
                 data-teaser-tile=""
-                className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden`}
+                className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden ${tileMaterial}`}
                 style={{
                   backgroundColor: tileBg,
-                  boxShadow: tileBoxShadow,
                   contain: "layout style paint",
                 }}
               >
                 <div
-                  className={`absolute ${radiusClasses[size]} overflow-hidden`}
+                  className={`absolute ${radiusClasses[size]} overflow-hidden ${colorLeafClass[boardType]}`}
                   style={{
                     top: "3px",
                     bottom: "4px",
                     left: "1px",
                     right: "1px",
                     backgroundColor: bgColor,
-                    boxShadow:
-                      "0 2px 4px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.15), inset 0 -1px 1px rgba(0,0,0,0.25)",
                   }}
                 >
                   <div className={SEAM_CLASS} style={seamStyle[boardType]} />
@@ -155,10 +153,9 @@ export const BoardTeaser = memo(function BoardTeaser({
               <div
                 key={colIdx}
                 data-teaser-tile=""
-                className={`${sizeClasses[size]} ${radiusClasses[size]} flex items-center justify-center`}
+                className={`${sizeClasses[size]} ${radiusClasses[size]} flex items-center justify-center ${tileMaterial}`}
                 style={{
                   backgroundColor: tileBg,
-                  boxShadow: tileBoxShadow,
                   contain: "layout style paint",
                 }}
               >
@@ -178,17 +175,16 @@ export const BoardTeaser = memo(function BoardTeaser({
             <div
               key={colIdx}
               data-teaser-tile=""
-              className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden`}
+              className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden ${tileMaterial}`}
               style={{
                 backgroundColor: tileBg,
-                boxShadow: tileBoxShadow,
                 contain: "layout style paint",
               }}
             >
               {/* Leaf body — issue #179; the glyph panel is the leaf. */}
               <div
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ zIndex: 2, boxShadow: charLeafBoxShadow[boardType] }}
+                className={`absolute inset-0 flex items-center justify-center ${charLeafBevelClass[boardType]}`}
+                style={{ zIndex: 2 }}
               >
                 {char !== " " && (
                   <span

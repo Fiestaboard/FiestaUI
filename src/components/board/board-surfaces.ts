@@ -31,36 +31,58 @@ import type { CSSProperties } from "react";
 
 export type BoardType = "black" | "white";
 
-/**
- * Character-leaf body — the character tile's answer to `colorTileBoxShadow`.
+/*
+ * Tile materials — the leaf bevel, the tile's recess and the drop shadows.
  *
- * Same structure (light from above-left: highlight on the top and left edges,
- * shadow on the bottom and right), tinted for a dark leaf instead of a
- * saturated one. On `#0d0d0d` a leaf cannot be made darker in any useful way,
- * so the top-edge highlight does the work: `rgba(255,255,255,0.10)` over the
- * tile background lands around `rgb(37,37,37)`, a ~24/255 step, which is a
- * visible edge without lifting the tile off the board's black.
+ * These used to be box-shadow stacks set inline on every tile: four inset
+ * bevel edges per leaf, plus a blurred drop shadow and four soft inset edges
+ * per tile. WebKit paints inset and blurred box-shadows element by element,
+ * and a board is ~130 tiles, so a page with a few boards froze Safari for
+ * 1.4-2 s on every navigation while Chromium did not notice. Measured on a
+ * real FiestaBoard, removing only box-shadow took that to ~40 ms.
  *
- * There is no outer drop shadow here, unlike the colour leaf. The colour leaf
- * is inset inside the aperture, so its drop shadow falls on visible background;
- * the character leaf is full-bleed inside a tile with `overflow: hidden`, so an
- * outer shadow would be clipped entirely. The leaf still reads as raised
- * because its 1px hard bevel sits directly inside the tile's own soft recess
- * shadow — the two adjacent, opposite-polarity edges are what define the edge.
+ * Now each bevel is a `background-image` gradient (painted with the
+ * background, almost free) and each drop shadow is unblurred. The values live
+ * in theme.css as classes, not inline styles: a class is parsed once for the
+ * whole page, while an inline style is parsed again on every tile, and with
+ * ~1000 tiles on a page that parsing was a visible frame of its own.
+ *
+ * The values themselves (light from above-left: highlight on the top and left
+ * edges, shadow on the bottom and right) are the hardware-validated ones from
+ * issues #179 and #193, carried over edge for edge — see theme.css.
  */
-export const charLeafBoxShadow: Record<BoardType, string> = {
-  black: `
-      inset 0 1px 0 rgba(255,255,255,0.10),
-      inset 0 -1px 0 rgba(0,0,0,0.55),
-      inset 1px 0 0 rgba(255,255,255,0.05),
-      inset -1px 0 0 rgba(0,0,0,0.40)
-    `,
-  white: `
-      inset 0 1px 0 rgba(255,255,255,0.75),
-      inset 0 -1px 0 rgba(0,0,0,0.14),
-      inset 1px 0 0 rgba(255,255,255,0.55),
-      inset -1px 0 0 rgba(0,0,0,0.10)
-    `,
+
+/**
+ * Character-leaf body: the 1px bevel that makes a letter tile read as a flap.
+ * No drop shadow: the leaf is full-bleed inside a tile with `overflow:
+ * hidden`, so one would be clipped; the leaf reads as raised because its hard
+ * bevel sits directly inside the tile's recess edge.
+ */
+export const charLeafBevelClass: Record<BoardType, string> = {
+  black: "board-leaf-bevel-black",
+  white: "board-leaf-bevel-white",
+};
+
+/**
+ * The tile's recess (soft inner edges, visible around a colour leaf) and, on a
+ * white board, its drop shadow onto the board. A black board has none: it
+ * cannot be seen on the #050505 bezel, and it cost WebKit a frame (theme.css).
+ */
+export const tileMaterialClass: Record<BoardType, string> = {
+  black: "board-tile-recess-black",
+  white: "board-tile-recess-white board-tile-drop-white",
+};
+
+/** A small (`sm`) preview tile: the white board's drop shadow alone; a recess is invisible at 14×18px. */
+export const smallTileMaterialClass: Record<BoardType, string> = {
+  black: "",
+  white: "board-tile-drop-sm-white",
+};
+
+/** Colour leaf: the saturated panel inset in a colour tile's aperture — its bevel, plus a drop shadow on white. */
+export const colorLeafClass: Record<BoardType, string> = {
+  black: "board-color-leaf",
+  white: "board-color-leaf board-color-leaf-drop",
 };
 
 /**

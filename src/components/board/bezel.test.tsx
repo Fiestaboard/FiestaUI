@@ -109,7 +109,8 @@ describe("bezel", () => {
       expect(grid.className).toMatch(/gap-/);
       const tile = board.querySelector("[data-note-tile]") as HTMLElement;
       expect(tile.style.backgroundColor).toBe("var(--color-board-surface-dark)");
-      expect(tile.style.boxShadow).not.toBe("");
+      // A small black tile's only material is that fill: its drop shadow went
+      // with the move to theme.css classes (board-surfaces; invisible on black).
       const colourTile = board.querySelector("[data-note-row]")!.children[3] as HTMLElement; // the {63}
       expect(colourTile.style.backgroundColor).not.toBe("");
       expect(colourTile.style.backgroundColor).not.toBe("var(--color-board-surface-dark)");
