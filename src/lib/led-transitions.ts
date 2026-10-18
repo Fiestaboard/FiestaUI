@@ -471,11 +471,19 @@ function planFlip(
     return layout;
   };
   const scratch = glyphScratch(to);
+  // Prepare ordinary flips before playback. Retain RGB frames, never full
+  // DPR-scaled canvas bitmaps. Long/large sequences stream through the single
+  // scratch cache below instead of retaining tens or hundreds of megabytes.
+  // The limit is on retained RGB bytes; layouts already have their own cache.
+  const preparationBytes = frames * toFrame.pixels.length * (halfFlap ? 2 : 1);
+  const prepared = preparationBytes <= 8 * 1024 * 1024 ? new Map<number, LedFrame>() : null;
   let cache: { key: number; frame: LedFrame } | null = null;
   const frameAtIndex = (f: number, out?: LedFrame, half = false): LedFrame => {
     if (f <= 0 && !half) return copyInto(fromFrame, out);
     if (f >= frames - 1) return copyInto(toFrame, out);
     const key = Math.max(0, f) * 2 + (half ? 1 : 0);
+    const ready = prepared?.get(key);
+    if (ready) return copyInto(ready, out);
     if (!cache || cache.key !== key) {
       const layout = layoutAtFrame(Math.max(0, f));
       const frame = rasterizeLedLayout(layout);
@@ -489,10 +497,18 @@ function planFlip(
         repaintLayers(frame, layout);
       }
       cache = { key, frame };
+      prepared?.set(key, frame);
     }
     return copyInto(cache.frame, out);
   };
   const frameOf = (t: number) => Math.min(frames - 1, Math.floor(t / stepMs));
+
+  if (prepared) {
+    for (let f = 0; f < frames - 1; f++) {
+      frameAtIndex(f);
+      if (halfFlap) frameAtIndex(f, undefined, true);
+    }
+  }
 
   return {
     kind: "flip",
@@ -539,6 +555,7 @@ function planCascade(
   const layoutAtSlot = (n: number): LedLayout => {
     if (n <= 0) return from;
     if (n >= changed.length) return to;
+    if (cache?.key === n) return cache.layout;
     const cells = [...from.cells];
     for (let j = 0; j < n; j++) cells[changed[j]] = to.cells[changed[j]];
     return layoutLedCells(to.grid, cells, to.options, layersAt(from, to, 2 * n >= changed.length));

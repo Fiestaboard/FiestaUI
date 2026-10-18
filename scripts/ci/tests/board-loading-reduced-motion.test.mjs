@@ -49,12 +49,12 @@ test("the loading-ticker path is gated on the reduced-motion query", () => {
   // The subscribe function must consult the query before starting the shared
   // interval: while `reduce` matches, subscribing tiles must NOT start the
   // ticker (tiles stay frozen on their current character).
-  const subscribeBody = source.match(/function subscribeLoadingTick\([\s\S]*?\n\}/);
-  assert.ok(subscribeBody, "expected a subscribeLoadingTick function (shared loading ticker from PR #76)");
+  const subscribeBody = source.match(/function subscribeFlapTick\([\s\S]*?\n\}/);
+  assert.ok(subscribeBody, "expected a subscribeFlapTick function (shared loading/message ticker)");
   assert.match(
     subscribeBody[0],
     /reducedMotion|prefersReducedMotion|reduceMotion/i,
-    "subscribeLoadingTick must consult the reduced-motion state before starting the shared interval (issue #58)",
+    "subscribeFlapTick must consult the reduced-motion state before starting the shared timer (issue #58)",
   );
 });
 
