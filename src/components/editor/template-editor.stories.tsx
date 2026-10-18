@@ -9,6 +9,7 @@ import "../../styles/editor.css";
 import type { Meta, StoryObj } from "@storybook/react";
 import { Clock, Cloud, TrainFront, TrendingUp } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { expect, waitFor } from "storybook/test";
 
 import { CHARACTER_SET_IDS, materializeCharacterSet } from "../../lib/character-sets";
 import { ACME_SIGN_CHARSET, ACME_SIGN_MODEL } from "../../lib/charset-golden-cases";
@@ -604,5 +605,58 @@ export const FlapWithExtendedMarkup: Story = {
     deviceType: undefined,
     deviceModel: "vestaboard_flagship",
     code62Glyph: "heart",
+  },
+};
+
+/** The image occupies the blank left-hand cells while text stays beside it. */
+export const CanvasBesideText: Story = {
+  play: async ({ canvasElement }) => {
+    await waitFor(() => {
+      expect(canvasElement.querySelector(".template-canvas-region")).not.toBeNull();
+      expect(canvasElement.querySelector(".ProseMirror p")).not.toBeNull();
+    });
+    await document.fonts.ready;
+    const guide = canvasElement.querySelector(".template-canvas-region")!;
+    const walker = document.createTreeWalker(canvasElement.querySelector(".ProseMirror p")!, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    let textLeft: number | undefined;
+    while ((node = walker.nextNode())) {
+      const index = node.textContent?.indexOf("TEMP") ?? -1;
+      if (index >= 0) {
+        const range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + 1);
+        textLeft = range.getBoundingClientRect().left;
+        break;
+      }
+    }
+    // A real layout assertion: nowrap collapses the eight reserved spaces
+    // to one and puts this text underneath the guide. jsdom cannot catch it.
+    await expect(textLeft).toBeDefined();
+    await expect(textLeft!).toBeGreaterThanOrEqual(guide.getBoundingClientRect().right - 1);
+  },
+  args: {
+    deviceType: undefined,
+    deviceModel: "divoom_pixoo64",
+    boardLines: 10,
+    boardWidth: 16,
+    value:
+      "{{weather.condition}}\n        TEMP\n        {{weather.temperature}}\n        HIGH\n        {{weather.high}}\n        LOW\n        {{weather.low}}\nFORECAST",
+    canvasRegions: [{ id: "weather_art", area: { row: 2, col: 1, rows: 6, cols: 8 }, text: "hide" }],
+  },
+};
+
+/** Several canvases, including a right-edge area clamped to the board. */
+export const MultipleCanvasRegions: Story = {
+  args: {
+    deviceType: undefined,
+    deviceModel: "divoom_pixoo64",
+    boardLines: 10,
+    boardWidth: 16,
+    value: "MORNING\n      72°F\n      SUNNY\n\n\nEVENING\nCLEAR\n55°F",
+    canvasRegions: [
+      { id: "sun", area: { row: 2, col: 1, rows: 3, cols: 5 }, text: "hide" },
+      { id: "moon", area: { row: 7, col: 10, rows: 8, cols: 10 }, text: "flow" },
+    ],
   },
 };
