@@ -284,3 +284,88 @@
   text-decoration: underline wavy var(--warning);
   border-bottom: 2px solid var(--span-color);
 }
+
+.template-canvas-region:is(button) {
+  pointer-events: auto;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  color: inherit;
+}
+.template-canvas-region:is(button):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.ProseMirror .canvas-flow-gap {
+  display: inline-block;
+  height: 1px;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Match authoring token boxes to the protection grid. Long labels remain in
+   their tooltips; inline controls retain room and surrounding text cannot
+   slide beneath a canvas because a badge has a different font or margin. */
+.ProseMirror .canvas-cell-token {
+  display: inline-flex !important;
+  vertical-align: middle;
+  width: var(--canvas-token-width) !important;
+  min-width: var(--canvas-token-width) !important;
+  max-width: var(--canvas-token-width) !important;
+  box-sizing: border-box !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+  overflow: hidden;
+}
+.ProseMirror .canvas-cell-token > [data-node-view-wrapper] {
+  display: inline-flex !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin-inline: 0 !important;
+  overflow: hidden;
+  transform: none !important;
+}
+.ProseMirror .canvas-cell-token [data-slot="badge"],
+.ProseMirror .canvas-cell-token [data-slot="tooltip-trigger"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-inline: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.ProseMirror .canvas-cell-token [data-slot="badge"] > span,
+.ProseMirror .canvas-cell-token [data-slot="tooltip-trigger"] > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ProseMirror .canvas-cell-wrappedText > [data-node-view-wrapper] {
+  padding-inline: 2px !important;
+}
+.ProseMirror .canvas-cell-wrappedText > [data-node-view-wrapper] > span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ProseMirror .canvas-cell-wrappedText > [data-node-view-wrapper] > svg,
+.ProseMirror .canvas-cell-wrappedText > [data-node-view-wrapper] > button {
+  flex-shrink: 0;
+}
+.ProseMirror .canvas-cell-icon > [data-node-view-wrapper] {
+  padding-inline: 0 !important;
+}
+
+.ProseMirror .canvas-cell-icon [data-slot="character-glyph"] {
+  width: 100%;
+  min-width: 0;
+}
+.ProseMirror .canvas-cell-icon [data-slot="character-glyph"] svg {
+  width: 100%;
+  height: auto;
+}

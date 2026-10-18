@@ -62,6 +62,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ove
 import { Text } from "../typography/text";
 import type { DeviceType } from "./constants";
 import { CURSOR_ANCHOR, DEFAULT_BOARD_LINES, DEFAULT_BOARD_WIDTH, resolveDimensions } from "./constants";
+import { CANVAS_EXTERNAL_CONTENT, CanvasProtection, setCanvasProtection } from "./extensions/canvas-protection";
 import {
   type CharsetWarning,
   CharsetWarnings,
@@ -321,6 +322,7 @@ export interface TemplateEditorProps {
   /** Occupied canvas cells, shown as guides without changing the template. */
   canvasRegions?: readonly TemplateCanvasRegion[];
   canvasLabels?: Partial<TemplateCanvasLabels>;
+  onCanvasActivate?: (id: string) => void;
   value: string; // Template string with lines separated by \n
   onChange: (value: string) => void;
   onFocus?: () => void;
@@ -395,6 +397,7 @@ export interface TemplateEditorProps {
 export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorProps>(function TemplateEditor(
   {
     canvasRegions = [],
+    onCanvasActivate,
     canvasLabels,
     value,
     onChange,
@@ -526,6 +529,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
   // Track line count for validation display
   const [editorLineCount, setEditorLineCount] = useState(() => (value || "").split("\n").length);
   // Actual rendered pixel height of each board line (for gutter alignment)
+  const [canvasBlocked, setCanvasBlocked] = useState(false);
   const [lineHeights, setLineHeights] = useState<number[]>(() => Array.from({ length: boardLines }, () => 24));
   const measureScheduledRef = useRef(false);
   // Ref so onUpdate/onCreate (closed over at mount) can call the latest scheduleMeasure
@@ -535,6 +539,12 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
     immediatelyRender: false,
     extensions: [
       SingleParagraphDoc,
+      CanvasProtection.configure({
+        regions: canvasRegions,
+        rows: boardLines,
+        cols: boardWidth,
+        onBlocked: () => setCanvasBlocked(true),
+      }),
       StarterKit.configure({
         heading: false,
         blockquote: false,
@@ -1009,6 +1019,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
       },
     },
     onSelectionUpdate: ({ editor }) => {
+      setCanvasBlocked(false);
       // Toggle .selected-inline on atom node DOM elements that are inside the
       // current range selection so color tiles etc. get a visible highlight.
       const container = editor.view.dom;
@@ -1061,6 +1072,18 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
       onFocus?.();
     },
   });
+
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    editor.view.dispatch(
+      setCanvasProtection(editor.state.tr, {
+        regions: canvasRegions,
+        rows: boardLines,
+        cols: boardWidth,
+        onBlocked: () => setCanvasBlocked(true),
+      }),
+    );
+  }, [editor, canvasRegions, boardLines, boardWidth]);
 
   // Store editor reference for use in handlers
   useEffect(() => {
@@ -1408,10 +1431,14 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
           // TipTap v3 signature: setContent(content, options). The v2
           // three-argument form silently dropped both `emitUpdate: false`
           // and `parseOptions`, echoing this sync back out as an edit.
-          editor.commands.setContent(parseTemplateSimple(value || "", boardLines, markupOptions), {
-            emitUpdate: false,
-            parseOptions: { preserveWhitespace: true },
-          });
+          editor
+            .chain()
+            .setMeta(CANVAS_EXTERNAL_CONTENT, true)
+            .setContent(parseTemplateSimple(value || "", boardLines, markupOptions), {
+              emitUpdate: false,
+              parseOptions: { preserveWhitespace: true },
+            })
+            .run();
         });
       }
     }
@@ -1660,6 +1687,7 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
               {canvasRegions.length > 0 && (
                 <TemplateCanvasRegions
                   regions={canvasRegions}
+                  onActivate={onCanvasActivate}
                   rows={boardLines}
                   cols={boardWidth}
                   lineHeights={lineHeights}
@@ -1673,6 +1701,11 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
         {canvasRegions.length > 0 && (
           <Text size="xs" tone="muted" className="mt-2">
             {canvasLabels?.hint ?? DEFAULT_CANVAS_LABELS.hint}
+          </Text>
+        )}
+        {canvasRegions.length > 0 && (
+          <Text size="xs" tone="muted" role="status" aria-live="polite">
+            {canvasBlocked ? (canvasLabels?.blocked ?? DEFAULT_CANVAS_LABELS.blocked) : ""}
           </Text>
         )}
         {/* Line counter */}
