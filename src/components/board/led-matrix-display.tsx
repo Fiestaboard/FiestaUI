@@ -189,9 +189,9 @@ const MIN_ROUND_DOT = 4;
  * The most distinct colours a frame paints as one `Path2D` per colour. Text,
  * tiles and icons use a handful; a photo-like layer (a 64×64 canvas can be
  * 4,096 colours) goes past this, and the frame paints its lit dots through
- * one image instead: one path for every lit dot, filled once and coloured
+ * one image instead: batched paths for the lit dots, filled and coloured
  * by the frame drawn at one pixel per LED (`source-in`, nearest-neighbour)
- * — two fills and a few `drawImage`s whatever the colour count, where 4,096
+ * — bounded path fills and a few `drawImage`s whatever the colour count, where 4,096
  * paths would be 8,192 fills. Below it the per-colour paths stay, so every
  * frame without many colours paints exactly as it always has.
  */
@@ -216,14 +216,40 @@ function traceDot(path: Path2D, round: boolean, cx: number, cy: number, size: nu
 }
 
 /**
- * Per-canvas scratch that survives between paints: the path of every LED in
+ * Safari's GPU process can spend seconds replaying one path with thousands
+ * of disjoint rounded rectangles. Bound native path complexity, not just the
+ * number of fill calls. 128 dots per path removed the stall on a 192×96
+ * panel at DPR 2. Only batch when dots have a full device-pixel gap: tighter
+ * dots can share antialiased pixels, whose coverage needs a combined fill.
+ */
+const MAX_DOTS_PER_PATH = 128;
+
+class DotPaths {
+  private paths: Path2D[] = [];
+  private count = 0;
+
+  constructor(private readonly separated: boolean) {}
+
+  add(round: boolean, cx: number, cy: number, size: number) {
+    if (this.count === 0 || (this.separated && this.count % MAX_DOTS_PER_PATH === 0)) this.paths.push(new Path2D());
+    traceDot(this.paths[this.paths.length - 1], round, cx, cy, size);
+    this.count++;
+  }
+
+  fill(ctx: CanvasRenderingContext2D) {
+    for (const path of this.paths) ctx.fill(path);
+  }
+}
+
+/**
+ * Per-canvas scratch that survives between paints: the bounded paths of every LED in
  * its off state (geometry only, so it is built once per size/shape and
  * refilled every frame) and the 1px-per-LED canvas the bloom is drawn from.
  * Kept off React state because it belongs to the canvas element, not a render.
  */
 interface PaintCache {
   key: string;
-  grid: Path2D;
+  grid: DotPaths;
   small: HTMLCanvasElement;
   /** The bloom source, `small`'s size; allocated once per size and refilled every paint. */
   image: ImageData | null;
@@ -248,10 +274,8 @@ function equalPixels(a: Uint8Array | Uint8ClampedArray | null, b: Uint8Array | U
 }
 
 /**
- * Paint a frame. Every LED is first filled off from one cached path, then lit
- * pixels are batched into one path per colour on top — so a 128×64 panel is
- * a handful of fills per frame, not 8,192, and a transition at 60fps builds
- * only the lit paths.
+ * Paint a frame. Cache the unlit grid and group lit dots by colour, keeping
+ * separated dots within the native path budget. Transitions rebuild only lit paths.
  */
 function paintLedFrame(
   canvas: HTMLCanvasElement,
@@ -286,9 +310,9 @@ function paintLedFrame(
   const key = `${width}x${height}:${step}:${look.shape}:${look.dotRatio}`;
   let cache = paintCaches.get(canvas);
   if (!cache || cache.key !== key) {
-    const grid = new Path2D();
+    const grid = new DotPaths(step - dot >= 1);
     for (let y = 0; y < height; y++)
-      for (let x = 0; x < width; x++) traceDot(grid, round, (x + 0.5) * step, (y + 0.5) * step, dot);
+      for (let x = 0; x < width; x++) grid.add(round, (x + 0.5) * step, (y + 0.5) * step, dot);
     const small = document.createElement("canvas");
     small.width = width;
     small.height = height;
@@ -314,9 +338,9 @@ function paintLedFrame(
   if (canvas.width !== backingW) canvas.width = backingW;
   if (canvas.height !== backingH) canvas.height = backingH;
 
-  // One path per colour while there are few colours; past MAX_COLOR_PATHS
+  // Bounded paths per colour while there are few colours; past MAX_COLOR_PATHS
   // the lit dots are painted through an image instead (`dots`).
-  const lit = new Map<number, Path2D>();
+  const lit = new Map<number, DotPaths>();
   let dots: HTMLCanvasElement | null = null;
   for (let y = 0; y < height && !dots; y++) {
     for (let x = 0; x < width; x++) {
@@ -329,10 +353,10 @@ function paintLedFrame(
           dots = paintDenseDots(cache, frame, step, round, dot, backingW, backingH);
           break;
         }
-        path = new Path2D();
+        path = new DotPaths(step - dot >= 1);
         lit.set(rgb, path);
       }
-      traceDot(path, round, (x + 0.5) * step, (y + 0.5) * step, dot);
+      path.add(round, (x + 0.5) * step, (y + 0.5) * step, dot);
     }
   }
   if (dots) lit.clear();
@@ -344,7 +368,7 @@ function paintLedFrame(
     }
     for (const [rgb, path] of lit) {
       ctx.fillStyle = `#${rgb.toString(16).padStart(6, "0")}`;
-      ctx.fill(path);
+      path.fill(ctx);
     }
   };
 
@@ -390,10 +414,10 @@ function paintLedFrame(
     }
   }
 
-  // Every LED off, then the lit ones again on top: one cached path for the
-  // grid, so the off dots cost a single fill however many LEDs there are.
+  // Every LED off, then the lit ones again on top. Reuse the bounded grid
+  // paths so native fills stay cheap as the matrix grows.
   ctx.fillStyle = look.offColor;
-  ctx.fill(cache.grid);
+  cache.grid.fill(ctx);
   paintLit();
   (cache.painted ??= new Uint8ClampedArray(pixels.length)).set(pixels);
   if (visibleMask) (cache.mask ??= new Uint8Array(visibleMask.length)).set(visibleMask);
@@ -403,7 +427,7 @@ function paintLedFrame(
 
 /**
  * The lit dots of a many-colour frame, coloured, on a backing-size canvas:
- * every lit dot traced into one path and filled once, then the frame drawn
+ * every lit dot traced into bounded paths and filled, then the frame drawn
  * over it at one pixel per LED, scaled up without smoothing, with
  * `source-in` — so each dot takes its own LED's colour and keeps the dot
  * shape (round, rounded or square) the path gave it. Unlit pixels are
@@ -434,7 +458,7 @@ function paintDenseDots(
   const dctx = dots.getContext("2d");
   if (!cctx || !dctx) return null;
   const image = (cache.dense.image ??= cctx.createImageData(width, height));
-  const path = new Path2D();
+  const path = new DotPaths(step - dot >= 1);
   for (let p = 0, i = 0; p < width * height; p++, i += 3) {
     const on = pixels[i] !== 0 || pixels[i + 1] !== 0 || pixels[i + 2] !== 0;
     image.data[p * 4] = pixels[i];
@@ -443,14 +467,14 @@ function paintDenseDots(
     image.data[p * 4 + 3] = on ? 255 : 0;
     if (on) {
       const x = p % width;
-      traceDot(path, round, (x + 0.5) * step, ((p - x) / width + 0.5) * step, dot);
+      path.add(round, (x + 0.5) * step, ((p - x) / width + 0.5) * step, dot);
     }
   }
   cctx.putImageData(image, 0, 0);
   dctx.save();
   dctx.clearRect(0, 0, backingW, backingH);
   dctx.fillStyle = "#ffffff";
-  dctx.fill(path);
+  path.fill(dctx);
   dctx.globalCompositeOperation = "source-in";
   dctx.imageSmoothingEnabled = false;
   dctx.drawImage(colors, 0, 0, backingW, backingH);
