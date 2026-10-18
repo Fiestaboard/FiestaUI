@@ -9,7 +9,7 @@ import "../../styles/editor.css";
 import type { Meta, StoryObj } from "@storybook/react";
 import { Clock, Cloud, TrainFront, TrendingUp } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import { expect } from "storybook/test";
+import { expect, waitFor } from "storybook/test";
 
 import { CHARACTER_SET_IDS, materializeCharacterSet } from "../../lib/character-sets";
 import { ACME_SIGN_CHARSET, ACME_SIGN_MODEL } from "../../lib/charset-golden-cases";
@@ -611,6 +611,10 @@ export const FlapWithExtendedMarkup: Story = {
 /** The image occupies the blank left-hand cells while text stays beside it. */
 export const CanvasBesideText: Story = {
   play: async ({ canvasElement }) => {
+    await waitFor(() => {
+      expect(canvasElement.querySelector(".template-canvas-region")).not.toBeNull();
+      expect(canvasElement.querySelector(".ProseMirror p")).not.toBeNull();
+    });
     await document.fonts.ready;
     const guide = canvasElement.querySelector(".template-canvas-region")!;
     const walker = document.createTreeWalker(canvasElement.querySelector(".ProseMirror p")!, NodeFilter.SHOW_TEXT);
