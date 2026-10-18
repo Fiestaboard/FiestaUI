@@ -91,6 +91,10 @@ export const INVENTORY = [
         summary: "Filterable option list — a text field over an aria-activedescendant listbox.",
       },
       {
+        name: "CopyableCode",
+        summary: "Inline code that copies a value while keeping its token visible through confirmation.",
+      },
+      {
         name: "CopyButton",
         summary: "Writes a value to the clipboard and confirms it — awaited, announced, and self-cleaning.",
       },

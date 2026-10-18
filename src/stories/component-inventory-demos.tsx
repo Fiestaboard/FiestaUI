@@ -152,6 +152,7 @@ import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
+import { CopyableCode } from "../components/forms/copyable-code";
 import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
@@ -740,6 +741,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Stack>
   ),
   Slider: SliderDemo,
+  CopyableCode: () => <CopyableCode value="{{weather.temp}}">weather.temp</CopyableCode>,
   CopyButton: () => <CopyButton value="sk-live-2f8c91a4" labels={{ announcement: "API token copied" }} />,
   Swatch: () => (
     <SwatchGroup aria-label="Board colour" defaultValue="black">
