@@ -157,6 +157,12 @@ function protectedContent(doc: PMNode, options: CanvasProtectionOptions) {
   const cells = new Map<string, string>();
   for (const unit of documentGrid(doc, options).units) {
     if (!unit.value) continue;
+    // Flow can place existing text beyond the visible columns of a fully
+    // reserved row. It still belongs to that row and must survive edits.
+    if (blockedCaret(options, unit.row, options.cols)) {
+      cells.set(`${unit.row}:${unit.col}`, unit.value);
+      continue;
+    }
     for (let col = unit.col; col < Math.min(options.cols, unit.col + unit.width); col++)
       if (occupied(options, unit.row, col)) cells.set(`${unit.row}:${col}`, unit.value);
   }
@@ -221,7 +227,14 @@ export const CanvasProtection = Extension.create<CanvasProtectionOptions>({
             const grid = documentGrid(tr.docs[i], options);
             step.getMap().forEach((from, to) => {
               const cell = cellAt(grid, from);
-              if (from === to && cell && blockedCaret(options, cell.row, cell.col)) blocked = true;
+              if (cell && blockedCaret(options, cell.row, cell.col)) blocked = true;
+              if (
+                from < to &&
+                grid.lines.some(
+                  (line) => from < line.to + 1 && to > line.from && blockedCaret(options, line.row, options.cols),
+                )
+              )
+                blocked = true;
               if (from < to && grid.units.some((u) => u.from < to && u.to > from && touches(u, options)))
                 blocked = true;
             });

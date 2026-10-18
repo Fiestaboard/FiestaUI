@@ -285,3 +285,18 @@ it("blocks selection replacement on a fully reserved flow row", () => {
   editor.commands.insertContent("PASTE");
   expect(text()).toBe("ABC\nNEXT");
 });
+it("blocks replacement of an empty fully covered flow row through its line break", () => {
+  const { editor, pos, text } = mount("\nNEXT", [
+    { ...region, text: "flow", area: { row: 1, col: 1, rows: 1, cols: 16 } },
+  ]);
+  editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, 1, pos("NEXT"))));
+  editor.commands.insertContent("PASTE");
+  expect(text()).toBe("\nNEXT");
+});
+it("blocks line merges that move following text into an empty fully covered flow row", () => {
+  const { editor, pos, text } = mount("TITLE\n\nNEXT", [
+    { ...region, text: "flow", area: { row: 2, col: 1, rows: 1, cols: 16 } },
+  ]);
+  editor.view.dispatch(editor.state.tr.delete(pos("TITLE") + 5, pos("NEXT")));
+  expect(text()).toBe("TITLE\n\nNEXT");
+});
