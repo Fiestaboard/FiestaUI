@@ -233,6 +233,7 @@ import { Code } from "../components/typography/code";
 import { Heading } from "../components/typography/heading";
 import { Kbd } from "../components/typography/kbd";
 import { List, ListItem } from "../components/typography/list";
+import { Prose } from "../components/typography/prose";
 import { Text } from "../components/typography/text";
 import { TextLink } from "../components/typography/text-link";
 import { WizardProgress } from "../components/wizard/wizard-progress";
@@ -532,6 +533,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         semantic one (h2–h4), set independently.
       </Text>
     </Stack>
+  ),
+  Prose: () => (
+    <Prose size="sm">
+      <h4>Rendered rich text</h4>
+      <p>
+        One container styles <strong>plain HTML</strong>, including <a href="#inv-section-typography">links</a> and{" "}
+        <code>inline code</code>.
+      </p>
+      <ul>
+        <li>No markdown dependency</li>
+        <li>Visual heading offsets preserve semantics</li>
+      </ul>
+    </Prose>
   ),
   Text: () => (
     <Stack gap="1">

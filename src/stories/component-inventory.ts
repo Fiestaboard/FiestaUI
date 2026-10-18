@@ -66,6 +66,10 @@ export const INVENTORY = [
     entries: [
       { name: "Heading", summary: "Semantic h2–h4 with an independent visual size and tone." },
       { name: "Text", summary: "Body copy — size, tone (incl. status tones) and weight variants." },
+      {
+        name: "Prose",
+        summary: "Token-styled rich-text descendants at chat and document densities; the app owns markdown rendering.",
+      },
       { name: "Code", summary: "Inline monospace for identifiers, commands and literals." },
       {
         name: "Kbd",
