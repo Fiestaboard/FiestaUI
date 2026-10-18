@@ -46,6 +46,7 @@ export function WrappedTextView({ node, deleteNode, labels }: WrappedTextViewPro
         "max-h-[1.2rem] h-auto",
         "mr-0.5", // Small space after the tag
       )}
+      title={text}
       data-drag-handle
       style={{
         display: "inline-block",

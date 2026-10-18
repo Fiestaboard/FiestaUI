@@ -660,3 +660,39 @@ export const MultipleCanvasRegions: Story = {
     ],
   },
 };
+
+/** Interactive regression fixture: output is the actual saved template. */
+function ProtectedCanvasEditor({ flow = false }: { flow?: boolean }) {
+  const [value, setValue] = useState(flow ? "TITLE\nABC\nDEF\nEND" : "TITLE\n    ABC\n    DEF\nEND");
+  const [selected, setSelected] = useState("");
+  return (
+    <Stack gap="3">
+      <TemplateEditor
+        value={value}
+        onChange={setValue}
+        deviceModel="divoom_pixoo64"
+        deviceType={undefined}
+        boardLines={6}
+        boardWidth={16}
+        toolbarProps={TOOLBAR_PROPS}
+        canvasRegions={[{ id: "portrait", area: { row: 2, col: 1, rows: 2, cols: 4 }, text: flow ? "flow" : "hide" }]}
+        onCanvasActivate={setSelected}
+      />
+      <pre data-testid="saved-template">{value}</pre>
+      <Text role="status">{selected ? `Settings: ${selected}` : "Select a canvas to edit its settings."}</Text>
+    </Stack>
+  );
+}
+export const ProtectedCanvasEditing: Story = { render: () => <ProtectedCanvasEditor /> };
+export const FlowCanvasEditing: Story = { render: () => <ProtectedCanvasEditor flow /> };
+
+export const CanvasTokenGeometry: Story = {
+  args: {
+    deviceType: undefined,
+    deviceModel: "divoom_pixoo64",
+    boardWidth: 16,
+    boardLines: 6,
+    value: "{{weather.temperature}} Z\n{{= 1 + 2 }} Z\n{{fill_space}} Z\n{{HELLO|wrap}} Z\n{{icon:sun}} Z\n{{red}} Z",
+    canvasRegions: [{ id: "edge", area: { row: 1, col: 16, rows: 6, cols: 1 }, text: "hide" }],
+  },
+};

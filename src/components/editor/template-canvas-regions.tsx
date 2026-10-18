@@ -9,9 +9,13 @@ export interface TemplateCanvasLabels {
   name: (id: string) => string;
   description: (region: TemplateCanvasRegion) => string;
   hint: string;
+  edit?: (id: string) => string;
+  blocked?: string;
 }
 
 export const DEFAULT_CANVAS_LABELS: TemplateCanvasLabels = {
+  edit: (id) => `Edit canvas ${id}`,
+  blocked: "That area belongs to a canvas. Edit beside it, or select the canvas to change its settings.",
   name: (id) => `Canvas: ${id}`,
   description: ({ id, area, text }) =>
     `Canvas: ${id}, rows ${area.row}–${area.row + area.rows - 1}, columns ${area.col}–${area.col + area.cols - 1}. ${text === "flow" ? "Text flows around this area on the display." : "Text in this area is hidden on the display."}`,
@@ -23,8 +27,8 @@ export const DEFAULT_CANVAS_LABELS: TemplateCanvasLabels = {
  * undo history. Horizontal cells use the same mono font as literal editor
  * text; vertical bounds follow measured template rows, including wrapped rows.
  * Variable pills are authoring tokens, not resolved output widths, so Preview
- * remains the authority for alignment and flow. Pointer events pass through;
- * underlying text is retained for other displays and can still be edited.
+ * remains the authority for alignment and flow. Buttons open the host’s existing settings; underlying text is retained.
+ * The protection extension owns editing and navigation, never this overlay.
  */
 export function TemplateCanvasRegions({
   regions,
@@ -32,12 +36,14 @@ export function TemplateCanvasRegions({
   cols,
   lineHeights,
   labels,
+  onActivate,
 }: {
   regions: readonly TemplateCanvasRegion[];
   rows: number;
   cols: number;
   lineHeights: readonly number[];
   labels: TemplateCanvasLabels;
+  onActivate?: (id: string) => void;
 }) {
   const edges = [0];
   for (let row = 0; row < rows; row++) edges.push(edges[row] + (lineHeights[row] ?? 24));
@@ -50,11 +56,18 @@ export function TemplateCanvasRegions({
         const endRow = Math.min(rows, row + height - 1);
         const endCol = Math.min(cols, col + width - 1);
         const clipped = { ...region, area: { row, col, rows: endRow - row + 1, cols: endCol - col + 1 } };
+        const Region = onActivate ? "button" : "div";
         return (
-          <div
+          <Region
             key={region.id}
-            role="img"
-            aria-label={labels.description(clipped)}
+            type={onActivate ? "button" : undefined}
+            role={onActivate ? undefined : "img"}
+            onClick={onActivate ? () => onActivate(region.id) : undefined}
+            aria-label={
+              onActivate
+                ? `${(labels.edit ?? DEFAULT_CANVAS_LABELS.edit!)(region.id)}. ${labels.description(clipped)}`
+                : labels.description(clipped)
+            }
             className="template-canvas-region"
             data-canvas-id={region.id}
             style={{
@@ -67,7 +80,7 @@ export function TemplateCanvasRegions({
             <span aria-hidden="true" className="template-canvas-region-label">
               {labels.name(region.id)}
             </span>
-          </div>
+          </Region>
         );
       })}
     </div>

@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -76,4 +76,14 @@ describe("canvas regions in the rich editor", () => {
     expect(region.style.width).toBe("4ch");
     unmount();
   });
+});
+
+it("activates a canvas through its accessible settings button", async () => {
+  const onCanvasActivate = vi.fn();
+  render(
+    <TemplateEditor value={value} onChange={() => {}} canvasRegions={[portrait]} onCanvasActivate={onCanvasActivate} />,
+  );
+  const button = await screen.findByRole("button", { name: /Edit canvas portrait.*rows 2–6/ });
+  fireEvent.click(button);
+  expect(onCanvasActivate).toHaveBeenCalledWith("portrait");
 });

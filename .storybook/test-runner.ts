@@ -1,6 +1,8 @@
 import type { TestRunnerConfig } from "@storybook/test-runner";
 import { checkA11y, configureAxe, injectAxe } from "axe-playwright";
 
+import { checkCanvasEditing } from "./canvas-editor-regression";
+
 /**
  * Which theme this run renders, from the `THEME` env that ci.yml's a11y
  * matrix exports (`dark` | `light`). Unset locally means "whatever the
@@ -97,6 +99,8 @@ const config: TestRunnerConfig = {
         );
       }
     }
+
+    await checkCanvasEditing(page, context.id);
 
     await configureAxe(page, {
       rules: [
