@@ -22,7 +22,7 @@
  * `flapSpeed`).
  */
 
-import { type CSSProperties, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, memo, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   BOARD_CHARS,
@@ -66,11 +66,15 @@ function drumChar(index: number, code62Glyph: Code62Glyph): string {
 // boards/tiles mount. Previously this was appended to document.head from
 // CharTile's render body (~132 calls per board render), a render-phase side
 // effect that recalced styles mid-reconciliation and blocked React Compiler.
-const FLAP_KEYFRAMES = `
-    @keyframes flapDown { from { transform: rotateX(0deg); } to { transform: rotateX(-90deg); } }
-    @keyframes flapUp { from { transform: rotateX(90deg); } to { transform: rotateX(0deg); } }
-    @keyframes flapShadow { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
-  `;
+// One name per drum position also restarts correctly if React batches several
+// ticks. Alternating two names would fail whenever an even number was batched.
+const FLAP_KEYFRAMES = BOARD_CHARS.map(
+  (_, index) => `
+    @keyframes flapDown${index} { from { transform: rotateX(0deg); } to { transform: rotateX(-90deg); } }
+    @keyframes flapUp${index} { from { transform: rotateX(90deg); } to { transform: rotateX(0deg); } }
+    @keyframes flapShadow${index} { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+  `,
+).join("");
 
 // Render-invariant class maps (size → Tailwind classes) live at module scope in
 // ../../lib/board-metrics so they are allocated once at import instead of on
@@ -296,22 +300,19 @@ interface FlapLayerStyles {
   castShadow: Record<"black" | "white", CSSProperties>;
 }
 
-// The three duration-dependent layer styles, memoized per step duration.
-//
-// The rest of this file's style objects are hoisted to module scope so the
-// ~132 tiles of a flagship board don't re-allocate them (PR #31); these three
-// embed the step duration in an `animation` string, so they are cached by that
-// duration instead. A board that never touches `flapSpeed` resolves to 80ms and
-// allocates exactly one entry for the whole document, i.e. the same single
-// allocation the hoisted constants used to give. The cache is keyed by a
-// clamped, rounded number, so it cannot grow without bound from a slider.
+// Cache the duration/position-dependent animation styles across tiles. Each
+// position has distinct animation names so a step restarts on the existing
+// DOM nodes, including when React batches several steps in one render. The
+// cache is capped below so scrubbing a speed setting cannot grow it forever.
 const flapLayerCache = new Map<number, FlapLayerStyles>();
 
-function getFlapLayerStyles(stepMs: number): FlapLayerStyles {
-  const cached = flapLayerCache.get(stepMs);
+function getFlapLayerStyles(stepMs: number, index: number): FlapLayerStyles {
+  const key = stepMs * BOARD_CHARS.length + index;
+  const cached = flapLayerCache.get(key);
   if (cached) return cached;
 
   const timing = deriveFlapTiming(stepMs);
+  const suffix = index;
   const styles: FlapLayerStyles = {
     topFlap: {
       position: "absolute",
@@ -325,7 +326,7 @@ function getFlapLayerStyles(stepMs: number): FlapLayerStyles {
       backfaceVisibility: "hidden",
       willChange: "transform",
       // ease-in on the fall: the leaf is falling under gravity.
-      animation: `flapDown ${timing.topMs}ms ease-in forwards`,
+      animation: `flapDown${suffix} ${timing.topMs}ms ease-in forwards`,
     },
     bottomFlap: {
       position: "absolute",
@@ -341,7 +342,7 @@ function getFlapLayerStyles(stepMs: number): FlapLayerStyles {
       transform: "rotateX(90deg)",
       // Decelerating on the land, and delayed by exactly the top leaf's
       // duration so the hand-off happens at the instant the top leaf lands.
-      animation: `flapUp ${timing.bottomMs}ms cubic-bezier(0.33, 0, 0.15, 1) ${timing.bottomDelayMs}ms forwards`,
+      animation: `flapUp${suffix} ${timing.bottomMs}ms cubic-bezier(0.33, 0, 0.15, 1) ${timing.bottomDelayMs}ms forwards`,
     },
     castShadow: {
       white: {
@@ -354,7 +355,7 @@ function getFlapLayerStyles(stepMs: number): FlapLayerStyles {
         zIndex: 4,
         pointerEvents: "none",
         opacity: 0,
-        animation: `flapShadow ${timing.stepMs}ms ease-in-out forwards`,
+        animation: `flapShadow${suffix} ${timing.stepMs}ms ease-in-out forwards`,
       },
       black: {
         position: "absolute",
@@ -366,12 +367,17 @@ function getFlapLayerStyles(stepMs: number): FlapLayerStyles {
         zIndex: 4,
         pointerEvents: "none",
         opacity: 0,
-        animation: `flapShadow ${timing.stepMs}ms ease-in-out forwards`,
+        animation: `flapShadow${suffix} ${timing.stepMs}ms ease-in-out forwards`,
       },
     },
   };
 
-  flapLayerCache.set(stepMs, styles);
+  // Keep two full drum/cadence combinations at most. A speed slider must
+  // not permanently retain a style set for every position at every speed.
+  if (flapLayerCache.size >= BOARD_CHARS.length * 2) {
+    flapLayerCache.delete(flapLayerCache.keys().next().value!);
+  }
+  flapLayerCache.set(key, styles);
   return styles;
 }
 
@@ -523,6 +529,7 @@ const GridRow = memo(
     isAnimating = false,
     animationsEnabled = true,
     flapStepMs,
+    stepStart,
     showSeams = false,
     isRowSeam = false,
     seamGap = "6px",
@@ -537,6 +544,7 @@ const GridRow = memo(
     isAnimating?: boolean;
     animationsEnabled?: boolean;
     flapStepMs: number;
+    stepStart: RefObject<number | null>;
     showSeams?: boolean;
     isRowSeam?: boolean;
     seamGap?: string;
@@ -573,6 +581,7 @@ const GridRow = memo(
                 isAnimating={isAnimating}
                 animationsEnabled={animationsEnabled}
                 flapStepMs={flapStepMs}
+                stepStart={stepStart}
                 rowIdx={rowIdx}
                 colIdx={colIdx}
                 code62Glyph={code62Glyph}
@@ -592,6 +601,7 @@ const GridRow = memo(
     if (prevProps.isAnimating !== nextProps.isAnimating) return false;
     if (prevProps.animationsEnabled !== nextProps.animationsEnabled) return false;
     if (prevProps.flapStepMs !== nextProps.flapStepMs) return false;
+    if (prevProps.stepStart !== nextProps.stepStart) return false;
     if (prevProps.showSeams !== nextProps.showSeams) return false;
     if (prevProps.isRowSeam !== nextProps.isRowSeam) return false;
     if (prevProps.seamGap !== nextProps.seamGap) return false;
@@ -607,31 +617,20 @@ const GridRow = memo(
   },
 );
 
-// Shared loading tickers — one interval per distinct step duration, rather than
-// one setInterval per CharTile. A flagship board renders ~132 tiles; while
-// loading, each used to own its own timer (~132 concurrent intervals, each
-// firing its own setState on its own callback, which timer jitter kept out of
-// phase so React could not batch them). Now every loading tile subscribes to
-// the ticker for its own cadence: on each tick the store calls all subscribers
-// synchronously, so their setState updates land in a single batched render pass
-// and stay in lockstep. An interval only runs while at least one tile is
-// subscribed to it, and the entry is dropped when the last one leaves.
-//
-// The period is the tile's resolved flap step, passed in by the caller — it is
-// not a constant here. Previously this file declared `LOADING_TICK_MS = 80`
-// next to a comment asking the reader to keep it equal to the flap duration;
-// issue #178 asked for that to be structural instead. There is now exactly one
-// number, so "keeping them in sync" is not a thing anyone can forget to do.
-interface LoadingTicker {
-  subscribers: Set<() => void>;
-  intervalId: ReturnType<typeof setInterval> | null;
+// One timer per cadence, shared by loading and message transitions across
+// boards. Each subscriber keeps its next due time, so independent boards do
+// not shorten each other's flaps. Due tiles update together in one task;
+// the last subscriber releases the timer and cache entry.
+interface FlapTicker {
+  subscribers: Map<() => void, number>;
+  timeoutId: ReturnType<typeof setTimeout> | null;
 }
-const loadingTickers = new Map<number, LoadingTicker>();
+const flapTickers = new Map<number, FlapTicker>();
 
 // prefers-reduced-motion gate (issue #58). The loading cycle is JS state driven
 // by these tickers, so a CSS `@media (prefers-reduced-motion)` block cannot
 // reach it — the ticker itself must consult the preference. While `reduce`
-// matches, no interval runs: loading tiles stay frozen on their current
+// matches, no timer runs: loading tiles stay frozen on their current
 // character.
 //
 // Since issue #180 this is a backstop rather than the primary gate: BoardDisplay
@@ -645,43 +644,59 @@ const loadingTickers = new Map<number, LoadingTicker>();
 // shared with the board-level gate. It is `null` on the server; subscriptions
 // only happen in effects, so that is never consulted there.
 
-function startTicker(periodMs: number, ticker: LoadingTicker): void {
-  if (ticker.intervalId !== null) return;
-  ticker.intervalId = setInterval(() => {
-    // Iterate a snapshot: a subscriber's setState is async and cannot mutate
-    // the set mid-loop, but snapshotting keeps this robust regardless.
-    for (const cb of [...ticker.subscribers]) cb();
-  }, periodMs);
+function startTicker(periodMs: number, ticker: FlapTicker): void {
+  if (ticker.timeoutId !== null || ticker.subscribers.size === 0) return;
+  let next = Infinity;
+  for (const due of ticker.subscribers.values()) next = Math.min(next, due);
+  ticker.timeoutId = setTimeout(
+    () => {
+      ticker.timeoutId = null;
+      const now = performance.now();
+      // Only due tiles advance: joining a clock 1ms before its next tick must
+      // not cut the new tile's first flap from 80ms to 1ms. Simultaneously due
+      // tiles still update in one task and React can batch them together.
+      for (const [cb, due] of [...ticker.subscribers]) {
+        if (due <= now && ticker.subscribers.get(cb) === due) {
+          ticker.subscribers.set(cb, now + periodMs);
+          cb();
+        }
+      }
+      startTicker(periodMs, ticker);
+    },
+    Math.max(0, next - performance.now()),
+  );
 }
 
-function stopTicker(ticker: LoadingTicker): void {
-  if (ticker.intervalId === null) return;
-  clearInterval(ticker.intervalId);
-  ticker.intervalId = null;
+function stopTicker(ticker: FlapTicker): void {
+  if (ticker.timeoutId === null) return;
+  clearTimeout(ticker.timeoutId);
+  ticker.timeoutId = null;
 }
 
 // Module-level singleton listener — lives for the page's lifetime, one per
 // document no matter how many boards mount.
 reducedMotionQuery?.addEventListener("change", (event) => {
-  for (const [periodMs, ticker] of loadingTickers) {
+  for (const [periodMs, ticker] of flapTickers) {
     if (event.matches) {
       stopTicker(ticker);
     } else if (ticker.subscribers.size > 0) {
+      const due = performance.now() + periodMs;
+      for (const cb of ticker.subscribers.keys()) ticker.subscribers.set(cb, due);
       startTicker(periodMs, ticker);
     }
   }
 });
 
-function subscribeLoadingTick(periodMs: number, callback: () => void): () => void {
-  let ticker = loadingTickers.get(periodMs);
+function subscribeFlapTick(periodMs: number, callback: () => void, stepStart: RefObject<number | null>): () => void {
+  let ticker = flapTickers.get(periodMs);
   if (!ticker) {
-    ticker = { subscribers: new Set(), intervalId: null };
-    loadingTickers.set(periodMs, ticker);
+    ticker = { subscribers: new Map(), timeoutId: null };
+    flapTickers.set(periodMs, ticker);
   }
   const entry = ticker;
-  entry.subscribers.add(callback);
+  entry.subscribers.set(callback, (stepStart.current ??= performance.now()) + periodMs);
   // Reduced motion freezes the ticker: subscribers register (so a later
-  // `change` back to no-preference resumes them) but no interval runs.
+  // `change` back to no-preference resumes them) but no timer runs.
   if (!reducedMotionQuery?.matches) {
     startTicker(periodMs, entry);
   }
@@ -689,13 +704,12 @@ function subscribeLoadingTick(periodMs: number, callback: () => void): () => voi
     entry.subscribers.delete(callback);
     if (entry.subscribers.size === 0) {
       stopTicker(entry);
-      loadingTickers.delete(periodMs);
+      flapTickers.delete(periodMs);
     }
   };
 }
 
-// Individual character tile component - memoized to prevent unnecessary re-renders
-// Now pre-renders all 71 characters and uses CSS to show/hide them
+// Individual character tile; only its current and previous glyph are mounted.
 const CharTile = memo(
   function CharTile({
     token,
@@ -704,6 +718,7 @@ const CharTile = memo(
     isAnimating: rawIsAnimating = false,
     animationsEnabled = true,
     flapStepMs,
+    stepStart,
     rowIdx = 0,
     colIdx = 0,
     code62Glyph = "degree",
@@ -715,6 +730,7 @@ const CharTile = memo(
     animationsEnabled?: boolean;
     /** Resolved milliseconds per character step — see `flapSpeed`. */
     flapStepMs: number;
+    stepStart: RefObject<number | null>;
     rowIdx?: number;
     colIdx?: number;
     /** Resolved glyph of this board's code-62 flap; see {@link drumChar}. */
@@ -740,7 +756,6 @@ const CharTile = memo(
     // drives the character interval, the two leaf animations and the loading
     // ticker's period; see the timing block at the top of this file.
     const animationDuration = flapStepMs;
-    const flapLayers = getFlapLayerStyles(animationDuration);
 
     // ── Tile state, and the refs that mirror it ────────────────────────────
     //
@@ -784,20 +799,20 @@ const CharTile = memo(
 
     // ── The character stepper ──────────────────────────────────────────────
     //
-    // One owner for the timer that walks a tile around the character drum. It
+    // One subscription to the clock that walks a tile around the character drum. It
     // is held in a ref and torn down on unmount (or when a branch below decides
     // the tile has arrived) — deliberately *not* from an effect's cleanup.
     // Effect 2 re-runs whenever the target changes, and a cleanup there would
     // clear the very interval that same effect had just started as soon as a
     // second message arrived mid-cascade, stranding the tile with
     // `isTransitioning` stuck true and nothing left to advance it.
-    const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const stepSubscriptionRef = useRef<(() => void) | null>(null);
     const stepPeriodRef = useRef(0);
 
     const stopStepping = useCallback(() => {
-      if (stepIntervalRef.current !== null) {
-        clearInterval(stepIntervalRef.current);
-        stepIntervalRef.current = null;
+      if (stepSubscriptionRef.current !== null) {
+        stepSubscriptionRef.current();
+        stepSubscriptionRef.current = null;
       }
     }, []);
 
@@ -831,12 +846,12 @@ const CharTile = memo(
     // cadence.
     const startStepping = useCallback(
       (periodMs: number) => {
-        if (stepIntervalRef.current !== null && stepPeriodRef.current === periodMs) return;
+        if (stepSubscriptionRef.current !== null && stepPeriodRef.current === periodMs) return;
         stopStepping();
         stepPeriodRef.current = periodMs;
-        stepIntervalRef.current = setInterval(step, periodMs);
+        stepSubscriptionRef.current = subscribeFlapTick(periodMs, step, stepStart);
       },
-      [step, stopStepping],
+      [step, stopStepping, stepStart],
     );
 
     // Unmount only — the stepper outlives individual effect runs by design.
@@ -888,9 +903,13 @@ const CharTile = memo(
         // own position, so the per-tile cycle is unchanged — only the timer is
         // shared, which keeps every loading tile in phase and batches their
         // updates into one render pass. Continues while isAnimating is true.
-        const unsubscribe = subscribeLoadingTick(animationDuration, () => {
-          setCurrentChar((currentCharIndexRef.current + 1) % BOARD_CHARS.length);
-        });
+        const unsubscribe = subscribeFlapTick(
+          animationDuration,
+          () => {
+            setCurrentChar((currentCharIndexRef.current + 1) % BOARD_CHARS.length);
+          },
+          stepStart,
+        );
 
         return () => {
           unsubscribe();
@@ -940,6 +959,7 @@ const CharTile = memo(
       startStepping,
       step,
       stopStepping,
+      stepStart,
     ]);
 
     // Effect 2: message changes — the cascade.
@@ -1006,11 +1026,16 @@ const CharTile = memo(
       startStepping,
       step,
       stopStepping,
+      stepStart,
     ]);
 
     // Color tiles also animate - they cycle through all characters during loading
     // No special handling needed - they go through the same animation logic below
 
+    // Changing animation-name restarts CSS animation on the same elements.
+    // Re-keying these layers used to remove/recreate their entire DOM subtrees
+    // on every flap (three layers × every moving tile × every character).
+    const flapLayers = getFlapLayerStyles(animationDuration, currentCharIndex);
     const currentChar = drumChar(currentCharIndex, code62Glyph);
     const prevCharIndex = (currentCharIndex - 1 + BOARD_CHARS.length) % BOARD_CHARS.length;
     const prevChar = drumChar(prevCharIndex, code62Glyph);
@@ -1167,21 +1192,21 @@ const CharTile = memo(
                   <div style={flapStaticBottomStyle}>{renderHalf(prevChar, false)}</div>
 
                   {/* Layer 3: top flap — old char top half, folds DOWN (hinged at midpoint) */}
-                  <div key={`ft-${currentCharIndex}`} style={flapLayers.topFlap}>
+                  <div key="ft" style={flapLayers.topFlap}>
                     {renderHalf(prevChar, true)}
                     {/* Hinge shadow at bottom edge of flap */}
                     <div style={flapHingeShadowStyle} />
                   </div>
 
                   {/* Layer 4: bottom flap — new char bottom half, UNFOLDS into place */}
-                  <div key={`fb-${currentCharIndex}`} style={flapLayers.bottomFlap}>
+                  <div key="fb" style={flapLayers.bottomFlap}>
                     {renderHalf(newChar, false)}
                     {/* Hinge highlight at top edge of flap */}
                     <div style={flapHingeHighlightStyle[boardType]} />
                   </div>
 
                   {/* Shadow cast by falling flap onto bottom half */}
-                  <div key={`fs-${currentCharIndex}`} style={flapLayers.castShadow[boardType]} />
+                  <div key="fs" style={flapLayers.castShadow[boardType]} />
 
                   {/* Hinge seam at the midpoint */}
                   <div className={SEAM_CLASS} style={seamStyle[boardType]} />
@@ -1217,6 +1242,7 @@ const CharTile = memo(
       prevProps.isAnimating === nextProps.isAnimating &&
       prevProps.animationsEnabled === nextProps.animationsEnabled &&
       prevProps.flapStepMs === nextProps.flapStepMs &&
+      prevProps.stepStart === nextProps.stepStart &&
       prevProps.code62Glyph === nextProps.code62Glyph
     );
   },
@@ -1380,9 +1406,17 @@ export const BoardDisplay = memo(
     const motionEnabled = animationsEnabled && !prefersReducedMotion;
 
     // One resolved number for both CSS leaf animations *and* the JS cadence —
-    // the per-character `setInterval` period and the loading ticker both read
+    // the shared step scheduler and the CSS leaf animations both read
     // it, so `flapSpeed` changes the whole step, not just the rotation.
     const flapStepMs = resolveFlapSpeed(flapSpeed);
+    // Child passive effects subscribe before this parent effect runs. Share
+    // one start time across this board's commit, then reset for the next one.
+    // Real clocks advance while thousands of tiles register: per-tile times
+    // would fragment a board into many nearly-identical timer tasks.
+    const stepStart = useRef<number | null>(null);
+    useEffect(() => {
+      stepStart.current = null;
+    });
 
     // Get dimensions for the device type
     const dims = resolveDimensions(deviceType, notesWide, notesTall, gridRows, gridCols);
@@ -1482,7 +1516,7 @@ export const BoardDisplay = memo(
         {/* Split-flap keyframes — only the animated path uses them. React 19
             hoists this to <head> and dedupes by href across every board. */}
         {!isStatic && (
-          <style href="board-flap-keyframes" precedence="default">
+          <style href="board-flap-keyframes-v2" precedence="default">
             {FLAP_KEYFRAMES}
           </style>
         )}
@@ -1569,6 +1603,7 @@ export const BoardDisplay = memo(
                     isAnimating={isLoading}
                     animationsEnabled={motionEnabled}
                     flapStepMs={flapStepMs}
+                    stepStart={stepStart}
                     showSeams={showSeams}
                     isRowSeam={isRowSeam}
                     seamGap={seamGap}

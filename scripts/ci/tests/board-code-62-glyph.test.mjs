@@ -148,37 +148,52 @@ function installDom() {
 }
 
 /**
- * Replace `setInterval` with intervals the test fires by hand.
- *
- * The board advances its drum from intervals: the shared loading ticker, and
- * each tile's stepper. On a real clock the hardware cadence is 16ms a flip,
- * and on a loaded CI runner a single re-render of a 132-tile board takes far
- * longer than that, so ticks pile up and React commits several steps at once.
- * The drum then reports 61 then 63, and a test waiting to see code 62 never
- * does (seen on CI as `saw ["?"," ","A","63","C"]`). Firing each interval once
- * per step, inside act(), makes every step its own commit, however slow the
- * machine.
+ * Drive both interval and timeout schedulers with a monotonic clock. Each
+ * deadline is committed in its own act(), so a slow runner cannot batch past
+ * code 62 before the observer sees it.
  */
-function manualIntervals() {
-  const real = { setInterval: globalThis.setInterval, clearInterval: globalThis.clearInterval };
+function manualTimers() {
+  const real = {
+    setInterval: globalThis.setInterval,
+    clearInterval: globalThis.clearInterval,
+    setTimeout: globalThis.setTimeout,
+    clearTimeout: globalThis.clearTimeout,
+  };
+  const nowDescriptor = Object.getOwnPropertyDescriptor(performance, "now");
+  let now = 0;
+  Object.defineProperty(performance, "now", { configurable: true, value: () => now });
   const active = new Map();
   let nextId = 1;
-  globalThis.setInterval = (fn, _ms, ...args) => {
-    const id = nextId++;
-    active.set(id, () => fn(...args));
-    return id;
-  };
+  const schedule =
+    (repeat) =>
+    (fn, ms = 0, ...args) => {
+      const id = nextId++;
+      active.set(id, { callback: () => fn(...args), due: now + ms, ms, repeat });
+      return id;
+    };
+  globalThis.setInterval = schedule(true);
+  globalThis.setTimeout = schedule(false);
   globalThis.clearInterval = (id) => {
     if (!active.delete(id)) real.clearInterval(id);
   };
+  globalThis.clearTimeout = (id) => {
+    if (!active.delete(id)) real.clearTimeout(id);
+  };
   return {
-    /** Fire every active interval once: one flip for every moving tile. */
     step() {
-      for (const cb of [...active.values()]) cb();
+      if (!active.size) return;
+      now = Math.min(...[...active.values()].map((timer) => timer.due));
+      for (const [id, timer] of [...active]) {
+        if (timer.due > now || !active.has(id)) continue;
+        if (timer.repeat) timer.due = now + timer.ms;
+        else active.delete(id);
+        timer.callback();
+      }
     },
     restore() {
-      globalThis.setInterval = real.setInterval;
-      globalThis.clearInterval = real.clearInterval;
+      Object.assign(globalThis, real);
+      if (nowDescriptor) Object.defineProperty(performance, "now", nowDescriptor);
+      else delete performance.now;
     },
   };
 }
@@ -305,7 +320,7 @@ test("a note board draws a heart whatever the flagship setting says", async () =
  *
  * Recorded with a MutationObserver attached BEFORE the first render, so a
  * first loading tick that lands on code 62 is caught too. Time does not
- * run on its own here: intervals are fired by hand (see manualIntervals), one
+ * run on its own here: timer deadlines are advanced by hand (see manualTimers), one
  * step per act(), so every position the drum takes is committed and seen.
  * Nothing depends on how fast the machine is.
  *
@@ -315,7 +330,7 @@ test("a note board draws a heart whatever the flagship setting says", async () =
  */
 async function sampleDrum(props, { nextProps = null, maxSteps = 160 } = {}) {
   const dom = installDom();
-  const clock = manualIntervals();
+  const clock = manualTimers();
   try {
     const harness = await import(`${bundleUrl}?run=${++runCounter}`);
     const container = dom.window.document.getElementById("root");

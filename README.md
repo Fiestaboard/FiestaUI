@@ -169,6 +169,12 @@ Three files are maintained as exemplars of the house pattern; copy the nearest o
 | `src/components/forms/button.test.tsx`      | interactive — `userEvent`, keyboard activation, busy/disabled semantics |
 | `src/components/forms/toggle.test.tsx`      | ARIA state and selection — `aria-pressed`, roving tabindex, arrow keys  |
 
+### Board animation measurements
+
+`npm run perf:boards` runs the opt-in JS/DOM work benchmark across split-flap grids from 3×15 through 96×128 and LED matrices from 32×8 through 256×256. It covers every LED transition and opaque bitmap layers. Use `FIESTA_BOARD_BENCH_OUT=/tmp/boards.jsonl npm run perf:boards` to append machine-readable results. The ordinary unit suite skips these timing samples but runs the deterministic scheduling, paint, and cleanup regressions.
+
+These are jsdom CPU/work measurements, not browser FPS or GPU measurements. See [the before/after report](docs/performance/2026-10-17-board-animation.md) for methodology, preparation costs, limits, and the browser profiling command.
+
 ### Visual parity rule
 
 This package was extracted from FiestaBoard's `web/src/components/ui` with a pixel-parity guarantee. Token values in `src/styles/theme.css` and component class strings are contract, not implementation detail — changes to them are visible in every consumer. Change intentionally and version accordingly (patch: fixes, minor: additive components/variants, major: breaking API or visual changes).

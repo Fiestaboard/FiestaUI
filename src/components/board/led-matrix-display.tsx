@@ -234,8 +234,18 @@ interface PaintCache {
    * composed on. Created on the first such frame, reused after.
    */
   dense: { colors: HTMLCanvasElement; image: ImageData | null; dots: HTMLCanvasElement } | null;
+  painted: Uint8ClampedArray | null;
+  mask: Uint8Array | null;
+  appearance: string;
 }
 const paintCaches = new WeakMap<HTMLCanvasElement, PaintCache>();
+
+function equalPixels(a: Uint8Array | Uint8ClampedArray | null, b: Uint8Array | Uint8ClampedArray | null): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
 
 /**
  * Paint a frame. Every LED is first filled off from one cached path, then lit
@@ -273,7 +283,7 @@ function paintLedFrame(
   const round = look.shape === "round" && dot >= MIN_ROUND_DOT;
   const { pixels, width, height } = frame;
 
-  const key = `${backingW}x${backingH}:${look.shape}:${look.dotRatio}`;
+  const key = `${width}x${height}:${step}:${look.shape}:${look.dotRatio}`;
   let cache = paintCaches.get(canvas);
   if (!cache || cache.key !== key) {
     const grid = new Path2D();
@@ -282,9 +292,23 @@ function paintLedFrame(
     const small = document.createElement("canvas");
     small.width = width;
     small.height = height;
-    cache = { key, grid, small, image: null, dense: null };
+    cache = { key, grid, small, image: null, dense: null, painted: null, mask: null, appearance: "" };
     paintCaches.set(canvas, cache);
   }
+  // Many transitions hold a frame for several refreshes (80ms flips, device
+  // frame budgets, integer-pixel wipes). Compare reusable RGB bytes before
+  // tracing paths or touching the canvas. `frame` itself can be a mutable
+  // scratch buffer, so identity cannot tell us whether the pixels changed.
+  const appearance = `${look.offColor}:${look.substrateColor}:${glow}`;
+  const visibleMask = glow ? bloomMask : null;
+  if (
+    canvas.width === backingW &&
+    canvas.height === backingH &&
+    cache.appearance === appearance &&
+    equalPixels(cache.painted, pixels) &&
+    equalPixels(cache.mask, visibleMask)
+  )
+    return;
   // Setting the size clears the canvas; only do it when it changes, so an
   // animation frame does not reallocate the backing store.
   if (canvas.width !== backingW) canvas.width = backingW;
@@ -371,6 +395,10 @@ function paintLedFrame(
   ctx.fillStyle = look.offColor;
   ctx.fill(cache.grid);
   paintLit();
+  (cache.painted ??= new Uint8ClampedArray(pixels.length)).set(pixels);
+  if (visibleMask) (cache.mask ??= new Uint8Array(visibleMask.length)).set(visibleMask);
+  else cache.mask = null;
+  cache.appearance = appearance;
 }
 
 /**

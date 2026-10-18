@@ -1,0 +1,2129 @@
+{
+  "baseCommit": "8f7717af762d2dd03dccf72b82fa8203c367b6f8",
+  "environment": {
+    "node": "v26.12.0",
+    "os": "macOS",
+    "arch": "arm64",
+    "react": "19.2.8",
+    "runner": "Vitest 4.1.11 / jsdom 30",
+    "clock": "real process.hrtime.bigint; simulated animation time"
+  },
+  "fullRun": {
+    "before": [
+      {
+        "kind": "flap",
+        "rows": 3,
+        "cols": 15,
+        "prepareMs": 48.542750000953674,
+        "playbackMs": 110.78816592693329,
+        "activeTimers": 45,
+        "addedNodes": 675
+      },
+      {
+        "kind": "flap",
+        "rows": 6,
+        "cols": 22,
+        "prepareMs": 94.53508305549622,
+        "playbackMs": 281.3915410041809,
+        "activeTimers": 132,
+        "addedNodes": 1980
+      },
+      {
+        "kind": "flap",
+        "rows": 12,
+        "cols": 64,
+        "prepareMs": 489.07308304309845,
+        "playbackMs": 1599.8193329572678,
+        "activeTimers": 768,
+        "addedNodes": 11520
+      },
+      {
+        "kind": "flap",
+        "rows": 24,
+        "cols": 120,
+        "prepareMs": 1808.0191670656204,
+        "playbackMs": 6163.139167070389,
+        "activeTimers": 2880,
+        "addedNodes": 43200
+      },
+      {
+        "kind": "flap",
+        "rows": 96,
+        "cols": 128,
+        "prepareMs": 7792.088874936104,
+        "playbackMs": 28095.257791996002,
+        "activeTimers": 12288,
+        "addedNodes": 184320
+      },
+      {
+        "kind": "flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 1.4420000314712524,
+        "playbackMs": 1.5214580297470093,
+        "dots": 2521,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.2939169406890869,
+        "playbackMs": 0.8171670436859131,
+        "dots": 2479,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.2286670207977295,
+        "playbackMs": 1.1575419902801514,
+        "dots": 3790,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.15233302116394043,
+        "playbackMs": 0.8287910223007202,
+        "dots": 2558,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.16812491416931152,
+        "playbackMs": 0.8173749446868896,
+        "dots": 2480,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.12404191493988037,
+        "playbackMs": 1.0820419788360596,
+        "dots": 2615,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.203125,
+        "playbackMs": 1.2901250123977661,
+        "dots": 9920,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.5104579925537109,
+        "playbackMs": 2.217790961265564,
+        "dots": 40644,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.5288330316543579,
+        "playbackMs": 7.171000003814697,
+        "dots": 43845,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.3721669912338257,
+        "playbackMs": 2.4077500104904175,
+        "dots": 60640,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.3348749876022339,
+        "playbackMs": 4.869415998458862,
+        "dots": 40920,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.30654191970825195,
+        "playbackMs": 1.6188329458236694,
+        "dots": 40740,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.3044999837875366,
+        "playbackMs": 5.389291048049927,
+        "dots": 41116,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.41358399391174316,
+        "playbackMs": 3.14662504196167,
+        "dots": 128960,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 1.2602920532226562,
+        "playbackMs": 10.582334041595459,
+        "dots": 171287,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.6097080707550049,
+        "playbackMs": 6.874915957450867,
+        "dots": 186693,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 1.0814580917358398,
+        "playbackMs": 7.248415946960449,
+        "dots": 254688,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.8835409879684448,
+        "playbackMs": 4.936709046363831,
+        "dots": 171872,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 1.0476659536361694,
+        "playbackMs": 8.522207975387573,
+        "dots": 171486,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.875709056854248,
+        "playbackMs": 7.952458024024963,
+        "dots": 171655,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 1.031000018119812,
+        "playbackMs": 9.365707993507385,
+        "dots": 509888,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.188041925430298,
+        "playbackMs": 25.09570801258087,
+        "dots": 686435,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.349792003631592,
+        "playbackMs": 22.748000025749207,
+        "dots": 749157,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.228624939918518,
+        "playbackMs": 24.85883390903473,
+        "dots": 1018752,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 5.057750105857849,
+        "playbackMs": 15.992333054542542,
+        "dots": 687456,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.2738749980926514,
+        "playbackMs": 15.89883303642273,
+        "dots": 686700,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.3651249408721924,
+        "playbackMs": 28.43279194831848,
+        "dots": 688739,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 2.794250011444092,
+        "playbackMs": 35.12145805358887,
+        "dots": 2033600,
+        "paints": 31
+      }
+    ],
+    "after": [
+      {
+        "kind": "flap",
+        "rows": 3,
+        "cols": 15,
+        "prepareMs": 53.184375047683716,
+        "playbackMs": 27.697750091552734,
+        "activeTimers": 1,
+        "addedNodes": 0
+      },
+      {
+        "kind": "flap",
+        "rows": 6,
+        "cols": 22,
+        "prepareMs": 99.2517079114914,
+        "playbackMs": 55.06066703796387,
+        "activeTimers": 1,
+        "addedNodes": 0
+      },
+      {
+        "kind": "flap",
+        "rows": 12,
+        "cols": 64,
+        "prepareMs": 513.8890830278397,
+        "playbackMs": 340.6507920026779,
+        "activeTimers": 1,
+        "addedNodes": 0
+      },
+      {
+        "kind": "flap",
+        "rows": 24,
+        "cols": 120,
+        "prepareMs": 1774.599000096321,
+        "playbackMs": 1119.3394169807434,
+        "activeTimers": 1,
+        "addedNodes": 0
+      },
+      {
+        "kind": "flap",
+        "rows": 96,
+        "cols": 128,
+        "prepareMs": 7624.992707967758,
+        "playbackMs": 4916.495208024979,
+        "activeTimers": 1,
+        "addedNodes": 0
+      },
+      {
+        "kind": "flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 1.841957926750183,
+        "playbackMs": 0.7779169082641602,
+        "dots": 781,
+        "paints": 10
+      },
+      {
+        "kind": "cascade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.2391669750213623,
+        "playbackMs": 0.30650007724761963,
+        "dots": 475,
+        "paints": 6
+      },
+      {
+        "kind": "fade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.2929999828338623,
+        "playbackMs": 1.0827909708023071,
+        "dots": 3700,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.13508307933807373,
+        "playbackMs": 0.6976659297943115,
+        "dots": 1973,
+        "paints": 24
+      },
+      {
+        "kind": "slide",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.15249991416931152,
+        "playbackMs": 0.35791707038879395,
+        "dots": 630,
+        "paints": 8
+      },
+      {
+        "kind": "dissolve",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.11129200458526611,
+        "playbackMs": 1.212999939918518,
+        "dots": 2525,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.6231250762939453,
+        "playbackMs": 0.1082080602645874,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 1.4875409603118896,
+        "playbackMs": 1.5928750038146973,
+        "dots": 15475,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.1699589490890503,
+        "playbackMs": 2.1600000858306885,
+        "dots": 22616,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.15758299827575684,
+        "playbackMs": 3.001207947731018,
+        "dots": 59200,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.13962507247924805,
+        "playbackMs": 4.583999991416931,
+        "dots": 36840,
+        "paints": 28
+      },
+      {
+        "kind": "slide",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.11879193782806396,
+        "playbackMs": 2.4352920055389404,
+        "dots": 39300,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.14291703701019287,
+        "playbackMs": 9.799708008766174,
+        "dots": 39676,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 1.4579590559005737,
+        "playbackMs": 0.27087509632110596,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 3.529207944869995,
+        "playbackMs": 3.996999979019165,
+        "dots": 65299,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.30849993228912354,
+        "playbackMs": 8.416625022888184,
+        "dots": 96344,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.2712090015411377,
+        "playbackMs": 13.103749990463257,
+        "dots": 248640,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.26075005531311035,
+        "playbackMs": 6.820499897003174,
+        "dots": 165824,
+        "paints": 30
+      },
+      {
+        "kind": "slide",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.24225008487701416,
+        "playbackMs": 8.073500037193298,
+        "dots": 165438,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.2610410451889038,
+        "playbackMs": 11.120167016983032,
+        "dots": 165607,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 7.062749981880188,
+        "playbackMs": 0.7754579782485962,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 14.686333894729614,
+        "playbackMs": 13.14283299446106,
+        "dots": 261567,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.8711669445037842,
+        "playbackMs": 19.76104199886322,
+        "dots": 386648,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.8224170207977295,
+        "playbackMs": 24.967582941055298,
+        "dots": 994560,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.883167028427124,
+        "playbackMs": 20.789250016212463,
+        "dots": 663264,
+        "paints": 30
+      },
+      {
+        "kind": "slide",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.8262089490890503,
+        "playbackMs": 19.368499994277954,
+        "dots": 662508,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.8635419607162476,
+        "playbackMs": 30.287750005722046,
+        "dots": 664547,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 19.687958002090454,
+        "playbackMs": 2.8818329572677612,
+        "dots": 0,
+        "paints": 0
+      }
+    ]
+  },
+  "ledThreeRuns": {
+    "before": [
+      {
+        "kind": "flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 1.6747499704360962,
+        "playbackMs": 1.4865829944610596,
+        "dots": 2521,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.3870420455932617,
+        "playbackMs": 0.898792028427124,
+        "dots": 2479,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.32695794105529785,
+        "playbackMs": 1.1894580125808716,
+        "dots": 3790,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.23579204082489014,
+        "playbackMs": 0.8766670227050781,
+        "dots": 2558,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.26100003719329834,
+        "playbackMs": 0.845708966255188,
+        "dots": 2480,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.1713329553604126,
+        "playbackMs": 1.1435840129852295,
+        "dots": 2615,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.2360830307006836,
+        "playbackMs": 1.291416049003601,
+        "dots": 9920,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.7831660509109497,
+        "playbackMs": 2.2345409393310547,
+        "dots": 40644,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.5714589357376099,
+        "playbackMs": 1.9684590101242065,
+        "dots": 43845,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.5705829858779907,
+        "playbackMs": 7.742583990097046,
+        "dots": 60640,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.6362080574035645,
+        "playbackMs": 1.5820410251617432,
+        "dots": 40920,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.4461250305175781,
+        "playbackMs": 6.40262496471405,
+        "dots": 40740,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.5149589776992798,
+        "playbackMs": 1.964500069618225,
+        "dots": 41116,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.5837080478668213,
+        "playbackMs": 6.131124973297119,
+        "dots": 128960,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 1.2476670742034912,
+        "playbackMs": 7.7182910442352295,
+        "dots": 171287,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.9872920513153076,
+        "playbackMs": 8.03408396244049,
+        "dots": 186693,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.9774999618530273,
+        "playbackMs": 10.403416991233826,
+        "dots": 254688,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.8961669206619263,
+        "playbackMs": 5.349040985107422,
+        "dots": 171872,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.8544589281082153,
+        "playbackMs": 5.5225830078125,
+        "dots": 171486,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.8755409717559814,
+        "playbackMs": 8.86929202079773,
+        "dots": 171655,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 1.0295829772949219,
+        "playbackMs": 9.357208013534546,
+        "dots": 509888,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.054332971572876,
+        "playbackMs": 23.940374970436096,
+        "dots": 686435,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.353500008583069,
+        "playbackMs": 22.402083039283752,
+        "dots": 749157,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.3375829458236694,
+        "playbackMs": 24.844040989875793,
+        "dots": 1018752,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.3647080659866333,
+        "playbackMs": 15.664124965667725,
+        "dots": 687456,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.2987500429153442,
+        "playbackMs": 15.429374933242798,
+        "dots": 686700,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.285917043685913,
+        "playbackMs": 26.53666603565216,
+        "dots": 688739,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 2.7680420875549316,
+        "playbackMs": 34.404792070388794,
+        "dots": 2033600,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 1.5224159955978394,
+        "playbackMs": 1.436040997505188,
+        "dots": 2521,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.392875075340271,
+        "playbackMs": 0.8877500295639038,
+        "dots": 2479,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.3050830364227295,
+        "playbackMs": 1.1816250085830688,
+        "dots": 3790,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.22420799732208252,
+        "playbackMs": 0.7659590244293213,
+        "dots": 2558,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.25708305835723877,
+        "playbackMs": 0.8017079830169678,
+        "dots": 2480,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.18666696548461914,
+        "playbackMs": 1.125249981880188,
+        "dots": 2615,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.24129199981689453,
+        "playbackMs": 1.286665916442871,
+        "dots": 9920,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.5290830135345459,
+        "playbackMs": 2.2301249504089355,
+        "dots": 40644,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.564207911491394,
+        "playbackMs": 1.9771250486373901,
+        "dots": 43845,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.5547500848770142,
+        "playbackMs": 7.758125066757202,
+        "dots": 60640,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.5554159879684448,
+        "playbackMs": 1.5868340730667114,
+        "dots": 40920,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.4423750638961792,
+        "playbackMs": 6.6212910413742065,
+        "dots": 40740,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.32029199600219727,
+        "playbackMs": 2.1950830221176147,
+        "dots": 41116,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.3852499723434448,
+        "playbackMs": 3.1125409603118896,
+        "dots": 128960,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 1.4008749723434448,
+        "playbackMs": 7.497083902359009,
+        "dots": 171287,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.6899160146713257,
+        "playbackMs": 8.330999970436096,
+        "dots": 186693,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.9724999666213989,
+        "playbackMs": 7.578750014305115,
+        "dots": 254688,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.6952090263366699,
+        "playbackMs": 4.994917035102844,
+        "dots": 171872,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.8887919187545776,
+        "playbackMs": 5.927042007446289,
+        "dots": 171486,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.9235419034957886,
+        "playbackMs": 9.258249998092651,
+        "dots": 171655,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 1.0982921123504639,
+        "playbackMs": 8.999083042144775,
+        "dots": 509888,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 2.514957904815674,
+        "playbackMs": 23.711874961853027,
+        "dots": 686435,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.3126670122146606,
+        "playbackMs": 21.973833084106445,
+        "dots": 749157,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.447916030883789,
+        "playbackMs": 23.921249985694885,
+        "dots": 1018752,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.3323750495910645,
+        "playbackMs": 16.03333294391632,
+        "dots": 687456,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.219083070755005,
+        "playbackMs": 16.179666996002197,
+        "dots": 686700,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.2972500324249268,
+        "playbackMs": 27.20679199695587,
+        "dots": 688739,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.3780410289764404,
+        "playbackMs": 34.66337502002716,
+        "dots": 2033600,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 1.5311670303344727,
+        "playbackMs": 1.4151250123977661,
+        "dots": 2521,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.3586660623550415,
+        "playbackMs": 0.8530830144882202,
+        "dots": 2479,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.3113750219345093,
+        "playbackMs": 1.1782499551773071,
+        "dots": 3790,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.2085409164428711,
+        "playbackMs": 0.8025408983230591,
+        "dots": 2558,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.24045896530151367,
+        "playbackMs": 0.8198330402374268,
+        "dots": 2480,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.17545795440673828,
+        "playbackMs": 1.1102080345153809,
+        "dots": 2615,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.2552919387817383,
+        "playbackMs": 1.2848749160766602,
+        "dots": 9920,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.529792070388794,
+        "playbackMs": 2.232667088508606,
+        "dots": 40644,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.5637919902801514,
+        "playbackMs": 1.9919170141220093,
+        "dots": 43845,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.5829170942306519,
+        "playbackMs": 8.106167078018188,
+        "dots": 60640,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.3397500514984131,
+        "playbackMs": 1.6790000200271606,
+        "dots": 40920,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.30774998664855957,
+        "playbackMs": 5.197083950042725,
+        "dots": 40740,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.35629093647003174,
+        "playbackMs": 2.2195000648498535,
+        "dots": 41116,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.4026670455932617,
+        "playbackMs": 3.052375078201294,
+        "dots": 128960,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 1.3689579963684082,
+        "playbackMs": 11.023958086967468,
+        "dots": 171287,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.9828749895095825,
+        "playbackMs": 7.100790977478027,
+        "dots": 186693,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.9318339824676514,
+        "playbackMs": 7.634290933609009,
+        "dots": 254688,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.9042919874191284,
+        "playbackMs": 7.156542062759399,
+        "dots": 171872,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.9177500009536743,
+        "playbackMs": 6.610249996185303,
+        "dots": 171486,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.9440829753875732,
+        "playbackMs": 7.86870801448822,
+        "dots": 171655,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 1.0260409116744995,
+        "playbackMs": 9.322833061218262,
+        "dots": 509888,
+        "paints": 31
+      },
+      {
+        "kind": "flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.1095839738845825,
+        "playbackMs": 23.843040943145752,
+        "dots": 686435,
+        "paints": 31
+      },
+      {
+        "kind": "cascade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.3731249570846558,
+        "playbackMs": 21.83704102039337,
+        "dots": 749157,
+        "paints": 31
+      },
+      {
+        "kind": "fade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.2605420351028442,
+        "playbackMs": 23.700374960899353,
+        "dots": 1018752,
+        "paints": 31
+      },
+      {
+        "kind": "wipe",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.2404580116271973,
+        "playbackMs": 15.89995801448822,
+        "dots": 687456,
+        "paints": 31
+      },
+      {
+        "kind": "slide",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.1796250343322754,
+        "playbackMs": 15.711749911308289,
+        "dots": 686700,
+        "paints": 31
+      },
+      {
+        "kind": "dissolve",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 3.33270800113678,
+        "playbackMs": 26.79720902442932,
+        "dots": 688739,
+        "paints": 31
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 2.808250069618225,
+        "playbackMs": 33.94766700267792,
+        "dots": 2033600,
+        "paints": 31
+      }
+    ],
+    "after": [
+      {
+        "kind": "flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 2.376332998275757,
+        "playbackMs": 0.8793749809265137,
+        "dots": 781,
+        "paints": 10
+      },
+      {
+        "kind": "cascade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.3556250333786011,
+        "playbackMs": 0.3105829954147339,
+        "dots": 475,
+        "paints": 6
+      },
+      {
+        "kind": "fade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.2668750286102295,
+        "playbackMs": 1.0717909336090088,
+        "dots": 3700,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.16745805740356445,
+        "playbackMs": 0.6814579963684082,
+        "dots": 1973,
+        "paints": 24
+      },
+      {
+        "kind": "slide",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.2124999761581421,
+        "playbackMs": 0.33158302307128906,
+        "dots": 630,
+        "paints": 8
+      },
+      {
+        "kind": "dissolve",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.1409590244293213,
+        "playbackMs": 1.27524995803833,
+        "dots": 2525,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.701833963394165,
+        "playbackMs": 0.1253340244293213,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 1.6540000438690186,
+        "playbackMs": 1.6451659202575684,
+        "dots": 15475,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.2377079725265503,
+        "playbackMs": 2.1696250438690186,
+        "dots": 22616,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.25575006008148193,
+        "playbackMs": 4.08220899105072,
+        "dots": 59200,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.2344590425491333,
+        "playbackMs": 4.865333080291748,
+        "dots": 36840,
+        "paints": 28
+      },
+      {
+        "kind": "slide",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.199415922164917,
+        "playbackMs": 2.9391669034957886,
+        "dots": 39300,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.1799999475479126,
+        "playbackMs": 2.6637080907821655,
+        "dots": 39676,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 1.7204999923706055,
+        "playbackMs": 0.2865840196609497,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 4.3427499532699585,
+        "playbackMs": 3.8361659049987793,
+        "dots": 65299,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.3747079372406006,
+        "playbackMs": 9.025874972343445,
+        "dots": 96344,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.2899169921875,
+        "playbackMs": 11.57841694355011,
+        "dots": 248640,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.2944159507751465,
+        "playbackMs": 7.1946669816970825,
+        "dots": 165824,
+        "paints": 30
+      },
+      {
+        "kind": "slide",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.3048750162124634,
+        "playbackMs": 7.130208969116211,
+        "dots": 165438,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.39058399200439453,
+        "playbackMs": 9.766667008399963,
+        "dots": 165607,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 4.979125022888184,
+        "playbackMs": 0.7416250705718994,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 14.353790998458862,
+        "playbackMs": 13.52525007724762,
+        "dots": 261567,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 1.6227500438690186,
+        "playbackMs": 17.478584051132202,
+        "dots": 386648,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.9008750915527344,
+        "playbackMs": 26.651874899864197,
+        "dots": 994560,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.8066250085830688,
+        "playbackMs": 19.489875078201294,
+        "dots": 663264,
+        "paints": 30
+      },
+      {
+        "kind": "slide",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.8317500352859497,
+        "playbackMs": 19.435207962989807,
+        "dots": 662508,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.8303749561309814,
+        "playbackMs": 30.61554193496704,
+        "dots": 664547,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 19.709500074386597,
+        "playbackMs": 2.7806659936904907,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 2.3275829553604126,
+        "playbackMs": 0.8005419969558716,
+        "dots": 781,
+        "paints": 10
+      },
+      {
+        "kind": "cascade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.3584170341491699,
+        "playbackMs": 0.3273749351501465,
+        "dots": 475,
+        "paints": 6
+      },
+      {
+        "kind": "fade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.29504191875457764,
+        "playbackMs": 1.2095829248428345,
+        "dots": 3700,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.1841670274734497,
+        "playbackMs": 0.7362910509109497,
+        "dots": 1973,
+        "paints": 24
+      },
+      {
+        "kind": "slide",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.23166704177856445,
+        "playbackMs": 0.37383389472961426,
+        "dots": 630,
+        "paints": 8
+      },
+      {
+        "kind": "dissolve",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.15179204940795898,
+        "playbackMs": 1.2420830726623535,
+        "dots": 2525,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.6579999923706055,
+        "playbackMs": 0.12849998474121094,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 1.5926669836044312,
+        "playbackMs": 1.6625410318374634,
+        "dots": 15475,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.2110830545425415,
+        "playbackMs": 2.189207911491394,
+        "dots": 22616,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.19795799255371094,
+        "playbackMs": 3.118583917617798,
+        "dots": 59200,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.20799994468688965,
+        "playbackMs": 4.545583963394165,
+        "dots": 36840,
+        "paints": 28
+      },
+      {
+        "kind": "slide",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.13695800304412842,
+        "playbackMs": 3.1775829792022705,
+        "dots": 39300,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.15525007247924805,
+        "playbackMs": 2.6836249828338623,
+        "dots": 39676,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 1.6669999361038208,
+        "playbackMs": 0.3112499713897705,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 4.077957987785339,
+        "playbackMs": 3.7654160261154175,
+        "dots": 65299,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.3461250066757202,
+        "playbackMs": 9.055124998092651,
+        "dots": 96344,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.29700005054473877,
+        "playbackMs": 11.570665955543518,
+        "dots": 248640,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.2709169387817383,
+        "playbackMs": 6.9429579973220825,
+        "dots": 165824,
+        "paints": 30
+      },
+      {
+        "kind": "slide",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.27908408641815186,
+        "playbackMs": 7.573291063308716,
+        "dots": 165438,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.2958749532699585,
+        "playbackMs": 11.632667064666748,
+        "dots": 165607,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 5.171332955360413,
+        "playbackMs": 0.7780410051345825,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 13.944957971572876,
+        "playbackMs": 11.850291967391968,
+        "dots": 261567,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.8772920370101929,
+        "playbackMs": 18.566707968711853,
+        "dots": 386648,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.8463330268859863,
+        "playbackMs": 25.02829098701477,
+        "dots": 994560,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.9505000114440918,
+        "playbackMs": 20.292374968528748,
+        "dots": 663264,
+        "paints": 30
+      },
+      {
+        "kind": "slide",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.9013339281082153,
+        "playbackMs": 20.150041937828064,
+        "dots": 662508,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.9174590110778809,
+        "playbackMs": 28.85199999809265,
+        "dots": 664547,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 18.592291951179504,
+        "playbackMs": 3.0450409650802612,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 2.0217500925064087,
+        "playbackMs": 0.7124170064926147,
+        "dots": 781,
+        "paints": 10
+      },
+      {
+        "kind": "cascade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.36116600036621094,
+        "playbackMs": 0.31241703033447266,
+        "dots": 475,
+        "paints": 6
+      },
+      {
+        "kind": "fade",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.2866250276565552,
+        "playbackMs": 1.1542919874191284,
+        "dots": 3700,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.17095792293548584,
+        "playbackMs": 0.7332909107208252,
+        "dots": 1973,
+        "paints": 24
+      },
+      {
+        "kind": "slide",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.2178339958190918,
+        "playbackMs": 0.35737502574920654,
+        "dots": 630,
+        "paints": 8
+      },
+      {
+        "kind": "dissolve",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.14895904064178467,
+        "playbackMs": 1.1651670932769775,
+        "dots": 2525,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 32,
+        "height": 8,
+        "prepareMs": 0.619499921798706,
+        "playbackMs": 0.12433397769927979,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 1.5910420417785645,
+        "playbackMs": 1.6160839796066284,
+        "dots": 15475,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.21758294105529785,
+        "playbackMs": 2.1582080125808716,
+        "dots": 22616,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.23370897769927979,
+        "playbackMs": 4.109916090965271,
+        "dots": 59200,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.18083405494689941,
+        "playbackMs": 4.583916902542114,
+        "dots": 36840,
+        "paints": 28
+      },
+      {
+        "kind": "slide",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.14412498474121094,
+        "playbackMs": 3.25066602230072,
+        "dots": 39300,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 0.15562498569488525,
+        "playbackMs": 2.695207953453064,
+        "dots": 39676,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 64,
+        "height": 64,
+        "prepareMs": 1.65720796585083,
+        "playbackMs": 0.28383302688598633,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 4.115249991416931,
+        "playbackMs": 3.778625011444092,
+        "dots": 65299,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.37024998664855957,
+        "playbackMs": 7.890625,
+        "dots": 96344,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.3190000057220459,
+        "playbackMs": 11.537583947181702,
+        "dots": 248640,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.26591694355010986,
+        "playbackMs": 6.664790987968445,
+        "dots": 165824,
+        "paints": 30
+      },
+      {
+        "kind": "slide",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.29679203033447266,
+        "playbackMs": 7.048249959945679,
+        "dots": 165438,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 0.3808330297470093,
+        "playbackMs": 9.868499994277954,
+        "dots": 165607,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 128,
+        "height": 128,
+        "prepareMs": 5.057166934013367,
+        "playbackMs": 0.7722910642623901,
+        "dots": 0,
+        "paints": 0
+      },
+      {
+        "kind": "flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 13.960291028022766,
+        "playbackMs": 13.421250104904175,
+        "dots": 261567,
+        "paints": 12
+      },
+      {
+        "kind": "cascade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 1.5926659107208252,
+        "playbackMs": 18.219167113304138,
+        "dots": 386648,
+        "paints": 16
+      },
+      {
+        "kind": "fade",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.9102499485015869,
+        "playbackMs": 27.25012493133545,
+        "dots": 994560,
+        "paints": 30
+      },
+      {
+        "kind": "wipe",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.8962910175323486,
+        "playbackMs": 19.125583052635193,
+        "dots": 663264,
+        "paints": 30
+      },
+      {
+        "kind": "slide",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 0.8602501153945923,
+        "playbackMs": 19.81358301639557,
+        "dots": 662508,
+        "paints": 30
+      },
+      {
+        "kind": "dissolve",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 1.007667064666748,
+        "playbackMs": 29.28183400630951,
+        "dots": 664547,
+        "paints": 30
+      },
+      {
+        "kind": "bitmap-flip",
+        "width": 256,
+        "height": 256,
+        "prepareMs": 18.187583088874817,
+        "playbackMs": 2.9698749780654907,
+        "dots": 0,
+        "paints": 0
+      }
+    ]
+  }
+}
