@@ -32,6 +32,53 @@
   outline: none;
 }
 
+/* Canvas guides share the literal text's character width, and never capture
+ * editor gestures or become content. Hatching remains visible in both themes. */
+.template-canvas-regions {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  font-size: 0.875rem;
+}
+
+/* A run of spaces reserves board cells beside a canvas. Collapsing it to
+ * one browser space would put the text underneath its own region guide. */
+[data-canvas-guides] .ProseMirror > p,
+[data-canvas-guides] .ProseMirror [data-type="color-span"] {
+  white-space: pre;
+}
+
+.template-canvas-region {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed var(--primary);
+  border-radius: 3px;
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary) 12%, transparent) 0 4px,
+    color-mix(in srgb, var(--primary) 4%, transparent) 4px 8px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.template-canvas-region-label {
+  background: var(--background);
+  color: var(--foreground);
+  border-radius: 3px;
+  margin: 2px;
+  padding: 2px;
+  max-width: 100%;
+  font-size: 10px;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
 /* Placeholder for first empty line only - textarea-like */
 .ProseMirror[data-placeholder] > p:first-child:empty::before {
   content: attr(data-placeholder);

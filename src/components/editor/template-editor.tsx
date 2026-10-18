@@ -80,7 +80,14 @@ import { TrailingNewline } from "./extensions/trailing-newline";
 import { VariableNode } from "./extensions/variable-node";
 import { WrappedTextNode } from "./extensions/wrapped-text-node";
 import { NodeViewInjectionProvider, useNodeViewInjection } from "./node-views/node-view-context";
+import {
+  DEFAULT_CANVAS_LABELS,
+  type TemplateCanvasLabels,
+  type TemplateCanvasRegion,
+  TemplateCanvasRegions,
+} from "./template-canvas-regions";
 import { TemplateEditorToolbar } from "./template-editor-toolbar";
+export type { TemplateCanvasLabels, TemplateCanvasRegion } from "./template-canvas-regions";
 import type { CellPaint, DrawBrush } from "./utils/draw-mode";
 import { brushToCell } from "./utils/draw-mode";
 import {
@@ -311,6 +318,9 @@ function sameWarnings(a: CharsetWarning[], b: CharsetWarning[]): boolean {
 }
 
 export interface TemplateEditorProps {
+  /** Occupied canvas cells, shown as guides without changing the template. */
+  canvasRegions?: readonly TemplateCanvasRegion[];
+  canvasLabels?: Partial<TemplateCanvasLabels>;
   value: string; // Template string with lines separated by \n
   onChange: (value: string) => void;
   onFocus?: () => void;
@@ -384,6 +394,8 @@ export interface TemplateEditorProps {
  */
 export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorProps>(function TemplateEditor(
   {
+    canvasRegions = [],
+    canvasLabels,
     value,
     onChange,
     onFocus,
@@ -1641,14 +1653,28 @@ export const TemplateEditor = forwardRef<TemplateEditorHandle, TemplateEditorPro
             </Box>
 
             {/* Editor content */}
-            <Box className="relative flex-1 min-w-0">
+            <Box className="relative flex-1 min-w-0" data-canvas-guides={canvasRegions.length > 0 ? "" : undefined}>
               <NodeViewInjectionProvider {...outerInjection} charset={set ?? outerInjection.charset}>
                 <EditorContent editor={editor} />
               </NodeViewInjectionProvider>
+              {canvasRegions.length > 0 && (
+                <TemplateCanvasRegions
+                  regions={canvasRegions}
+                  rows={boardLines}
+                  cols={boardWidth}
+                  lineHeights={lineHeights}
+                  labels={{ ...DEFAULT_CANVAS_LABELS, ...canvasLabels }}
+                />
+              )}
             </Box>
           </Flex>
         </Box>
 
+        {canvasRegions.length > 0 && (
+          <Text size="xs" tone="muted" className="mt-2">
+            {canvasLabels?.hint ?? DEFAULT_CANVAS_LABELS.hint}
+          </Text>
+        )}
         {/* Line counter */}
         <Text
           size="xs"
