@@ -43,7 +43,7 @@ import {
 import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
 import { gapClasses, paddingClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
-import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
+import { charLeafBevelClass, colorLeafClass, SEAM_CLASS, seamStyle, tileMaterialClass } from "./board-surfaces";
 import { reducedMotionQuery, useReducedMotion } from "./reduced-motion";
 
 /** The drum position both ♥ and ° share — see {@link resolveCode62Glyph}. */
@@ -94,36 +94,16 @@ const FLAP_KEYFRAMES = BOARD_CHARS.map(
 // rendering is unchanged.
 // ---------------------------------------------------------------------------
 
-// CharTile 3D flip-tile shadow — depends only on board type.
-const charTileBoxShadow: Record<"black" | "white", string> = {
-  white: `
-      0 2px 4px rgba(0,0,0,0.2),
-      inset 0 1px 2px rgba(0,0,0,0.1),
-      inset 0 -1px 2px rgba(255,255,255,0.5),
-      inset 1px 0 1px rgba(0,0,0,0.08),
-      inset -1px 0 1px rgba(255,255,255,0.4)
-    `,
-  black: `
-      0 2px 4px rgba(0,0,0,0.5),
-      inset 0 1px 2px rgba(0,0,0,0.8),
-      inset 0 -1px 1px rgba(255,255,255,0.08),
-      inset 1px 0 1px rgba(0,0,0,0.5),
-      inset -1px 0 1px rgba(255,255,255,0.05)
-    `,
-};
-
 // Outer CharTile wrapper style, keyed by board type. The non-animating variant
 // is returned as-is (zero per-render allocation); the animating variant adds
 // perspective/isolation for the flap layers, exactly as the inline spread did.
 const charTileBaseStyle: Record<"black" | "white", CSSProperties> = {
   black: {
     backgroundColor: "var(--color-board-surface-dark)",
-    boxShadow: charTileBoxShadow.black,
     contain: "layout style paint",
   },
   white: {
     backgroundColor: "var(--color-board-surface-light)",
-    boxShadow: charTileBoxShadow.white,
     contain: "layout style paint",
   },
 };
@@ -131,16 +111,6 @@ const charTileAnimatingStyle: Record<"black" | "white", CSSProperties> = {
   black: { ...charTileBaseStyle.black, perspective: "800px", isolation: "isolate" },
   white: { ...charTileBaseStyle.white, perspective: "800px", isolation: "isolate" },
 };
-
-// Inset shadow shared by static color tiles (both the standalone color-tile and
-// the color glyph rendered inside a character tile). Fully static.
-const colorTileBoxShadow = `
-      0 2px 4px rgba(0,0,0,0.3),
-      inset 0 1px 1px rgba(255,255,255,0.15),
-      inset 0 -1px 1px rgba(0,0,0,0.25),
-      inset 1px 0 1px rgba(255,255,255,0.1),
-      inset -1px 0 1px rgba(0,0,0,0.2)
-    `;
 
 // ---------------------------------------------------------------------------
 // Split-flap timing.
@@ -431,8 +401,8 @@ const StaticTile = memo(function StaticTile({
     return (
       <div className={`${sizeClass} relative ${radiusClass} overflow-hidden`} style={{ backgroundColor: tileBg }}>
         <div
-          className={`absolute ${radiusClass}`}
-          style={{ inset, backgroundColor: bgColor, boxShadow: colorTileBoxShadow }}
+          className={`absolute ${radiusClass} ${colorLeafClass[boardType]}`}
+          style={{ inset, backgroundColor: bgColor }}
         />
         {splitLine}
       </div>
@@ -444,10 +414,10 @@ const StaticTile = memo(function StaticTile({
 
   return (
     <div
-      className={`${sizeClass} relative ${radiusClass} overflow-hidden flex items-center justify-center`}
+      className={`${sizeClass} relative ${radiusClass} overflow-hidden flex items-center justify-center ${charLeafBevelClass[boardType]}`}
       // The character tile is its own leaf here (there is no inner panel to
       // shadow), so the leaf bevel goes on the tile itself — issue #179.
-      style={{ backgroundColor: tileBg, boxShadow: charLeafBoxShadow[boardType] }}
+      style={{ backgroundColor: tileBg }}
     >
       {!isBlank && (
         <span
@@ -1043,7 +1013,7 @@ const CharTile = memo(
     return (
       <>
         <div
-          className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden`}
+          className={`relative ${sizeClasses[size]} ${radiusClasses[size]} overflow-hidden ${tileMaterialClass[boardType]}`}
           data-testid={`char-tile-${rowIdx}-${colIdx}`}
           data-current-char={currentChar}
           data-target-char={targetChar}
@@ -1072,7 +1042,7 @@ const CharTile = memo(
                     style={{ zIndex: 2 }}
                   >
                     <div
-                      className={`relative ${radiusClasses[size]} overflow-hidden`}
+                      className={`relative ${radiusClasses[size]} overflow-hidden ${colorLeafClass[boardType]}`}
                       style={{
                         marginTop: "var(--color-margin-top)",
                         marginBottom: "var(--color-margin-bottom)",
@@ -1081,7 +1051,6 @@ const CharTile = memo(
                         width: "calc(100% - (var(--color-margin-h) * 2))",
                         height: "calc(100% - (var(--color-margin-top) + var(--color-margin-bottom)))",
                         backgroundColor: bgColor,
-                        boxShadow: colorTileBoxShadow,
                       }}
                     />
                   </div>
@@ -1101,7 +1070,7 @@ const CharTile = memo(
               return (
                 <div
                   key={`static-char-${targetCharIndex}`}
-                  className="absolute inset-0 flex items-center justify-center overflow-hidden"
+                  className={`absolute inset-0 flex items-center justify-center overflow-hidden ${isColor ? "" : charLeafBevelClass[boardType]}`}
                   style={{
                     zIndex: 2,
                     backgroundColor: charBg,
@@ -1110,7 +1079,6 @@ const CharTile = memo(
                     // The character leaf, not just a glyph on the cell
                     // background (issue #179). Colour glyphs keep the colour
                     // leaf body below instead.
-                    boxShadow: isColor ? undefined : charLeafBoxShadow[boardType],
                   }}
                 >
                   {!isColor && targetChar !== " " && (
@@ -1133,10 +1101,9 @@ const CharTile = memo(
                   )}
                   {isColor && (
                     <div
-                      className={`absolute inset-0 ${radiusClasses[size]}`}
+                      className={`absolute inset-0 ${radiusClasses[size]} ${colorLeafClass[boardType]}`}
                       style={{
                         backgroundColor: charBg,
-                        boxShadow: colorTileBoxShadow,
                       }}
                     />
                   )}

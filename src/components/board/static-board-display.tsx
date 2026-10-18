@@ -24,7 +24,14 @@ import {
 import { resolveColorCode } from "../../lib/board-colors";
 import { type DeviceType, isNoteArray, NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
 import { gapClasses, paddingClasses, radiusClasses, sizeClasses, textSizeClasses } from "../../lib/board-metrics";
-import { charLeafBoxShadow, SEAM_CLASS, seamStyle } from "./board-surfaces";
+import {
+  charLeafBevelClass,
+  colorLeafClass,
+  SEAM_CLASS,
+  seamStyle,
+  smallTileMaterialClass,
+  tileMaterialClass,
+} from "./board-surfaces";
 
 export interface StaticBoardDisplayProps {
   /** Board markup. Ignored when `cells` is given. */
@@ -165,14 +172,9 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
       : isWhiteBoard
         ? "0 8px 32px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,0.9), inset 0 0 0 1px rgba(255,255,255,0.5)"
         : "0 8px 32px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.08), inset 0 0 0 1px rgba(255,255,255,0.03)";
-  const tileBoxShadow =
-    size === "sm"
-      ? isWhiteBoard
-        ? "0 1px 2px rgba(0,0,0,0.15)"
-        : "0 1px 2px rgba(0,0,0,0.4)"
-      : isWhiteBoard
-        ? "0 2px 4px rgba(0,0,0,0.2), inset 0 1px 2px rgba(0,0,0,0.1), inset 0 -1px 2px rgba(255,255,255,0.5), inset 1px 0 1px rgba(0,0,0,0.08), inset -1px 0 1px rgba(255,255,255,0.4)"
-        : "0 2px 4px rgba(0,0,0,0.5), inset 0 1px 2px rgba(0,0,0,0.8), inset 0 -1px 1px rgba(255,255,255,0.08), inset 1px 0 1px rgba(0,0,0,0.5), inset -1px 0 1px rgba(255,255,255,0.05)";
+  // Bevel and drop shadow as shared classes, not inline box-shadows — see
+  // board-surfaces for why (Safari paints and parses those per tile).
+  const tileMaterial = size === "sm" ? smallTileMaterialClass[boardType] : tileMaterialClass[boardType];
 
   const borderClasses =
     size === "sm" ? "rounded-lg border-[3px]" : "rounded-lg sm:rounded-xl border-[3px] sm:border-[4px] lg:border-[5px]";
@@ -255,10 +257,9 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                             key={colIdx}
                             data-note-tile=""
                             {...seamProps}
-                            className={`${sizeClasses[size]} ${radiusClasses[size]} shrink-0`}
+                            className={`${sizeClasses[size]} ${radiusClasses[size]} shrink-0 ${tileMaterial}`}
                             style={{
                               backgroundColor: bgColor,
-                              boxShadow: tileBoxShadow,
                               contain: "layout style paint",
                               ...tileSeamStyle,
                             }}
@@ -270,24 +271,21 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                           key={colIdx}
                           data-note-tile=""
                           {...seamProps}
-                          className={`relative ${sizeClasses[size]} ${radiusClasses[size]} shrink-0 overflow-hidden`}
+                          className={`relative ${sizeClasses[size]} ${radiusClasses[size]} shrink-0 overflow-hidden ${tileMaterial}`}
                           style={{
                             backgroundColor: tileBg,
-                            boxShadow: tileBoxShadow,
                             contain: "layout style paint",
                             ...tileSeamStyle,
                           }}
                         >
                           <div
-                            className={`absolute ${radiusClasses[size]} overflow-hidden`}
+                            className={`absolute ${radiusClasses[size]} overflow-hidden ${colorLeafClass[boardType]}`}
                             style={{
                               top: "3px",
                               bottom: "4px",
                               left: "1px",
                               right: "1px",
                               backgroundColor: bgColor,
-                              boxShadow:
-                                "0 2px 4px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.15), inset 0 -1px 1px rgba(0,0,0,0.25)",
                             }}
                           >
                             <div className={SEAM_CLASS} style={seamStyle[boardType]} />
@@ -309,10 +307,9 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                           key={colIdx}
                           data-note-tile=""
                           {...seamProps}
-                          className={`${sizeClasses[size]} ${radiusClasses[size]} flex shrink-0 items-center justify-center`}
+                          className={`${sizeClasses[size]} ${radiusClasses[size]} flex shrink-0 items-center justify-center ${tileMaterial}`}
                           style={{
                             backgroundColor: tileBg,
-                            boxShadow: tileBoxShadow,
                             contain: "layout style paint",
                             ...tileSeamStyle,
                           }}
@@ -334,18 +331,17 @@ export const StaticBoardDisplay = memo(function StaticBoardDisplay({
                         key={colIdx}
                         data-note-tile=""
                         {...seamProps}
-                        className={`relative ${sizeClasses[size]} ${radiusClasses[size]} shrink-0 overflow-hidden`}
+                        className={`relative ${sizeClasses[size]} ${radiusClasses[size]} shrink-0 overflow-hidden ${tileMaterial}`}
                         style={{
                           backgroundColor: tileBg,
-                          boxShadow: tileBoxShadow,
                           contain: "layout style paint",
                           ...tileSeamStyle,
                         }}
                       >
                         {/* Leaf body — issue #179; the glyph panel is the leaf. */}
                         <div
-                          className="absolute inset-0 flex items-center justify-center"
-                          style={{ zIndex: 2, boxShadow: charLeafBoxShadow[boardType] }}
+                          className={`absolute inset-0 flex items-center justify-center ${charLeafBevelClass[boardType]}`}
+                          style={{ zIndex: 2 }}
                         >
                           {char !== " " && (
                             <span
