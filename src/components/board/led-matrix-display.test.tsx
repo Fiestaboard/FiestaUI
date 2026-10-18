@@ -780,28 +780,29 @@ describe("LedMatrixDisplay painting a photo-like layer", () => {
     return { x: 0, y: 0, width: 64, height: 64, rgba };
   }
 
-  it("paints 4,096 colours in a handful of fills, not one path per colour", () => {
+  it("paints 4,096 colours with bounded masks instead of one path per colour", () => {
     const { ctx, calls } = mockContext();
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
     withPath2D(() => {
       const start = performance.now();
       render(<LedMatrixDisplay message="" preset="pixoo64" layers={[photo()]} />);
       const elapsed = performance.now() - start;
-      // One lit-dot mask and the off grid; the colours come from one image.
-      expect(calls.fill).toBeLessThanOrEqual(3);
+      // The lit-dot mask and off grid each need 32 batches of 128 dots.
+      // Colours still come from one image rather than thousands of paths.
+      expect(calls.fill).toBeLessThanOrEqual(64);
       expect(calls.drawImage).toBeGreaterThanOrEqual(2);
       // Benchmark-ish: generous for a slow CI box, far below what 4,096 paths cost a real browser.
       expect(elapsed).toBeLessThan(1500);
     });
   });
 
-  it("keeps one path per colour for an ordinary text frame (a few colours)", () => {
+  it("groups an ordinary text frame by colour without a bitmap scratch", () => {
     const { ctx, calls } = mockContext();
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
     withPath2D(() => {
       render(<LedMatrixDisplay message="{red:AB} CD" preset="pixoo64" glow={false} />);
-      // Two colours (red, white): each filled before and after the off grid, plus the grid.
-      expect(calls.fill).toBe(5);
+      // Two small colour paths, each filled twice, plus 32 cached grid paths.
+      expect(calls.fill).toBe(36);
       expect(calls.drawImage).toBe(0);
     });
   });
