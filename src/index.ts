@@ -39,6 +39,7 @@ export * from "./components/typography/code";
 export * from "./components/typography/heading";
 export * from "./components/typography/kbd";
 export * from "./components/typography/list";
+export * from "./components/typography/prose";
 // react-bits components are default exports — re-export them as named.
 export * from "./components/containment/scroll-area";
 export * from "./components/containment/table";

@@ -78,6 +78,29 @@ export function Example() {
 }
 ```
 
+## Rendered rich text
+
+`Prose` styles plain rich-text descendants with the kit's typography, colors, spacing, code blocks, table borders and link focus treatment. It uses the normal `theme.css` and Tailwind `@source` setup above; there is no extra stylesheet or typography plugin to install.
+
+```tsx
+import { Prose } from "@fiestaboard/ui";
+import ReactMarkdown from "react-markdown"; // installed and owned by your app
+import remarkGfm from "remark-gfm";
+
+<Prose size="sm" headingOffset={2}>
+  <ReactMarkdown remarkPlugins={[remarkGfm]}>{reply}</ReactMarkdown>
+</Prose>;
+
+// Document density: size="base" and headingOffset={0} are the defaults.
+<Prose>
+  <ReactMarkdown remarkPlugins={[remarkGfm]}>{readme}</ReactMarkdown>
+</Prose>;
+```
+
+`size` selects `"sm"` (14px body copy) or `"base"` (16px), using rem-based type tokens. `headingOffset` shifts the six heading sizes down the selected scale, capped at the smallest size. It is truncated and clamped to 0–5; non-finite values use 0. **It does not change HTML heading levels.** If the document outline needs demotion too, configure that in your renderer.
+
+`Prose` accepts normal div props, `ref`, `style` and `className`. Children stay untouched, so it also works with MDX or another rich-text renderer. Strings remain text: FiestaUI adds no markdown dependency and does not parse or sanitize HTML. Keep sanitization, URL policy, custom widgets, and link targets in the app's renderer. Long code blocks scroll within their own bounds; the container contains oversized content. Renderers can add names and keyboard tab stops to scrollable regions when needed.
+
 ## Display previews
 
 The board renderers take either a message in board markup or the grid of cells a caller has already parsed. `DisplayPreview` is the one entry point: give it a device model and it picks the renderer the model calls for.
