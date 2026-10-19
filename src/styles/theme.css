@@ -2144,18 +2144,17 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
    The vertical strip is 128 x 5760px. Each step advances one full frame. */
 @keyframes fiesta-spinner-hop {
   0% {
-    background-position: 0 0;
+    object-position: 0 0;
   }
   91.6666666667%,
   100% {
-    background-position: 0 100%;
+    object-position: 0 100%;
   }
 }
 
 .fiesta-spinner-hop {
   animation: fiesta-spinner-hop 1.92s steps(44, end) infinite;
-  background-size: 100% 4500%;
-  background-repeat: no-repeat;
+  object-position: 0 0;
 }
 
 [data-slot="spinner-mark"],

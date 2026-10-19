@@ -59,11 +59,13 @@ function Spinner({ className, size = "md", label = "Loading", ...props }: Spinne
       className={cn(spinnerVariants({ size }), className)}
       {...props}
     >
-      <span
+      <img
+        src={tacoSprite}
+        alt=""
         aria-hidden
+        draggable={false}
         data-slot="spinner-mark"
-        className="fiesta-spinner-hop block size-full motion-reduce:hidden"
-        style={{ backgroundImage: `url(${tacoSprite})` }}
+        className="fiesta-spinner-hop block size-full object-cover motion-reduce:hidden"
       />
       <img
         src={tacoLoader}
