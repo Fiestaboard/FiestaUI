@@ -2106,7 +2106,7 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
  * than a bespoke pose, the component states it itself and wins by being
  * more specific — Skeleton uses `motion-reduce:animate-none` for a static
  * `bg-accent` placeholder rather than an arbitrary mid-pulse frame, and
- * Spinner swaps its rotating arc for a static complete ring.
+ * Spinner swaps its hopping taco for a still pose.
  * ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -2138,4 +2138,48 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 .reduce-motion .sidebar-transition,
 .reduce-motion .content-shift {
   transition: none !important;
+}
+
+/* Original 45-frame taco animation: 44 x 40ms, then a 160ms final hold.
+   The vertical strip is 128 x 5760px. Each step advances one full frame. */
+@keyframes fiesta-spinner-hop {
+  0% {
+    object-position: 0 0;
+  }
+  91.6666666667%,
+  100% {
+    object-position: 0 100%;
+  }
+}
+
+.fiesta-spinner-hop {
+  animation: fiesta-spinner-hop 1.92s steps(44, end) infinite;
+  object-position: 0 0;
+}
+
+[data-slot="spinner-mark"],
+[data-slot="spinner-mark-static"] {
+  image-rendering: pixelated;
+}
+
+.reduce-motion [data-slot="spinner-mark"],
+[data-motion="off"] [data-slot="spinner-mark"] {
+  display: none;
+  animation: none;
+}
+
+.reduce-motion [data-slot="spinner-mark-static"],
+[data-motion="off"] [data-slot="spinner-mark-static"] {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="spinner-mark"] {
+    display: none;
+    animation: none;
+  }
+
+  [data-slot="spinner-mark-static"] {
+    display: block;
+  }
 }

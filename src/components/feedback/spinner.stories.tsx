@@ -25,7 +25,7 @@ const meta = {
     },
     className: {
       control: "text",
-      description: "Additional CSS classes (e.g. a text-* colour — the mark uses currentColor)",
+      description: "Additional CSS classes, including size overrides for page loading states",
     },
   },
 } satisfies Meta<typeof Spinner>;
@@ -58,13 +58,23 @@ export const Sizes = () => (
   </div>
 );
 
-/** The mark inherits `currentColor`, so it takes the colour of whatever it sits in. */
-export const Colors = () => (
-  <div className="flex items-center gap-6">
-    <Spinner />
-    <Spinner className="text-brand" />
-    <Spinner className="text-destructive" />
-    <Spinner className="text-muted-foreground" />
+/** Transparent artwork retains its colors on both surfaces. */
+export const Surfaces = () => (
+  <div className="flex flex-wrap gap-6">
+    {(["light", "dark"] as const).map((theme) => (
+      <div
+        key={theme}
+        className={`flex min-w-56 flex-col items-center gap-6 rounded-xl p-8 ring-1 ring-border ${theme === "light" ? "bg-white text-slate-900" : "bg-slate-950 text-white"}`}
+      >
+        <span className="text-sm">{theme === "light" ? "Light" : "Dark"} surface</span>
+        <div className="flex items-center gap-4">
+          <Spinner size="sm" />
+          <Spinner size="md" />
+          <Spinner size="lg" />
+        </div>
+        <Spinner className="size-24" label="Loading board" />
+      </div>
+    ))}
   </div>
 );
 
@@ -97,19 +107,19 @@ export const WithVisibleLabel = () => (
 );
 
 /**
- * Reduced motion — turn on "Reduce motion" in the OS (or emulate
- * `prefers-reduced-motion: reduce` in devtools) and the rotating arc is
- * replaced by a static complete ring rather than frozen mid-turn. A frozen
- * three-quarter arc reads as a rendering glitch; a whole ring reads as a
- * deliberate placeholder, the same language the static Skeleton uses. The
- * `role="status"` announcement is identical either way, which is what makes
- * dropping the animation safe rather than merely quieter.
+ * The explicit motion switch previews the same still pose used for the OS
+ * reduced-motion preference and the app's `.reduce-motion` class.
  */
 export const ReducedMotion = () => (
-  <div className="flex flex-col items-center gap-3">
-    <Spinner size="lg" />
+  <div data-motion="off" className="flex flex-col items-center gap-3">
+    <div className="flex items-center gap-6">
+      <Spinner size="sm" />
+      <Spinner size="md" />
+      <Spinner size="lg" />
+      <Spinner className="size-24" />
+    </div>
     <span className="max-w-[320px] text-center text-xs text-muted-foreground">
-      Emulate <code>prefers-reduced-motion: reduce</code> to see the static ring.
+      Motion is off. The taco stays still and loading announcements remain available.
     </span>
   </div>
 );

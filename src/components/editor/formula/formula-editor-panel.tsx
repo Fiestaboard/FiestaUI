@@ -30,7 +30,6 @@ import {
   ChevronRight,
   GitBranch,
   Hash,
-  Loader2,
   type LucideIcon,
   Palette,
   Type as TypeIcon,
@@ -41,6 +40,7 @@ import { type ReactNode, Suspense, useCallback, useEffect, useId, useRef, useSta
 import { cn } from "../../../lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../containment/tabs";
 import { Skeleton } from "../../feedback/skeleton";
+import { Spinner } from "../../feedback/spinner";
 import { Button } from "../../forms/button";
 import { Box } from "../../layout/box";
 import { Flex } from "../../layout/flex";
@@ -958,7 +958,7 @@ export function FormulaEditorPanel({
                   ) : validationState === "invalid" ? (
                     <XCircle className="w-3.5 h-3.5 text-destructive" />
                   ) : validationState === "validating" ? (
-                    <Loader2 className="w-3.5 h-3.5 text-muted-foreground/50 animate-spin motion-reduce:animate-none" />
+                    <Spinner size="sm" label="Validating formula" />
                   ) : null}
                 </Text>
               </Flex>

@@ -8,9 +8,8 @@ import { Spinner } from "../feedback/spinner";
 /**
  * Loader — "the assistant is working" with optional text.
  *
- * Composes {@link Spinner}, which already swaps its rotation for a static
- * ring under reduced motion, so this inherits the WCAG 2.2.2 answer rather
- * than restating it. The `role="status"` lives on the Spinner when there is
+ * Composes {@link Spinner}, which shows a still taco under reduced motion.
+ * The `role="status"` lives on the Spinner when there is
  * no text and on the wrapper when there is, so the message is announced
  * once, not twice.
  */

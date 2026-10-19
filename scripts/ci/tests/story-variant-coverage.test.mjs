@@ -92,6 +92,8 @@ await build({
   mainFields: ["module", "main"],
   conditions: ["import", "default"],
   jsx: "automatic",
+  // Match the library's embedded loading artwork when Button imports Spinner.
+  loader: { ".png": "dataurl", ".webp": "dataurl" },
   alias: { "class-variance-authority": shim },
   external: ["react", "react-dom", "react-dom/*", "react/jsx-runtime", "@base-ui/react/*", "lucide-react"],
   outfile,
