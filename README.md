@@ -37,6 +37,14 @@ FiestaUI ships **no compiled utility CSS**. The consuming app runs Tailwind v4 a
 - The `@source` line is **mandatory** — Tailwind v4 does not scan `node_modules` by default, and without it component styles silently vanish. Adjust the relative path to wherever your CSS file lives.
 - Dark mode responds to **either** signal, and they are equivalent: the `dark` **class** or a `data-theme="dark"` **attribute**. Put whichever your host already toggles on `<html>` — or on any ancestor, to theme just that subtree. FiestaUI only defines the variant; your app owns the toggle. Hosts that stamp the attribute natively (Docusaurus, Astro, Nuxt Color Mode) therefore need no adapter. The pair is left unqualified, at specificity 0-1-0, so a pipeline that appends its own `:root` blocks after `theme.css` (Docusaurus's wide-gamut P3 pass does) still has to raise specificity on its side.
 
+### Loading indicators
+
+`Spinner` renders the original hopping taco animation on a transparent background. CSS plays its 45 frames over 1.92 seconds, including the final 160ms hold. Its `sm`, `md`, and `lg` sizes remain 14, 16, and 20 pixels; use a size class such as `size-16` for a page loading state. The artwork keeps its own colors on light and dark surfaces and is embedded in the package, so no public asset directory or copy step is needed. Hosts with a Content Security Policy must allow `data:` in `img-src`.
+
+The default `label="Loading"` is announced through `role="status"`. Pass `label={null}` when a parent already announces the pending state, as `Button loading` does. Use the taco alone for the loading mark instead of pairing it with a second Fiesta logo.
+
+With `theme.css` imported, `prefers-reduced-motion: reduce`, `.reduce-motion`, and `data-motion="off"` on an ancestor all show the still taco. The `spinner`, `spinner-mark`, and `spinner-mark-static` data slots remain available to existing consumers.
+
 ### Typeface
 
 The sans face is **Archivo** as of 5.0.0, replacing Geist. Archivo is drawn from American grotesque signage — the same world the split-flap hardware lives in — and carries a `wdth` 62–125 axis, so headings can run expanded into departure-board territory while UI text stays at normal width, from one family.

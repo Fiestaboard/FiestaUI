@@ -2,6 +2,7 @@ import type { TestRunnerConfig } from "@storybook/test-runner";
 import { checkA11y, configureAxe, injectAxe } from "axe-playwright";
 
 import { checkCanvasEditing } from "./canvas-editor-regression";
+import { checkSpinnerMotion } from "./spinner-regression";
 
 /**
  * Which theme this run renders, from the `THEME` env that ci.yml's a11y
@@ -101,6 +102,7 @@ const config: TestRunnerConfig = {
     }
 
     await checkCanvasEditing(page, context.id);
+    await checkSpinnerMotion(page, context.id);
 
     await configureAxe(page, {
       rules: [
