@@ -3,7 +3,7 @@ import * as React from "react";
 
 import { cn } from "../../lib/utils";
 import tacoLoader from "./assets/taco-loader.png?inline";
-import tacoSprite from "./assets/taco-loader-sprite.png?inline";
+import tacoSprite from "./assets/taco-loader-sprite.webp?inline";
 
 /**
  * Size scale is pinned to the button heights it sits inside, so a spinner
