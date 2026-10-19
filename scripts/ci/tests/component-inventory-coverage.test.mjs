@@ -69,7 +69,8 @@ async function load(entry, outname) {
     jsx: "automatic",
     // The barrel's graph reaches stylesheets and SVG assets. Neither affects
     // which names are exported, and neither is loadable in Node.
-    loader: { ".css": "empty", ".svg": "empty" },
+    // Raster loading artwork is embedded just as it is in the library build.
+    loader: { ".css": "empty", ".svg": "empty", ".png": "dataurl", ".webp": "dataurl" },
     packages: "external",
     outfile,
     logLevel: "silent",

@@ -58,6 +58,8 @@ buildSync({
   mainFields: ["module", "main"],
   conditions: ["import", "default"],
   jsx: "automatic",
+  // Match the library's embedded loading artwork when Button imports Spinner.
+  loader: { ".png": "dataurl", ".webp": "dataurl" },
   external: ["react", "react-dom", "react/jsx-runtime", "@base-ui/react/*"],
   outfile,
   logLevel: "silent",
