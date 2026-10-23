@@ -33,11 +33,12 @@ case "${1:?usage: pr-sync.sh <ensure-labels|sync|set-state|comment>}" in
     BODY_FILE="${3:?sync <version> <body-file>}"
     TITLE="chore(deps): upgrade @fiestaboard/ui to v$VERSION"
     pr=$(open_pr)
+    # Keep stdout reserved for the PR number captured by the workflow.
     if [ -n "$pr" ]; then
-      "$GH_BIN" pr edit "$pr" -R "$REPO" --title "$TITLE" --body-file "$BODY_FILE"
+      "$GH_BIN" pr edit "$pr" -R "$REPO" --title "$TITLE" --body-file "$BODY_FILE" >&2
     else
       "$GH_BIN" pr create -R "$REPO" --head "$BRANCH" --base main \
-        --title "$TITLE" --body-file "$BODY_FILE" --label upgrade-pending
+        --title "$TITLE" --body-file "$BODY_FILE" --label upgrade-pending >&2
       pr=$(open_pr)
     fi
     echo "$pr"

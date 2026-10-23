@@ -9,7 +9,20 @@ mkdir -p "$tmp/bin"
 cat > "$tmp/bin/gh" <<EOF
 #!/usr/bin/env bash
 echo "\$@" >> "$tmp/gh-calls.log"
-if [ "\$1 \$2" = "pr list" ]; then printf '%s' "\$PR_LIST_OUTPUT"; fi
+case "\$1 \$2" in
+  "pr list")
+    if [ -f "$tmp/created-pr" ]; then
+      echo 8
+    else
+      printf '%s' "\$PR_LIST_OUTPUT"
+    fi
+    ;;
+  "pr create")
+    touch "$tmp/created-pr"
+    echo "https://github.com/acme/app/pull/8"
+    ;;
+  "pr edit") echo "https://github.com/acme/app/pull/\$3" ;;
+esac
 EOF
 chmod +x "$tmp/bin/gh"
 
@@ -18,14 +31,17 @@ echo "release notes" > "$tmp/body.md"
 
 # No open PR → create.
 : > "$tmp/gh-calls.log"
-PR_LIST_OUTPUT="" run sync 0.4.0 "$tmp/body.md" > /dev/null
+pr=$(PR_LIST_OUTPUT="" run sync 0.4.0 "$tmp/body.md")
+assert_eq "8" "$pr" "sync stdout is only the created PR number"
 assert_file_contains "$tmp/gh-calls.log" "pr create" "creates when none open"
 assert_file_contains "$tmp/gh-calls.log" "upgrade-pending" "initial label applied"
 assert_file_contains "$tmp/gh-calls.log" "chore(deps): upgrade @fiestaboard/ui to v0.4.0" "title has version"
 
 # Open PR #7 → edit, not create.
+rm "$tmp/created-pr"
 : > "$tmp/gh-calls.log"
-PR_LIST_OUTPUT="7" run sync 0.5.0 "$tmp/body.md" > /dev/null
+pr=$(PR_LIST_OUTPUT="7" run sync 0.5.0 "$tmp/body.md")
+assert_eq "7" "$pr" "sync stdout is only the existing PR number"
 assert_file_contains "$tmp/gh-calls.log" "pr edit 7" "edits existing PR"
 if grep -q "pr create" "$tmp/gh-calls.log"; then fail "must not create when PR open"; fi
 
