@@ -536,6 +536,24 @@ describe("Sidebar footer box", () => {
 describe("Sidebar mobile menu closing", () => {
   const menu = () => screen.queryByRole("dialog", { name: LABELS.navigationMenu });
 
+  /** A link that records each click (href + modifiers) instead of following it. */
+  function recordingLink(onRowClick: (href: string, mods: { ctrlKey: boolean; metaKey: boolean }) => void) {
+    const link: SidebarProps["renderLink"] = ({ children, onClick, href, ...props }) => (
+      <a
+        {...props}
+        href={href}
+        onClick={(e) => {
+          e.preventDefault();
+          onRowClick(href, { ctrlKey: e.ctrlKey, metaKey: e.metaKey });
+          onClick?.();
+        }}
+      >
+        {children}
+      </a>
+    );
+    return link;
+  }
+
   function rect(left: number, top: number, width: number, height: number): DOMRect {
     return {
       left,
@@ -631,7 +649,10 @@ describe("Sidebar mobile menu closing", () => {
     // The nav's visible window ends at 300; the row has scrolled below it,
     // into the strip the footer covers.
     vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 500));
-    vi.spyOn(within(dialog).getByRole("navigation"), "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 220));
+    const nav = within(dialog).getByRole("navigation");
+    // jsdom has no stylesheet: stand in for the nav's `overflow-y-auto`.
+    nav.style.overflowY = "auto";
+    vi.spyOn(nav, "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 220));
     vi.spyOn(within(dialog).getByRole("link", { name: "Pages" }), "getBoundingClientRect").mockReturnValue(
       rect(24, 320, 342, 48),
     );
@@ -644,6 +665,107 @@ describe("Sidebar mobile menu closing", () => {
 
     expect(onRowClick).not.toHaveBeenCalled();
     expect(menu()).toBeInTheDocument();
+  });
+
+  it("ignores a footer control its own scroll container has scrolled over a visible row", async () => {
+    // FiestaBoard's mobile footer is a scroll container of its own
+    // (`max-h-[60dvh] overflow-y-auto`). Scrolled, a row it has moved out of
+    // its window still has a rect — one that can sit over a nav row the user
+    // can see and is aiming at.
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    const onFooter = vi.fn();
+    renderSidebar({
+      renderLink: recordingLink(onRowClick),
+      renderSettingsMenu: ({ variant }) =>
+        variant === "mobile" ? (
+          <div data-testid="footer-scroll" style={{ overflowY: "auto", maxHeight: 100 }}>
+            <button type="button" onClick={onFooter}>
+              Go to settings
+            </button>
+          </div>
+        ) : null,
+    });
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    const dialog = menu()!;
+    const nav = within(dialog).getByRole("navigation");
+    nav.style.overflowY = "auto";
+    vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 300));
+    vi.spyOn(nav, "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 150));
+    vi.spyOn(within(dialog).getByRole("link", { name: "Pages" }), "getBoundingClientRect").mockReturnValue(
+      rect(24, 150, 342, 48),
+    );
+    vi.spyOn(screen.getByTestId("footer-scroll"), "getBoundingClientRect").mockReturnValue(rect(12, 240, 366, 100));
+    vi.spyOn(within(dialog).getByRole("button", { name: "Go to settings" }), "getBoundingClientRect").mockReturnValue(
+      rect(24, 150, 342, 44),
+    );
+
+    await user.pointer({
+      keys: "[MouseLeft]",
+      target: screen.getByTestId("mobile-backdrop"),
+      coords: { clientX: 200, clientY: 170 },
+    });
+
+    expect(onFooter).not.toHaveBeenCalled();
+    expect(onRowClick).toHaveBeenCalledWith("#pages", expect.anything());
+  });
+
+  it("hands a fall-through tap to the innermost control under it", async () => {
+    const user = userEvent.setup();
+    const onInner = vi.fn();
+    renderSidebar({
+      renderSettingsMenu: ({ variant }) =>
+        variant === "mobile" ? (
+          // A focusable composite (a toolbar) wrapping its own control: both
+          // boxes hold the point, and only the inner one is what was aimed at.
+          <div role="toolbar" tabIndex={0} data-testid="outer">
+            <button type="button" onClick={onInner}>
+              Inner
+            </button>
+          </div>
+        ) : null,
+    });
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    const dialog = menu()!;
+    vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 500));
+    vi.spyOn(screen.getByTestId("outer"), "getBoundingClientRect").mockReturnValue(rect(12, 480, 366, 80));
+    vi.spyOn(within(dialog).getByRole("button", { name: "Inner" }), "getBoundingClientRect").mockReturnValue(
+      rect(24, 490, 200, 44),
+    );
+
+    await user.pointer({
+      keys: "[MouseLeft]",
+      target: screen.getByTestId("mobile-backdrop"),
+      coords: { clientX: 100, clientY: 510 },
+    });
+
+    expect(onInner).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards the modifier keys of a fall-through tap to the row", async () => {
+    // Ctrl/⌘-click on a link means "open in a new tab"; the row has to see
+    // the modifier to let the browser do that instead of routing in place.
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    renderSidebar({ renderLink: recordingLink(onRowClick) });
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    const dialog = menu()!;
+    vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 500));
+    vi.spyOn(within(dialog).getByRole("link", { name: "Pages" }), "getBoundingClientRect").mockReturnValue(
+      rect(24, 150, 342, 48),
+    );
+
+    fireEvent.click(screen.getByTestId("mobile-backdrop"), {
+      clientX: 200,
+      clientY: 170,
+      ctrlKey: true,
+      metaKey: true,
+    });
+
+    expect(onRowClick).toHaveBeenCalledWith("#pages", { ctrlKey: true, metaKey: true });
   });
 
   it("keeps the menu open for a fall-through tap that lands on no row", async () => {

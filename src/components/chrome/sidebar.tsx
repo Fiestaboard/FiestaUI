@@ -428,17 +428,39 @@ export const Sidebar = memo(function Sidebar({
       const within = (r: DOMRect) =>
         r.width > 0 && r.height > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
       if (within(menu.getBoundingClientRect())) {
-        // The nav scrolls, so a row can sit inside the menu's box but out of
-        // the nav's visible window (under the footer). Rows only count where
-        // the nav shows them.
-        const nav = menu.querySelector("nav");
-        const navShows = (el: HTMLElement) => !nav?.contains(el) || within(nav.getBoundingClientRect());
+        // Scroll containers inside the menu (the nav; an app's footer slot)
+        // move controls out of their window without moving them out of the
+        // menu's box, and a control scrolled out of one can sit right over a
+        // row that is on screen. A control only counts where every clipping
+        // ancestor up to the menu shows it.
+        const shown = (el: HTMLElement) => {
+          for (let a = el.parentElement; a && a !== menu; a = a.parentElement) {
+            const { overflowX, overflowY } = getComputedStyle(a);
+            if ((overflowX !== "visible" || overflowY !== "visible") && !within(a.getBoundingClientRect()))
+              return false;
+          }
+          return true;
+        };
         // Last match: document order puts a nested control after its
         // container, so this is the innermost one under the tap.
         const target = Array.from(menu.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
           .reverse()
-          .find((el) => within(el.getBoundingClientRect()) && navShows(el));
-        target?.click();
+          .find((el) => within(el.getBoundingClientRect()) && shown(el));
+        // Re-dispatched rather than .click(), so the row sees the tap's
+        // modifiers: a ctrl/⌘-click on a link still opens it in a new tab.
+        target?.dispatchEvent(
+          new MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            button: 0,
+            clientX: x,
+            clientY: y,
+            ctrlKey: e.ctrlKey,
+            metaKey: e.metaKey,
+            shiftKey: e.shiftKey,
+            altKey: e.altKey,
+          }),
+        );
         return;
       }
     }
