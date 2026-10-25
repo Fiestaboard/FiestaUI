@@ -428,11 +428,16 @@ export const Sidebar = memo(function Sidebar({
       const within = (r: DOMRect) =>
         r.width > 0 && r.height > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
       if (within(menu.getBoundingClientRect())) {
+        // The nav scrolls, so a row can sit inside the menu's box but out of
+        // the nav's visible window (under the footer). Rows only count where
+        // the nav shows them.
+        const nav = menu.querySelector("nav");
+        const navShows = (el: HTMLElement) => !nav?.contains(el) || within(nav.getBoundingClientRect());
         // Last match: document order puts a nested control after its
         // container, so this is the innermost one under the tap.
         const target = Array.from(menu.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
           .reverse()
-          .find((el) => within(el.getBoundingClientRect()));
+          .find((el) => within(el.getBoundingClientRect()) && navShows(el));
         target?.click();
         return;
       }

@@ -594,6 +594,7 @@ describe("Sidebar mobile menu closing", () => {
     // The menu's layout box, which clip-path does not shrink, and the row
     // inside it that the reveal has not reached yet.
     vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 500));
+    vi.spyOn(within(dialog).getByRole("navigation"), "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 400));
     vi.spyOn(pages, "getBoundingClientRect").mockReturnValue(rect(24, 150, 342, 48));
 
     await user.pointer({
@@ -604,6 +605,45 @@ describe("Sidebar mobile menu closing", () => {
 
     expect(onRowClick).toHaveBeenCalledWith("#pages");
     expect(menu()).not.toBeInTheDocument();
+  });
+
+  it("ignores a row the nav has scrolled out from under the tap", async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    renderSidebar({
+      renderLink: ({ children, onClick, href, ...props }) => (
+        <a
+          {...props}
+          href={href}
+          onClick={(e) => {
+            e.preventDefault();
+            onRowClick(href);
+            onClick?.();
+          }}
+        >
+          {children}
+        </a>
+      ),
+    });
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    const dialog = menu()!;
+    // The nav's visible window ends at 300; the row has scrolled below it,
+    // into the strip the footer covers.
+    vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 500));
+    vi.spyOn(within(dialog).getByRole("navigation"), "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 220));
+    vi.spyOn(within(dialog).getByRole("link", { name: "Pages" }), "getBoundingClientRect").mockReturnValue(
+      rect(24, 320, 342, 48),
+    );
+
+    await user.pointer({
+      keys: "[MouseLeft]",
+      target: screen.getByTestId("mobile-backdrop"),
+      coords: { clientX: 200, clientY: 340 },
+    });
+
+    expect(onRowClick).not.toHaveBeenCalled();
+    expect(menu()).toBeInTheDocument();
   });
 
   it("keeps the menu open for a fall-through tap that lands on no row", async () => {
