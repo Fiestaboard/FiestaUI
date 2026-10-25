@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FileText, HelpCircle, Home, Settings } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
@@ -518,5 +518,152 @@ describe("Sidebar footer box", () => {
   it("gives the nav list the hairline margin on both ends", () => {
     renderSidebar();
     expect(desktopNav().className.split(/\s+/)).toContain("py-3");
+  });
+});
+
+/*
+ * Selecting something in the open mobile menu has to close it. Two ways it
+ * did not, both reproduced on a phone-sized viewport against FiestaBoard:
+ *
+ * 1. Rows the app renders into the drawer's footer (`renderSettingsMenu`
+ *    with `variant: "mobile"` — Settings, "Update to …") navigated, but had
+ *    no way to close the drawer, so it stayed open over the new route and
+ *    the tap looked like it did nothing.
+ * 2. The drawer opens by un-clipping downward, and `clip-path` clips hit
+ *    testing too. A tap on a row the reveal had not reached yet fell through
+ *    to the backdrop underneath, which closed the menu and dropped the tap.
+ */
+describe("Sidebar mobile menu closing", () => {
+  const menu = () => screen.queryByRole("dialog", { name: LABELS.navigationMenu });
+
+  function rect(left: number, top: number, width: number, height: number): DOMRect {
+    return {
+      left,
+      top,
+      width,
+      height,
+      right: left + width,
+      bottom: top + height,
+      x: left,
+      y: top,
+      toJSON: () => ({}),
+    } as DOMRect;
+  }
+
+  it("hands the mobile footer a closeMenu that closes the drawer", async () => {
+    const user = userEvent.setup();
+    renderSidebar({
+      renderSettingsMenu: ({ variant, closeMenu }) =>
+        variant === "mobile" ? (
+          <button type="button" onClick={closeMenu}>
+            Go to settings
+          </button>
+        ) : null,
+    });
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    await user.click(within(menu()!).getByRole("button", { name: "Go to settings" }));
+
+    expect(menu()).not.toBeInTheDocument();
+    // Focus goes back to the hamburger, as it does for every other close.
+    expect(screen.getByRole("button", { name: LABELS.openMenu })).toHaveFocus();
+  });
+
+  it("activates the row under a tap that the opening reveal let fall through to the backdrop", async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    renderSidebar({
+      renderLink: ({ children, onClick, href, ...props }) => (
+        <a
+          {...props}
+          href={href}
+          onClick={(e) => {
+            e.preventDefault();
+            onRowClick(href);
+            onClick?.();
+          }}
+        >
+          {children}
+        </a>
+      ),
+    });
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    const dialog = menu()!;
+    const pages = within(dialog).getByRole("link", { name: "Pages" });
+    // The menu's layout box, which clip-path does not shrink, and the row
+    // inside it that the reveal has not reached yet.
+    vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 500));
+    vi.spyOn(pages, "getBoundingClientRect").mockReturnValue(rect(24, 150, 342, 48));
+
+    await user.pointer({
+      keys: "[MouseLeft]",
+      target: screen.getByTestId("mobile-backdrop"),
+      coords: { clientX: 200, clientY: 170 },
+    });
+
+    expect(onRowClick).toHaveBeenCalledWith("#pages");
+    expect(menu()).not.toBeInTheDocument();
+  });
+
+  it("keeps the menu open for a fall-through tap that lands on no row", async () => {
+    const user = userEvent.setup();
+    renderSidebar();
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    const dialog = menu()!;
+    vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 500));
+
+    await user.pointer({
+      keys: "[MouseLeft]",
+      target: screen.getByTestId("mobile-backdrop"),
+      coords: { clientX: 200, clientY: 560 },
+    });
+
+    expect(menu()).toBeInTheDocument();
+  });
+
+  it("closes on a backdrop click when the menu has no layout box to land in", async () => {
+    // jsdom, and any engine that has not laid the menu out: every rect is
+    // empty, and a click at (0, 0) must not count as "inside" a 0×0 box.
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    renderSidebar({
+      renderLink: ({ children, onClick, href, ...props }) => (
+        <a
+          {...props}
+          href={href}
+          onClick={(e) => {
+            e.preventDefault();
+            onRowClick(href);
+            onClick?.();
+          }}
+        >
+          {children}
+        </a>
+      ),
+    });
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    fireEvent.click(screen.getByTestId("mobile-backdrop"));
+
+    expect(menu()).not.toBeInTheDocument();
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it("still closes on a backdrop tap outside the menu", async () => {
+    const user = userEvent.setup();
+    renderSidebar();
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+
+    vi.spyOn(menu()!, "getBoundingClientRect").mockReturnValue(rect(12, 80, 366, 500));
+
+    await user.pointer({
+      keys: "[MouseLeft]",
+      target: screen.getByTestId("mobile-backdrop"),
+      coords: { clientX: 200, clientY: 700 },
+    });
+
+    expect(menu()).not.toBeInTheDocument();
   });
 });
