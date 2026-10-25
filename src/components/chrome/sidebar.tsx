@@ -237,6 +237,14 @@ export interface SidebarProps {
     collapsed: boolean;
     /** `menuNotice`, passed through for the app's `SidebarAccountTrigger`. */
     notice?: string;
+    /**
+     * Closes the mobile menu (a no-op on the desktop rail). The drawer's
+     * own nav rows close it when tapped; rows the app renders here cannot
+     * without this. Call it from any mobile row that navigates or hands off
+     * to something else (Settings, "Update to …", About), or the drawer
+     * stays open over the new route and the tap looks like it did nothing.
+     */
+    closeMenu: () => void;
   }) => React.ReactNode;
   /**
    * A one-click shortcut to the settings route: a gear chip in the rail
@@ -399,6 +407,65 @@ export const Sidebar = memo(function Sidebar({
     menuTriggerRef.current = null;
     trigger?.focus();
   }, [mobileMenuOpen]);
+
+  function closeMobileMenu() {
+    setMobileMenuOpen(false);
+  }
+
+  // The menu opens by un-clipping downward, and clip-path clips hit testing
+  // as well as paint: for the first ~100–200ms a tap on a row the reveal has
+  // not reached falls through to this backdrop. Dismissing on it closed the
+  // menu and silently dropped the tap — "I picked something and nothing
+  // happened". The menu's layout box is not shrunk by clip-path, so a tap
+  // inside it is a tap on the menu: hand it to the row under it, or ignore
+  // it when it lands between rows. Only a tap outside the menu dismisses.
+  function handleBackdropClick(e: React.MouseEvent<HTMLDivElement>) {
+    const menu = mobileMenuRef.current;
+    if (menu) {
+      const { clientX: x, clientY: y } = e;
+      // An empty box contains nothing — not even the (0, 0) of a click
+      // dispatched before the menu was laid out.
+      const within = (r: DOMRect) =>
+        r.width > 0 && r.height > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+      if (within(menu.getBoundingClientRect())) {
+        // Scroll containers inside the menu (the nav; an app's footer slot)
+        // move controls out of their window without moving them out of the
+        // menu's box, and a control scrolled out of one can sit right over a
+        // row that is on screen. A control only counts where every clipping
+        // ancestor up to the menu shows it.
+        const shown = (el: HTMLElement) => {
+          for (let a = el.parentElement; a && a !== menu; a = a.parentElement) {
+            const { overflowX, overflowY } = getComputedStyle(a);
+            if ((overflowX !== "visible" || overflowY !== "visible") && !within(a.getBoundingClientRect()))
+              return false;
+          }
+          return true;
+        };
+        // Last match: document order puts a nested control after its
+        // container, so this is the innermost one under the tap.
+        const target = Array.from(menu.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+          .reverse()
+          .find((el) => within(el.getBoundingClientRect()) && shown(el));
+        // Re-dispatched rather than .click(), so the row sees the tap's
+        // modifiers: a ctrl/⌘-click on a link still opens it in a new tab.
+        target?.dispatchEvent(
+          new MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            button: 0,
+            clientX: x,
+            clientY: y,
+            ctrlKey: e.ctrlKey,
+            metaKey: e.metaKey,
+            shiftKey: e.shiftKey,
+            altKey: e.altKey,
+          }),
+        );
+        return;
+      }
+    }
+    setMobileMenuOpen(false);
+  }
 
   // Focus trap while the menu is open: Tab from the last focusable wraps to
   // the first and Shift+Tab from the first wraps to the last, so keyboard
@@ -616,7 +683,12 @@ export const Sidebar = memo(function Sidebar({
    * VRT's job.
    */
   const footerBlock = (variant: "mobile" | "desktop", isCollapsed: boolean) => {
-    const menu = renderSettingsMenu?.({ variant, collapsed: isCollapsed, notice: menuNotice || undefined });
+    const menu = renderSettingsMenu?.({
+      variant,
+      collapsed: isCollapsed,
+      notice: menuNotice || undefined,
+      closeMenu: closeMobileMenu,
+    });
     const shortcut = variant === "desktop" ? settingsAction(isCollapsed) : null;
     const assistant = variant === "desktop" ? aiAction(isCollapsed) : null;
     if (!menu && !shortcut && !assistant) return null;
@@ -786,7 +858,7 @@ export const Sidebar = memo(function Sidebar({
       <div
         data-testid="mobile-backdrop"
         className={mobileMenuOpen ? MOBILE_BACKDROP_OPEN : MOBILE_BACKDROP_CLOSED}
-        onClick={() => setMobileMenuOpen(false)}
+        onClick={handleBackdropClick}
         aria-hidden="true"
       />
 
