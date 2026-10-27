@@ -12,9 +12,10 @@ export const NOTE_COLS = 15;
 export const MAX_NOTES_PER_AXIS = 8;
 
 /**
- * Panel grid bounds. A panel — a life-size virtual split-flap board on a TV —
- * is sized by character, not by Note block, but is never smaller than one Note.
- * The maximum covers a 200" TV in portrait.
+ * Panel grid bounds. A panel — a life-size virtual split-flap board on a TV,
+ * or an LED board — is sized by character, not by Note block. A split-flap
+ * panel is never smaller than one Note (MIN_GRID_*); an LED panel may go down
+ * to MIN_LED_GRID_* below. The maximum covers a 200" TV in portrait.
  */
 export const MIN_GRID_ROWS = 3;
 export const MIN_GRID_COLS = 15;
@@ -106,9 +107,9 @@ function clampAxis(n: number, min: number, max: number): number {
   return i > max ? max : i;
 }
 
-/** Clamp a panel axis into [min, max]; a missing axis (undefined/NaN) is `missing`. */
-function clampPanelAxis(n: number | undefined, min: number, max: number, missing: number): number {
-  if (n === undefined || Number.isNaN(n)) return missing;
+/** Clamp a panel axis into [min, max]; a missing axis (undefined/null/NaN) is `missing`. */
+function clampPanelAxis(n: number | null | undefined, min: number, max: number, missing: number): number {
+  if (typeof n !== "number" || Number.isNaN(n)) return missing;
   return clampAxis(n, min, max);
 }
 
@@ -133,7 +134,7 @@ function clampNotesPerAxis(n: number): number {
  * [ABSOLUTE_MIN_GRID_COLS, MAX_GRID_COLS] — the 3 × 10 LED floor, as
  * FiestaBoard's clamp_grid does, so an LED board's 3 × 13 grid is kept rather
  * than widened to a Note's 15 (Fiestaboard/FiestaBoard#2369). A missing axis
- * (NaN/undefined) resolves to the Note minimum, MIN_GRID_ROWS / MIN_GRID_COLS.
+ * (NaN/undefined/null) resolves to the Note minimum, MIN_GRID_ROWS / MIN_GRID_COLS.
  * The grid args are ignored for every other device type.
  *
  * @param deviceType  "flagship" | "note" | "note_array" | "panel"
@@ -147,8 +148,8 @@ export function resolveDimensions(
   deviceType: string,
   notes_wide = 1,
   notes_tall = 1,
-  grid_rows?: number,
-  grid_cols?: number,
+  grid_rows?: number | null,
+  grid_cols?: number | null,
 ): BoardDimensions {
   if (Object.hasOwn(DEVICE_DIMENSIONS, deviceType)) {
     return DEVICE_DIMENSIONS[deviceType];

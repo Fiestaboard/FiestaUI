@@ -49,8 +49,8 @@ const meta = {
       description: "Explicit grid rows (panel only; clamped to 3–96)",
     },
     gridCols: {
-      control: { type: "number", min: 15, max: 128 },
-      description: "Explicit grid columns (panel only; clamped to 15–128)",
+      control: { type: "number", min: 10, max: 128 },
+      description: "Explicit grid columns (panel only; clamped to 10–128)",
     },
     previewLabel: {
       control: "text",

@@ -190,6 +190,7 @@ test("panel grid with NaN or missing axes falls back to the minimum", () => {
   const min = mod.resolveDimensions("panel", 1, 1, mod.MIN_GRID_ROWS, mod.MIN_GRID_COLS);
   assert.equal(mod.resolveDimensions("panel"), min);
   assert.equal(mod.resolveDimensions("panel", 1, 1, NaN, NaN), min);
+  assert.equal(mod.resolveDimensions("panel", 1, 1, null, null), min);
   assert.deepEqual(mod.resolveDimensions("panel", 1, 1, 12, undefined), { rows: 12, cols: 15 });
   assert.deepEqual(mod.resolveDimensions("panel", 1, 1, NaN, 40), { rows: 3, cols: 40 });
 });

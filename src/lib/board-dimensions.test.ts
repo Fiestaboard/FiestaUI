@@ -33,6 +33,9 @@ describe("resolveDimensions — panel", () => {
   it("resolves a missing axis to the Note minimum, not the LED floor", () => {
     expect(resolveDimensions("panel")).toEqual({ rows: MIN_GRID_ROWS, cols: MIN_GRID_COLS });
     expect(resolveDimensions("panel", 1, 1, 6, Number.NaN)).toEqual({ rows: 6, cols: MIN_GRID_COLS });
+    // Untyped JSON (a plugin manifest, the boards API) carries a missing axis as null.
+    expect(resolveDimensions("panel", 1, 1, null, null)).toEqual({ rows: MIN_GRID_ROWS, cols: MIN_GRID_COLS });
+    expect(resolveDimensions("panel", 1, 1, 3, null)).toEqual({ rows: 3, cols: MIN_GRID_COLS });
   });
 
   it("returns a stable reference per grid size", () => {
