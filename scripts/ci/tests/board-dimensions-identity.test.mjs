@@ -127,13 +127,19 @@ test("1000 distinct invalid pairs do not grow the cache unboundedly", () => {
 //
 // A FiestaBoard "panel" is a life-size virtual board on a TV, sized by
 // character rather than by Note block: any rows × cols, carried explicitly in
-// grid_rows / grid_cols. A panel is never smaller than one Note.
+// grid_rows / grid_cols. A panel is never smaller than the 3 × 10 LED floor
+// (ABSOLUTE_MIN_GRID_*, Fiestaboard/FiestaBoard#2369); a missing axis falls
+// back to one Note.
 
 test("panel grid bounds are exported", () => {
   assert.equal(mod.MIN_GRID_ROWS, 3);
   assert.equal(mod.MIN_GRID_COLS, 15);
   assert.equal(mod.MAX_GRID_ROWS, 96);
   assert.equal(mod.MAX_GRID_COLS, 128);
+  assert.equal(mod.MIN_LED_GRID_ROWS, 3);
+  assert.equal(mod.MIN_LED_GRID_COLS, 10);
+  assert.equal(mod.ABSOLUTE_MIN_GRID_ROWS, 3);
+  assert.equal(mod.ABSOLUTE_MIN_GRID_COLS, 10);
 });
 
 test("isPanel is true only for the panel device type", () => {
@@ -160,9 +166,9 @@ test("panel repeat calls return the same reference", () => {
   assert.notEqual(mod.resolveDimensions("panel", 1, 1, 29, 12), a);
 });
 
-test("panel grid below the minimum clamps up to one Note", () => {
-  const min = mod.resolveDimensions("panel", 1, 1, mod.MIN_GRID_ROWS, mod.MIN_GRID_COLS);
-  assert.deepEqual(min, { rows: 3, cols: 15 });
+test("panel grid below the minimum clamps up to the LED floor", () => {
+  const min = mod.resolveDimensions("panel", 1, 1, mod.ABSOLUTE_MIN_GRID_ROWS, mod.ABSOLUTE_MIN_GRID_COLS);
+  assert.deepEqual(min, { rows: 3, cols: 10 });
   assert.equal(mod.resolveDimensions("panel", 1, 1, 1, 1), min);
   assert.equal(mod.resolveDimensions("panel", 1, 1, 0, -40), min);
   assert.equal(mod.resolveDimensions("panel", 1, 1, -Infinity, -Infinity), min);
@@ -177,7 +183,7 @@ test("panel grid above the maximum clamps down to it", () => {
 
 test("panel grid clamps each axis independently", () => {
   assert.deepEqual(mod.resolveDimensions("panel", 1, 1, 1, 200), { rows: 3, cols: 128 });
-  assert.deepEqual(mod.resolveDimensions("panel", 1, 1, 200, 1), { rows: 96, cols: 15 });
+  assert.deepEqual(mod.resolveDimensions("panel", 1, 1, 200, 1), { rows: 96, cols: 10 });
 });
 
 test("panel grid with NaN or missing axes falls back to the minimum", () => {
@@ -206,8 +212,14 @@ test("1000 distinct invalid panel sizes only ever resolve to in-bounds, stable r
     const c = i % 2 === 0 ? i / 7 : Number.MAX_SAFE_INTEGER - i;
     const dims = mod.resolveDimensions("panel", 1, 1, r, c);
     assert.ok(Number.isInteger(dims.rows) && Number.isInteger(dims.cols));
-    assert.ok(dims.rows >= mod.MIN_GRID_ROWS && dims.rows <= mod.MAX_GRID_ROWS, `rows ${dims.rows} out of bounds`);
-    assert.ok(dims.cols >= mod.MIN_GRID_COLS && dims.cols <= mod.MAX_GRID_COLS, `cols ${dims.cols} out of bounds`);
+    assert.ok(
+      dims.rows >= mod.ABSOLUTE_MIN_GRID_ROWS && dims.rows <= mod.MAX_GRID_ROWS,
+      `rows ${dims.rows} out of bounds`,
+    );
+    assert.ok(
+      dims.cols >= mod.ABSOLUTE_MIN_GRID_COLS && dims.cols <= mod.MAX_GRID_COLS,
+      `cols ${dims.cols} out of bounds`,
+    );
     // Same reference as the in-bounds request for that size: no new cache key.
     assert.equal(mod.resolveDimensions("panel", 1, 1, dims.rows, dims.cols), dims);
   }
