@@ -76,6 +76,12 @@ describe("BoardSizeIndicator", () => {
     expect(indicator()).toHaveTextContent("12 × 40");
   });
 
+  it("renders an LED panel narrower than a Note at its own grid (3 × 13)", () => {
+    render(<BoardSizeIndicator deviceType="panel" gridRows={3} gridCols={13} layoutLabel="Panel" />);
+    expect(indicator()).toHaveTextContent("3 × 13 · Panel");
+    expect(indicator()).toHaveAccessibleName("3 rows by 13 columns, Panel");
+  });
+
   it("hides the visual text from assistive tech so only the name is read", () => {
     render(<BoardSizeIndicator deviceType="flagship" layoutLabel="Flagship" />);
     for (const child of Array.from(indicator().children)) {

@@ -12,14 +12,28 @@ export const NOTE_COLS = 15;
 export const MAX_NOTES_PER_AXIS = 8;
 
 /**
- * Panel grid bounds. A panel — a life-size virtual split-flap board on a TV —
- * is sized by character, not by Note block, but is never smaller than one Note.
- * The maximum covers a 200" TV in portrait.
+ * Panel grid bounds (mirror FiestaBoard src/devices.py). A panel — a life-size
+ * virtual split-flap board on a TV — is sized by character, not by Note block,
+ * and a split-flap panel is never smaller than one Note. The maximum covers a
+ * 200" TV in portrait.
  */
 export const MIN_GRID_ROWS = 3;
 export const MIN_GRID_COLS = 15;
 export const MAX_GRID_ROWS = 96;
 export const MAX_GRID_COLS = 128;
+
+/**
+ * The floor of an LED board measured in pixels (mirror src/devices.py): 3 × 10,
+ * so a legible face fits — an AWTRIX Ulanzi TC002 in the 3x5 face is 3 × 13, a
+ * Divoom Pixoo 64 in the 5x7 face is 8 × 10. The platform stores these grids
+ * as `panel` boards, so resolveDimensions must keep them rather than lift them
+ * to the Note floor.
+ */
+export const MIN_LED_GRID_ROWS = 3;
+export const MIN_LED_GRID_COLS = 10;
+/** The smallest grid any board can have: the lower floor on each axis. */
+export const ABSOLUTE_MIN_GRID_ROWS = Math.min(MIN_GRID_ROWS, MIN_LED_GRID_ROWS);
+export const ABSOLUTE_MIN_GRID_COLS = Math.min(MIN_GRID_COLS, MIN_LED_GRID_COLS);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 /**
@@ -79,16 +93,17 @@ const noteArrayCache = new Map<string, BoardDimensions>();
  * Cache of panel dimensions, keyed by "rows×cols" — the same stable-identity
  * guarantee as noteArrayCache. Keys are derived from clamped axes (see
  * clampAxis), so the cache is bounded by the grid limits —
- * (MAX_GRID_ROWS − MIN_GRID_ROWS + 1) × (MAX_GRID_COLS − MIN_GRID_COLS + 1)
+ * (MAX_GRID_ROWS − ABSOLUTE_MIN_GRID_ROWS + 1) ×
+ * (MAX_GRID_COLS − ABSOLUTE_MIN_GRID_COLS + 1)
  * entries at most — regardless of caller input. Nothing is ever evicted:
  * eviction would hand a caller a fresh reference for a size it had already
  * resolved, breaking the identity guarantee.
  */
 const panelCache = new Map<string, BoardDimensions>();
 
-/** Clamp a value to an integer in [min, max] (NaN → min). */
-function clampAxis(n: number, min: number, max: number): number {
-  if (Number.isNaN(n)) return min;
+/** Clamp a value to an integer in [min, max] (NaN → `missing`, default min). */
+function clampAxis(n: number, min: number, max: number, missing = min): number {
+  if (Number.isNaN(n)) return missing;
   const i = Math.floor(n);
   if (i < min) return min;
   return i > max ? max : i;
@@ -111,9 +126,11 @@ function clampNotesPerAxis(n: number): number {
  * reference is returned on every call. For "note_array", notes_wide/notes_tall
  * are clamped to integers in [1, MAX_NOTES_PER_AXIS] (NaN → 1) before
  * computing and caching. For "panel", grid_rows is clamped to an integer in
- * [MIN_GRID_ROWS, MAX_GRID_ROWS] and grid_cols to [MIN_GRID_COLS,
- * MAX_GRID_COLS] (NaN/undefined → the minimum). The grid args are ignored for
- * every other device type.
+ * [ABSOLUTE_MIN_GRID_ROWS, MAX_GRID_ROWS] and grid_cols to
+ * [ABSOLUTE_MIN_GRID_COLS, MAX_GRID_COLS] — the 3 × 10 floor, so an LED
+ * board's 3 × 13 or 8 × 10 grid is kept (mirrors Python clamp_grid). A
+ * NaN/undefined axis resolves to the Note minimum (MIN_GRID_ROWS /
+ * MIN_GRID_COLS). The grid args are ignored for every other device type.
  *
  * @param deviceType  "flagship" | "note" | "note_array" | "panel"
  * @param notes_wide  Number of notes wide (only used for "note_array"; default 1)
@@ -144,8 +161,8 @@ export function resolveDimensions(
     return dims;
   }
   if (deviceType === "panel") {
-    const rows = clampAxis(grid_rows ?? MIN_GRID_ROWS, MIN_GRID_ROWS, MAX_GRID_ROWS);
-    const cols = clampAxis(grid_cols ?? MIN_GRID_COLS, MIN_GRID_COLS, MAX_GRID_COLS);
+    const rows = clampAxis(grid_rows ?? MIN_GRID_ROWS, ABSOLUTE_MIN_GRID_ROWS, MAX_GRID_ROWS, MIN_GRID_ROWS);
+    const cols = clampAxis(grid_cols ?? MIN_GRID_COLS, ABSOLUTE_MIN_GRID_COLS, MAX_GRID_COLS, MIN_GRID_COLS);
     const key = `${rows}×${cols}`;
     let dims = panelCache.get(key);
     if (dims === undefined) {
