@@ -20,6 +20,17 @@ export const MIN_GRID_ROWS = 3;
 export const MIN_GRID_COLS = 15;
 export const MAX_GRID_ROWS = 96;
 export const MAX_GRID_COLS = 128;
+/**
+ * The floor of an LED board measured in pixels (mirrors FiestaBoard's
+ * src/devices.py): 3 × 10, so a legible 5x7 face fits — a Divoom Pixoo 64 at
+ * 5x7 is 8 × 10, an AWTRIX on a Ulanzi TC002 is 3 × 13. FiestaPanel autofit and
+ * Vestaboard-shaped boards keep the Note floor above.
+ */
+export const MIN_LED_GRID_ROWS = 3;
+export const MIN_LED_GRID_COLS = 10;
+/** The smallest grid any panel can have: the lower floor on each axis. */
+export const ABSOLUTE_MIN_GRID_ROWS = Math.min(MIN_GRID_ROWS, MIN_LED_GRID_ROWS);
+export const ABSOLUTE_MIN_GRID_COLS = Math.min(MIN_GRID_COLS, MIN_LED_GRID_COLS);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 /**
@@ -79,7 +90,8 @@ const noteArrayCache = new Map<string, BoardDimensions>();
  * Cache of panel dimensions, keyed by "rows×cols" — the same stable-identity
  * guarantee as noteArrayCache. Keys are derived from clamped axes (see
  * clampAxis), so the cache is bounded by the grid limits —
- * (MAX_GRID_ROWS − MIN_GRID_ROWS + 1) × (MAX_GRID_COLS − MIN_GRID_COLS + 1)
+ * (MAX_GRID_ROWS − ABSOLUTE_MIN_GRID_ROWS + 1) ×
+ * (MAX_GRID_COLS − ABSOLUTE_MIN_GRID_COLS + 1)
  * entries at most — regardless of caller input. Nothing is ever evicted:
  * eviction would hand a caller a fresh reference for a size it had already
  * resolved, breaking the identity guarantee.
@@ -92,6 +104,12 @@ function clampAxis(n: number, min: number, max: number): number {
   const i = Math.floor(n);
   if (i < min) return min;
   return i > max ? max : i;
+}
+
+/** Clamp a panel axis into [min, max]; a missing axis (undefined/NaN) is `missing`. */
+function clampPanelAxis(n: number | undefined, min: number, max: number, missing: number): number {
+  if (n === undefined || Number.isNaN(n)) return missing;
+  return clampAxis(n, min, max);
 }
 
 /** Clamp a notes-per-axis count to an integer in [1, MAX_NOTES_PER_AXIS]. */
@@ -111,9 +129,12 @@ function clampNotesPerAxis(n: number): number {
  * reference is returned on every call. For "note_array", notes_wide/notes_tall
  * are clamped to integers in [1, MAX_NOTES_PER_AXIS] (NaN → 1) before
  * computing and caching. For "panel", grid_rows is clamped to an integer in
- * [MIN_GRID_ROWS, MAX_GRID_ROWS] and grid_cols to [MIN_GRID_COLS,
- * MAX_GRID_COLS] (NaN/undefined → the minimum). The grid args are ignored for
- * every other device type.
+ * [ABSOLUTE_MIN_GRID_ROWS, MAX_GRID_ROWS] and grid_cols to
+ * [ABSOLUTE_MIN_GRID_COLS, MAX_GRID_COLS] — the 3 × 10 LED floor, as
+ * FiestaBoard's clamp_grid does, so an LED board's 3 × 13 grid is kept rather
+ * than widened to a Note's 15 (Fiestaboard/FiestaBoard#2369). A missing axis
+ * (NaN/undefined) resolves to the Note minimum, MIN_GRID_ROWS / MIN_GRID_COLS.
+ * The grid args are ignored for every other device type.
  *
  * @param deviceType  "flagship" | "note" | "note_array" | "panel"
  * @param notes_wide  Number of notes wide (only used for "note_array"; default 1)
@@ -144,8 +165,8 @@ export function resolveDimensions(
     return dims;
   }
   if (deviceType === "panel") {
-    const rows = clampAxis(grid_rows ?? MIN_GRID_ROWS, MIN_GRID_ROWS, MAX_GRID_ROWS);
-    const cols = clampAxis(grid_cols ?? MIN_GRID_COLS, MIN_GRID_COLS, MAX_GRID_COLS);
+    const rows = clampPanelAxis(grid_rows, ABSOLUTE_MIN_GRID_ROWS, MAX_GRID_ROWS, MIN_GRID_ROWS);
+    const cols = clampPanelAxis(grid_cols, ABSOLUTE_MIN_GRID_COLS, MAX_GRID_COLS, MIN_GRID_COLS);
     const key = `${rows}×${cols}`;
     let dims = panelCache.get(key);
     if (dims === undefined) {

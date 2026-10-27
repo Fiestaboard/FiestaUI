@@ -76,6 +76,15 @@ describe("BoardSizeIndicator", () => {
     expect(indicator()).toHaveTextContent("12 × 40");
   });
 
+  // Fiestaboard/FiestaBoard#2369: an LED output board's grid can be narrower
+  // than a Note (floor 3 × 10, FiestaBoard src/devices.py). A 3 × 13 board was
+  // labelled "3 × 15 · Panel" because panels were clamped to the Note floor.
+  it("renders a panel narrower than a Note at its own size", () => {
+    render(<BoardSizeIndicator deviceType="panel" gridRows={3} gridCols={13} layoutLabel="Panel" />);
+    expect(indicator()).toHaveTextContent("3 × 13 · Panel");
+    expect(indicator()).toHaveAccessibleName("3 rows by 13 columns, Panel");
+  });
+
   it("hides the visual text from assistive tech so only the name is read", () => {
     render(<BoardSizeIndicator deviceType="flagship" layoutLabel="Flagship" />);
     for (const child of Array.from(indicator().children)) {
