@@ -35,6 +35,9 @@ function boardGrid(name: RegExp) {
 const SIZES = [
   { rows: 12, cols: 29 },
   { rows: 7, cols: 17 },
+  // LED panels below one Note's width (Fiestaboard/FiestaBoard#2369).
+  { rows: 3, cols: 13 },
+  { rows: 3, cols: 10 },
 ];
 
 describe("BoardDisplay panel grid", () => {
