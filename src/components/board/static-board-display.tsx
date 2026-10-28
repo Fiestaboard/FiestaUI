@@ -58,10 +58,10 @@ export interface StaticBoardDisplayProps {
   /** Notes tall (for note_array device; ignored otherwise). */
   notesTall?: number;
   /** Explicit grid size; only used when deviceType is "panel". Rows of
-   *  characters, clamped to [MIN_GRID_ROWS, MAX_GRID_ROWS]. */
+   *  characters, clamped to [ABSOLUTE_MIN_GRID_ROWS, MAX_GRID_ROWS]. */
   gridRows?: number;
   /** Explicit grid size; only used when deviceType is "panel". Columns of
-   *  characters, clamped to [MIN_GRID_COLS, MAX_GRID_COLS]. */
+   *  characters, clamped to [ABSOLUTE_MIN_GRID_COLS, MAX_GRID_COLS]. */
   gridCols?: number;
   /** Fixed accessible label for a shown message. Overrides `messageLabel`, so
    *  pass it only when a hand-written description beats the board's own text

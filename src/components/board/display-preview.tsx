@@ -203,8 +203,9 @@ const clampGrid = (n: number, min: number, max: number) => Math.min(max, Math.ma
 
 /**
  * The split-flap renderer props a model's geometry maps onto. `clamped` is
- * set when a `cells` geometry lies outside the panel bounds the renderers
- * draw (3×15 to 96×128): the board is drawn at the clamped size, and the
+ * set when a `cells` geometry lies outside the split-flap panel bounds
+ * (3×15 to 96×128 — a split-flap model keeps the Note floor; only LED panels
+ * go below it): the board is drawn at the clamped size, and the
  * housing says so (`data-geometry-clamped`) rather than letting a 2×10 sign
  * silently come out as 3×15.
  */
@@ -224,9 +225,10 @@ function splitFlapGeometry(
   const g = model.geometry;
   switch (g.kind) {
     // A plugin's fixed grid draws as a panel of exactly that size, within
-    // the panel bounds: a flap sign smaller than a Note (or larger than the
-    // biggest panel) is not a thing the split-flap renderers draw, so it is
-    // clamped — and reported, so the caller can tell.
+    // the split-flap panel bounds: a flap sign smaller than a Note (or larger
+    // than the biggest panel) is not a split-flap model FiestaBoard accepts —
+    // the 3×10 floor is for LED panels only — so it is clamped, and reported,
+    // so the caller can tell.
     case "cells": {
       const rows = clampGrid(g.rows, MIN_GRID_ROWS, MAX_GRID_ROWS);
       const cols = clampGrid(g.cols, MIN_GRID_COLS, MAX_GRID_COLS);
@@ -330,7 +332,7 @@ export function DisplayPreview({
   useEffect(() => {
     if (geometryClamped && isDevBuild()) {
       console.warn(
-        `DisplayPreview: split_flap model "${model.id}" declares a ${geometryClamped.replace(" → ", " grid; the split-flap renderers draw 3×15 to 96×128, so it is drawn at ")}.`,
+        `DisplayPreview: split_flap model "${model.id}" declares a ${geometryClamped.replace(" → ", " grid; split-flap models are 3×15 to 96×128, so it is drawn at ")}.`,
       );
     }
   }, [geometryClamped, model.id]);
