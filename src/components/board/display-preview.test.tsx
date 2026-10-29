@@ -437,7 +437,7 @@ describe("DisplayPreview", () => {
     it("is drawn at the clamped size, marked on the housing, and warned about in dev", () => {
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
       render(<DisplayPreview model={tiny} message="HI" />);
-      // A split-flap model is never smaller than a Note (the 3 × 10 floor is LED-only): 3 × 15.
+      // A split-flap model is never smaller than a Note (the 1 × 5 floor is LED-only): 3 × 15.
       expect(tiles()).toBe(3 * 15);
       expect(housing()).toHaveAttribute("data-geometry-clamped", "2×10 → 3×15");
       expect(warn).toHaveBeenCalledTimes(1);

@@ -38,6 +38,9 @@ const SIZES = [
   // LED panels below one Note's width (Fiestaboard/FiestaBoard#2369).
   { rows: 3, cols: 13 },
   { rows: 3, cols: 10 },
+  // An Ulanzi TC001 (32 × 8) is 1 × 8 at the 3x5 face; the floor is 1 × 5.
+  { rows: 1, cols: 8 },
+  { rows: 1, cols: 5 },
 ];
 
 describe("BoardDisplay panel grid", () => {

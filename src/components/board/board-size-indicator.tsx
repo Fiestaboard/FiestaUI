@@ -41,9 +41,12 @@ export interface BoardSizeIndicatorProps {
   className?: string;
 }
 
+/** "1 row" / "8 rows": a 1 × 8 LED board must not read "1 rows". */
+const axis = (n: number, singular: string) => `${n} ${singular}${n === 1 ? "" : "s"}`;
+
 export const defaultBoardSizeIndicatorLabels: Required<BoardSizeIndicatorLabels> = {
-  dimensions: (rows, cols) => `${rows} rows by ${cols} columns`,
-  dimensionsWithLayout: (rows, cols, layout) => `${rows} rows by ${cols} columns, ${layout}`,
+  dimensions: (rows, cols) => `${axis(rows, "row")} by ${axis(cols, "column")}`,
+  dimensionsWithLayout: (rows, cols, layout) => `${axis(rows, "row")} by ${axis(cols, "column")}, ${layout}`,
 };
 
 export function BoardSizeIndicator({

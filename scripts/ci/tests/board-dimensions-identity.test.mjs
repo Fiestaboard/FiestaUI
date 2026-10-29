@@ -128,7 +128,7 @@ test("1000 distinct invalid pairs do not grow the cache unboundedly", () => {
 // A FiestaBoard "panel" is a life-size virtual board on a TV, sized by
 // character rather than by Note block: any rows × cols, carried explicitly in
 // grid_rows / grid_cols. A split-flap panel is never smaller than one Note,
-// but an LED board measured in pixels is stored as a panel too, with a 3 × 10
+// but an LED board measured in pixels is stored as a panel too, with a 1 × 5
 // floor (FiestaBoard src/devices.py MIN_LED_GRID_*), so that is where clamping
 // stops.
 
@@ -137,10 +137,10 @@ test("panel grid bounds are exported", () => {
   assert.equal(mod.MIN_GRID_COLS, 15);
   assert.equal(mod.MAX_GRID_ROWS, 96);
   assert.equal(mod.MAX_GRID_COLS, 128);
-  assert.equal(mod.MIN_LED_GRID_ROWS, 3);
-  assert.equal(mod.MIN_LED_GRID_COLS, 10);
-  assert.equal(mod.ABSOLUTE_MIN_GRID_ROWS, 3);
-  assert.equal(mod.ABSOLUTE_MIN_GRID_COLS, 10);
+  assert.equal(mod.MIN_LED_GRID_ROWS, 1);
+  assert.equal(mod.MIN_LED_GRID_COLS, 5);
+  assert.equal(mod.ABSOLUTE_MIN_GRID_ROWS, 1);
+  assert.equal(mod.ABSOLUTE_MIN_GRID_COLS, 5);
 });
 
 test("isPanel is true only for the panel device type", () => {
@@ -172,9 +172,15 @@ test("panel keeps an LED grid narrower than a Note (AWTRIX TC002 3x13, Pixoo 64 
   assert.deepEqual(mod.resolveDimensions("panel", 1, 1, 8, 10), { rows: 8, cols: 10 });
 });
 
-test("panel grid below the absolute minimum clamps up to 3x10", () => {
+test("panel keeps a 1 × 8 Ulanzi TC001 grid (32 × 8 at the 3x5 face)", () => {
+  assert.deepEqual(mod.resolveDimensions("panel", 1, 1, 1, 8), { rows: 1, cols: 8 });
+  assert.deepEqual(mod.resolveDimensions("panel", 1, 1, 1, 5), { rows: 1, cols: 5 });
+});
+
+test("panel grid below the absolute minimum clamps up to 1x5", () => {
   const min = mod.resolveDimensions("panel", 1, 1, mod.ABSOLUTE_MIN_GRID_ROWS, mod.ABSOLUTE_MIN_GRID_COLS);
-  assert.deepEqual(min, { rows: 3, cols: 10 });
+  assert.deepEqual(min, { rows: 1, cols: 5 });
+  assert.equal(mod.resolveDimensions("panel", 1, 1, 0, 2), min);
   assert.equal(mod.resolveDimensions("panel", 1, 1, 1, 1), min);
   assert.equal(mod.resolveDimensions("panel", 1, 1, 0, -40), min);
   assert.equal(mod.resolveDimensions("panel", 1, 1, -Infinity, -Infinity), min);
@@ -188,8 +194,8 @@ test("panel grid above the maximum clamps down to it", () => {
 });
 
 test("panel grid clamps each axis independently", () => {
-  assert.deepEqual(mod.resolveDimensions("panel", 1, 1, 1, 200), { rows: 3, cols: 128 });
-  assert.deepEqual(mod.resolveDimensions("panel", 1, 1, 200, 1), { rows: 96, cols: 10 });
+  assert.deepEqual(mod.resolveDimensions("panel", 1, 1, 1, 200), { rows: 1, cols: 128 });
+  assert.deepEqual(mod.resolveDimensions("panel", 1, 1, 200, 1), { rows: 96, cols: 5 });
 });
 
 test("panel grid with NaN or missing axes falls back to the minimum", () => {

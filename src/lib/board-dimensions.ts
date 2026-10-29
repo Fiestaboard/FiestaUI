@@ -23,14 +23,14 @@ export const MAX_GRID_ROWS = 96;
 export const MAX_GRID_COLS = 128;
 
 /**
- * The floor of an LED board measured in pixels (mirror src/devices.py): 3 × 10,
- * so a legible face fits — an AWTRIX Ulanzi TC002 in the 3x5 face is 3 × 13, a
- * Divoom Pixoo 64 in the 5x7 face is 8 × 10. The platform stores these grids
- * as `panel` boards, so resolveDimensions must keep them rather than lift them
- * to the Note floor.
+ * The floor of an LED board measured in pixels (mirror src/devices.py): 1 × 5,
+ * so a 32 × 8 Ulanzi TC001 fits — 1 × 8 in the 3x5 face, 1 × 5 in the 5x7 face
+ * (a Divoom Pixoo 64 in the 5x7 face is 8 × 10). The platform stores these
+ * grids as `panel` boards, so resolveDimensions must keep them rather than lift
+ * them to the Note floor.
  */
-export const MIN_LED_GRID_ROWS = 3;
-export const MIN_LED_GRID_COLS = 10;
+export const MIN_LED_GRID_ROWS = 1;
+export const MIN_LED_GRID_COLS = 5;
 /** The smallest grid any board can have: the lower floor on each axis. */
 export const ABSOLUTE_MIN_GRID_ROWS = Math.min(MIN_GRID_ROWS, MIN_LED_GRID_ROWS);
 export const ABSOLUTE_MIN_GRID_COLS = Math.min(MIN_GRID_COLS, MIN_LED_GRID_COLS);
@@ -127,8 +127,8 @@ function clampNotesPerAxis(n: number): number {
  * are clamped to integers in [1, MAX_NOTES_PER_AXIS] (NaN → 1) before
  * computing and caching. For "panel", grid_rows is clamped to an integer in
  * [ABSOLUTE_MIN_GRID_ROWS, MAX_GRID_ROWS] and grid_cols to
- * [ABSOLUTE_MIN_GRID_COLS, MAX_GRID_COLS] — the 3 × 10 floor, so an LED
- * board's 3 × 13 or 8 × 10 grid is kept (mirrors Python clamp_grid). A
+ * [ABSOLUTE_MIN_GRID_COLS, MAX_GRID_COLS] — the 1 × 5 floor, so an LED
+ * board's 1 × 8, 3 × 13 or 8 × 10 grid is kept (mirrors Python clamp_grid). A
  * NaN/undefined axis resolves to the Note minimum (MIN_GRID_ROWS /
  * MIN_GRID_COLS). The grid args are ignored for every other device type.
  *
