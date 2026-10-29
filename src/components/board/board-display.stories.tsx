@@ -61,12 +61,12 @@ const meta = {
       description: "Notes tall (note_array only)",
     },
     gridRows: {
-      control: { type: "number", min: 3, max: 96 },
-      description: "Explicit grid rows (panel only; clamped to 3–96)",
+      control: { type: "number", min: 1, max: 96 },
+      description: "Explicit grid rows (panel only; clamped to 1–96)",
     },
     gridCols: {
-      control: { type: "number", min: 10, max: 128 },
-      description: "Explicit grid columns (panel only; clamped to 10–128)",
+      control: { type: "number", min: 5, max: 128 },
+      description: "Explicit grid columns (panel only; clamped to 5–128)",
     },
     code62Glyph: {
       control: "select",

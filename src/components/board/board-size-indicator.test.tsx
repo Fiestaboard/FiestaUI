@@ -82,6 +82,17 @@ describe("BoardSizeIndicator", () => {
     expect(indicator()).toHaveAccessibleName("3 rows by 13 columns, Panel");
   });
 
+  it("renders a 1 × 8 LED panel (Ulanzi TC001) at its own grid, with a singular row", () => {
+    render(<BoardSizeIndicator deviceType="panel" gridRows={1} gridCols={8} />);
+    expect(indicator()).toHaveTextContent("1 × 8");
+    expect(indicator()).toHaveAccessibleName("1 row by 8 columns");
+  });
+
+  it("uses singular row/column in the layout form too", () => {
+    render(<BoardSizeIndicator deviceType="panel" gridRows={1} gridCols={5} layoutLabel="Panel" />);
+    expect(indicator()).toHaveAccessibleName("1 row by 5 columns, Panel");
+  });
+
   it("hides the visual text from assistive tech so only the name is read", () => {
     render(<BoardSizeIndicator deviceType="flagship" layoutLabel="Flagship" />);
     for (const child of Array.from(indicator().children)) {

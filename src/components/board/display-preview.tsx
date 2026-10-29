@@ -227,7 +227,7 @@ function splitFlapGeometry(
     // A plugin's fixed grid draws as a panel of exactly that size, within
     // the split-flap panel bounds: a flap sign smaller than a Note (or larger
     // than the biggest panel) is not a split-flap model FiestaBoard accepts —
-    // the 3×10 floor is for LED panels only — so it is clamped, and reported,
+    // the 1×5 floor is for LED panels only — so it is clamped, and reported,
     // so the caller can tell.
     case "cells": {
       const rows = clampGrid(g.rows, MIN_GRID_ROWS, MAX_GRID_ROWS);
