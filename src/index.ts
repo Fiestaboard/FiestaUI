@@ -380,3 +380,4 @@ export * from "./components/ai/spotlight";
 export * from "./components/ai/suggestion";
 export * from "./components/ai/task";
 export * from "./components/ai/tool";
+export * from "./components/board/preview-slot";

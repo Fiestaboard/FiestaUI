@@ -278,3 +278,24 @@ export const FillHeight: Story = {
     </div>
   ),
 };
+
+/** A continuous settings page; sections can be nested in tabs without restoring dividers. */
+export const Plain: Story = {
+  args: {
+    surface: "plain",
+    children: (
+      <>
+        <PageHeader icon={Settings} title="Display settings" description="Example device settings." />
+        <PageSection title="Identity" description="How this display appears in the app.">
+          <Input aria-label="Board name" defaultValue="Desk clock" />
+        </PageSection>
+        <div>
+          <PageSection title="Connection" description="Changes here are saved together.">
+            <Input aria-label="Clock address" defaultValue="clock.example" />
+            <Button className="mt-4">Save connection</Button>
+          </PageSection>
+        </div>
+      </>
+    ),
+  },
+};
