@@ -27,6 +27,34 @@ function slot(name: string): HTMLElement | null {
 }
 
 describe("PageCard", () => {
+  it("carries a plain surface through nested route wrappers without changing scroll accessibility", () => {
+    render(
+      <PageCard surface="plain">
+        <PageOutlet>
+          <div>
+            <PageSection fill title="Settings">
+              content
+            </PageSection>
+          </div>
+        </PageOutlet>
+      </PageCard>,
+    );
+    expect(slot("page-card")).toHaveAttribute("data-surface", "plain");
+    expect(slot("page-outlet")).toHaveAttribute("data-surface", "plain");
+    expect(slot("page-section")).toHaveAttribute("data-surface", "plain");
+    expect(screen.getByRole("region", { name: "Settings" })).toHaveAttribute("tabindex", "0");
+  });
+
+  it("keeps an explicitly nested card framed inside a plain route", () => {
+    render(
+      <PageCard surface="plain">
+        <PageCard>
+          <PageSection>nested</PageSection>
+        </PageCard>
+      </PageCard>,
+    );
+    expect(slot("page-section")).toHaveAttribute("data-surface", "card");
+  });
   it("stamps the slot PageCard's own child selectors depend on", () => {
     render(
       <PageCard>

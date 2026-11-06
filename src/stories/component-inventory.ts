@@ -258,6 +258,10 @@ export const INVENTORY = [
     entries: [
       { name: "StaticBoardDisplay", summary: "The unscaled primitive — a real tile grid at sm/md/lg." },
       { name: "ScaledBoardDisplay", summary: "StaticBoardDisplay scaled to fit a slot narrower than the board." },
+      {
+        name: "PreviewSlot",
+        summary: "Equal thumbnail space for differently shaped previews — shrinks to fit, never crops or enlarges.",
+      },
       { name: "BoardDisplay", summary: "The animated display, with flap cascade and a live region." },
       { name: "BoardBackdrop", summary: "A field of split-flap rows used as a page backdrop." },
       { name: "BoardTeaser", summary: "One-line teaser strip for cards and lists." },

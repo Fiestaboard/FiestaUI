@@ -4,6 +4,8 @@ import { cn } from "../../lib/utils";
 import { Card, CardDescription, CardTitle } from "../containment/card";
 
 interface PageCardProps {
+  /** Continuous page canvas. Nested sections keep their spacing without repeated borders. */
+  surface?: "card" | "plain";
   children: React.ReactNode;
   className?: string;
   /**
@@ -73,32 +75,37 @@ const TOOLBAR_AS_BLOCK = "[&>[data-slot=page-toolbar]]:mb-0 [&>[data-slot=page-t
  * A ref, so flipping it costs no render.
  */
 const PageCardMounted = createContext<React.RefObject<boolean> | null>(null);
+const PageSurface = createContext<"card" | "plain">("card");
 
-export const PageCard = memo(function PageCard({ children, className, fillHeight }: PageCardProps) {
+export const PageCard = memo(function PageCard({ children, className, fillHeight, surface = "card" }: PageCardProps) {
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
   }, []);
   return (
     <PageCardMounted value={mounted}>
-      <Card
-        data-slot="page-card"
-        className={cn(
-          // Card's own rhythm is off — the blocks own it.
-          "gap-0 overflow-hidden py-0",
-          // `PageHeader` and `PageToolbar` predate this component and pad
-          // themselves horizontally but not vertically, spacing with a bottom
-          // margin instead. Inside a card they are blocks: swap the margin for
-          // block padding, and give the toolbar the rule above it.
-          "[&>[data-slot=page-header]]:mb-0 [&>[data-slot=page-header]]:py-6",
-          TOOLBAR_AS_BLOCK,
-          "[&>[data-slot=page-toolbar]]:border-t",
-          fillHeight && "min-h-0 flex-1",
-          className,
-        )}
-      >
-        {children}
-      </Card>
+      <PageSurface value={surface}>
+        <Card
+          data-slot="page-card"
+          data-surface={surface}
+          className={cn(
+            // Card's own rhythm is off — the blocks own it.
+            "gap-0 overflow-hidden py-0",
+            // `PageHeader` and `PageToolbar` predate this component and pad
+            // themselves horizontally but not vertically, spacing with a bottom
+            // margin instead. Inside a card they are blocks: swap the margin for
+            // block padding, and give the toolbar the rule above it.
+            "[&>[data-slot=page-header]]:mb-0 [&>[data-slot=page-header]]:py-6",
+            TOOLBAR_AS_BLOCK,
+            surface === "card" && "[&>[data-slot=page-toolbar]]:border-t",
+            surface === "plain" && "border-0 bg-transparent shadow-none",
+            fillHeight && "min-h-0 flex-1",
+            className,
+          )}
+        >
+          {children}
+        </Card>
+      </PageSurface>
     </PageCardMounted>
   );
 });
@@ -180,6 +187,7 @@ export const PageSection = memo(function PageSection({
   contentClassName,
   ...rest
 }: PageSectionProps) {
+  const surface = useContext(PageSurface);
   const hasHeading = title != null || description != null || action != null;
   // `fill` makes this div a scroll port, and a scroll port that contains no
   // focusable element is unreachable by keyboard — axe's
@@ -192,12 +200,14 @@ export const PageSection = memo(function PageSection({
   return (
     <div
       data-slot="page-section"
+      data-surface={surface}
       className={cn(
         // The content column, and the rule that separates this block from
         // whatever precedes it. `:not(:first-child)` rather than a sibling
         // combinator on the parent, so a section nested one level down still
         // divides correctly against its own neighbours.
-        "px-6 py-6 [&:not(:first-child)]:border-t",
+        "px-6 py-6",
+        surface === "card" && "[&:not(:first-child)]:border-t",
         fill && "flex min-h-0 flex-1 flex-col overflow-hidden",
         className,
       )}
@@ -264,23 +274,25 @@ interface PageOutletProps extends React.ComponentProps<"div"> {
  */
 export const PageOutlet = memo(function PageOutlet({ children, fill, className, ...rest }: PageOutletProps) {
   const cardMounted = useContext(PageCardMounted);
+  const surface = useContext(PageSurface);
   // Read once, at this outlet's mount: was the card already on screen?
   const [enter] = useState(() => cardMounted?.current ?? false);
   return (
     <div
       data-slot="page-outlet"
+      data-surface={surface}
       data-enter={enter ? "" : undefined}
       // The rule sits on this box and the fade on the one inside it, so the
       // hairline under the header never dips: on the way back to the hub the
       // sub-header's own rule clips away, and this one must already be there.
-      className={cn("border-t", fill && "flex min-h-0 flex-1 flex-col", className)}
+      className={cn(surface === "card" && "border-t", fill && "flex min-h-0 flex-1 flex-col", className)}
       {...rest}
     >
       <div
         className={cn(
           enter && "animate-page-outlet-enter",
           TOOLBAR_AS_BLOCK,
-          "[&>[data-slot=page-toolbar]:not(:first-child)]:border-t",
+          surface === "card" && "[&>[data-slot=page-toolbar]:not(:first-child)]:border-t",
           fill && "flex min-h-0 flex-1 flex-col",
         )}
       >

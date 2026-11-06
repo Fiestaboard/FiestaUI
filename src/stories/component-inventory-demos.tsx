@@ -74,6 +74,7 @@ import { CharacterSetSpecimen } from "../components/board/character-set-specimen
 import { DisplayPreview } from "../components/board/display-preview";
 import { LedMatrixDisplay } from "../components/board/led-matrix-display";
 import { LedTransitionPicker } from "../components/board/led-transition-picker";
+import { PreviewSlot } from "../components/board/preview-slot";
 import { ScaledBoardDisplay } from "../components/board/scaled-board-display";
 import { StaticBoardDisplay } from "../components/board/static-board-display";
 import { TvFrame } from "../components/board/tv-frame";
@@ -1662,6 +1663,11 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     <div className="w-full max-w-[320px]">
       <ScaledBoardDisplay message={BOARD_MESSAGE} size="md" />
     </div>
+  ),
+  PreviewSlot: () => (
+    <PreviewSlot className="w-full max-w-[320px]">
+      <StaticBoardDisplay message={BOARD_MESSAGE} size="sm" />
+    </PreviewSlot>
   ),
   BoardDisplay: () => (
     <div className="max-w-full overflow-x-auto">
