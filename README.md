@@ -86,6 +86,24 @@ export function Example() {
 }
 ```
 
+## Design tokens as JSON
+
+Every build also writes `dist/tokens.json`, published as `@fiestaboard/ui/tokens.json`. It holds the same tokens as `theme.css` in the [W3C Design Tokens](https://www.designtokens.org/) format, for tools that can't read CSS: the FiestaUI Figma library, and native token builds (for example Style Dictionary → SwiftUI or Jetpack Compose).
+
+```js
+import tokens from "@fiestaboard/ui/tokens.json" with { type: "json" };
+
+tokens.color.light.primary.$value.hex; // "#f5a623"
+tokens.color.dark.background.$value.hex; // "#0b0a08"
+```
+
+- **Colours** are under `color.light` and `color.dark`, converted from the authored OKLCH to sRGB. Each one keeps its CSS name and authored value in `$extensions["app.fiestaboard"]`, plus `aliasOf` when it points at another token.
+- **Out-of-gamut colours**: a few OKLCH colours fall outside sRGB. They're clipped the way Chrome paints them on a standard display and marked `outOfGamut: true`.
+- **Board colours** are under `board`: the split-flap pigments and hardware surfaces. They're the same in every theme.
+- **Other groups**: `radius`, `elevation` (light and dark shadow layers), `motion` (durations and cubic-bezier easings), `font` and `zIndex`.
+
+`theme.css` stays the source of truth. The JSON is regenerated on every build and never edited by hand. To write it somewhere else, run `npm run tokens -- path/to/tokens.json`.
+
 ## Rendered rich text
 
 `Prose` styles plain rich-text descendants with the kit's typography, colors, spacing, code blocks, table borders and link focus treatment. It uses the normal `theme.css` and Tailwind `@source` setup above; there is no extra stylesheet or typography plugin to install.
