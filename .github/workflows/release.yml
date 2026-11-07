@@ -1,145 +1,66 @@
 name: Release
 
-# Continuous release: every merge to `main` that changes shipped code bumps the
-# version, tags, publishes to registry.npmjs.org, and creates a
-# GitHub Release. `workflow_dispatch` remains as the manual override — for
-# forcing a bump, or for re-running after an infrastructure failure.
+# Releases are batched through Changesets. Every PR that changes what ships adds
+# a `.changeset/*.md` file (ci.yml's release-guards job enforces it). On each
+# push to `main` or `alpha`, changesets/action does exactly one of two things:
 #
-# The trigger is `workflow_run` on CI rather than `push` on `main`: the required
-# check tests the PR head, not the merge result, so two independently green PRs
-# can combine into a red `main`. Waiting for CI to go green on `main` itself is
-# what keeps a broken merge from being published and opened as a downstream
-# upgrade PR. See docs/superpowers/specs/2026-08-07-continuous-release-design.md.
+# - changesets are pending: open or update ONE "chore: release" Version PR that
+#   consumes them, bumps package.json, and writes CHANGELOG.md;
+# - none are pending: publish whatever version package.json declares that npm
+#   does not have yet. Merging the Version PR is what makes that true, so a
+#   version reaches npm only when a maintainer merges it — many merges, one
+#   build. Re-running is safe: `changeset publish` skips versions npm has.
 #
-# Publishing uses npm Trusted Publishing (OIDC): the `id-token: write`
-# permission below lets the runner mint a short-lived credential that npm
-# exchanges for publish rights. There is no npm token anywhere — no secret
-# to store, leak, or rotate. This requires a trusted publisher configured
-# on the npmjs package (repo + this workflow's filename); without it the
-# publish step fails with a 404/403 rather than falling back to a token.
+# `main` publishes to the `latest` dist-tag. `alpha` runs in Changesets pre mode
+# (`.changeset/pre.json`, tag `alpha`) and publishes `X.Y.Z-alpha.N` to `alpha`.
+# See docs/releasing.md for the alpha lifecycle. This replaced the
+# publish-on-every-merge flow (gate.mjs / land.mjs) described in
+# docs/superpowers/specs/2026-08-07-continuous-release-design.md.
 #
-# The package is public on registry.npmjs.org, so consumers install it
-# anonymously — no auth, no .npmrc. It was previously on GitHub Packages,
-# whose npm registry requires authentication for every read even when the
-# package is public; that is what blocked fresh FiestaBoard clones
-# (Fiestaboard/FiestaBoard#1524).
+# Trigger is `push`, not `workflow_run` on CI as before. Two reasons:
+# - `main` merges through a queue whose `merge_group` CI tests the merged
+#   commit, so a push here is already the green result — the hazard
+#   workflow_run existed to close (two green PRs combining into a red main).
+#   `alpha` has no queue (merge commits for syncs); its PR-head CI is the bar,
+#   which is acceptable for a prerelease channel.
+# - workflow_run runs with GITHUB_REF set to the default branch, and
+#   changesets/action takes its branch from GITHUB_REF: an alpha run would
+#   open its Version PR against main.
+#
+# Publishing uses npm Trusted Publishing (OIDC): `id-token: write` lets npm mint
+# a short-lived credential. The trusted-publisher record on npmjs names THIS
+# FILE (`release.yml`) — renaming it breaks publishing. NODE_AUTH_TOKEN below is
+# a fallback npm only uses if the OIDC exchange fails; drop it once OIDC has
+# published cleanly through this workflow.
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    branches: [main]
+  push:
+    branches: [main, alpha]
+  # Re-run lever after an infrastructure failure. Pick the branch in the UI.
   workflow_dispatch:
-    inputs:
-      bump:
-        description: "Semver bump type (manual override; the gate derives this automatically)"
-        type: choice
-        options: [patch, minor, major]
-        default: patch
-        required: true
 
 permissions:
-  contents: write # push the version commit + tag straight to main
+  contents: write # tags and GitHub Releases (with the app token, below)
   id-token: write # OIDC credential for npm Trusted Publishing
 
+# Per branch, so an alpha release never waits on a main one. Never cancelled:
+# killing a run between `npm publish` and the tag push strands a published
+# version untagged.
 concurrency:
-  group: release
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  # Decides whether this merge earns a release and at what version, so the
-  # release job below stays exactly the sequence of steps it has always been.
-  # The decision logic itself lives in scripts/release/gate.mjs as pure
-  # functions over plain data — unit-tested in CI's `automation` job, and
-  # runnable locally to explain a skip:
-  #   node scripts/release/gate.mjs main
-  gate:
-    name: Decide whether to release
-    # CI also runs on `pull_request`, and those runs must not reach the gate —
-    # they would release from a PR branch's CI. `branches: [main]` above filters
-    # on the triggering run's head branch, which for a PR is the PR's own
-    # branch, so this is belt-and-braces on a mistake that publishes.
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push')
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      release: ${{ steps.decide.outputs.release }}
-      version: ${{ steps.decide.outputs.version }}
-      sha: ${{ steps.decide.outputs.sha }}
-    steps:
-      # The sha CI verified — NOT `main`'s current tip. Releasing the tip would
-      # publish a commit whose CI has not finished. fetch-depth: 0 for the tags
-      # and the commit range.
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-          fetch-depth: 0
-
-      # Pinned rather than relying on the runner image's preinstalled node: this
-      # job decides what gets published, so its behaviour should not change with
-      # an image bump. No `npm ci` — the gate is dependency-free.
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-
-      - name: Decide
-        id: decide
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-          IS_MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
-          FORCED_BUMP: ${{ inputs.bump }}
-        run: |
-          set -euo pipefail
-
-          echo "sha=${RELEASE_SHA}" >> "$GITHUB_OUTPUT"
-
-          if [ "$IS_MANUAL" = "true" ]; then
-            echo "Manual dispatch — forcing a ${FORCED_BUMP} release."
-            node scripts/release/gate.mjs "$RELEASE_SHA" --bump="$FORCED_BUMP" > gate.out
-          else
-            # Coalesce a burst of merges into one version. If a newer commit is
-            # already on `main` AND its own CI is green, its release run covers
-            # this one too, so stand down. A green tip with no release run is
-            # impossible; a tip with no CI run at all is not — a release's own
-            # PR merge uses GITHUB_TOKEN, and events caused by that token never
-            # create workflow runs. So "no CI run" must mean proceed, not skip,
-            # or work merged during a release would strand unpublished.
-            TIP=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
-            if [ "$RELEASE_SHA" != "$TIP" ]; then
-              TIP_CI=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TIP}/check-runs" \
-                --jq '[.check_runs[] | select(.name == "CI Success")] | first | .conclusion // "none"')
-              if [ "$TIP_CI" = "success" ]; then
-                echo "release=false" >> "$GITHUB_OUTPUT"
-                echo "Superseded by ${TIP}, which is green and will release this work too." \
-                  | tee -a "$GITHUB_STEP_SUMMARY"
-                exit 0
-              fi
-              echo "Tip ${TIP} is not releasable on its own (CI: ${TIP_CI}) — proceeding."
-            fi
-
-            node scripts/release/gate.mjs "$RELEASE_SHA" > gate.out
-          fi
-
-          cat gate.out >> "$GITHUB_OUTPUT"
-          sed -n 's/^reason=//p' gate.out >> "$GITHUB_STEP_SUMMARY"
-
   release:
-    needs: gate
-    if: needs.gate.outputs.release == 'true'
+    name: Version PR or publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      published: ${{ steps.changesets.outputs.published }}
+      published-packages: ${{ steps.changesets.outputs.published-packages }}
     steps:
-      # The landing push below goes straight to `main`, which only the Claude
-      # bot app may do (it is main-protection's sole bypass actor). GITHUB_TOKEN
-      # is the GitHub Actions app — NOT a bypass actor — so a push with the
-      # default checkout credentials bounces off the ruleset every time (the
-      # v1.3.3 and v1.4.0 releases published and tagged, then failed here).
-      # Mint the app token and check out with it, exactly like the perf loops.
+      # The Claude bot app token, not GITHUB_TOKEN: a Version PR opened with
+      # GITHUB_TOKEN has its `pull_request` CI born gated in `action_required`,
+      # so the required `CI Success` waits on a manual approval every release.
       - name: Mint app token
         id: app-token
         uses: actions/create-github-app-token@v3
@@ -149,7 +70,6 @@ jobs:
 
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.gate.outputs.sha }}
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
@@ -164,130 +84,52 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit
 
-      - name: Build
-        run: npm run build
-
-      # An explicit version, not a bump type: the gate computes it from the
-      # highest tag in the repo rather than from this checkout's package.json.
-      # The two disagree whenever a release landed while this commit's CI was
-      # running — that release is not in this sha's ancestry, so package.json
-      # here is stale and a relative bump would regenerate an already-published
-      # version. npm will not accept a republish, so that failure costs a
-      # manual bump to escape.
-      - name: Set version
-        id: version
-        env:
-          VERSION: ${{ needs.gate.outputs.version }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # --no-git-tag-version: the commit and tag are made later, on top of
-          # main's tip, by the landing step. Here we only need package.json to
-          # carry the right version into the tarball.
-          npm version --no-git-tag-version "$VERSION"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+      # alpha publishes only in alpha pre mode. In exit mode (a promotion to
+      # main in progress) the action would open a STABLE Version PR against
+      # alpha and publish it to `latest`, so the step below is skipped; with no
+      # pre.json at all this fails the run. See scripts/release/pre-mode.mjs.
+      - name: Check alpha prerelease mode
+        id: alpha
+        if: github.ref_name == 'alpha'
+        run: node scripts/release/pre-mode.mjs alpha-action >> "$GITHUB_OUTPUT"
 
       # Trusted Publishing needs npm >= 11.5.1; Node 24 ships an older 11.x.
-      # Provenance is attested from the OIDC claims, linking the tarball to
-      # this workflow run.
-      #
-      # NODE_AUTH_TOKEN is a fallback, not the primary path: the npm CLI tries
-      # OIDC first in a supported environment and only falls back to a token if
-      # that fails. The first OIDC release (run 31295890761) signed provenance
-      # successfully — proving `id-token: write` works — then took a 404 on the
-      # PUT, which is how npm reports an authorization refusal. That points at
-      # the trusted-publisher record on npmjs rather than at this workflow, so
-      # the token keeps releases moving while that is sorted out. Once OIDC
-      # publishes cleanly, drop the secret and this env block.
-      - name: Publish to npmjs
-        run: |
-          npm install -g npm@latest
-          npm publish --provenance --access public
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      # v2, not v1: v1 supports Changesets v2 only and, against the v3 CLI,
+      # publishes without ever reporting `published` — so no tag, no GitHub
+      # Release, no downstream dispatch. v2 does no .npmrc handling of its own;
+      # auth is setup-node's .npmrc plus npm's OIDC exchange.
+      - name: Version PR or publish
+        id: changesets
+        if: github.ref_name != 'alpha' || steps.alpha.outputs.action == 'release'
+        uses: changesets/action@v2
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          version-script: npm run version-packages
+          publish-script: npm run release
+          pr-title: "chore: release"
+          commit-message: "chore: release"
+          create-github-releases: true
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
 
-      # The version commit and tag are pushed straight to `main` — no PR — in
-      # the common case where `main` is still on the released sha. The rulesets
-      # targeting `main` still require a PR with a green `CI Success` for every
-      # human change; the Claude bot app is a bypass actor on each of them, and
-      # the checkout above holds its token, which is what makes this push legal.
-      # That bypass is load-bearing and lives in repo settings, not in this
-      # file — editing the bypass list in the UI replaces it rather than
-      # appending, which is how v3.0.0 published and tagged but never landed.
-      # Adding a ruleset that targets `main` means adding the app to its
-      # bypass list too, or this step starts failing again.
-      #
-      # Every earlier design here routed the commit through an auto-merged PR
-      # and none were stable. The PR is created with GITHUB_TOKEN, so its
-      # `pull_request` CI run is born gated in `action_required` and has to be
-      # polled for and approved before the required check can go green. When
-      # that run was slow to appear the poll timed out (v1.3.1), leaving a
-      # published-and-tagged version whose commit never landed, plus an orphaned
-      # PR that went permanently CONFLICTING once the next release landed.
-      # Removing the gate beats racing it.
-      #
-      # The mechanics live in scripts/release/land.mjs — unit-tested in CI's
-      # `automation` job against a real git remote, because the rule they
-      # enforce is the one this step used to get wrong. It re-checked-out
-      # `main`'s *current* tip and replayed the bump there, so whenever `main`
-      # had moved since the gate ran, the tag landed over commits no bump had
-      # ever inspected. That is v5.12.3: a breaking `fix(feedback)!` merged
-      # while the previous merge was releasing, got tagged over, was missing
-      # from the tarball the notes described, and was then stranded — the tag
-      # sat above it, so every later gate saw an empty range.
-      #
-      # Now the version commit is always built on the sha that was gated and
-      # published (`needs.gate.outputs.sha`). If `main` is still on that sha the
-      # commit and tag fast-forward onto it exactly as before; if it has moved,
-      # only the tag is pushed and `main` keeps its tip. Leaving those newer
-      # commits untagged is what keeps them releasable: the next green CI gates
-      # `<this tag>..main`, sees them, and ships them at their own bump.
-      - name: Land version commit and tag
-        id: land
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          # The sha the gate reasoned over and the build above published — the
-          # only commit this tag may describe.
-          RELEASE_SHA: ${{ needs.gate.outputs.sha }}
-        run: |
-          set -euo pipefail
-          node scripts/release/land.mjs --version="$VERSION" --sha="$RELEASE_SHA" \
-            > "${RUNNER_TEMP}/land.out"
-          cat "${RUNNER_TEMP}/land.out" >> "$GITHUB_OUTPUT"
-          sed -n 's/^summary=//p' "${RUNNER_TEMP}/land.out" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Create GitHub Release
-        run: |
-          # --verify-tag: the notes are generated from the tag's range, so they
-          # only describe the published tree if the tag is the one the landing
-          # step pushed. Without it a missing tag is created here, at the
-          # default branch's tip — notes for code that was never built.
-          gh release create "v${{ steps.version.outputs.version }}" \
-            --verify-tag \
-            --title "v${{ steps.version.outputs.version }}" \
-            --generate-notes
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-  # After a successful publish, keep the evergreen upgrade PRs downstream
-  # pointed at this release, by DISPATCHING downstream-upgrade.yml as its own
-  # run rather than calling it as a job of this one.
+  # After a stable publish, keep the evergreen upgrade PRs downstream pointed
+  # at this release, by DISPATCHING downstream-upgrade.yml as its own run rather
+  # than calling it as a job of this one: its FiestaBoard leg runs Claude for
+  # 45+ minutes, and a called workflow would hold this branch's release queue
+  # for all of it. scripts/ci/tests/release-decoupled.test.mjs pins this.
   #
-  # It used to be `uses: ./.github/workflows/downstream-upgrade.yml` here. A
-  # called workflow is part of this run, so it sat inside `concurrency: release`
-  # (cancel-in-progress: false) — and its FiestaBoard leg runs Claude to fix the
-  # bump, routinely 45+ minutes. Every later merge's release queued behind it:
-  # a version that took one minute to publish reached npm an hour late
-  # (v8.1.0's upgrade ran 04:06–04:53 while the next release waited).
-  # Dispatched, the upgrade runs under its own `downstream-upgrade` group, which
-  # cancels an in-flight run for an older version, and this run ends as soon as
-  # the package is out. scripts/ci/tests/release-decoupled.test.mjs pins it.
+  # Alphas are not dispatched: downstream tracks `latest`.
   #
   # A workflow_dispatch made with GITHUB_TOKEN does start a run (it is one of
   # the two events exempt from the GITHUB_TOKEN no-trigger rule).
   downstream-upgrade:
     name: Dispatch downstream upgrade
     needs: release
+    if: needs.release.outputs.published == 'true' && github.ref_name == 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -296,9 +138,14 @@ jobs:
       - name: Dispatch downstream-upgrade.yml
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.release.outputs.version }}
+          PUBLISHED: ${{ needs.release.outputs.published-packages }}
         run: |
           set -euo pipefail
+          VERSION=$(jq -r '.[] | select(.name == "@fiestaboard/ui") | .version' <<< "$PUBLISHED")
+          if [ -z "$VERSION" ]; then
+            echo "::error::@fiestaboard/ui is not in published-packages: ${PUBLISHED}"
+            exit 1
+          fi
           gh workflow run downstream-upgrade.yml \
             --repo "$GITHUB_REPOSITORY" --ref main -f version="$VERSION"
           echo "Dispatched downstream upgrade to v${VERSION}." >> "$GITHUB_STEP_SUMMARY"

@@ -148,6 +148,18 @@ jobs:
 
                All must pass. If you can't get them green, don't open a PR —
                comment on the issue with what you found and stop.
+            3b. Add a changeset if you changed anything under `src/`: write
+               `.changeset/issue-${{ github.event.issue.number }}.md` containing
+
+                 ---
+                 "@fiestaboard/ui": patch
+                 ---
+
+                 <one user-facing line describing the fix>
+
+               Use `minor` only when you added a new component or prop; never
+               `major` — leave a breaking change for a human. CI fails a PR
+               that changes shipped code without a changeset.
             4. Open a pull request against `main`:
                - For perf-flavored issues (labels include `perf` or
                  `perf-audit`): branch

@@ -2,10 +2,10 @@
 //
 // Two consumers depend on this answer and would drift if each kept its own
 // copy: ci.yml's `changes` job uses it to decide whether the expensive suite is
-// worth 20 minutes, and release.yml's `gate` job uses it to decide whether a
-// merge is worth a version. A drifted copy fails silently in the worst
-// direction — cutting a release for every audit-cron bookkeeping commit, or
-// skipping one for a real change.
+// worth 20 minutes, and scripts/release/changeset-check.mjs uses it to decide
+// whether a PR must carry a changeset. A drifted copy fails silently in the
+// worst direction — demanding a changeset for every audit-cron bookkeeping
+// commit, or letting a real change merge without one and never release.
 //
 // Dependency-free ESM so both callers can run it with bare `node`, no `npm ci`.
 //
@@ -48,14 +48,28 @@ export function isCodeFile(path) {
 /**
  * The publish path: infrastructure that decides HOW the tarball is built,
  * versioned, and pushed to consumers. It never lands *in* dist/, but changing
- * it can change what consumers receive (a runner's node version, the gate's
- * bump rule), so it stays release-worthy.
+ * it can change what consumers receive (a runner's node version, the
+ * changesets config), so it counts as shipped and always runs the suite.
+ * It does not by itself need a changeset — see isPublishPathFile.
  */
 const PUBLISH_PATH_MATCHERS = [
   { label: "release workflow", test: (p) => p === ".github/workflows/release.yml" },
   { label: "downstream upgrade workflow", test: (p) => p === ".github/workflows/downstream-upgrade.yml" },
-  { label: "release gate", test: (p) => p === "scripts/release" || p.startsWith("scripts/release/") },
+  { label: "release scripts", test: (p) => p === "scripts/release" || p.startsWith("scripts/release/") },
+  { label: "changesets config", test: (p) => p === ".changeset/config.json" },
 ];
+
+/**
+ * True for publish-path infrastructure. Under changesets the version is chosen
+ * explicitly, so editing how a release happens is not itself a reason to cut
+ * one: changeset-check.mjs exempts these paths from needing a changeset.
+ *
+ * @param {string} path repo-relative path
+ * @returns {boolean}
+ */
+export function isPublishPathFile(path) {
+  return PUBLISH_PATH_MATCHERS.some((matcher) => matcher.test(path));
+}
 
 /**
  * Paths that cannot change a byte of the published tarball.
@@ -125,7 +139,7 @@ const NON_SHIPPING_MATCHERS = [
  * @returns {boolean}
  */
 export function isShippedFile(path) {
-  if (PUBLISH_PATH_MATCHERS.some((matcher) => matcher.test(path))) return true;
+  if (isPublishPathFile(path)) return true;
   return !NON_SHIPPING_MATCHERS.some((matcher) => matcher.test(path));
 }
 

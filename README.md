@@ -239,29 +239,13 @@ npm run build && npm pack   # produces fiestaboard-ui-<version>.tgz
 
 ## Releasing
 
-Releases are continuous: every merge to `main` that changes shipped code bumps the version, tags `v<version>`, publishes to [registry.npmjs.org](https://www.npmjs.com/package/@fiestaboard/ui), and creates a GitHub Release. `scripts/release/gate.mjs` decides whether a merge earns a release and how big a bump; CI-only changes (workflows, `scripts/ci`, VRT baselines) mint nothing. **Actions → Release → Run workflow** remains the manual override.
+Releases go through [Changesets](https://github.com/changesets/changesets): each PR that changes what ships adds a `.changeset/*.md` file (`npx changeset`), and the Release workflow collects them into one **"chore: release"** PR. Merging that PR publishes to [registry.npmjs.org](https://www.npmjs.com/package/@fiestaboard/ui) via npm Trusted Publishing, tags `v<version>`, and creates a GitHub Release. The `alpha` branch publishes prereleases to the `alpha` dist-tag (`npm i @fiestaboard/ui@alpha`).
 
-Publishing uses [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC). The workflow's `id-token: write` permission mints a short-lived credential that npm exchanges for publish rights, so there is no npm token anywhere — nothing to store, leak, or rotate. Provenance is attested from the OIDC claims, linking each tarball to the workflow run that built it.
-
-This requires a **trusted publisher configured on the npmjs package** — repository `Fiestaboard/FiestaUI`, workflow `release.yml`. Without it the publish step fails outright; it does not fall back to a token.
-
-### Publishing by hand
-
-`npm run release:npmjs` builds and publishes from a local checkout. It exists as an escape hatch for when the workflow is broken — normal releases should go through CI.
-
-```bash
-npm login                            # once — web-based, completes 2FA in the browser
-npm run release:npmjs -- --dry-run   # inspect the tarball contents first
-npm run release:npmjs                # publish; completes 2FA interactively
-```
-
-The account's 2FA mode is `auth-and-writes` (check with `npm profile get`), so the publish needs a second factor. **Do not pass `--otp`** unless you have a TOTP authenticator app — with a passkey or hardware security key there is no code to type. With `auth-type=web` (npm's default) the CLI prints a `https://www.npmjs.com/login/<uuid>` URL; open it, satisfy the passkey, and the publish continues.
-
-The script rebuilds first because `files` ships only `dist` and there is no `prepack` hook, so a stale `dist/` would otherwise publish silently-wrong contents — unrecoverable, since npm forbids republishing a version. Publish from an up-to-date `main`: the version comes from `package.json`, so a stale checkout would point npmjs's `latest` tag at a superseded release.
+See [docs/releasing.md](docs/releasing.md) for the full flow, the alpha lifecycle, and publishing by hand.
 
 ## Downstream upgrade automation
 
-Every release triggers `.github/workflows/downstream-upgrade.yml`, which keeps
+Every stable release from `main` triggers `.github/workflows/downstream-upgrade.yml`, which keeps
 a single evergreen PR open on `Fiestaboard/FiestaBoard` (branch
 `fiestaui-upgrade`) pinning `@fiestaboard/ui` to the newest version. If the
 bump breaks FiestaBoard, Claude (Opus) TDD-fixes it (max 3 attempts) and

@@ -1,7 +1,7 @@
 # Continuous Release — Design
 
 **Date:** 2026-08-07
-**Status:** Approved
+**Status:** Superseded (2026-11-07) by Changesets releases — see [docs/releasing.md](../../releasing.md) and [the plan](../plans/2026-11-07-changesets-alpha-channel.md). `gate.mjs` and `land.mjs` no longer exist.
 **Related:** `.github/workflows/release.yml`, `.github/workflows/ci.yml`,
 `.github/workflows/downstream-upgrade.yml`
 
