@@ -583,6 +583,18 @@ jobs:
             and re-run. If you cannot get them all green, do not open the PR at
             all — file the findings as issues instead and say so in the wrap-up.
 
+            Before committing, add a changeset so the fix releases: write
+            `.changeset/a11y-auto-audit-round-<round>.md` containing
+
+              ---
+              "@fiestaboard/ui": patch
+              ---
+
+              <one user-facing line, e.g. "Reduce re-renders in Board while idle.">
+
+            Always `patch` — never `minor` or `major`; a human raises the bump if
+            it is wrong. CI fails a PR that changes `src/` without one.
+
             Then commit and open a **ready-for-review** PR (no `--draft`):
 
               Title: `a11y: auto-audit — round <round>, files <X+1>–<Y> of <T>`
