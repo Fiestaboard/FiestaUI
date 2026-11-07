@@ -29,8 +29,10 @@ on:
   # artifact instead of comparing (the action treats workflow_dispatch as
   # baseline mode). Baselines expire with artifact retention, so if main has
   # been quiet too long, "Run workflow" on main reseeds them — and on alpha,
-  # `gh workflow run ci.yml --ref alpha`, which is alpha's only reseed lever
-  # (a `schedule` trigger fires on the default branch alone). This replaced
+  # `gh workflow run ci.yml --ref alpha`. That dispatch is alpha's only reseed
+  # lever unless a dispatcher workflow on main runs it on a schedule: a
+  # `schedule` trigger fires on the default branch alone, so a cron here could
+  # never reseed alpha. This replaced
   # vrt-update.yml, which existed to regenerate the committed baseline tree —
   # there is no committed tree anymore.
   workflow_dispatch:
@@ -183,7 +185,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     steps:
+      # Full history so coverage-changed.mjs can diff the PR against its base.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v7
         with:
@@ -196,8 +201,20 @@ jobs:
       # jsdom, no browser download — this is the fast half of the test estate.
       # Behaviour, roles and ARIA live here; appearance stays in VRT and the
       # Storybook a11y run, which are the jobs that own a real browser.
-      - name: Vitest
-        run: npm test
+      # Collects v8 coverage into coverage/coverage-summary.json for the next step.
+      - name: Vitest (with coverage)
+        run: npm run test:coverage
+
+      # The changed-file rule: every src/ file this PR adds or changes needs
+      # >=90% lines and >=85% branches. Untouched files are never checked (no
+      # back-fill). PR-only: a push or queue entry has no single base to diff
+      # against, and its PR already passed.
+      - name: Changed-file coverage
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/ci/coverage-changed.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_STEP_SUMMARY"
 
   build:
     name: Build package
@@ -489,9 +506,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Shared with a11y-tests and vrt-baseline.yml's shoot, so the environment
-      # that records a baseline and the environment that checks it are the same
-      # by construction.
+      # Shared with a11y-tests, and this one shoot serves both the PR compare
+      # and the baseline a push publishes, so the environment that records a
+      # baseline and the environment that checks it are the same by construction.
       - uses: ./.github/actions/storybook-browser
 
       - name: Shoot screenshots
