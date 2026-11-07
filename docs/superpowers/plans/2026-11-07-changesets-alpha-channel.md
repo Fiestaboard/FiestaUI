@@ -19,7 +19,7 @@
 - Every PR or tag that a workflow creates uses the Claude bot app token (`CLAUDE_BOT_APP_ID` / `CLAUDE_BOT_APP_PRIVATE_KEY`), never `GITHUB_TOKEN`. CI on a PR opened with `GITHUB_TOKEN` starts gated in `action_required`, so `CI Success` needs a manual approval before the PR can merge.
 - npm dist-tags: `main` publishes to `latest`, and `alpha` publishes to `alpha` (versions like `9.0.0-alpha.0`).
 - The downstream upgrade dispatch runs only for stable releases published from `main`.
-- New scripts follow the existing style: dependency-free ESM in `scripts/release/`, pure exported functions, a CLI guarded by `import.meta.url === \`file://${process.argv[1]}\``, and tests in `scripts/release/tests/*.test.mjs` that `npm run release:test` runs.
+- New scripts follow the existing style: dependency-free ESM in `scripts/release/`, pure exported functions, a CLI guarded by `import.meta.url === \`file://${process.argv[1]}\``, and tests in `scripts/release/tests/*.test.mjs`that`npm run release:test` runs.
 
 ## Review Focus
 
@@ -34,11 +34,13 @@
 ### Task 1: Install and configure Changesets
 
 **Files:**
+
 - Modify: `package.json` (devDependencies, scripts)
 - Create: `.changeset/config.json`, `.changeset/README.md`
 - Modify: `.prettierignore` (only if the generated `CHANGELOG.md` fails `format:check`)
 
 **Interfaces:**
+
 - Produces: the npm scripts `changeset` (`changeset`), `version-packages` (`changeset version && npm install --package-lock-only --ignore-scripts --no-audit`) and `release` (`npm run build && changeset publish`). Task 4 calls `version-packages` and `release`.
 
 - [ ] **Step 1:** `npm i -D @changesets/cli @changesets/changelog-github`, then `npx changeset init`.
@@ -50,11 +52,13 @@
 ### Task 2: Changeset-required check
 
 **Files:**
+
 - Create: `scripts/release/changeset-check.mjs`
 - Test: `scripts/release/tests/changeset-check.test.mjs`
 - Modify: `.github/workflows/ci.yml` (add a step to the `automation` job, or a new job `changeset` that `ci-success` needs, on `pull_request` and `merge_group` only)
 
 **Interfaces:**
+
 - Consumes: `classifyFiles(files)` from `scripts/ci/classify-changes.mjs` (its `shipped` flag).
 - Produces: `checkChangeset({ files: string[], headRef: string, labels: string[] }) => { ok: boolean, reason: string }`. Exempt head refs: `changeset-release/*` (Version PRs) and `main` (main→alpha sync PRs, whose changesets were consumed on main). `files` is `git diff --name-status`-derived: changed paths plus the added `.changeset/*.md` paths. A changeset counts when an added path matches `^\.changeset/[^/]+\.md$` and is not `README.md`.
 
@@ -78,11 +82,13 @@
 ### Task 3: Pre-mode guards
 
 **Files:**
+
 - Create: `scripts/release/pre-mode.mjs`
 - Test: `scripts/release/tests/pre-mode.test.mjs`
 - Modify: `.github/workflows/ci.yml` (run `checkPreModeForBase` on `pull_request` and `merge_group`, using `github.base_ref`, or `merge_group.base_ref` stripped of `refs/heads/`)
 
 **Interfaces:**
+
 - Produces:
   - `checkPreModeForBase({ baseRef: string, preJson: object|null }) => { ok, reason }`. Rule: base `main` passes when `preJson` is `null` or has `mode === "exit"`. Base `alpha` passes when `preJson.tag === "alpha"` and `mode` is `"pre"` or `"exit"`. Exit is what the promotion's `pre exit` PR looks like. Any other base passes.
   - `alphaReleaseAction(preJson) => "release" | "skip"`. Returns `"release"` for `{mode:"pre",tag:"alpha"}` and `"skip"` for `{mode:"exit",tag:"alpha"}` (promotion in progress: neither version nor publish on alpha). Throws for anything else. Task 4 uses it to gate the changesets step on `alpha`.
@@ -97,12 +103,14 @@
 ### Task 4: Rewrite release.yml around changesets/action
 
 **Files:**
+
 - Modify: `.github/workflows/release.yml`
 - Delete: `scripts/release/gate.mjs`, `scripts/release/land.mjs`, `scripts/release/tests/gate.test.mjs`, `scripts/release/tests/land.test.mjs`
 - Rewrite: `scripts/release/tests/release-workflow.test.mjs`
 - Modify: `scripts/ci/tests/release-decoupled.test.mjs`, and `scripts/ci/tests/main-push-app-token.test.mjs` if its workflow list includes `release.yml` (release.yml no longer pushes to `main`)
 
 **Interfaces:**
+
 - Consumes: the npm scripts from Task 1 and `pre-mode.mjs alpha-action` from Task 3.
 
 - [ ] **Step 1: Write failing workflow tests** (string/YAML-shape assertions, the same style as today):
@@ -123,6 +131,7 @@
 ### Task 5: Update Claude automations to write changesets
 
 **Files:**
+
 - Modify: the prompt text in `.github/workflows/claude-perf-audit.yml`, `claude-a11y-audit.yml`, `claude-perf-explore.yml` and `claude-issue-triage.yml`, at the "open a PR" instructions. Also `.github/prompts/downstream-upgrade-fix.md` if it opens FiestaUI PRs. Check this; it most likely targets the downstream repos and needs no change.
 
 - [ ] **Step 1:** In each prompt that opens a PR touching `src/`, add: "Before committing, write `.changeset/<kebab-slug>.md` with frontmatter `"@fiestaboard/ui": patch` (`minor` for new props or components; never `major` without a human) and a one-line, user-facing summary." The `Write` tool is already allowed, so no `--allowed-tools` change is needed.
@@ -132,6 +141,7 @@
 ### Task 6: Documentation
 
 **Files:**
+
 - Modify: `README.md` (the "Releases are continuous…" paragraph at ~line 224)
 - Modify: `docs/superpowers/specs/2026-08-07-continuous-release-design.md` (add a "Superseded by" banner at the top)
 - Create: `docs/releasing.md`
@@ -152,6 +162,7 @@
 ### Task 7 (optional): Alpha Storybook at `/alpha/`
 
 **Files:**
+
 - Modify: `.github/workflows/deploy-storybook.yml`
 
 - [ ] **Step 1:** Trigger on push to `[main, alpha]`. In `build`, check out `main` and build into `storybook-static/`. Then check out `alpha` into a subdirectory, if `git ls-remote --heads origin alpha` finds it, and build it into `storybook-static/alpha/`. Upload a single Pages artifact. Pages replaces the whole site on each deploy, so both trees must ship together every time.
