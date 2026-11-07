@@ -370,12 +370,10 @@ jobs:
           bash <(curl -sSf https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
           ./actionlint -color
 
-  # Release hygiene for a PR, before it can reach the merge queue. The queue
-  # entry skips these: it has no head_ref or labels to read, and the PR it
-  # replays already passed them.
+  # Release hygiene for PRs into main and alpha.
   release-guards:
     name: Release guards
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -388,15 +386,30 @@ jobs:
         with:
           node-version: "24"
 
+      # pre.json is a committed file, so a merge carries it anywhere: main in
+      # pre mode would publish prereleases to `latest`, and alpha out of it
+      # would publish stable versions. Checked in the queue too — it needs only
+      # the base branch, and the queued commit is what actually lands.
+      - name: Keep prerelease mode on its branch
+        env:
+          BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+        run: |
+          node scripts/release/pre-mode.mjs check-base "${BASE_REF#refs/heads/}" \
+            | sed -n 's/^reason=//p' >> "$GITHUB_STEP_SUMMARY"
+
       # A shipped change without a changeset merges cleanly and then never
-      # releases. This makes that miss a red PR instead.
+      # releases. This makes that miss a red PR instead. PR-only: a queue entry
+      # has no head_ref or labels to read, and its PR already passed.
       - name: Require a changeset for shipped changes
+        if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HEAD_REF: ${{ github.head_ref }}
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
-        run: node scripts/release/changeset-check.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          node scripts/release/changeset-check.mjs "$BASE_SHA" "$HEAD_SHA" \
+            | sed -n 's/^reason=//p' >> "$GITHUB_STEP_SUMMARY"
 
   a11y-tests:
     name: Accessibility Tests (${{ matrix.theme }} ${{ matrix.shard }}/${{ needs.plan-shards.outputs.a11y_shard_count }})
