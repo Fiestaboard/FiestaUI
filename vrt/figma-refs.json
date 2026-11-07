@@ -1,0 +1,53 @@
+{
+  "$comment": "Figma parity manifest (MASTER-PLAN §3, manifest split C3). Keyed by ref id from the design-refs repo's refs.json; holds what lives with the code: the Storybook target, probe selectors (relative to target.root; ':scope' is the root itself), tolerance overrides and waivers. Run: node scripts/vrt/vrt.mjs parity --refs <local refs checkout> --out <dir>. Until O4 creates the refs repo, scripts/ci/tests/fixtures/parity is the local stand-in for these ids. Report-only in slice 1.0b.",
+  "refsTag": null,
+  "entries": [
+    {
+      "id": "forms-button-default",
+      "kind": "component",
+      "target": { "story": "forms-button--default", "root": "[data-slot=button]" },
+      "probes": {
+        "tokens": [
+          { "selector": ":scope", "property": "background-color", "variable": "var(--primary)" },
+          { "selector": ":scope", "property": "color", "variable": "var(--primary-foreground)" },
+          { "selector": ":scope", "property": "border-top-left-radius", "variable": "var(--radius-md)" },
+          { "selector": ":scope", "property": "padding-left", "variable": "calc(var(--spacing) * 4)" },
+          { "selector": ":scope", "property": "height", "variable": "calc(var(--spacing) * 9)" }
+        ],
+        "geometry": [{ "node": "Label", "selector": ":scope", "measure": "text" }],
+        "text": [{ "node": "Label", "selector": ":scope" }],
+        "colors": [
+          { "x": 6, "y": 18, "label": "fill, left of the label" },
+          { "x": 68, "y": 18, "label": "fill, right of the label" }
+        ]
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "forms-button-outline",
+      "kind": "component",
+      "target": {
+        "story": "forms-button--outline",
+        "args": { "children": "Button" },
+        "root": "[data-slot=button]"
+      },
+      "probes": {
+        "tokens": [
+          { "selector": ":scope", "property": "background-color", "variable": "component/button/outline-bg" },
+          { "selector": ":scope", "property": "color", "variable": "var(--foreground)" },
+          { "selector": ":scope", "property": "border-top-left-radius", "variable": "var(--radius-md)" },
+          { "selector": ":scope", "property": "height", "variable": "calc(var(--spacing) * 9)" }
+        ],
+        "geometry": [{ "node": "Label", "selector": ":scope", "measure": "text" }],
+        "text": [{ "node": "Label", "selector": ":scope" }],
+        "colors": [
+          { "x": 7, "y": 18, "label": "fill, left of the label" },
+          { "x": 70, "y": 18, "label": "fill, right of the label" }
+        ]
+      },
+      "tolerance": {},
+      "waivers": []
+    }
+  ]
+}

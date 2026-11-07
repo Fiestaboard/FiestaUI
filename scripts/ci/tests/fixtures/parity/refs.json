@@ -1,0 +1,76 @@
+{
+  "$comment": "Stand-in for the fiestaboard-design-refs checkout (O4), cut down to what scripts/ci/tests/vrt-parity.test.mjs needs. Captured read-only from the FiestaUI Figma library with the Figma MCP tools (get_screenshot, get_metadata, get_variable_defs) on 2026-11-07. get_screenshot renders at the node's natural 1x size (maxDimension only caps it), and the render includes the drop shadow's bleed, hence scale 1 and renderOffset. The MCP exposes no file version or node last-modified marker, so both are null; the real refs repo pins them from the REST API.",
+  "schema": 1,
+  "fileKey": "Ptsx8mOpC5tVFdREfdvyvh",
+  "tag": null,
+  "refs": [
+    {
+      "id": "forms-button-default",
+      "figmaNode": "6:64",
+      "page": "Forms — Button",
+      "name": "Variant=default, Size=default, State=Default",
+      "figmaVersion": null,
+      "nodeLastModified": null,
+      "capturedAt": "2026-11-07",
+      "mode": "light",
+      "slotWidth": 75,
+      "slotHeight": 36,
+      "scale": 1,
+      "renderOffset": { "x": 3, "y": 2 },
+      "file": "refs/forms-button-default@1x.png",
+      "nodes": [
+        {
+          "id": "6:68",
+          "name": "Label",
+          "type": "TEXT",
+          "x": 16,
+          "y": 8,
+          "width": 43,
+          "height": 20,
+          "characters": "Button"
+        }
+      ],
+      "variables": {
+        "var(--primary)": "#f5a623",
+        "var(--primary-foreground)": "#191713",
+        "var(--radius-md)": "8",
+        "calc(var(--spacing) * 4)": "16",
+        "calc(var(--spacing) * 9)": "36"
+      }
+    },
+    {
+      "id": "forms-button-outline",
+      "figmaNode": "6:352",
+      "page": "Forms — Button",
+      "name": "Variant=outline, Size=default, State=Default",
+      "figmaVersion": null,
+      "nodeLastModified": null,
+      "capturedAt": "2026-11-07",
+      "mode": "light",
+      "slotWidth": 77,
+      "slotHeight": 36,
+      "scale": 1,
+      "renderOffset": { "x": 2, "y": 1 },
+      "file": "refs/forms-button-outline@1x.png",
+      "nodes": [
+        {
+          "id": "6:356",
+          "name": "Label",
+          "type": "TEXT",
+          "x": 17,
+          "y": 8,
+          "width": 43,
+          "height": 20,
+          "characters": "Button"
+        }
+      ],
+      "variables": {
+        "var(--foreground)": "#0f0d0a",
+        "var(--radius-md)": "8",
+        "calc(var(--spacing) * 4)": "16",
+        "calc(var(--spacing) * 9)": "36",
+        "component/button/outline-bg": "#f1ece6"
+      }
+    }
+  ]
+}
