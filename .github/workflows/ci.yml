@@ -3,7 +3,11 @@ name: CI
 on:
   push:
     branches: [main]
+  # `labeled`/`unlabeled` re-run the changeset check when `no-changeset` is
+  # added or removed. Listing `types` REPLACES the defaults, so the first three
+  # must stay or CI (and the required `CI Success`) would stop running on pushes.
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   # `main` runs behind a merge queue, and a queued entry is a *different commit*
   # from the PR head — it is the PR replayed on top of every entry ahead of it.
   # `CI Success` is the queue's required check, so this workflow has to run on
@@ -356,15 +360,43 @@ jobs:
       - name: Run perf harness unit tests
         run: npm run perf:test
 
-      # Guards the two decisions that publish: whether a merge changes shipped
-      # code, and what version it earns.
-      - name: Run release gate unit tests
+      # Guards the release automation: the changeset and pre-mode checks below,
+      # and the shape of release.yml.
+      - name: Run release unit tests
         run: npm run release:test
 
       - name: actionlint
         run: |
           bash <(curl -sSf https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
           ./actionlint -color
+
+  # Release hygiene for a PR, before it can reach the merge queue. The queue
+  # entry skips these: it has no head_ref or labels to read, and the PR it
+  # replays already passed them.
+  release-guards:
+    name: Release guards
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Dependency-free scripts — no `npm ci`.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      # A shipped change without a changeset merges cleanly and then never
+      # releases. This makes that miss a red PR instead.
+      - name: Require a changeset for shipped changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: node scripts/release/changeset-check.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_STEP_SUMMARY"
 
   a11y-tests:
     name: Accessibility Tests (${{ matrix.theme }} ${{ matrix.shard }}/${{ needs.plan-shards.outputs.a11y_shard_count }})
@@ -422,7 +454,11 @@ jobs:
     # context to read approvals from, so replaying the gate there could only
     # fail on capture noise a reviewer already cleared — while costing the
     # whole shoot fan-out per queued entry.
-    if: needs.changes.outputs.code == 'true' && github.event_name != 'merge_group'
+    #
+    # Also skipped on PRs into `alpha`: baselines are published only from pushes
+    # to main, so an alpha PR has nothing to compare against. Visual coverage
+    # for the alpha channel is a follow-up.
+    if: needs.changes.outputs.code == 'true' && github.event_name != 'merge_group' && github.base_ref != 'alpha'
     strategy:
       # Unlike the old in-shard compare, shards here feed ONE report job that
       # needs every slice (vrt-report verifies completeness from the shard
@@ -516,7 +552,19 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [changes, plan-shards, lint, unit-tests, build, a11y-tests, automation, visual-regression, vrt-report]
+    needs:
+      [
+        changes,
+        plan-shards,
+        lint,
+        unit-tests,
+        build,
+        a11y-tests,
+        automation,
+        release-guards,
+        visual-regression,
+        vrt-report,
+      ]
     if: always()
     steps:
       - name: Check all jobs
