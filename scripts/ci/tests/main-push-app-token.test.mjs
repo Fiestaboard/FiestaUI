@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 // (ci.yml's vrt-seed job shared that hazard until it was retired in favour of
 // vrt-update.yml's sharded fan-out.)
 //
-// The fix is always the same shape (see release.yml): mint the token with
+// The fix is always the same shape (see the perf/a11y audit loops): mint the token with
 // actions/create-github-app-token, then hand it to actions/checkout so the
 // push inherits app credentials.
 
@@ -36,13 +36,11 @@ function stripComments(source) {
 // pushes back to whatever ref the run was dispatched on — which is `main`
 // whenever someone dispatches the workflow from the default branch.
 //
-// A workflow that delegates the push to a script counts too: release.yml lands
-// its version commit through scripts/release/land.mjs, which pushes
-// `refs/heads/main` with whatever credentials the checkout left behind. Moving
-// the git out of the YAML must not move it out of this guard.
+// (release.yml used to push its version commit through scripts/release/land.mjs
+// and was matched here for it. Under changesets the version commit reaches main
+// through the Version PR instead, so nothing in release.yml pushes to main.)
 const MAIN_PUSH_PATTERNS = [
   /git push[^\n]*\bHEAD:main\b/,
-  /scripts\/release\/land\.mjs/,
   /git push[^\n]*refs\/heads\/main/,
   /git push[^\n]*HEAD:\$\{GITHUB_REF_NAME\}/,
   /git push[^\n]*HEAD:"?\$\{?GITHUB_REF_NAME\}?"?/,

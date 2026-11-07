@@ -151,7 +151,7 @@ const eslintConfig = [
   },
   {
     // scripts/ holds CLI tools whose job is to write to stdout — the CI
-    // classifier and release gate emit `key=value` lines for $GITHUB_OUTPUT.
+    // classifier and release scripts emit `key=value` lines for $GITHUB_OUTPUT.
     // Routing that through console.error would put it in the log instead of
     // the output file, which is the opposite of what the workflows need.
     files: ["scripts/**/*.mjs"],
