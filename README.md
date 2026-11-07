@@ -227,7 +227,7 @@ See [docs/releasing.md](docs/releasing.md) for the full flow, the alpha lifecycl
 
 ## Downstream upgrade automation
 
-Every release triggers `.github/workflows/downstream-upgrade.yml`, which keeps
+Every stable release from `main` triggers `.github/workflows/downstream-upgrade.yml`, which keeps
 a single evergreen PR open on `Fiestaboard/FiestaBoard` (branch
 `fiestaui-upgrade`) pinning `@fiestaboard/ui` to the newest version. If the
 bump breaks FiestaBoard, Claude (Opus) TDD-fixes it (max 3 attempts) and
