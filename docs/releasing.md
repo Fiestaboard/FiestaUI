@@ -58,7 +58,7 @@ Guards (`scripts/release/pre-mode.mjs`):
 - **npm trusted publisher** on `@fiestaboard/ui`: repository `Fiestaboard/FiestaUI`, workflow **`release.yml`**. Renaming the workflow breaks publishing. `NPM_TOKEN` remains as a fallback that npm uses only if the OIDC exchange fails.
 - **Claude bot app** (`CLAUDE_BOT_APP_ID` / `CLAUDE_BOT_APP_PRIVATE_KEY`) opens the Version PRs and pushes tags. A PR opened with `GITHUB_TOKEN` would have its CI gated in `action_required`.
 - **Rulesets.** `main-protection` and `PR policy` target `main` only (merge queue, squash). `alpha` has its own ruleset: PR plus the required `CI Success` check, no merge queue, merge commits allowed (for syncs), and deletion allowed (for restarts).
-- **Visual regression** is skipped on PRs into `alpha`, because baselines exist only for `main`.
+- **Visual regression** runs on PRs into `alpha` against alpha's own baseline, which every push to `alpha` publishes. Seed it once after creating or restarting `alpha`, and reseed it if `alpha` has been quiet for about 10 days (artifacts expire after 14): `gh workflow run ci.yml --ref alpha`. See [VISUAL_REGRESSION.md](VISUAL_REGRESSION.md#the-alpha-channel).
 
 ## Publishing by hand
 
