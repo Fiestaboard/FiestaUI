@@ -11,6 +11,7 @@ import { PNG } from "pngjs";
 import {
   BLOB_CSS_PX,
   boardProbe,
+  clampClip,
   colorProbe,
   deltaE2000,
   evaluateEntry,
@@ -381,4 +382,11 @@ test("CLI: there is no flag that turns the parity report into a gate", () => {
   const out = mkdtempSync(path.join(tmpdir(), "parity-out-"));
   const run = runParity(fakeShots({ broken: true }), out, ["--gate"]);
   assert.equal(run.status, 2, "unknown flags are rejected; gating arrives in slice 1.1 by a deliberate change");
+});
+
+test("clampClip keeps a negative clip on the page by trimming it, never shifting it", () => {
+  assert.deepEqual(clampClip({ x: 5, y: 6, width: 81, height: 42 }), { x: 5, y: 6, width: 81, height: 42 });
+  // Root at the canvas origin with a 3,2 bleed: the bleed is trimmed off, so
+  // the shot is smaller than the ref and the pixel check reports the size.
+  assert.deepEqual(clampClip({ x: -3, y: -2, width: 81, height: 42 }), { x: 0, y: 0, width: 78, height: 40 });
 });

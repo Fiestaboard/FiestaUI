@@ -41,7 +41,15 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { PNG } from "pngjs";
 
-import { evaluateEntry, joinRefs, loadManifest, loadRefs, renderMarkdown, resolveRefsDir } from "./parity.mjs";
+import {
+  clampClip,
+  evaluateEntry,
+  joinRefs,
+  loadManifest,
+  loadRefs,
+  renderMarkdown,
+  resolveRefsDir,
+} from "./parity.mjs";
 import { buildManifest, fileNameFor, parseShard, selectShard, taskKey } from "./shard.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -317,18 +325,50 @@ function measureInPage({ rootSelector, probes }) {
     const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
     return `rgba(${r}, ${g}, ${b}, ${Math.round((a / 255) * 1000) / 1000})`;
   };
+  // Visually hidden text (an sr-only label, a live-region announcer) is in
+  // textContent and in a Range over the element, but not in the Figma frame.
+  // Probes 2 and 3 read only the text a sighted user sees.
+  const isVisuallyHidden = (node, boundary) => {
+    for (let n = node.parentElement; n && n !== boundary.parentElement; n = n.parentElement) {
+      const cs = getComputedStyle(n);
+      if (cs.display === "none" || cs.visibility === "hidden") return true;
+      if (cs.clipPath === "inset(50%)" || /^rect\(0(px)?,? 0(px)?,? 0(px)?,? 0(px)?\)$/.test(cs.clip)) return true;
+      const r = n.getBoundingClientRect();
+      if (cs.position === "absolute" && r.width <= 1 && r.height <= 1) return true;
+    }
+    return false;
+  };
+  const visibleTextNodes = (target) => {
+    const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT);
+    const out = [];
+    while (walker.nextNode()) if (!isVisuallyHidden(walker.currentNode, target)) out.push(walker.currentNode);
+    return out;
+  };
+  const visibleText = (target) =>
+    visibleTextNodes(target)
+      .map((t) => t.nodeValue)
+      .join("");
   // A Figma text node's box is its line boxes (lines × line-height); a DOM
   // Range gives the glyph box, a few px shorter. Keep the Range's x/width and
   // the centre of each line, and stretch the height to the computed
   // line-height, so the two boxes mean the same thing.
-  const textRect = (el) => {
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    const r = range.getBoundingClientRect();
-    const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
-    if (!Number.isFinite(lineHeight)) return r;
-    const lines = new Set([...range.getClientRects()].map((c) => Math.round(c.top + c.height / 2))).size || 1;
-    const first = range.getClientRects()[0] ?? r;
+  const textRect = (target) => {
+    const rects = visibleTextNodes(target).flatMap((t) => {
+      const range = document.createRange();
+      range.selectNodeContents(t);
+      return [...range.getClientRects()].filter((c) => c.width > 0 && c.height > 0);
+    });
+    if (rects.length === 0) return target.getBoundingClientRect();
+    const left = Math.min(...rects.map((c) => c.left));
+    const right = Math.max(...rects.map((c) => c.right));
+    const r = new DOMRect(left, Math.min(...rects.map((c) => c.top)), right - left, 0);
+    const lineHeight = parseFloat(getComputedStyle(target).lineHeight);
+    if (!Number.isFinite(lineHeight)) {
+      const bottom = Math.max(...rects.map((c) => c.bottom));
+      return { x: r.x, y: r.y, width: r.width, height: bottom - r.y };
+    }
+    const lines = new Set(rects.map((c) => Math.round(c.top + c.height / 2))).size || 1;
+    const first = rects[0];
     const top = first.top + first.height / 2 - lineHeight / 2;
     return { x: r.x, y: top, width: r.width, height: lineHeight * lines };
   };
@@ -341,7 +381,7 @@ function measureInPage({ rootSelector, probes }) {
     }),
     text: (probes.text ?? []).map(({ node, selector, canonKey }) => {
       const el = pick(selector);
-      return { node, canonKey, text: el ? el.textContent : null };
+      return { node, canonKey, text: el ? visibleText(el) : null };
     }),
     tokens: (probes.tokens ?? []).map(({ selector, property, variable }) => {
       const el = pick(selector);
@@ -412,12 +452,12 @@ async function captureParity(browser, baseUrl, { ref, entry }, refPng, outDir) {
     // geometry probe's (root) row and in the pixel diff.
     await page.screenshot({
       path: path.join(outDir, `${ref.id}.png`),
-      clip: {
+      clip: clampClip({
         x: dom.rootPage.x - ref.renderOffset.x,
         y: dom.rootPage.y - ref.renderOffset.y,
         width: refPng.width / ref.scale,
         height: refPng.height / ref.scale,
-      },
+      }),
       animations: "disabled",
     });
     await writeFile(path.join(outDir, `${ref.id}.dom.json`), `${JSON.stringify(dom, null, 2)}\n`);

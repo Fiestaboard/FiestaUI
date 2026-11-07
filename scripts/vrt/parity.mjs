@@ -104,6 +104,20 @@ export function loadManifest(file) {
   return raw;
 }
 
+/**
+ * Keep a screenshot clip on the page. A root at the canvas origin with a
+ * render bleed would put the clip at a negative offset, which Playwright
+ * rejects; trimming instead yields a shot smaller than the ref, which the
+ * pixel check then reports as a size mismatch rather than the run crashing.
+ *
+ * @param {{x: number, y: number, width: number, height: number}} clip
+ */
+export function clampClip({ x, y, width, height }) {
+  const cx = Math.max(0, x);
+  const cy = Math.max(0, y);
+  return { x: cx, y: cy, width: Math.max(1, width - (cx - x)), height: Math.max(1, height - (cy - y)) };
+}
+
 /** Join refs.json with the consumer manifest by ref id. */
 export function joinRefs(refs, manifest) {
   const byId = new Map(refs.map((r) => [r.id, r]));
