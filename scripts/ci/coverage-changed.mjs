@@ -11,6 +11,7 @@
 //   npm run test:coverage   # writes coverage/coverage-summary.json
 //   node scripts/ci/coverage-changed.mjs <base-sha> <head-sha> [--summary <file>]
 //   node scripts/ci/coverage-changed.mjs --files <list.txt> [--summary <file>]
+//   (reads HEAD_REF from the environment: sync and Version PRs are exempt)
 //
 // Exit codes: 0 pass, 1 a changed file is under threshold, 2 usage/input error.
 
@@ -22,6 +23,17 @@ export const LINE_THRESHOLD = 90;
 export const BRANCH_THRESHOLD = 85;
 
 const DEFAULT_SUMMARY = "coverage/coverage-summary.json";
+
+/**
+ * Head refs whose PRs carry src/ changes they did not author, so the rule
+ * would block them with no way to clear it. The same two refs, for the same
+ * reason, as EXEMPT_HEAD_REFS in scripts/release/changeset-check.mjs:
+ *
+ * - `main` is a main→alpha sync: the files were checked by their own PRs into
+ *   main, and a main fix to a legacy below-bar file must not block the sync.
+ * - `changeset-release/*` is the Version PR.
+ */
+export const EXEMPT_HEAD_REFS = [/^changeset-release\//, /^main$/];
 
 /**
  * True for a file the rule applies to: shipped TypeScript under src/. Tests,
@@ -50,12 +62,23 @@ function pctOf(metric) {
 
 /**
  * @param {{changedFiles: string[], summary: Record<string, any>, root: string,
- *   lines?: number, branches?: number}} input
+ *   lines?: number, branches?: number, headRef?: string}} input
  *   summary: istanbul json-summary, keyed by absolute (or repo-relative) path.
+ *   headRef: the PR's head branch (HEAD_REF in CI); see EXEMPT_HEAD_REFS.
  * @returns {{ok: boolean, reason: string, results: {file: string, lines: number|null,
  *   branches: number|null, ok: boolean, reason: string}[]}}
  */
-export function checkCoverage({ changedFiles, summary, root, lines = LINE_THRESHOLD, branches = BRANCH_THRESHOLD }) {
+export function checkCoverage({
+  changedFiles,
+  summary,
+  root,
+  lines = LINE_THRESHOLD,
+  branches = BRANCH_THRESHOLD,
+  headRef = "",
+}) {
+  if (EXEMPT_HEAD_REFS.some((pattern) => pattern.test(headRef))) {
+    return { ok: true, reason: `Head ref ${headRef} is exempt from the changed-file coverage rule.`, results: [] };
+  }
   const byRelative = new Map();
   for (const [key, value] of Object.entries(summary)) {
     if (key === "total") continue;
@@ -151,7 +174,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     usage(`coverage summary not found: ${args.summary} (run \`npm run test:coverage\` first)`);
   }
   const summary = JSON.parse(readFileSync(args.summary, "utf8"));
-  const result = checkCoverage({ changedFiles, summary, root });
+  const result = checkCoverage({ changedFiles, summary, root, headRef: process.env.HEAD_REF ?? "" });
 
   process.stdout.write(renderSummary(result));
   if (!result.ok) {

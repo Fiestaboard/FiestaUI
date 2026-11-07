@@ -220,3 +220,76 @@ test("vitest coverage is v8, emits json-summary, and includes every source file"
   // summary — the checker fails it, but only because of the rule above.
   assert.match(config, /include:\s*\["src\/\*\*\/\*\.\{ts,tsx\}"\]/);
 });
+
+// --- sync PRs (review S1) ------------------------------------------------------
+//
+// A main→alpha sync arrives as a PR into alpha whose head ref is `main`, and a
+// Version PR's head is `changeset-release/*`. Neither authored the src/ changes
+// it carries: a fix on main to one of the many below-bar legacy files would
+// otherwise turn the sync red with no way to clear it. Same exemption, same two
+// refs, as scripts/release/changeset-check.mjs.
+
+test("sync and Version PRs are exempt: head ref main or changeset-release/*", () => {
+  const failing = summary({ [BUTTON]: entry(10, 10) });
+  for (const headRef of ["main", "changeset-release/alpha", "changeset-release/main"]) {
+    const result = checkCoverage({ changedFiles: [BUTTON], summary: failing, root: ROOT, headRef });
+    assert.equal(result.ok, true, headRef);
+    assert.match(result.reason, /exempt/, headRef);
+  }
+});
+
+test("the exemption is those two refs only — look-alikes are still checked", () => {
+  const failing = summary({ [BUTTON]: entry(10, 10) });
+  for (const headRef of [
+    "",
+    "alpha",
+    "feat/main",
+    "main-fix",
+    "mainline",
+    "changeset-release",
+    "x/changeset-release/y",
+  ]) {
+    const result = checkCoverage({ changedFiles: [BUTTON], summary: failing, root: ROOT, headRef });
+    assert.equal(result.ok, false, JSON.stringify(headRef));
+  }
+});
+
+test("the exempt refs match changeset-check.mjs's", async () => {
+  const { checkChangeset } = await import("../../release/changeset-check.mjs");
+  const shipped = { files: [BUTTON], addedFiles: [], labels: [] };
+  for (const headRef of ["main", "changeset-release/alpha", "feat/main", "alpha"]) {
+    const changeset = checkChangeset({ ...shipped, headRef }).ok;
+    const coverage = checkCoverage({
+      changedFiles: [BUTTON],
+      summary: summary({ [BUTTON]: entry(10, 10) }),
+      root: ROOT,
+      headRef,
+    }).ok;
+    assert.equal(coverage, changeset, `${headRef}: coverage and changeset exemptions disagree`);
+  }
+});
+
+test("CLI: HEAD_REF=main exempts the run", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "coverage-changed-"));
+  const listFile = path.join(dir, "changed.txt");
+  writeFileSync(listFile, `${BUTTON}\n`);
+  const summaryFile = path.join(dir, "coverage-summary.json");
+  writeFileSync(summaryFile, JSON.stringify(summary({ [BUTTON]: entry(10, 10) })));
+  const args = [SCRIPT, "--files", listFile, "--summary", summaryFile];
+  const exempt = spawnSync(process.execPath, args, {
+    cwd: ROOT,
+    encoding: "utf8",
+    env: { ...process.env, HEAD_REF: "main" },
+  });
+  assert.equal(exempt.status, 0, exempt.stderr);
+  const normal = spawnSync(process.execPath, args, {
+    cwd: ROOT,
+    encoding: "utf8",
+    env: { ...process.env, HEAD_REF: "feat/x" },
+  });
+  assert.equal(normal.status, 1);
+});
+
+test("unit-tests passes the PR head ref to the checker", () => {
+  assert.match(job("unit-tests"), /HEAD_REF:\s*\$\{\{\s*github\.head_ref\s*\}\}/);
+});

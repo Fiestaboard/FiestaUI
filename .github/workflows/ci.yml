@@ -214,6 +214,9 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # main→alpha syncs (head `main`) and Version PRs are exempt, as in
+          # the changeset check: they carry src/ changes they did not author.
+          HEAD_REF: ${{ github.head_ref }}
         run: node scripts/ci/coverage-changed.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_STEP_SUMMARY"
 
   build:
