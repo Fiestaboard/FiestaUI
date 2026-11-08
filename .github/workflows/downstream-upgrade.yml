@@ -177,6 +177,10 @@ jobs:
           git checkout -B "$UPGRADE_BRANCH" origin/main
           "$FIESTAUI_DIR/scripts/downstream-upgrade/bump.sh" . "${{ steps.meta.outputs.version }}" "$APP_DIR"
           git add "$APP_DIR/package.json" "$APP_DIR/package-lock.json"
+          # FiestaBoard releases through Changesets and fails a PR that changes
+          # shipped code without one; no-op for repos without .changeset/.
+          CHANGESET=$("$FIESTAUI_DIR/scripts/downstream-upgrade/changeset.sh" . "${{ steps.meta.outputs.version }}")
+          if [ -n "$CHANGESET" ]; then git add "$CHANGESET"; fi
           git commit -m "chore(deps): bump @fiestaboard/ui to v${{ steps.meta.outputs.version }}"
 
       - name: Dry run — show diff and stop
