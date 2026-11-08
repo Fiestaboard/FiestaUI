@@ -159,6 +159,75 @@
   --color-brand-tile-foreground: var(--brand-tile-foreground);
   --color-brand-hover: var(--brand-hover);
 
+  /* Pre-blended tints (T4) — opaque surfaces, see :root. */
+  --color-tint-selected: var(--tint-selected);
+  --color-tint-info: var(--tint-info);
+  --color-tint-warning: var(--tint-warning);
+  --color-tint-danger: var(--tint-danger);
+
+  /* Touch metrics (T1) → sizing utilities: min-h-touch, size-touch,
+     h-control-touch, h-toolbar-touch. Inlined, so a utility emits
+     var(--touch-target) and a retune in :root carries through. */
+  --spacing-touch: var(--touch-target);
+  --spacing-control-touch: var(--control-h-touch);
+  --spacing-toolbar-touch: var(--toolbar-h-touch);
+
+  /* ============================================================
+   * DISPLAY/* AND EDITOR MONO TYPE (T6, T8; slice 1.1).
+   *
+   * Display/* is the headline scale above Heading/3xl (30): Setup Welcome,
+   * empty states and docs heroes. Archivo SemiBold, line-height 1.05,
+   * tracking -2% (page 08, T6 59:63287).
+   *
+   * Mono/editor/* is the page editor's content type at touch size: the line,
+   * a chip, the gutter and the count (T8 59:64309, the Editor/Mono styles on
+   * page 04). Spline Sans Mono. Figma reports these styles’ line height as
+   * "100" but draws T8's text boxes 20 / 17 / 14 tall for the 17 / 14 / 12 px
+   * samples: the face's auto line height (~1.18em, rounded to whole px). The
+   * line heights here are those boxes (gutter: 13px → 15), so the editor's
+   * line rhythm lands on Figma's to the pixel.
+   *
+   * Each `text-*` utility sets size, line-height, tracking and weight from
+   * these values; the @utility blocks below add the family, so one class is
+   * the whole style. rem, so the type follows the user's text size.
+   * ============================================================ */
+  --text-display-sm: 2.25rem;
+  --text-display-sm--line-height: 1.05;
+  --text-display-sm--letter-spacing: -0.02em;
+  --text-display-sm--font-weight: 600;
+  --text-display-md: 3rem;
+  --text-display-md--line-height: 1.05;
+  --text-display-md--letter-spacing: -0.02em;
+  --text-display-md--font-weight: 600;
+  --text-display-lg: 4rem;
+  --text-display-lg--line-height: 1.05;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-display-lg--font-weight: 600;
+  --text-display-xl: 5rem;
+  --text-display-xl--line-height: 1.05;
+  --text-display-xl--letter-spacing: -0.02em;
+  --text-display-xl--font-weight: 600;
+  --text-display-2xl: 6.5rem;
+  --text-display-2xl--line-height: 1.05;
+  --text-display-2xl--letter-spacing: -0.02em;
+  --text-display-2xl--font-weight: 600;
+  --text-mono-editor-line: 1.0625rem;
+  --text-mono-editor-line--line-height: 1.25rem;
+  --text-mono-editor-line--letter-spacing: 0.5px;
+  --text-mono-editor-line--font-weight: 600;
+  --text-mono-editor-chip: 0.875rem;
+  --text-mono-editor-chip--line-height: 1.0625rem;
+  --text-mono-editor-chip--letter-spacing: 0px;
+  --text-mono-editor-chip--font-weight: 600;
+  --text-mono-editor-gutter: 0.8125rem;
+  --text-mono-editor-gutter--line-height: 0.9375rem;
+  --text-mono-editor-gutter--letter-spacing: 0px;
+  --text-mono-editor-gutter--font-weight: 500;
+  --text-mono-editor-count: 0.75rem;
+  --text-mono-editor-count--line-height: 0.875rem;
+  --text-mono-editor-count--letter-spacing: 0px;
+  --text-mono-editor-count--font-weight: 500;
+
   /* Navigation active state (indigo) */
   --color-nav-active: var(--nav-active);
   --color-nav-active-foreground: var(--nav-active-foreground);
@@ -234,6 +303,39 @@
   --ease-spring: var(--motion-ease-spring);
   --ease-out-cubic: var(--motion-ease-out-cubic);
   --ease-standard: var(--motion-ease-standard);
+}
+
+/* The family half of the Display/* and Mono/editor/* styles (see the @theme
+   note above). Tailwind merges these with the theme's own `text-*` utility of
+   the same name, so `text-display-md` or `text-mono-editor-line` is the whole
+   style in one class, variants included. Read from the :root stacks, which
+   are always emitted, rather than the inlined --font-* theme aliases. */
+@utility text-display-sm {
+  font-family: var(--font-sans-stack);
+}
+@utility text-display-md {
+  font-family: var(--font-sans-stack);
+}
+@utility text-display-lg {
+  font-family: var(--font-sans-stack);
+}
+@utility text-display-xl {
+  font-family: var(--font-sans-stack);
+}
+@utility text-display-2xl {
+  font-family: var(--font-sans-stack);
+}
+@utility text-mono-editor-line {
+  font-family: var(--font-mono-stack);
+}
+@utility text-mono-editor-chip {
+  font-family: var(--font-mono-stack);
+}
+@utility text-mono-editor-gutter {
+  font-family: var(--font-mono-stack);
+}
+@utility text-mono-editor-count {
+  font-family: var(--font-mono-stack);
 }
 
 :root {
@@ -477,6 +579,37 @@
   --warning: oklch(0.61 0.131 104);
   --warning-foreground: oklch(0.205 0.008 73);
   /* ============================================================
+   * PRE-BLENDED TINTS (T4, slice 1.1). The surface a selected row, an info
+   * pill, a Silenced pill or a destructive confirmation sits on.
+   *
+   * OPAQUE ON PURPOSE. Each is its source colour composited over --card,
+   * written as `color-mix(in srgb, …)`: an sRGB channel mix IS the
+   * gamma-space alpha composite the browser performs for `bg-x/16`, so the
+   * colour is the one an alpha tint over a card would paint, but it no
+   * longer depends on what is underneath. Figma drops paint opacity on a
+   * bound colour, so the library has to carry these as opaque variables
+   * anyway, and an opaque tint can be contrast-checked once, here, rather
+   * than per surface (theme-contrast.test.mjs section 6).
+   *
+   * Light values match page 08's tint/* variables (T4, 59:63194) to 1/255:
+   *   selected #fcedd5 · info #dbe6ee · warning #ede8d0 · danger #f3dfda
+   * (Figma calls the last one tint/destructive; it follows this name at D6.)
+   * --info is outside sRGB, and CSS mixes it UNCLIPPED (extended sRGB) before
+   * gamut-mapping the result, so info takes 13% where Figma's clipped blend
+   * took 14%: the same paint, by the arithmetic the browser actually does.
+   *
+   * Every ink that sits on one clears AA in both themes — --foreground
+   * 15.0-16.8:1 light / 11.5-13.7:1 dark, --muted-foreground 7.1-8.0:1 /
+   * 5.2-6.2:1, --brand 4.74-5.31:1 / 6.2-7.4:1. They are SURFACES, never
+   * text colours. Re-declared in the dark block: a recipe over --card
+   * resolves where it is declared, so without the dark pair a dark subtree
+   * would inherit the light tint.
+   * ============================================================ */
+  --tint-selected: color-mix(in srgb, var(--primary) 16%, var(--card));
+  --tint-info: color-mix(in srgb, var(--info) 13%, var(--card));
+  --tint-warning: color-mix(in srgb, var(--warning) 16%, var(--card));
+  --tint-danger: color-mix(in srgb, var(--destructive) 14%, var(--card));
+  /* ============================================================
    * TAG TINTS ARE A PAIR ACROSS AN UNKNOWN SURFACE (#231).
    *
    * badge.tsx paints the three tag variants as `bg-tag-x/15` with
@@ -677,6 +810,15 @@
      brand on its own, and legible words wallpapered edge to edge would compete
      with the form the screen exists to get filled in. */
   --board-backdrop-opacity: 0.16;
+  /* C8 board edge fade (slice 1.1). The colour a horizontally scrolling board
+     fades into at the edge of its bezel, and the same colour at alpha 0 as
+     the gradient's clear stop. Theme-invariant: it is the board's dark
+     bezel (#050505, --color-board-bezel-dark), which is the same hardware in
+     both UI themes. The clear stop exists for token consumers: a CSS
+     gradient to `transparent` interpolates premultiplied and never greys,
+     but a native gradient between #050505 and a generic clear can. */
+  --board-edge-fade: #050505;
+  --board-edge-fade-clear: rgb(5 5 5 / 0);
   --brand-tile-foreground: oklch(0.205 0.008 73);
   --brand-hover: color-mix(in oklch, var(--brand) 82%, var(--foreground));
   /* DEPRECATED alias, removed in the next minor. Kept so consumers pinned
@@ -899,6 +1041,35 @@
   --radius-chrome-mobile: 16px;
 
   /* ============================================================
+   * METRICS (T1, slice 1.1) — platform-agnostic sizes, in CSS px.
+   *
+   * FiestaUI's controls are 36px tall and Button lg is about 40: under
+   * Apple's 44pt and Material's 48dp minimums. These are the touch sizes,
+   * named once so a `size="touch"` variant, a hit-area wrapper and the native
+   * apps (through tokens.json, G6) all read the same number.
+   *
+   *   --touch-target         44  minimum hit area for anything tappable.
+   *                              The Android export maps it to 48dp.
+   *   --control-h-touch      44  visible height of a control at size="touch"
+   *   --toolbar-h-touch      52  the touch editor toolbar's bar height
+   *   --sheet-grabber-width  36  the bottom sheet's drag handle (Web / Bottom
+   *   --sheet-grabber-height  5  sheet, 53:100588): a pill, var(--input),
+   *   --sheet-grabber-zone   20  centred in a 20px strip; its hit area is
+   *                              still --touch-target
+   *
+   * Fixed px, not rem: a hit area is a property of the finger, not of the
+   * text size. Tailwind: `min-h-touch`, `size-touch`, `h-control-touch`,
+   * `h-toolbar-touch` (see @theme above). Additive: nothing in the package
+   * reads them yet; the touch sizes arrive with the components that use them.
+   * ============================================================ */
+  --touch-target: 44px;
+  --control-h-touch: 44px;
+  --toolbar-h-touch: 52px;
+  --sheet-grabber-width: 36px;
+  --sheet-grabber-height: 5px;
+  --sheet-grabber-zone: 20px;
+
+  /* ============================================================
    * Z-index layer scale (B3) — the app's stacking story, bottom to
    * top. Values are exactly the pre-token numbers (parity contract).
    *
@@ -1028,6 +1199,12 @@
      13.05:1 on --background; board-ink label 11.81:1. */
   --warning: oklch(0.86 0.17 104);
   --warning-foreground: oklch(0.205 0.008 73);
+  /* The T4 dark pairs: the same recipe over the dark --card, so the dark
+     source colours do the work. See :root for why these are re-declared. */
+  --tint-selected: color-mix(in srgb, var(--primary) 16%, var(--card));
+  --tint-info: color-mix(in srgb, var(--info) 13%, var(--card));
+  --tint-warning: color-mix(in srgb, var(--warning) 16%, var(--card));
+  --tint-danger: color-mix(in srgb, var(--destructive) 14%, var(--card));
   /* The dark half of the #231 matrix — see the table in :root. These measure
      7.90-10.39:1 at the 15% fill on every surface a Badge can land on, which
      includes the dark `--card` cell #231 reports as ~1.5:1 (9.20:1 here). The

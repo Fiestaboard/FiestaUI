@@ -80,7 +80,13 @@ function oklchToSrgb(L, C, H) {
   ];
   const eps = 1e-4;
   const outOfGamut = lin.some((v) => v < -eps || v > 1 + eps);
-  return { rgb: lin.map((v) => toGamma(Math.min(1, Math.max(0, v)))), outOfGamut };
+  return {
+    rgb: lin.map((v) => toGamma(Math.min(1, Math.max(0, v)))),
+    // Extended (unclipped) sRGB: what CSS color-mix(in srgb) interpolates
+    // before gamut-mapping the result. Sign-mirrored transfer function.
+    ext: lin.map((v) => Math.sign(v) * toGamma(Math.abs(v))),
+    outOfGamut,
+  };
 }
 
 function srgbToOklch([r, g, b]) {
@@ -112,13 +118,31 @@ function color(expr, vars, seen = []) {
     return { rgb: [(n >> 16) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255], alpha: 1, outOfGamut: false };
   }
   if ((m = expr.match(/^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*(?:\/\s*([\d.]+%?))?\s*\)$/))) {
-    const { rgb, outOfGamut } = oklchToSrgb(+m[1], +m[2], +m[3]);
-    return { rgb, alpha: m[4] ? pct(m[4]) : 1, outOfGamut };
+    const { rgb, ext, outOfGamut } = oklchToSrgb(+m[1], +m[2], +m[3]);
+    return { rgb, ext, alpha: m[4] ? pct(m[4]) : 1, outOfGamut };
   }
   if ((m = expr.match(/^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)\s*(?:[/,]\s*([\d.]+%?))?\s*\)$/))) {
     return { rgb: [+m[1] / 255, +m[2] / 255, +m[3] / 255], alpha: m[4] ? pct(m[4]) : 1, outOfGamut: false };
   }
   // color-mix(in oklch, A p%, B) — the two forms theme.css actually uses.
+  // color-mix(in srgb, A p%, B) — the T4 tints: an sRGB channel mix, which is
+  // exactly the gamma-space alpha composite of A at p over B.
+  if ((m = expr.match(/^color-mix\(in srgb,\s*(.+?)\s+([\d.]+)%,\s*(.+)\)$/))) {
+    const p = +m[2] / 100;
+    const a = color(m[1], vars, seen);
+    const b = color(m[3], vars, seen);
+    if (!a || !b) return null;
+    // Mixed unclipped, as CSS does, then clipped once: an out-of-gamut source
+    // (--info) blended over a card usually lands back inside sRGB.
+    const ea = a.ext ?? a.rgb;
+    const eb = b.ext ?? b.rgb;
+    const mixed = ea.map((c, i) => c * p + eb[i] * (1 - p));
+    return {
+      rgb: mixed.map((c) => Math.min(1, Math.max(0, c))),
+      alpha: a.alpha * p + b.alpha * (1 - p),
+      outOfGamut: mixed.some((c) => c < -1e-4 || c > 1 + 1e-4),
+    };
+  }
   if ((m = expr.match(/^color-mix\(in oklch,\s*(.+?)\s+([\d.]+)%,\s*(.+)\)$/))) {
     const p = +m[2] / 100;
     const a = color(m[1], vars, seen);
@@ -312,6 +336,53 @@ out.font.mono = {
   $value: family(light["font-mono-stack"]),
   $extensions: { "app.fiestaboard": { css: "--font-mono-stack" } },
 };
+
+// T1 Metrics (slice 1.1): platform-agnostic sizes in CSS px. The Android
+// export maps touch-target to 48dp (G6); that mapping belongs to the native
+// token build, so the value here is the web one.
+out.metrics = {};
+for (const [n, v] of Object.entries(light)) {
+  if (!/^(touch-target|control-h-|toolbar-h-|sheet-grabber-)/.test(n)) continue;
+  const m = v.match(/^([\d.]+)px$/);
+  if (!m) throw new Error(`theme.css: metric --${n} must be a px length, got ${v}`);
+  out.metrics[n] = {
+    $type: "dimension",
+    $value: { value: +m[1], unit: "px" },
+    $extensions: { "app.fiestaboard": { css: `--${n}` } },
+  };
+}
+
+// T6 Display/* and T8 Mono/editor/* (slice 1.1) as DTCG typography. They live
+// in @theme as Tailwind text utilities (`--text-x` plus `--text-x--line-height`
+// and friends); the family comes from which scale they belong to, the same
+// pairing the @utility blocks in theme.css make.
+out.typography = {};
+const length = (v) => {
+  const m = v.match(/^(-?[\d.]+)(rem|px|em)$/);
+  if (!m) throw new Error(`theme.css: expected a length, got ${v}`);
+  if (m[2] === "rem") return { value: +m[1] * rem, unit: "px" };
+  return { value: +m[1], unit: m[2] };
+};
+// DTCG lineHeight is a multiplier: a unitless value passes through, a length
+// becomes its ratio to the font size (the editor styles set whole-px boxes).
+const ratio = (lh, size) =>
+  /^[\d.]+$/.test(lh) ? +lh : Math.round((length(lh).value / length(size).value) * 10000) / 10000;
+for (const [n, v] of Object.entries(themeBlock)) {
+  const m = n.match(/^text-((display|mono-editor)-[\w]+)$/);
+  if (!m) continue;
+  const sub = (k) => themeBlock[`${n}--${k}`];
+  out.typography[m[1]] = {
+    $type: "typography",
+    $value: {
+      fontFamily: m[2] === "display" ? "{font.sans}" : "{font.mono}",
+      fontSize: length(v),
+      fontWeight: +sub("font-weight"),
+      lineHeight: ratio(sub("line-height"), v),
+      letterSpacing: length(sub("letter-spacing")),
+    },
+    $extensions: { "app.fiestaboard": { css: `--${n}`, utility: n } },
+  };
+}
 
 mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, JSON.stringify(out, null, 2) + "\n");

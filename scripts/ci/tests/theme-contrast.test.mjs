@@ -655,3 +655,157 @@ test("#304: the SegmentedControl's checked label clears AA on every surface it s
       "dark-by-default, so nothing downstream of this file will tell you.",
   );
 });
+
+/* ------------------------------------------------------------------ *
+ * 6. T4 — the pre-blended tints (slice 1.1)
+ *
+ * `--tint-selected/info/warning/danger` are the surfaces a selected row, an
+ * info pill or a Silenced pill sits on. They are OPAQUE by design (page-08
+ * card T4, `59:63194`): Figma drops paint opacity on a bound colour, and an
+ * opaque, measured tint is more predictable than alpha over a surface nobody
+ * measured. Each is its source colour composited over --card, which is what
+ * `color-mix(in srgb, …)` computes: an sRGB channel mix is exactly the
+ * gamma-space alpha composite `composite()` above performs, so the CSS, the
+ * Figma variable and this arithmetic are the same number.
+ *
+ * Because a tint carries text, its pairs are measured as text (4.5:1), in
+ * both themes, for every ink that legitimately lands on it.
+ * ------------------------------------------------------------------ */
+
+const TINTS_T4 = ["--tint-selected", "--tint-info", "--tint-warning", "--tint-danger"];
+/** The inks a selected row or a pill sets on a tint: body copy, secondary copy, a link. */
+const TINT_INKS = ["--foreground", "--muted-foreground", "--brand"];
+/**
+ * The Figma Color variables the light tints were drawn as (page 08, T4). Figma
+ * names the fourth `tint/destructive`; FiestaUI ships it as `--tint-danger`
+ * (MASTER-PLAN slice 1.1), and the library variable follows at D6.
+ */
+const FIGMA_LIGHT_TINTS = new Map([
+  ["--tint-selected", "#fcedd5"],
+  ["--tint-info", "#dbe6ee"],
+  ["--tint-warning", "#ede8d0"],
+  ["--tint-danger", "#f3dfda"],
+]);
+
+/**
+ * A token's opaque sRGB, following var() aliases and one level of
+ * `color-mix(in srgb, var(--a) N%, var(--b))` — the only recipe the tints use.
+ */
+function paint(name, tokens) {
+  return paintExtended(name, tokens).map((c) => Math.min(1, Math.max(0, c)));
+}
+
+/**
+ * Unclipped (extended) sRGB. CSS `color-mix(in srgb, …)` interpolates an
+ * out-of-gamut source like --info BEFORE gamut-mapping the result, so the
+ * mix has to be done on unclipped channels to land on what the browser paints.
+ */
+function paintExtended(name, tokens) {
+  const value = resolve(name, tokens);
+  const mix = value.match(/^color-mix\(\s*in srgb\s*,\s*var\((--[\w-]+)\)\s+([\d.]+)%\s*,\s*var\((--[\w-]+)\)\s*\)$/);
+  if (!mix) return toRgbExtended(value);
+  const p = Number(mix[2]) / 100;
+  return composite(paintExtended(mix[1], tokens), p, paintExtended(mix[3], tokens));
+}
+
+/** toRgb() without the clamp: oklch → extended sRGB, sign-mirrored transfer function. */
+function toRgbExtended(value) {
+  const v = value.trim();
+  if (v.startsWith("#")) return toRgb(v);
+  const [L, C, H] = v
+    .replace(/^oklch\(|\)$/g, "")
+    .split(/[\s/]+/)
+    .filter(Boolean)
+    .map(Number);
+  const h = (H * Math.PI) / 180;
+  const a = C * Math.cos(h);
+  const b = C * Math.sin(h);
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  const encode = (u) => {
+    const x = Math.abs(u);
+    return Math.sign(u) * (x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055);
+  };
+  return [
+    encode(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+    encode(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+    encode(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s),
+  ];
+}
+
+const toHex = (rgb) =>
+  `#${rgb
+    .map((c) =>
+      Math.round(c * 255)
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
+
+test("T4: every tint is declared in both themes, as an opaque pre-blend over --card", () => {
+  for (const [theme, tokens, own] of [
+    ["light", lightTokens, lightTokens],
+    ["dark", darkTokens, darkOverrides],
+  ]) {
+    for (const tint of TINTS_T4) {
+      assert.ok(own.has(tint), `${theme}: theme.css declares no ${tint} in the ${theme} block`);
+      assert.match(
+        resolve(tint, tokens),
+        /^color-mix\(\s*in srgb\s*,\s*var\(--[\w-]+\)\s+[\d.]+%\s*,\s*var\(--card\)\s*\)$/,
+        `${theme} ${tint} must be an opaque sRGB pre-blend over --card, not an alpha tint`,
+      );
+    }
+  }
+});
+
+test("T4: the light tints are the Figma Color variables (±2/255 per channel)", () => {
+  const drift = [];
+  for (const [tint, hex] of FIGMA_LIGHT_TINTS) {
+    const actual = paint(tint, lightTokens).map((c) => Math.round(c * 255));
+    const expected = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    if (actual.some((c, i) => Math.abs(c - expected[i]) > 2))
+      drift.push(`${tint}: ${toHex(actual.map((c) => c / 255))} ≠ ${hex}`);
+  }
+  assert.deepEqual(
+    drift,
+    [],
+    "a light tint no longer matches page 08's T4 variable — retune the mix, or log a DESIGN-DELTA",
+  );
+});
+
+test("T4: every ink that sits on a tint clears AA (4.5:1), in both themes", () => {
+  const failures = [];
+  for (const [theme, tokens] of [
+    ["light", lightTokens],
+    ["dark", darkTokens],
+  ]) {
+    for (const tint of TINTS_T4) {
+      const fill = paint(tint, tokens);
+      for (const ink of TINT_INKS) {
+        const ratio = contrast(toRgb(resolve(ink, tokens)), fill);
+        if (ratio < 4.5) failures.push(`${theme} ${ink} on ${tint}: ${ratio.toFixed(2)}:1`);
+      }
+    }
+  }
+  assert.deepEqual(failures, [], "a tint is a text surface (SC 1.4.3): lower its mix percentage, do not lift the ink");
+});
+
+test("T4: every tint reads as a tint, distinct from the --card it is blended over", () => {
+  // A tint the eye cannot tell from the card is a selected state nobody can
+  // see. Not a WCAG threshold (the state is also carried by the row's own
+  // affordances), but the floor below which the token stops doing its job.
+  const flat = [];
+  for (const [theme, tokens] of [
+    ["light", lightTokens],
+    ["dark", darkTokens],
+  ]) {
+    const card = paint("--card", tokens);
+    for (const tint of TINTS_T4) {
+      const fill = paint(tint, tokens);
+      const channelGap = Math.max(...fill.map((c, i) => Math.abs(c - card[i]) * 255));
+      if (channelGap < 8) flat.push(`${theme} ${tint}: ${toHex(fill)} vs card ${toHex(card)}`);
+    }
+  }
+  assert.deepEqual(flat, []);
+});

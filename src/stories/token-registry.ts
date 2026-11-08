@@ -96,6 +96,8 @@ export type TokenRegistry = {
   unclassified: TokenDeclaration[];
   /** The radius role scale, in stylesheet order (replaces the old `default/md/sm/full` row). */
   radiusTokens: TokenDeclaration[];
+  /** The T1 Metrics (touch target, touch control and toolbar heights, sheet grabber), in stylesheet order. */
+  metricTokens: TokenDeclaration[];
 };
 
 /* ------------------------------------------------------------------ *
@@ -234,6 +236,11 @@ export function isColorValue(value: string): boolean {
   return false;
 }
 
+/** The T1 Metrics family. The touch target, the touch control and toolbar heights, and the sheet grabber. */
+function isMetric(name: string): boolean {
+  return /^--(touch-target|control-h-|toolbar-h-|sheet-grabber-)/.test(name);
+}
+
 /**
  * The kinds of `:root` token that are deliberately NOT colour swatches.
  * Every non-colour declaration must match one of these; the CI test fails on
@@ -255,6 +262,9 @@ export const NON_COLOR_TOKEN_CATEGORIES: ReadonlyArray<{
   // `.focus-ring` and CSS-only consumers share (#228 item 5).
   { id: "focus", label: "Focus ring recipe", matches: (n) => n.startsWith("--focus-ring") },
   { id: "board", label: "Board rendering", matches: (n) => n.startsWith("--board-") },
+  // T1 (slice 1.1): platform-agnostic touch sizes in px. Lengths, so no
+  // swatch; the story renders them as a scale of their own.
+  { id: "metrics", label: "Metrics (touch sizes)", matches: isMetric },
   // --texture-grain is a tiled noise `url()` and --texture-grain-blend a
   // blend-mode keyword. Neither is a colour, and a swatch for either would be
   // a lie: the grain's whole design property is that it contributes NO mean
@@ -312,6 +322,13 @@ const GROUP_DEFINITIONS: ReadonlyArray<{
     matches: family("success", "warning", "info"),
   },
   {
+    id: "tint",
+    title: "Tints",
+    description:
+      "Opaque pre-blended surfaces for a selected row, an info pill, a warning or a destructive confirmation: the source colour composited over the card. Text sits on them, so each is graded against page ink.",
+    matches: family("tint"),
+  },
+  {
     id: "control",
     title: "Borders, inputs & focus",
     description: "Hairlines and focus rings. These are drawn on the background, so they are measured against it.",
@@ -353,6 +370,14 @@ const GROUP_DEFINITIONS: ReadonlyArray<{
     title: "Gradient palette",
     description: "The three warm brand stops. Historically the sidebar gradient; now unused by chrome.",
     matches: family("fiesta", "icon-g1", "icon-g2", "icon-g3", "icon-g4", "icon-g5", "icon-g6"),
+    pairsWithBackground: true,
+  },
+  {
+    id: "board",
+    title: "Board",
+    description:
+      "The colour a scrolling board fades into at its bezel edge, and the same colour at alpha 0 for the gradient's clear stop. Theme-invariant: it is the hardware's dark bezel.",
+    matches: family("board-edge-fade"),
     pairsWithBackground: true,
   },
   {
@@ -425,8 +450,9 @@ export function buildColorTokenRegistry(css: string): TokenRegistry {
   })).filter((group) => group.tokens.length > 0);
 
   const radiusTokens = declarations.filter((d) => d.name === "--radius" || d.name.startsWith("--radius-"));
+  const metricTokens = declarations.filter((d) => isMetric(d.name));
 
-  return { declarations, colorTokens, groups, nonColorTokens, unclassified, radiusTokens };
+  return { declarations, colorTokens, groups, nonColorTokens, unclassified, radiusTokens, metricTokens };
 }
 
 /* ------------------------------------------------------------------ *
