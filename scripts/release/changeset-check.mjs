@@ -26,8 +26,14 @@ export const SKIP_LABEL = "no-changeset";
  *   package.json, so it would otherwise fail its own check.
  * - `main` is a main→alpha sync: main's changesets were consumed by main's own
  *   release before the sync, so the shipped diff arrives with none attached.
+ * - `alpha` is the promotion PR into main: alpha's changesets were consumed by
+ *   its prereleases (Changesets v3 keeps them in `.changeset/pre/`), and
+ *   main's next Version PR turns them into the stable changelog.
+ *
+ * Only for branches in this repository: a contributor's fork PR from their own
+ * `main` is ordinary work, not a sync.
  */
-const EXEMPT_HEAD_REFS = [/^changeset-release\//, /^main$/];
+const EXEMPT_HEAD_REFS = [/^changeset-release\//, /^main$/, /^alpha$/];
 
 const MAX_LISTED = 5;
 
@@ -55,12 +61,13 @@ function needsChangeset(path) {
 }
 
 /**
- * @param {{files: string[], addedFiles: string[], headRef: string, labels: string[]}} input
+ * @param {{files: string[], addedFiles: string[], headRef: string, labels: string[], sameRepo?: boolean}} input
+ *   sameRepo: the head branch lives in this repository (default true).
  *   files: every path the PR changes; addedFiles: paths the PR adds.
  * @returns {{ok: boolean, reason: string}} reason is always one line.
  */
-export function checkChangeset({ files, addedFiles, headRef, labels }) {
-  if (EXEMPT_HEAD_REFS.some((pattern) => pattern.test(headRef))) {
+export function checkChangeset({ files, addedFiles, headRef, labels, sameRepo = true }) {
+  if (sameRepo && EXEMPT_HEAD_REFS.some((pattern) => pattern.test(headRef))) {
     return { ok: true, reason: `Head ref ${headRef} is exempt from the changeset check.` };
   }
   if (labels.includes(SKIP_LABEL)) {
@@ -107,6 +114,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     files: gitLines(["diff", "--name-only", range]),
     addedFiles: gitLines(["diff", "--name-only", "--diff-filter=A", range]),
     headRef: process.env.HEAD_REF ?? "",
+    sameRepo: (process.env.HEAD_REPO ?? process.env.GITHUB_REPOSITORY ?? "") === (process.env.GITHUB_REPOSITORY ?? ""),
     labels: (process.env.PR_LABELS ?? "")
       .split(",")
       .map((l) => l.trim())
