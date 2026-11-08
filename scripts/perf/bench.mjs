@@ -31,6 +31,9 @@
  * See docs/superpowers/specs/2026-08-07-perf-explore-loop-design.md.
  */
 
+// The callbacks handed to page.evaluate and page.waitForFunction run in the page.
+/* global document, MutationObserver, requestAnimationFrame, window */
+
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";

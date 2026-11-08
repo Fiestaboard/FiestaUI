@@ -17,6 +17,9 @@
  *   npm run build-storybook && node scripts/ci/board-flap-cascade-e2e.mjs
  */
 
+// The function handed to page.evaluate runs in the page.
+/* global document, getComputedStyle, requestAnimationFrame */
+
 import { readFile, stat } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";

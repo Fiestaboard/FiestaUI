@@ -3,6 +3,7 @@ import jsxA11y from "eslint-plugin-jsx-a11y";
 import reactPlugin from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
+import globals from "globals";
 import tseslint from "typescript-eslint";
 
 const REACT_VERSION = "19";
@@ -157,6 +158,25 @@ const eslintConfig = [
     files: ["scripts/**/*.mjs"],
     rules: {
       "no-console": "off",
+    },
+  },
+  {
+    // Undefined names in scripts/ are errors. TypeScript checks src/ for this,
+    // but nothing checked the plain .mjs under scripts/, and the parity
+    // harness once shipped a call to a function it never imported
+    // (`clampClip is not defined`, slice 1.0b). The tests ran through a path
+    // that skipped the call, so only a manual browser run caught it.
+    //
+    // Only Node's globals are ambient. Code that runs in the page (a function
+    // handed to page.evaluate) names the browser globals it uses in a
+    // `/* global ... */` comment. Otherwise a Node-side `document` would pass
+    // too. scripts/ci/tests/scripts-no-undef.test.mjs pins both halves.
+    files: ["scripts/**/*.{js,mjs,cjs}"],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+    rules: {
+      "no-undef": "error",
     },
   },
   prettierConfig,
