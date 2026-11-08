@@ -119,11 +119,24 @@ test("joinRefs pairs by id and reports both kinds of orphan", () => {
 test("vrt/figma-refs.json targets every fixture ref", () => {
   const manifest = loadManifest(MANIFEST);
   const { missingRefs, unmanifested } = joinRefs(loadRefs(FIXTURE), manifest);
-  assert.deepEqual(missingRefs, []);
+  // An entry may be written ahead of its ref (slice 1.1: the token stories have
+  // no ref in the fixture), but only when it SAYS so. Any other manifest id
+  // with no fixture ref is a typo or a deleted ref.
+  const pending = manifest.entries.filter((e) => e.pendingRef).map((e) => e.id);
+  assert.deepEqual(missingRefs, pending);
   assert.deepEqual(unmanifested, []);
   for (const entry of manifest.entries) {
     assert.match(entry.target.story, /^[a-z0-9-]+--[a-z0-9-]+$/, entry.id);
     assert.ok(["component", "screen"].includes(entry.kind), entry.id);
+  }
+});
+
+test("vrt/figma-refs.json: a pending entry names its Figma node and what it waits on", () => {
+  const manifest = loadManifest(MANIFEST);
+  for (const entry of manifest.entries.filter((e) => e.pendingRef)) {
+    assert.match(entry.pendingRef.figmaNode ?? "", /^\d+:\d+$/, `${entry.id}: pendingRef.figmaNode`);
+    assert.match(entry.pendingRef.fileKey ?? "", /^[0-9A-Za-z]{22,}$/, `${entry.id}: pendingRef.fileKey`);
+    assert.ok((entry.pendingRef.waitingOn ?? "").length > 0, `${entry.id}: pendingRef.waitingOn`);
   }
 });
 

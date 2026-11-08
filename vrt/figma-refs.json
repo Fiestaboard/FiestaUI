@@ -1,29 +1,67 @@
 {
-  "$comment": "Figma parity manifest (MASTER-PLAN §3, manifest split C3). Keyed by ref id from the design-refs repo's refs.json; holds what lives with the code: the Storybook target, probe selectors (relative to target.root; ':scope' is the root itself), tolerance overrides and waivers. A token probe's optional cssVar is the CSS expression behind a Figma variable whose name is not one (P3); probe 1's sentinel check overrides the custom properties it names. `@theme inline` inlines a theme variable into its utility (rounded-md compiles to calc(var(--radius) - 2px), not var(--radius-md)), so cssVar must name what the compiled CSS references. Run: node scripts/vrt/vrt.mjs parity --refs <local refs checkout> --out <dir>. Until O4 creates the refs repo, scripts/ci/tests/fixtures/parity is the local stand-in for these ids. Report-only in slice 1.0b.",
+  "$comment": "Figma parity manifest (MASTER-PLAN §3, manifest split C3). Keyed by ref id from the design-refs repo's refs.json; holds what lives with the code: the Storybook target, probe selectors (relative to target.root; ':scope' is the root itself), tolerance overrides and waivers. A token probe's optional cssVar is the CSS expression behind a Figma variable whose name is not one (P3); probe 1's sentinel check overrides the custom properties it names. `@theme inline` inlines a theme variable into its utility (rounded-md compiles to calc(var(--radius) - 2px), not var(--radius-md)), so cssVar must name what the compiled CSS references. Run: node scripts/vrt/vrt.mjs parity --refs <local refs checkout> --out <dir>. Until O4 creates the refs repo, scripts/ci/tests/fixtures/parity is the local stand-in for these ids. Report-only in slice 1.0b. Entries with `pendingRef` are written ahead of their ref (slice 1.1 token specimens): they name the Figma node a ref will be captured from, and are skipped until a refs checkout carries that id. Since the owner ruling of 2026-11-08 the harness is advisory input to the Fable visual review, never a gate.",
   "refsTag": null,
   "entries": [
     {
       "id": "forms-button-default",
       "kind": "component",
-      "target": { "story": "forms-button--default", "root": "[data-slot=button]" },
+      "target": {
+        "story": "forms-button--default",
+        "root": "[data-slot=button]"
+      },
       "probes": {
         "tokens": [
-          { "selector": ":scope", "property": "background-color", "variable": "var(--primary)" },
-          { "selector": ":scope", "property": "color", "variable": "var(--primary-foreground)" },
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--primary)"
+          },
+          {
+            "selector": ":scope",
+            "property": "color",
+            "variable": "var(--primary-foreground)"
+          },
           {
             "selector": ":scope",
             "property": "border-top-left-radius",
             "variable": "var(--radius-md)",
             "cssVar": "calc(var(--radius) - 2px)"
           },
-          { "selector": ":scope", "property": "padding-left", "variable": "calc(var(--spacing) * 4)" },
-          { "selector": ":scope", "property": "height", "variable": "calc(var(--spacing) * 9)" }
+          {
+            "selector": ":scope",
+            "property": "padding-left",
+            "variable": "calc(var(--spacing) * 4)"
+          },
+          {
+            "selector": ":scope",
+            "property": "height",
+            "variable": "calc(var(--spacing) * 9)"
+          }
         ],
-        "geometry": [{ "node": "Label", "selector": ":scope", "measure": "text" }],
-        "text": [{ "node": "Label", "selector": ":scope" }],
+        "geometry": [
+          {
+            "node": "Label",
+            "selector": ":scope",
+            "measure": "text"
+          }
+        ],
+        "text": [
+          {
+            "node": "Label",
+            "selector": ":scope"
+          }
+        ],
         "colors": [
-          { "x": 6, "y": 18, "label": "fill, left of the label" },
-          { "x": 68, "y": 18, "label": "fill, right of the label" }
+          {
+            "x": 6,
+            "y": 18,
+            "label": "fill, left of the label"
+          },
+          {
+            "x": 68,
+            "y": 18,
+            "label": "fill, right of the label"
+          }
         ]
       },
       "tolerance": {},
@@ -34,7 +72,9 @@
       "kind": "component",
       "target": {
         "story": "forms-button--outline",
-        "args": { "children": "Button" },
+        "args": {
+          "children": "Button"
+        },
         "root": "[data-slot=button]"
       },
       "probes": {
@@ -45,20 +85,199 @@
             "variable": "component/button/outline-bg",
             "cssVar": "var(--background)"
           },
-          { "selector": ":scope", "property": "color", "variable": "var(--foreground)" },
+          {
+            "selector": ":scope",
+            "property": "color",
+            "variable": "var(--foreground)"
+          },
           {
             "selector": ":scope",
             "property": "border-top-left-radius",
             "variable": "var(--radius-md)",
             "cssVar": "calc(var(--radius) - 2px)"
           },
-          { "selector": ":scope", "property": "height", "variable": "calc(var(--spacing) * 9)" }
+          {
+            "selector": ":scope",
+            "property": "height",
+            "variable": "calc(var(--spacing) * 9)"
+          }
         ],
-        "geometry": [{ "node": "Label", "selector": ":scope", "measure": "text" }],
-        "text": [{ "node": "Label", "selector": ":scope" }],
+        "geometry": [
+          {
+            "node": "Label",
+            "selector": ":scope",
+            "measure": "text"
+          }
+        ],
+        "text": [
+          {
+            "node": "Label",
+            "selector": ":scope"
+          }
+        ],
         "colors": [
-          { "x": 7, "y": 18, "label": "fill, left of the label" },
-          { "x": 70, "y": 18, "label": "fill, right of the label" }
+          {
+            "x": 7,
+            "y": 18,
+            "label": "fill, left of the label"
+          },
+          {
+            "x": 70,
+            "y": 18,
+            "label": "fill, right of the label"
+          }
+        ]
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "tokens-tints",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "59:63212",
+        "waitingOn": "a ref for this id in a refs checkout (refs repo, O4, or a local MCP capture); O5 is dropped and the Fable visual review is the gate"
+      },
+      "target": {
+        "story": "foundations-tokens--tints",
+        "root": "[data-slot=token-specimen]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": "[data-token='--tint-selected'] > div",
+            "property": "background-color",
+            "variable": "tint/selected",
+            "cssVar": "var(--tint-selected)"
+          },
+          {
+            "selector": "[data-token='--tint-info'] > div",
+            "property": "background-color",
+            "variable": "tint/info",
+            "cssVar": "var(--tint-info)"
+          },
+          {
+            "selector": "[data-token='--tint-warning'] > div",
+            "property": "background-color",
+            "variable": "tint/warning",
+            "cssVar": "var(--tint-warning)"
+          },
+          {
+            "selector": "[data-token='--tint-danger'] > div",
+            "property": "background-color",
+            "variable": "tint/destructive",
+            "cssVar": "var(--tint-danger)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "tint/selected",
+            "selector": "[data-token='--tint-selected'] > span",
+            "measure": "text"
+          },
+          {
+            "node": "tint/info",
+            "selector": "[data-token='--tint-info'] > span",
+            "measure": "text"
+          },
+          {
+            "node": "tint/warning",
+            "selector": "[data-token='--tint-warning'] > span",
+            "measure": "text"
+          }
+        ],
+        "text": [
+          {
+            "node": "tint/selected",
+            "selector": "[data-token='--tint-selected'] > span"
+          },
+          {
+            "node": "tint/info",
+            "selector": "[data-token='--tint-info'] > span"
+          },
+          {
+            "node": "tint/warning",
+            "selector": "[data-token='--tint-warning'] > span"
+          }
+        ],
+        "colors": [
+          {
+            "x": 105,
+            "y": 60,
+            "label": "tint/selected fill"
+          },
+          {
+            "x": 217,
+            "y": 60,
+            "label": "tint/info fill"
+          },
+          {
+            "x": 329,
+            "y": 60,
+            "label": "tint/warning fill"
+          },
+          {
+            "x": 451,
+            "y": 60,
+            "label": "tint/danger fill"
+          }
+        ]
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "tokens-editor-mono",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "59:64327",
+        "waitingOn": "a ref for this id in a refs checkout (refs repo, O4, or a local MCP capture); O5 is dropped and the Fable visual review is the gate"
+      },
+      "target": {
+        "story": "foundations-tokens--editor-mono",
+        "root": "[data-slot=token-specimen]"
+      },
+      "probes": {
+        "tokens": [],
+        "geometry": [
+          {
+            "node": "GOOD MORNING {{weather.temp}}",
+            "selector": "[data-node=line]",
+            "measure": "text"
+          },
+          {
+            "node": "{{transit.n_judah}}",
+            "selector": "[data-node=chip]",
+            "measure": "text"
+          },
+          {
+            "node": "14 / 22",
+            "selector": "[data-node=count]",
+            "measure": "text"
+          }
+        ],
+        "text": [
+          {
+            "node": "GOOD MORNING {{weather.temp}}",
+            "selector": "[data-node=line]"
+          },
+          {
+            "node": "{{transit.n_judah}}",
+            "selector": "[data-node=chip]"
+          },
+          {
+            "node": "14 / 22",
+            "selector": "[data-node=count]"
+          }
+        ],
+        "colors": [
+          {
+            "x": 20,
+            "y": 20,
+            "label": "page background, top left"
+          }
         ]
       },
       "tolerance": {},
