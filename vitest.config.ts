@@ -35,5 +35,24 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     css: false,
     restoreMocks: true,
+    // Off unless asked for (`npm run test:coverage`, which CI's unit-tests job
+    // runs). scripts/ci/coverage-changed.mjs reads the json-summary and holds
+    // every file a PR adds or changes to 90% lines / 85% branches. `include`
+    // lists all source so a file no test imports still appears (at 0%) rather
+    // than vanishing from the summary. Keep `exclude` in step with
+    // isCoverageCandidate() in that script.
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.test.{ts,tsx}",
+        "src/**/*.stories.{ts,tsx}",
+        "src/**/*.figma.{ts,tsx}",
+        "src/**/*.d.ts",
+        "src/test/**",
+      ],
+      reporter: ["text-summary", "json-summary"],
+      reportsDirectory: "coverage",
+    },
   },
 });

@@ -20,19 +20,41 @@
  *
  * Stories listed in vrt/skip.json (exact ids or "prefix*" globs) are excluded;
  * an entry may narrow the skip to specific viewports with "viewports": [...].
+ *
+ *   node scripts/vrt/vrt.mjs parity --refs <local dir> --out <dir>
+ *        [--url <base>] [--manifest vrt/figma-refs.json] [--shots <dir>]
+ *     Figma parity (MASTER-PLAN §3). Joins <refs>/refs.json — a local checkout
+ *     of the design-refs repo at a pinned tag, or any local stand-in; never a
+ *     URL — with vrt/figma-refs.json, shoots each target at the ref's slot
+ *     size, scale and theme, measures the DOM for probes 1–5, and writes
+ *     <out>/report.{json,md} plus <id>.png / .ref.png / .diff.png / .dom.json.
+ *     --shots reuses an earlier capture (<id>.png + <id>.dom.json) instead of
+ *     launching a browser. REPORT-ONLY: findings never change the exit code
+ *     (0); only bad input exits 2. Gating arrives in slice 1.1.
  */
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { chromium } from "playwright";
+import { PNG } from "pngjs";
 
+import {
+  clampClip,
+  evaluateEntry,
+  joinRefs,
+  loadManifest,
+  loadRefs,
+  renderMarkdown,
+  resolveRefsDir,
+} from "./parity.mjs";
 import { buildManifest, fileNameFor, parseShard, selectShard, taskKey } from "./shard.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SKIP_FILE = path.join(ROOT, "vrt", "skip.json");
+const PARITY_MANIFEST = path.join(ROOT, "vrt", "figma-refs.json");
 
 const THEMES = ["dark", "light"];
 // Baselines are keyed by viewport, so these names are part of the on-disk
@@ -57,11 +79,27 @@ const FREEZE_CSS = `*,*::before,*::after{animation-play-state:paused!important;a
 const log = (msg) => process.stdout.write(`${msg}\n`);
 
 function parseArgs(argv) {
-  const args = { mode: argv[2], url: "http://localhost:6006", out: null, shard: null };
+  const args = {
+    mode: argv[2],
+    url: "http://localhost:6006",
+    out: null,
+    shard: null,
+    refs: null,
+    manifest: PARITY_MANIFEST,
+    shots: null,
+  };
+  const parityOnly = new Set(["--refs", "--manifest", "--shots"]);
   for (let i = 3; i < argv.length; i++) {
+    if (parityOnly.has(argv[i]) && args.mode !== "parity") {
+      console.error(`${argv[i]} applies to the parity mode only`);
+      process.exit(2);
+    }
     if (argv[i] === "--url") args.url = argv[++i];
     else if (argv[i] === "--out") args.out = argv[++i];
     else if (argv[i] === "--shard") args.shard = argv[++i];
+    else if (argv[i] === "--refs") args.refs = argv[++i];
+    else if (argv[i] === "--manifest") args.manifest = argv[++i];
+    else if (argv[i] === "--shots") args.shots = argv[++i];
     else {
       console.error(`Unknown argument: ${argv[i]}`);
       process.exit(2);
@@ -263,16 +301,253 @@ async function shoot(baseUrl, outDir, shard = null) {
   return { idsByViewport, tasks };
 }
 
+// --- parity (MASTER-PLAN §3) -----------------------------------------------
+
+/**
+ * Runs in the page: measure the target root and every probe the manifest asks
+ * for. Rects are CSS px relative to the root's border box. Colours are
+ * normalised to rgb() through a canvas, so oklch()/color-mix() tokens compare
+ * as sRGB without a colour library on the Node side.
+ */
+function measureInPage({ rootSelector, probes }) {
+  const root = document.querySelector(rootSelector);
+  if (!root) return { root: null };
+  const origin = root.getBoundingClientRect();
+  const pick = (selector) => (!selector || selector === ":scope" ? root : root.querySelector(selector));
+  const rel = (r) => ({ x: r.x - origin.x, y: r.y - origin.y, width: r.width, height: r.height });
+  const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+  const toRgb = (value) => {
+    if (!/^(#|rgb|hsl|oklch|oklab|lab|lch|color)/.test(value)) return value;
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = "#000";
+    ctx.fillStyle = value;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+    return `rgba(${r}, ${g}, ${b}, ${Math.round((a / 255) * 1000) / 1000})`;
+  };
+  // Visually hidden text (an sr-only label, a live-region announcer) is in
+  // textContent and in a Range over the element, but not in the Figma frame.
+  // Probes 2 and 3 read only the text a sighted user sees.
+  const isVisuallyHidden = (node, boundary) => {
+    for (let n = node.parentElement; n && n !== boundary.parentElement; n = n.parentElement) {
+      const cs = getComputedStyle(n);
+      if (cs.display === "none" || cs.visibility === "hidden") return true;
+      if (cs.clipPath === "inset(50%)" || /^rect\(0(px)?,? 0(px)?,? 0(px)?,? 0(px)?\)$/.test(cs.clip)) return true;
+      const r = n.getBoundingClientRect();
+      if (cs.position === "absolute" && r.width <= 1 && r.height <= 1) return true;
+    }
+    return false;
+  };
+  const visibleTextNodes = (target) => {
+    const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT);
+    const out = [];
+    while (walker.nextNode()) if (!isVisuallyHidden(walker.currentNode, target)) out.push(walker.currentNode);
+    return out;
+  };
+  const visibleText = (target) =>
+    visibleTextNodes(target)
+      .map((t) => t.nodeValue)
+      .join("");
+  // A Figma text node's box is its line boxes (lines × line-height); a DOM
+  // Range gives the glyph box, a few px shorter. Keep the Range's x/width and
+  // the centre of each line, and stretch the height to the computed
+  // line-height, so the two boxes mean the same thing.
+  const textRect = (target) => {
+    const rects = visibleTextNodes(target).flatMap((t) => {
+      const range = document.createRange();
+      range.selectNodeContents(t);
+      return [...range.getClientRects()].filter((c) => c.width > 0 && c.height > 0);
+    });
+    if (rects.length === 0) return target.getBoundingClientRect();
+    const left = Math.min(...rects.map((c) => c.left));
+    const right = Math.max(...rects.map((c) => c.right));
+    const r = new DOMRect(left, Math.min(...rects.map((c) => c.top)), right - left, 0);
+    const lineHeight = parseFloat(getComputedStyle(target).lineHeight);
+    if (!Number.isFinite(lineHeight)) {
+      const bottom = Math.max(...rects.map((c) => c.bottom));
+      return { x: r.x, y: r.y, width: r.width, height: bottom - r.y };
+    }
+    const lines = new Set(rects.map((c) => Math.round(c.top + c.height / 2))).size || 1;
+    const first = rects[0];
+    const top = first.top + first.height / 2 - lineHeight / 2;
+    return { x: r.x, y: top, width: r.width, height: lineHeight * lines };
+  };
+  return {
+    root: { x: 0, y: 0, width: origin.width, height: origin.height },
+    rootPage: { x: origin.x, y: origin.y },
+    geometry: (probes.geometry ?? []).map(({ node, selector, measure }) => {
+      const el = pick(selector);
+      return { node, rect: el ? rel(measure === "text" ? textRect(el) : el.getBoundingClientRect()) : null };
+    }),
+    text: (probes.text ?? []).map(({ node, selector, canonKey }) => {
+      const el = pick(selector);
+      return { node, canonKey, text: el ? visibleText(el) : null };
+    }),
+    tokens: (probes.tokens ?? []).map(({ selector, property, variable }) => {
+      const el = pick(selector);
+      return {
+        selector,
+        property,
+        variable,
+        value: el ? toRgb(getComputedStyle(el).getPropertyValue(property)) : null,
+      };
+    }),
+    board: probes.board
+      ? {
+          tiles: [...root.querySelectorAll(probes.board.tiles)].map((el) => {
+            const r = el.getBoundingClientRect();
+            return { width: r.width, height: r.height, color: el.getAttribute(probes.board.colorAttr) };
+          }),
+        }
+      : null,
+  };
+}
+
+/** Storybook's `args` URL syntax: key:value pairs joined by `;`. */
+function argsParam(args) {
+  if (!args) return "";
+  return `&args=${Object.entries(args)
+    .map(([k, v]) => `${encodeURIComponent(k)}:${encodeURIComponent(String(v))}`)
+    .join(";")}`;
+}
+
+/** Shoot one parity target and write <id>.png + <id>.dom.json into outDir. */
+async function captureParity(browser, baseUrl, { ref, entry }, refPng, outDir) {
+  const target = entry.target;
+  // Screens shoot at the slot size (§3.2, M6). A component's Storybook canvas
+  // pads around it, so it gets room to lay out at its natural size.
+  const viewport =
+    target.viewport ??
+    (entry.kind === "screen"
+      ? { width: ref.slotWidth, height: ref.slotHeight }
+      : { width: ref.slotWidth + 200, height: ref.slotHeight + 200 });
+  const context = await browser.newContext({
+    viewport,
+    deviceScaleFactor: ref.scale,
+    reducedMotion: "reduce",
+    colorScheme: ref.mode === "dark" ? "dark" : "light",
+  });
+  try {
+    const page = await context.newPage();
+    const url = `${baseUrl}/iframe.html?globals=theme:${ref.mode}&id=${encodeURIComponent(target.story)}&viewMode=story${argsParam(target.args)}`;
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT_MS });
+    await page
+      .waitForFunction(() => document.querySelector("#storybook-root")?.childElementCount > 0, null, {
+        timeout: 10_000,
+      })
+      .catch(() => {});
+    await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(SETTLE_MS);
+    await page.addStyleTag({ content: FREEZE_CSS });
+    await page.waitForTimeout(POST_FREEZE_MS);
+
+    const dom = await page.evaluate(measureInPage, {
+      rootSelector: target.root ?? "#storybook-root > *",
+      probes: entry.probes ?? {},
+    });
+    if (!dom.root) throw new Error(`target root not found: ${target.root ?? "#storybook-root > *"}`);
+    // Clip to the ref's frame: the node's origin minus the render bleed (a
+    // shadow), at the ref's size. A root of the wrong size shows up in the
+    // geometry probe's (root) row and in the pixel diff.
+    await page.screenshot({
+      path: path.join(outDir, `${ref.id}.png`),
+      clip: clampClip({
+        x: dom.rootPage.x - ref.renderOffset.x,
+        y: dom.rootPage.y - ref.renderOffset.y,
+        width: refPng.width / ref.scale,
+        height: refPng.height / ref.scale,
+      }),
+      animations: "disabled",
+    });
+    await writeFile(path.join(outDir, `${ref.id}.dom.json`), `${JSON.stringify(dom, null, 2)}\n`);
+  } finally {
+    await context.close();
+  }
+}
+
+async function parity({ url, out, refs: refsArg, manifest: manifestFile, shots }) {
+  // Bad input is the only non-zero exit. Everything after this is a finding.
+  let refsDir;
+  let refs;
+  let manifest;
+  try {
+    if (!out) throw new Error("parity requires --out <dir>");
+    refsDir = resolveRefsDir(refsArg);
+    refs = loadRefs(refsDir);
+    manifest = loadManifest(manifestFile);
+  } catch (err) {
+    console.error(`parity: ${err.message}`);
+    process.exit(2);
+  }
+  const outDir = path.resolve(out);
+  await mkdir(outDir, { recursive: true });
+  const { pairs, missingRefs, unmanifested } = joinRefs(refs, manifest);
+  log(`Parity: ${pairs.length} ref(s) from ${refsDir}${shots ? ` against shots in ${shots}` : ` against ${url}`}`);
+
+  const entries = [];
+  const browser = shots ? null : await chromium.launch();
+  try {
+    for (const pair of pairs) {
+      const { ref, entry } = pair;
+      try {
+        const refPng = PNG.sync.read(await readFile(ref.pngPath));
+        await copyFile(ref.pngPath, path.join(outDir, `${ref.id}.ref.png`));
+        const shotDir = shots ? path.resolve(shots) : outDir;
+        if (browser) await captureParity(browser, url, pair, refPng, outDir);
+        const shotPng = PNG.sync.read(await readFile(path.join(shotDir, `${ref.id}.png`)));
+        const dom = JSON.parse(await readFile(path.join(shotDir, `${ref.id}.dom.json`), "utf8"));
+        if (dom.root) {
+          // The target root itself must have the slot's size: a (root) row
+          // in the geometry probe, against a synthetic node at the origin.
+          ref.nodes = [...ref.nodes, { name: "(root)", x: 0, y: 0, width: ref.slotWidth, height: ref.slotHeight }];
+          dom.geometry = [{ node: "(root)", rect: dom.root }, ...(dom.geometry ?? [])];
+        }
+        const { diffPng, ...result } = evaluateEntry({ ref, entry, refPng, shotPng, dom });
+        await writeFile(path.join(outDir, `${ref.id}.diff.png`), PNG.sync.write(diffPng));
+        entries.push(result);
+      } catch (err) {
+        entries.push({ id: ref.id, figmaNode: ref.figmaNode, wouldPass: false, error: err.message });
+      }
+    }
+  } finally {
+    await browser?.close();
+  }
+
+  const report = {
+    gating: false,
+    refsDir,
+    refsTag: JSON.parse(await readFile(path.join(refsDir, "refs.json"), "utf8")).tag ?? null,
+    manifest: path.relative(ROOT, path.resolve(manifestFile)),
+    missingRefs,
+    unmanifested,
+    entries,
+  };
+  await writeFile(path.join(outDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
+  const md = renderMarkdown(report);
+  await writeFile(path.join(outDir, "report.md"), md);
+  log(md);
+  const failing = entries.filter((e) => !e.wouldPass).length;
+  log(`Parity (report-only): ${entries.length - failing}/${entries.length} would pass. Report: ${outDir}/report.md`);
+}
+
 async function main() {
-  const { mode, url, out, shard } = parseArgs(process.argv);
+  const args = parseArgs(process.argv);
+  const { mode, url, out, shard } = args;
   if (mode === "shoot") {
     if (!out) {
       console.error("shoot requires --out <dir>");
       process.exit(2);
     }
     await shoot(url, path.resolve(out), shard);
+  } else if (mode === "parity") {
+    await parity(args);
   } else {
-    console.error("Usage: node scripts/vrt/vrt.mjs shoot --out <dir> [--url <base>] [--shard <i/N>]");
+    console.error(
+      "Usage: node scripts/vrt/vrt.mjs shoot --out <dir> [--url <base>] [--shard <i/N>]\n" +
+        "       node scripts/vrt/vrt.mjs parity --refs <local dir> --out <dir> [--url <base>] " +
+        "[--manifest <file>] [--shots <dir>]",
+    );
     process.exit(2);
   }
 }

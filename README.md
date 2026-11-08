@@ -199,6 +199,7 @@ npm run build            # dist/ — ESM + d.ts + theme.css
 npm run lint && npm run typecheck && npm run format:check
 npm test                 # unit tests (Vitest + jsdom), single run
 npm run test:watch       # the same suite, watching
+npm run test:coverage    # the suite with v8 coverage -> coverage/coverage-summary.json
 npm run build-storybook && npm run test-storybook   # axe a11y sweep (needs the static build served on :6006)
 ```
 
@@ -209,6 +210,8 @@ Vitest + Testing Library on jsdom, configured in `vitest.config.ts` (deliberatel
 Tests are **colocated**: the test for `src/components/forms/button.tsx` is `src/components/forms/button.test.tsx`. Only `src/**/*.test.{ts,tsx}` is collected — the harness suites under `scripts/` keep their own runners (`npm run perf:test`, `npm run release:test`).
 
 **Tailwind does not run in jsdom.** No stylesheet is loaded, so class strings are inert and `getComputedStyle` reports UA defaults for every component in this package; an assertion on a colour or a size there passes for the wrong reason. Assert on what jsdom actually models — roles, accessible names, ARIA state, focus, keyboard, events and `data-*` props. Appearance is covered twice already, by VRT (`docs/VISUAL_REGRESSION.md`) and by the Storybook a11y sweep, both of which run a real browser.
+
+**Changed-file coverage.** CI runs `npm run test:coverage`, then `scripts/ci/coverage-changed.mjs` on pull requests: every `src/` file a PR adds or changes must reach **90% lines and 85% branches**, measured over the whole file. Tests, stories, `*.figma.tsx` and `.d.ts` files are exempt. Files the PR leaves alone are never checked, so there is no back-fill. Touching a legacy file that sits below the bar does mean bringing it up to the bar. To check locally after a coverage run: `node scripts/ci/coverage-changed.mjs origin/alpha HEAD`.
 
 Three files are maintained as exemplars of the house pattern; copy the nearest one:
 

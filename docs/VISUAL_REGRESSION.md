@@ -114,6 +114,30 @@ Values must be viewport keys from the table above; an unknown key is a hard erro
 
 **Policy:** the list should stay as close to empty as possible. Only add an entry after **proving** the story is nondeterministic — run `shoot` twice against the same build and confirm it differs run-to-run. Prefer fixing the story (freeze time in the story args, honor `prefers-reduced-motion`, etc.) over skipping it. Every entry must carry a `reason`.
 
+## Figma parity (report-only)
+
+`vrt.mjs parity` checks stories against Figma reference renders, following the program's visual-parity method. It is **report-only** for now: findings never change the exit code, and nothing in CI runs it yet. It starts gating once the pixel limits are calibrated.
+
+```bash
+npm run build-storybook && npm run vrt:serve &
+node scripts/vrt/vrt.mjs parity --refs <local refs checkout> --out /tmp/parity --url http://localhost:6007
+# no refs repo yet? the guard-test fixture stands in:
+node scripts/vrt/vrt.mjs parity --refs scripts/ci/tests/fixtures/parity --out /tmp/parity --url http://localhost:6007
+```
+
+- **`--refs` is a local path**, never a URL: a checkout of the design-refs repo at a pinned tag, a temp dir, or an unpacked artifact. It holds `refs.json` (Figma node, mode, slot size, scale, render offset, named child nodes, bound variables) and the PNGs.
+- **`vrt/figma-refs.json`** is this repo's half, keyed by ref `id`: the Storybook `target` (story, optional `args`, `root` selector), the `probes`, `tolerance` overrides and `waivers`.
+- Each target is shot at the ref's scale and theme, clipped to the ref's frame. The checks, in order of weight:
+  1. **token**: the computed style resolves to the Figma-bound variable;
+  2. **geometry**: named child bounds within ±1 CSS px, plus a `(root)` row for the component's own size;
+  3. **text**: the Figma text equals the DOM text;
+  4. **colour**: sample points at least 4 px from any text, ΔE2000 ≤ 2;
+  5. **board**: tile count, size class (sm 13×18, md 28×40, lg 32×46) and colour code, with zero tolerance;
+  6. **pixel**: pixelmatch at threshold 0.1, ≤1.0% for components and ≤2.5% for screens (provisional). Any contiguous differing blob larger than 24×24 CSS px is flagged regardless of the percentage.
+- The output is `report.md` / `report.json`, plus `<id>.png`, `.ref.png`, `.diff.png` and `.dom.json` per ref. `--shots <dir>` re-analyses an earlier capture without a browser.
+
+Text never matches pixel for pixel (Figma rasterises with Skia, Chromium with FreeType), so on small components the pixel check is dominated by glyph edges. That is why probes 1–5 carry the weight.
+
 ## Failure triage cheat sheet
 
 The report groups shots as `<viewport>/<theme>/<story-id>.png`. If a story fails at `mobile/*` but not `desktop/*`, the regression is responsive — the story or component does not reflow — not a rendering drift.
