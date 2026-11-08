@@ -84,3 +84,13 @@ test("reason is single-line for $GITHUB_OUTPUT", () => {
     assert.doesNotMatch(checkChangeset(input).reason, /\n/);
   }
 });
+
+test("the alpha promotion PR is exempt — its changesets were consumed by the prereleases", () => {
+  assert.equal(checkChangeset({ ...base, headRef: "alpha" }).ok, true);
+});
+
+test("fork PRs are never exempt by branch name", () => {
+  for (const headRef of ["main", "alpha", "changeset-release/main"]) {
+    assert.equal(checkChangeset({ ...base, headRef, sameRepo: false }).ok, false, headRef);
+  }
+});
