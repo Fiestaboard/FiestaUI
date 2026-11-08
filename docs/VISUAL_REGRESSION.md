@@ -1,6 +1,6 @@
 # Visual Regression Testing
 
-Every Storybook story is screenshotted at **two viewports** (desktop and mobile) in **both themes** (dark and light) — four shots per story. CI re-screenshots every story on each PR and compares against a **baseline published by `main`'s latest build**, failing when a story's rendering drifts. Intentional changes are accepted from the PR itself — a checkbox or a `/vrt approve` comment — and merging publishes the new baseline automatically.
+Every Storybook story is screenshotted at **two viewports** (desktop and mobile) in **both themes** (dark and light) — four shots per story. CI re-screenshots every story on each PR and compares against a **baseline published by the latest build of the PR's base branch** (`main`, or `alpha` for the alpha channel), failing when a story's rendering drifts. Intentional changes are accepted from the PR itself — a checkbox or a `/vrt approve` comment — and merging publishes the new baseline automatically.
 
 Capture is our own harness — Playwright (chromium), self-contained, no cloud services. Comparison, reporting, and approvals are [`fiestaboard/visual-regression-action`](https://github.com/Fiestaboard/visual-regression-action), which stores baselines as **build artifacts, not files in git**. The repo carries no screenshots; `vrt/` holds only `skip.json`.
 
@@ -15,14 +15,14 @@ Both are declared in one place, `VIEWPORTS` in `scripts/vrt/vrt.mjs`, and mirror
 
 ## How it works
 
-- On every push to `main`, CI shoots all stories and publishes the tree as a `vrt-baseline` artifact (14-day retention; see "Recovering baselines" for what happens when it lapses).
+- On every push to `main` or `alpha`, CI shoots all stories and publishes the tree as that branch's `vrt-baseline` artifact (14-day retention; see "Recovering baselines" for what happens when it lapses). The action's `auto` mode publishes only on the default branch and throws on other pushes, so `ci.yml` passes `mode: baseline` for pushes to any other branch and leaves `auto` everywhere else.
 - On every PR, CI shoots the same tree and hands it to the action's compare mode, which:
-  1. Downloads the newest `vrt-baseline` artifact from a `main` run.
+  1. Downloads the newest `vrt-baseline` artifact from a run on the PR's base branch. The action matches artifacts by the branch that produced them, so a PR into `main` compares against `main` and a PR into `alpha` compares against `alpha`, with no extra configuration.
   2. Diffs per shot with pixelmatch — per-pixel threshold `0.1`, and a shot counts as changed when more than `0.05%` of its pixels differ (the same tolerances the old in-repo compare shipped with, now set as `threshold` / `diff-ratio` inputs in `ci.yml`).
   3. Posts/updates a sticky PR comment: counts, a checkbox for each changed or removed shot plus **Approve all**, and pre-typed approval commands. It also writes the run's step summary and uploads the **report artifact** (`vrt-report.html`). That's one HTML file, un-zipped, so the PR link opens it right in the browser. It has side-by-side, swipe, overlay, and blink views plus a keyboard-driven review mode. The report streams, so the reviewer appears within a second even on a large run, and screenshots fill in as they download. Overlay and diff views are computed in the browser with the same threshold as the compare. When a change touches only part of a tall shot, the report carries just that band of rows and says which ones.
   4. Fails the `Visual Regression` job when any shot changed or went missing **and hasn't been approved**.
 - Added stories never fail (there is nothing to compare against); removed shots do, because a disappearing screenshot is indistinguishable from a broken capture until a human says otherwise.
-- If no baseline artifact exists (first run, or retention lapsed), the compare reports everything as new and passes; the next `main` build reseeds.
+- If no baseline artifact exists (first run, or retention lapsed), the compare reports everything as new and passes; the next build of that branch reseeds.
 
 ### Accepting an intentional change
 
@@ -34,7 +34,7 @@ Everything happens on the PR:
    - `/vrt approve all` as a comment (valid until the next push).
    - The per-shot command the report generated (commit-pinned, e.g. `/vrt approve ui-alert--default.png@ab12cd3 …`).
 3. The `VRT approvals` workflow reruns the failed check automatically (👀 on your comment, then a receipt comment that updates with the outcome). Approvals pin the commit, so pushing again invalidates them.
-4. Merge. `main` rebuilds and publishes the new baseline — no rebaseline workflow, no `chore(vrt)` commits, no baseline diffs in review.
+4. Merge. The base branch (`main` or `alpha`) rebuilds and publishes the new baseline — no rebaseline workflow, no `chore(vrt)` commits, no baseline diffs in review.
 
 ### Sharding
 
@@ -62,7 +62,24 @@ Size demo wrappers `w-full sm:w-[Npx]` instead. Below the `sm` breakpoint the bo
 
 ## Recovering baselines
 
-Baseline artifacts expire with retention (14 days, refreshed by every `main` build). If `main` has been quiet long enough for the baseline to lapse, PRs report everything as "new" and pass — nothing breaks, but the visual gate is napping. To reseed on demand: **Actions → CI → Run workflow on `main`** (or `gh workflow run ci.yml --ref main`). A manual run publishes a fresh baseline instead of comparing.
+Baseline artifacts expire with retention (14 days, refreshed by every build of their branch). If a branch has been quiet long enough for its baseline to lapse, PRs into it report everything as "new" and pass — nothing breaks, but the visual gate is napping. To reseed on demand: **Actions → CI → Run workflow** on the branch, or from a shell:
+
+```sh
+gh workflow run ci.yml --ref main
+gh workflow run ci.yml --ref alpha
+```
+
+A manual run publishes a fresh baseline instead of comparing.
+
+### The alpha channel
+
+`alpha` keeps its own baseline, separate from `main`'s:
+
+- **Publishing.** Every push to `alpha` (each merged PR, each main→alpha sync, each alpha Version PR) shoots the full suite and publishes alpha's `vrt-baseline`. A push whose diff is prose-only skips the visual jobs, like it does on `main`, and leaves the previous baseline in place.
+- **Gating.** A PR into `alpha` compares against alpha's newest baseline and is gated exactly like a PR into `main`. `/vrt approve` works the same way. The alpha ruleset requires no reviewers, so an approval on alpha is a self-approval: say in the PR which shot families changed and why.
+- **First seed.** Until alpha has published once, PRs into it see "No baseline found" and pass. Seed it with `gh workflow run ci.yml --ref alpha`.
+- **The 14-day reseed lever.** `alpha` can go quiet for longer than the 14-day retention between slices. If no PR has merged into `alpha` for about 10 days, run `gh workflow run ci.yml --ref alpha` before the next alpha PR. A `schedule` trigger can't do this for you: scheduled runs fire only on the default branch's copy of the workflow, so a cron in `ci.yml` would reseed `main`, never `alpha`. The step summary of an alpha PR's `Visual Regression` job says when the baseline was missing.
+- **Syncing `main` into `alpha`** merges `main`'s `ci.yml` into alpha's. Keep `alpha` in `on.push.branches` and the `mode:` expression in `vrt-report` when resolving conflicts; `scripts/ci/tests/vrt-alpha.test.mjs` fails the sync PR if either is lost.
 
 ## Running locally
 
@@ -107,5 +124,5 @@ The report groups shots as `<viewport>/<theme>/<story-id>.png`. If a story fails
 | Added                                | New story (or renamed) — no baseline yet         | Nothing to do; the merge publishes its baseline                                 |
 | Removed                              | Story deleted/renamed, or its capture broke      | Expected → approve it. Unexpected → find out why the story stopped rendering    |
 | Changed at `mobile/*` only           | Story sets a hard pixel width and cannot reflow  | Re-author the wrapper as `w-full sm:w-[Npx]` (see above); desktop is unaffected |
-| "No baseline found — everything new" | Baseline artifact expired or never seeded (warn) | Run the CI workflow manually on `main` to reseed                                |
+| "No baseline found — everything new" | Baseline artifact expired or never seeded (warn) | Run the CI workflow manually on the PR's base branch (`main` or `alpha`)        |
 | `Verify every shard delivered` red   | A shoot shard's artifact never arrived           | Re-run the failed jobs; the report never compares a partial tree                |

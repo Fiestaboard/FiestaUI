@@ -1,8 +1,12 @@
 name: CI
 
 on:
+  # `alpha` is here so the alpha channel publishes its own visual baseline:
+  # the VRT action finds a PR's baseline by the PR's BASE branch, so without a
+  # push run on alpha every PR into it would compare against nothing and pass.
+  # See vrt-report's `mode` for why those pushes need an explicit mode.
   push:
-    branches: [main]
+    branches: [main, alpha]
   # `labeled`/`unlabeled` re-run the changeset check when `no-changeset` is
   # added or removed. Listing `types` REPLACES the defaults, so the first three
   # must stay or CI (and the required `CI Success`) would stop running on pushes.
@@ -24,7 +28,9 @@ on:
   # recovery lever: on a manual run, vrt-report publishes a fresh vrt-baseline
   # artifact instead of comparing (the action treats workflow_dispatch as
   # baseline mode). Baselines expire with artifact retention, so if main has
-  # been quiet too long, "Run workflow" on main reseeds them. This replaced
+  # been quiet too long, "Run workflow" on main reseeds them — and on alpha,
+  # `gh workflow run ci.yml --ref alpha`, which is alpha's only reseed lever
+  # (a `schedule` trigger fires on the default branch alone). This replaced
   # vrt-update.yml, which existed to regenerate the committed baseline tree —
   # there is no committed tree anymore.
   workflow_dispatch:
@@ -468,10 +474,10 @@ jobs:
     # fail on capture noise a reviewer already cleared — while costing the
     # whole shoot fan-out per queued entry.
     #
-    # Also skipped on PRs into `alpha`: baselines are published only from pushes
-    # to main, so an alpha PR has nothing to compare against. Visual coverage
-    # for the alpha channel is a follow-up.
-    if: needs.changes.outputs.code == 'true' && github.event_name != 'merge_group' && github.base_ref != 'alpha'
+    # Runs for PRs into `alpha` too: pushes to alpha publish alpha's own
+    # baseline, and the compare picks the PR base's baseline (see vrt-report).
+    # scripts/ci/tests/vrt-alpha.test.mjs pins this.
+    if: needs.changes.outputs.code == 'true' && github.event_name != 'merge_group'
     strategy:
       # Unlike the old in-shard compare, shards here feed ONE report job that
       # needs every slice (vrt-report verifies completeness from the shard
@@ -505,9 +511,10 @@ jobs:
 
   # Merges every shard's screenshots and hands them to the visual-regression
   # action: on pull requests it downloads the latest vrt-baseline artifact
-  # from main, diffs, uploads the HTML report, and maintains the PR comment
-  # (with one-click and /vrt approvals); on pushes to main it publishes the
-  # new vrt-baseline artifact. Nothing is committed to git.
+  # from the PR's base branch (main or alpha), diffs, uploads the HTML report,
+  # and maintains the PR comment (with one-click and /vrt approvals); on pushes
+  # to main or alpha, and on manual runs, it publishes that branch's new
+  # vrt-baseline artifact. Nothing is committed to git.
   vrt-report:
     name: Visual Regression
     runs-on: ubuntu-latest
@@ -536,10 +543,17 @@ jobs:
       - name: Verify every shard delivered
         run: node scripts/vrt/verify-shots.mjs "${RUNNER_TEMP}/shots"
 
-      - name: Compare against main's baseline
+      - name: Compare against the base branch's baseline
         uses: fiestaboard/visual-regression-action@v2
         with:
           screenshots-dir: ${{ runner.temp }}/shots
+          # `auto` publishes on pushes to the DEFAULT branch only and throws on
+          # any other push (the action's src/mode.ts), so an alpha push names
+          # `baseline` explicitly. Everything else stays `auto`: PRs compare,
+          # main pushes and manual runs publish. No `baseline-branch` or `key`:
+          # the compare already looks up the PR base's artifact by the branch
+          # that produced it (`workflow_run.head_branch`).
+          mode: ${{ github.event_name == 'push' && github.ref_name != github.event.repository.default_branch && 'baseline' || 'auto' }}
           # The tolerances the old in-repo compare shipped with: pixelmatch
           # per-pixel threshold, and the same 0.05% changed-pixel ratio.
           threshold: "0.1"
