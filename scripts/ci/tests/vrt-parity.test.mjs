@@ -129,16 +129,19 @@ test("vrt/figma-refs.json targets every fixture ref", () => {
 
 // --- probe 1: tokens ---------------------------------------------------------
 
+/** What measureInPage records when the element followed the sentinel override. */
+const FOLLOWS = { vars: ["--x"], follows: true };
+
 test("token probe: a colour resolves to the Figma variable (8-bit rounding allowed)", () => {
   const variables = { "var(--primary)": "#f5a623", "var(--radius-md)": "8" };
   const ok = tokenProbe(variables, [
-    { variable: "var(--primary)", property: "background-color", value: "rgb(245, 166, 36)" },
-    { variable: "var(--radius-md)", property: "border-top-left-radius", value: "8px" },
+    { variable: "var(--primary)", property: "background-color", value: "rgb(245, 166, 36)", binding: FOLLOWS },
+    { variable: "var(--radius-md)", property: "border-top-left-radius", value: "8px", binding: FOLLOWS },
   ]);
   assert.equal(ok.pass, true);
   const bad = tokenProbe(variables, [
-    { variable: "var(--primary)", property: "background-color", value: "rgb(240, 160, 30)" },
-    { variable: "var(--radius-md)", property: "border-top-left-radius", value: "6px" },
+    { variable: "var(--primary)", property: "background-color", value: "rgb(240, 160, 30)", binding: FOLLOWS },
+    { variable: "var(--radius-md)", property: "border-top-left-radius", value: "6px", binding: FOLLOWS },
   ]);
   assert.equal(bad.pass, false);
   assert.equal(bad.items.filter((i) => !i.pass).length, 2);
@@ -148,6 +151,66 @@ test("token probe: a variable the ref does not define is a failure, not a skip",
   const result = tokenProbe({}, [{ variable: "var(--nope)", property: "color", value: "rgb(0, 0, 0)" }]);
   assert.equal(result.pass, false);
   assert.match(result.items[0].note, /not in the ref/);
+});
+
+// P2 (review of #378), MASTER-PLAN §3.3 probe 1: the value check alone lets a
+// hard-coded hex through when it happens to equal the token. measureInPage
+// overrides each mapped custom property with a sentinel, re-reads the
+// computed style and records whether it followed; the probe requires it.
+
+test("token probe: a matching value that does NOT follow the sentinel fails (hard-coded hex)", () => {
+  const result = tokenProbe({ "var(--primary)": "#f5a623" }, [
+    {
+      variable: "var(--primary)",
+      property: "background-color",
+      value: "rgba(245, 166, 35, 1)",
+      binding: { vars: ["--primary"], follows: false, after: "rgba(245, 166, 35, 1)", expected: "rgba(1, 2, 3, 1)" },
+    },
+  ]);
+  assert.equal(result.pass, false);
+  assert.match(result.items[0].note, /sentinel/);
+  assert.equal(result.items[0].bound, false);
+});
+
+test("token probe: a value with no sentinel binding check fails — value equality is not a binding", () => {
+  for (const binding of [undefined, null]) {
+    const result = tokenProbe({ "var(--primary)": "#f5a623" }, [
+      { variable: "var(--primary)", property: "background-color", value: "rgba(245, 166, 35, 1)", binding },
+    ]);
+    assert.equal(result.pass, false, String(binding));
+    assert.match(result.items[0].note, /binding/);
+  }
+});
+
+test("token probe: a binding that could not be checked fails with the reason", () => {
+  const result = tokenProbe({ "component/button/outline-bg": "#f1ece6" }, [
+    {
+      variable: "component/button/outline-bg",
+      property: "background-color",
+      value: "rgba(241, 236, 230, 1)",
+      binding: { vars: [], follows: false, note: "no cssVar mapping to override" },
+    },
+  ]);
+  assert.equal(result.pass, false);
+  assert.match(result.items[0].note, /no cssVar mapping/);
+});
+
+test("token probe: a wrong value still fails even when the binding follows", () => {
+  const result = tokenProbe({ "var(--primary)": "#f5a623" }, [
+    { variable: "var(--primary)", property: "background-color", value: "rgb(0, 0, 0)", binding: FOLLOWS },
+  ]);
+  assert.equal(result.pass, false);
+  assert.match(result.items[0].note, /colour differs/);
+});
+
+test("vrt/figma-refs.json: every token probe names a CSS custom property the sentinel can override", () => {
+  const manifest = loadManifest(MANIFEST);
+  for (const entry of manifest.entries) {
+    for (const probe of entry.probes?.tokens ?? []) {
+      const expr = probe.cssVar ?? probe.variable;
+      assert.match(expr, /var\(--[\w-]+/, `${entry.id} ${probe.property}: ${probe.variable} needs a cssVar`);
+    }
+  }
 });
 
 // --- probe 2: geometry ±1 CSS px ---------------------------------------------
@@ -298,6 +361,27 @@ test("evaluateEntry: would-fail verdict uses the provisional limits (1.0% compon
   assert.equal(result.wouldPass, false);
   const screen = evaluateEntry({ ref, entry: { ...entry, kind: "screen" }, refPng, shotPng: smudged, dom });
   assert.equal(screen.checks.pixel.limit, 0.025);
+});
+
+test("evaluateEntry: the report always carries probes 1–5 and the pixel diff, in §3.3 order", () => {
+  // A stable shape lets the CI smoke test require every probe. The board
+  // probe has nothing to compare for a ref without tiles, so it is present,
+  // marked not applicable, and checks nothing.
+  const [ref] = loadRefs(FIXTURE);
+  const refPng = readPng(ref.pngPath);
+  const entry = { id: ref.id, kind: "component", probes: {} };
+  const result = evaluateEntry({ ref, entry, refPng, shotPng: refPng, dom: { tokens: [], board: null } });
+  assert.deepEqual(Object.keys(result.checks), ["token", "geometry", "text", "color", "board", "pixel"]);
+  assert.deepEqual(result.checks.board, { pass: true, checked: 0, items: [], applicable: false });
+  const tiled = evaluateEntry({
+    ref: { ...ref, tiles: [{ width: 13, height: 18, color: 1 }] },
+    entry,
+    refPng,
+    shotPng: refPng,
+    dom: { tokens: [], board: { tiles: [] } },
+  });
+  assert.equal(tiled.checks.board.pass, false);
+  assert.notEqual(tiled.checks.board.applicable, false);
 });
 
 // --- CLI: report-only --------------------------------------------------------

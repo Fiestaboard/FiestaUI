@@ -33,6 +33,9 @@
  *     (0); only bad input exits 2. Gating arrives in slice 1.1.
  */
 
+// The callbacks handed to page.evaluate and page.waitForFunction run in the page.
+/* global document */
+
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -41,6 +44,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { PNG } from "pngjs";
 
+import { measureInPage } from "./measure.mjs";
 import {
   clampClip,
   evaluateEntry,
@@ -302,106 +306,6 @@ async function shoot(baseUrl, outDir, shard = null) {
 }
 
 // --- parity (MASTER-PLAN §3) -----------------------------------------------
-
-/**
- * Runs in the page: measure the target root and every probe the manifest asks
- * for. Rects are CSS px relative to the root's border box. Colours are
- * normalised to rgb() through a canvas, so oklch()/color-mix() tokens compare
- * as sRGB without a colour library on the Node side.
- */
-function measureInPage({ rootSelector, probes }) {
-  const root = document.querySelector(rootSelector);
-  if (!root) return { root: null };
-  const origin = root.getBoundingClientRect();
-  const pick = (selector) => (!selector || selector === ":scope" ? root : root.querySelector(selector));
-  const rel = (r) => ({ x: r.x - origin.x, y: r.y - origin.y, width: r.width, height: r.height });
-  const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
-  const toRgb = (value) => {
-    if (!/^(#|rgb|hsl|oklch|oklab|lab|lch|color)/.test(value)) return value;
-    ctx.clearRect(0, 0, 1, 1);
-    ctx.fillStyle = "#000";
-    ctx.fillStyle = value;
-    ctx.fillRect(0, 0, 1, 1);
-    const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
-    return `rgba(${r}, ${g}, ${b}, ${Math.round((a / 255) * 1000) / 1000})`;
-  };
-  // Visually hidden text (an sr-only label, a live-region announcer) is in
-  // textContent and in a Range over the element, but not in the Figma frame.
-  // Probes 2 and 3 read only the text a sighted user sees.
-  const isVisuallyHidden = (node, boundary) => {
-    for (let n = node.parentElement; n && n !== boundary.parentElement; n = n.parentElement) {
-      const cs = getComputedStyle(n);
-      if (cs.display === "none" || cs.visibility === "hidden") return true;
-      if (cs.clipPath === "inset(50%)" || /^rect\(0(px)?,? 0(px)?,? 0(px)?,? 0(px)?\)$/.test(cs.clip)) return true;
-      const r = n.getBoundingClientRect();
-      if (cs.position === "absolute" && r.width <= 1 && r.height <= 1) return true;
-    }
-    return false;
-  };
-  const visibleTextNodes = (target) => {
-    const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT);
-    const out = [];
-    while (walker.nextNode()) if (!isVisuallyHidden(walker.currentNode, target)) out.push(walker.currentNode);
-    return out;
-  };
-  const visibleText = (target) =>
-    visibleTextNodes(target)
-      .map((t) => t.nodeValue)
-      .join("");
-  // A Figma text node's box is its line boxes (lines × line-height); a DOM
-  // Range gives the glyph box, a few px shorter. Keep the Range's x/width and
-  // the centre of each line, and stretch the height to the computed
-  // line-height, so the two boxes mean the same thing.
-  const textRect = (target) => {
-    const rects = visibleTextNodes(target).flatMap((t) => {
-      const range = document.createRange();
-      range.selectNodeContents(t);
-      return [...range.getClientRects()].filter((c) => c.width > 0 && c.height > 0);
-    });
-    if (rects.length === 0) return target.getBoundingClientRect();
-    const left = Math.min(...rects.map((c) => c.left));
-    const right = Math.max(...rects.map((c) => c.right));
-    const r = new DOMRect(left, Math.min(...rects.map((c) => c.top)), right - left, 0);
-    const lineHeight = parseFloat(getComputedStyle(target).lineHeight);
-    if (!Number.isFinite(lineHeight)) {
-      const bottom = Math.max(...rects.map((c) => c.bottom));
-      return { x: r.x, y: r.y, width: r.width, height: bottom - r.y };
-    }
-    const lines = new Set(rects.map((c) => Math.round(c.top + c.height / 2))).size || 1;
-    const first = rects[0];
-    const top = first.top + first.height / 2 - lineHeight / 2;
-    return { x: r.x, y: top, width: r.width, height: lineHeight * lines };
-  };
-  return {
-    root: { x: 0, y: 0, width: origin.width, height: origin.height },
-    rootPage: { x: origin.x, y: origin.y },
-    geometry: (probes.geometry ?? []).map(({ node, selector, measure }) => {
-      const el = pick(selector);
-      return { node, rect: el ? rel(measure === "text" ? textRect(el) : el.getBoundingClientRect()) : null };
-    }),
-    text: (probes.text ?? []).map(({ node, selector, canonKey }) => {
-      const el = pick(selector);
-      return { node, canonKey, text: el ? visibleText(el) : null };
-    }),
-    tokens: (probes.tokens ?? []).map(({ selector, property, variable }) => {
-      const el = pick(selector);
-      return {
-        selector,
-        property,
-        variable,
-        value: el ? toRgb(getComputedStyle(el).getPropertyValue(property)) : null,
-      };
-    }),
-    board: probes.board
-      ? {
-          tiles: [...root.querySelectorAll(probes.board.tiles)].map((el) => {
-            const r = el.getBoundingClientRect();
-            return { width: r.width, height: r.height, color: el.getAttribute(probes.board.colorAttr) };
-          }),
-        }
-      : null,
-  };
-}
 
 /** Storybook's `args` URL syntax: key:value pairs joined by `;`. */
 function argsParam(args) {

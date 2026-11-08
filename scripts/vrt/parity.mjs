@@ -13,7 +13,8 @@
  *     and waivers.
  *
  * Checks, in order of weight (pixel diff counts least):
- *   1. token     computed style resolves to the Figma-bound variable
+ *   1. token     computed style equals the Figma-bound variable's value AND
+ *                follows a sentinel override of it (binding check, P2)
  *   2. geometry  named child bounds vs DOM rects, ±1 CSS px
  *   3. text      Figma text === DOM text (=== COPY-CANON when supplied)
  *   4. colour    sample points ≥4 px from any text, ΔE2000 ≤ 2
@@ -243,34 +244,57 @@ function summarise(items) {
 // --- probe 1: tokens -----------------------------------------------------------
 
 /**
+ * Probe 1 is two checks, and an item passes only when both do:
+ *   - value: the computed style equals the Figma variable's value (colours
+ *     ±2/255 per channel, numbers ±0.5, other strings exact);
+ *   - binding (P2): measureInPage overrode the custom properties behind the
+ *     token with a sentinel, and the computed style followed. A hard-coded
+ *     hex that equals the token's value passes the value check but not this
+ *     one. A measurement with no binding result (no cssVar mapping, or a
+ *     capture from before the check existed) fails: value equality alone does
+ *     not show the element uses the token.
+ *
  * @param {Record<string, string>} variables the ref's get_variable_defs output
- * @param {{variable: string, property: string, value: string|null, selector?: string}[]} measured
+ * @param {{variable: string, property: string, value: string|null, selector?: string,
+ *   binding?: {vars: string[], follows: boolean, note?: string}|null}[]} measured
  */
 export function tokenProbe(variables, measured) {
   return summarise(
     measured.map((m) => {
-      const expected = variables[m.variable];
-      const base = { variable: m.variable, property: m.property, expected: expected ?? null, actual: m.value };
-      if (expected === undefined) return { ...base, pass: false, note: "variable not in the ref's variable defs" };
-      if (m.value === null || m.value === undefined) return { ...base, pass: false, note: "element not found" };
-      const ec = parseColor(expected);
-      if (ec) {
-        const ac = parseColor(m.value);
-        if (!ac) return { ...base, pass: false, note: "expected a colour" };
-        // 8-bit rounding of oklch → sRGB on either side can move a channel by one or two.
-        const pass = ec.slice(0, 3).every((c, i) => Math.abs(c - ac[i]) <= 2) && Math.abs(ec[3] - ac[3]) <= 0.02;
-        return { ...base, pass, note: pass ? "" : "colour differs" };
+      const value = tokenValue(variables, m);
+      if (!value.pass) return value;
+      const b = m.binding;
+      if (!b) return { ...value, pass: false, bound: false, note: "binding not checked (no sentinel result)" };
+      if (!b.follows) {
+        const why = b.note ?? `did not follow the sentinel (${b.after} ≠ ${b.expected}): hard-coded?`;
+        return { ...value, pass: false, bound: false, note: `binding: ${why}`, binding: b };
       }
-      const en = parseFloat(expected);
-      const an = parseFloat(m.value);
-      if (Number.isNaN(en) || Number.isNaN(an)) {
-        const pass = expected.trim() === String(m.value).trim();
-        return { ...base, pass, note: pass ? "" : "value differs" };
-      }
-      const pass = Math.abs(en - an) <= 0.5;
-      return { ...base, pass, note: pass ? "" : `${an} ≠ ${en}` };
+      return { ...value, bound: true };
     }),
   );
+}
+
+function tokenValue(variables, m) {
+  const expected = variables[m.variable];
+  const base = { variable: m.variable, property: m.property, expected: expected ?? null, actual: m.value };
+  if (expected === undefined) return { ...base, pass: false, note: "variable not in the ref's variable defs" };
+  if (m.value === null || m.value === undefined) return { ...base, pass: false, note: "element not found" };
+  const ec = parseColor(expected);
+  if (ec) {
+    const ac = parseColor(m.value);
+    if (!ac) return { ...base, pass: false, note: "expected a colour" };
+    // 8-bit rounding of oklch → sRGB on either side can move a channel by one or two.
+    const pass = ec.slice(0, 3).every((c, i) => Math.abs(c - ac[i]) <= 2) && Math.abs(ec[3] - ac[3]) <= 0.02;
+    return { ...base, pass, note: pass ? "" : "colour differs" };
+  }
+  const en = parseFloat(expected);
+  const an = parseFloat(m.value);
+  if (Number.isNaN(en) || Number.isNaN(an)) {
+    const pass = expected.trim() === String(m.value).trim();
+    return { ...base, pass, note: pass ? "" : "value differs" };
+  }
+  const pass = Math.abs(en - an) <= 0.5;
+  return { ...base, pass, note: pass ? "" : `${an} ≠ ${en}` };
 }
 
 // --- probe 2: geometry ---------------------------------------------------------
@@ -535,9 +559,12 @@ export function evaluateEntry({ ref, entry, refPng, shotPng, dom, canon = null }
       max: tolerance.deltaE ?? COLOR_DELTA_E_MAX,
     }),
   };
-  if (ref.tiles || dom.board) {
-    checks.board = boardProbe(ref.tiles ?? [], dom.board?.tiles ?? []);
-  }
+  // Always present, so every report carries probes 1–5 (the CI smoke test
+  // requires them). A ref without tiles has nothing for probe 5 to compare.
+  checks.board =
+    ref.tiles || dom.board
+      ? boardProbe(ref.tiles ?? [], dom.board?.tiles ?? [])
+      : { pass: true, checked: 0, items: [], applicable: false };
   const diff = pixelDiff(refPng, shotPng, { scale: ref.scale });
   const limit = tolerance.pixelRatio ?? PIXEL_LIMITS[entry.kind ?? "component"] ?? PIXEL_LIMITS.component;
   const pixelPass = diff.sizeMatch && diff.ratio <= limit && diff.flaggedBlobs.length === 0;

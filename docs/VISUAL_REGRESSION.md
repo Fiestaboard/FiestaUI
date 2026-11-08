@@ -116,7 +116,9 @@ Values must be viewport keys from the table above; an unknown key is a hard erro
 
 ## Figma parity (report-only)
 
-`vrt.mjs parity` checks stories against Figma reference renders, following the program's visual-parity method. It is **report-only** for now: findings never change the exit code, and nothing in CI runs it yet. It starts gating once the pixel limits are calibrated.
+`vrt.mjs parity` checks stories against Figma reference renders, following the program's visual-parity method. It is **report-only** for now: findings never change the exit code. It starts gating once the pixel limits are calibrated.
+
+CI's `Parity harness smoke` job runs it on every code PR against the Button fixture, with a real browser. The job is hard on the harness and report-only on parity. `scripts/vrt/parity-smoke.mjs` fails it when a ref was not shot or measured, or when a probe is missing from the report, and never reads the verdicts. The same job runs `node --test scripts/vrt/tests/*.test.mjs`, the in-browser tests of the DOM measurement in `scripts/vrt/measure.mjs`. The report is uploaded as the `parity-smoke-report` artifact.
 
 ```bash
 npm run build-storybook && npm run vrt:serve &
@@ -128,7 +130,7 @@ node scripts/vrt/vrt.mjs parity --refs scripts/ci/tests/fixtures/parity --out /t
 - **`--refs` is a local path**, never a URL: a checkout of the design-refs repo at a pinned tag, a temp dir, or an unpacked artifact. It holds `refs.json` (Figma node, mode, slot size, scale, render offset, named child nodes, bound variables) and the PNGs.
 - **`vrt/figma-refs.json`** is this repo's half, keyed by ref `id`: the Storybook `target` (story, optional `args`, `root` selector), the `probes`, `tolerance` overrides and `waivers`.
 - Each target is shot at the ref's scale and theme, clipped to the ref's frame. The checks, in order of weight:
-  1. **token**: the computed style resolves to the Figma-bound variable;
+  1. **token**: the computed style equals the Figma-bound variable's value, and it follows a sentinel override of that variable. The harness sets each custom property behind the token to a sentinel such as `#010203` and re-reads the style, so a hard-coded hex that happens to equal the token fails. A probe's optional `cssVar` names the CSS expression when the Figma variable's name is not one. `@theme inline` compiles `rounded-md` to `calc(var(--radius) - 2px)`, so `cssVar` must name what the compiled CSS references, not the theme alias;
   2. **geometry**: named child bounds within ±1 CSS px, plus a `(root)` row for the component's own size;
   3. **text**: the Figma text equals the DOM text;
   4. **colour**: sample points at least 4 px from any text, ΔE2000 ≤ 2;
