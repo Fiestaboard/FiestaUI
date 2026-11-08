@@ -227,3 +227,51 @@ test("the documented non-colour categories are all still in use", () => {
     );
   }
 });
+
+test("slice 1.1: the T4 tints render as their own group of text surfaces", () => {
+  const group = registry.groups.find((g) => g.id === "tint");
+  assert.ok(group, "no 'tint' group — the four T4 tints would land in 'Other'");
+  assert.deepEqual(
+    group.tokens.map((t) => t.name),
+    ["--tint-selected", "--tint-info", "--tint-warning", "--tint-danger"],
+  );
+  for (const token of group.tokens) {
+    // A tint carries text, so it is graded at 4.5:1 against page ink.
+    assert.equal(token.contrastBasis, "text", token.name);
+    assert.equal(token.pairedWith, "--foreground", token.name);
+  }
+});
+
+test("slice 1.1: the C8 edge fade renders with the board colours, graded as non-text", () => {
+  const group = registry.groups.find((g) => g.id === "board");
+  assert.ok(group, "no 'board' colour group for --board-edge-fade");
+  assert.deepEqual(
+    group.tokens.map((t) => t.name),
+    ["--board-edge-fade", "--board-edge-fade-clear"],
+  );
+  for (const token of group.tokens) assert.equal(token.contrastBasis, "non-text", token.name);
+});
+
+test("slice 1.1: the T1 Metrics are a documented non-colour category", () => {
+  const metrics = registry.nonColorTokens.filter((t) => t.categoryId === "metrics").map((t) => t.name);
+  for (const name of [
+    "--touch-target",
+    "--control-h-touch",
+    "--toolbar-h-touch",
+    "--sheet-grabber-width",
+    "--sheet-grabber-height",
+  ]) {
+    assert.ok(metrics.includes(name), `${name} is not in the Metrics category`);
+  }
+  assert.deepEqual(
+    registry.metricTokens.map((t) => t.name),
+    metrics,
+    "metricTokens must list the Metrics category",
+  );
+});
+
+test("OWNER RULE: no Platform · Glass or other platform-chrome tokens in :root", () => {
+  // Tier 2 (companion kits) never ships in FiestaUI: no glass/*, ios/*, m3/*.
+  const platform = [...parsedNames].filter((n) => /^--(glass|ios|android|m3|platform)(-|$)/.test(n));
+  assert.deepEqual(platform, []);
+});

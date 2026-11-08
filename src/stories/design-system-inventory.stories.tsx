@@ -401,6 +401,34 @@ export const ColorTokens = () => {
           </div>
         </section>
 
+        {/* T1 Metrics — touch sizes, drawn at their size, derived from :root like the radii. */}
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-xl font-semibold">Metrics</h2>
+            <p className="text-muted-foreground text-sm">
+              Platform-agnostic touch sizes in px: the minimum hit area, a control and the editor toolbar at{" "}
+              <span className="font-mono text-xs">size=&quot;touch&quot;</span>, and the bottom sheet&apos;s grabber.
+              Native apps read the same numbers from <span className="font-mono text-xs">tokens.json</span> (44 maps to
+              48dp on Android).
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {TOKEN_REGISTRY.metricTokens.map((token) => (
+              <div key={token.name} className="border-border flex items-center gap-4 rounded-xl border p-4">
+                <span
+                  aria-hidden="true"
+                  className="bg-tint-selected border-primary block shrink-0 border"
+                  style={{ width: `min(var(${token.name}), 6rem)`, height: `var(${token.name})` }}
+                />
+                <div>
+                  <div className="font-mono text-xs font-medium">{token.name}</div>
+                  <div className="text-muted-foreground mt-1 font-mono text-xs">{token.value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Non-colour tokens are deliberately out of scope — say so, with counts. */}
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">Not shown here</h2>
@@ -437,6 +465,23 @@ export const ColorTokens = () => {
                 this system sets a sentence in (#238). */}
             <div className="text-sm text-brand">Brand text</div>
             <div className="text-sm text-destructive">Destructive text</div>
+          </div>
+          {/* Display/* (T6) — the headline scale above Heading/3xl. */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Display</h3>
+            <div className="text-display-sm">Display sm · 36</div>
+            <div className="text-display-md">Display md · 48</div>
+            <div className="text-display-lg">Display lg · 64</div>
+            <div className="text-display-xl">Display xl · 80</div>
+            <div className="text-display-2xl">Display 2xl · 104</div>
+          </div>
+          {/* Mono/editor/* (T8) — the page editor's content type at touch size. */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Editor mono</h3>
+            <div className="text-mono-editor-line">{"GOOD MORNING {{weather.temp}} · line 17"}</div>
+            <div className="text-mono-editor-chip">{"{{transit.n_judah}} · chip 14"}</div>
+            <div className="text-mono-editor-gutter">12 · gutter 13</div>
+            <div className="text-mono-editor-count">14 / 22 · count 12</div>
           </div>
         </section>
       </div>

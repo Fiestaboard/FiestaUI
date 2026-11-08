@@ -86,3 +86,81 @@ test("deprecated aliases are not exported to new platforms", () => {
   assert.equal(tokens.color.light["brand-tile"], undefined);
   assert.equal(tokens.color.light["brand-emphasis"], undefined);
 });
+
+// --- slice 1.1: T1 metrics, T4 tints, C8 edge fade, T6/T8 type --------------
+
+test("T4: the tints export in both modes as opaque colours, pre-blended per mode", () => {
+  for (const name of ["tint-selected", "tint-info", "tint-warning", "tint-danger"]) {
+    const light = tokens.color.light[name];
+    const dark = tokens.color.dark[name];
+    assert.ok(light && dark, `--${name} is missing from tokens.json`);
+    assert.equal(light.$value.alpha, 1, `--${name} must be opaque (T4: Figma drops paint opacity)`);
+    assert.notEqual(light.$value.hex, dark.$value.hex, `--${name} must have a distinct dark pair`);
+  }
+  // sRGB composite of #f5a623 at 16% over light --card (page 08, tint/selected #fcedd5)
+  assert.equal(tokens.color.light["tint-selected"].$value.hex, "#fcedd5");
+  assert.equal(
+    ext(tokens.color.light["tint-selected"]).authored,
+    "color-mix(in srgb, var(--primary) 16%, var(--card))",
+  );
+});
+
+test("C8: the board edge fade and its clear stop are theme-invariant board colours", () => {
+  assert.equal(tokens.color.light["board-edge-fade"].$value.hex, "#050505");
+  assert.equal(tokens.color.dark["board-edge-fade"].$value.hex, "#050505");
+  const clear = tokens.color.light["board-edge-fade-clear"].$value;
+  assert.equal(clear.hex, "#050505");
+  assert.equal(
+    clear.alpha,
+    0,
+    "the clear stop is the fade colour at alpha 0, so native gradients never pass through grey",
+  );
+});
+
+test("T1: Metrics export as px dimensions", () => {
+  const px = (n) => tokens.metrics[n]?.$value;
+  assert.deepEqual(px("touch-target"), { value: 44, unit: "px" });
+  assert.deepEqual(px("control-h-touch"), { value: 44, unit: "px" });
+  assert.deepEqual(px("toolbar-h-touch"), { value: 52, unit: "px" });
+  assert.deepEqual(px("sheet-grabber-width"), { value: 36, unit: "px" });
+  assert.deepEqual(px("sheet-grabber-height"), { value: 5, unit: "px" });
+  assert.equal(ext(tokens.metrics["touch-target"]).css, "--touch-target");
+  for (const t of Object.values(tokens.metrics)) assert.equal(t.$type, "dimension");
+});
+
+test("T6 and T8: Display/* and the editor mono styles export as DTCG typography", () => {
+  const display = tokens.typography["display-2xl"];
+  assert.equal(display.$type, "typography");
+  assert.deepEqual(display.$value.fontSize, { value: 104, unit: "px" });
+  assert.equal(display.$value.fontWeight, 600);
+  assert.equal(display.$value.lineHeight, 1.05);
+  assert.deepEqual(display.$value.letterSpacing, { value: -0.02, unit: "em" });
+  assert.equal(display.$value.fontFamily, "{font.sans}");
+  for (const [size, px] of [
+    ["sm", 36],
+    ["md", 48],
+    ["lg", 64],
+    ["xl", 80],
+  ]) {
+    assert.deepEqual(tokens.typography[`display-${size}`].$value.fontSize, { value: px, unit: "px" });
+  }
+
+  const line = tokens.typography["mono-editor-line"].$value;
+  assert.equal(line.fontFamily, "{font.mono}");
+  assert.deepEqual(line.fontSize, { value: 17, unit: "px" });
+  assert.equal(line.fontWeight, 600);
+  // Figma's Editor/Mono styles are auto line height: a 20px box for 17px type,
+  // shipped as a whole-px line height and exported as its ratio.
+  assert.equal(line.lineHeight, 1.1765);
+  assert.deepEqual(line.letterSpacing, { value: 0.5, unit: "px" });
+  for (const [name, px, weight] of [
+    ["chip", 14, 600],
+    ["gutter", 13, 500],
+    ["count", 12, 500],
+  ]) {
+    const v = tokens.typography[`mono-editor-${name}`].$value;
+    assert.deepEqual(v.fontSize, { value: px, unit: "px" }, name);
+    assert.equal(v.fontWeight, weight, name);
+  }
+  assert.equal(ext(tokens.typography["mono-editor-line"]).utility, "text-mono-editor-line");
+});

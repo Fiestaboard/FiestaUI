@@ -147,3 +147,41 @@ test("no dark rule is qualified with a host element", () => {
     .filter((part) => /(^|\s)[a-z]+(\.dark(?![\w-])|\[data-theme)/.test(part));
   assert.deepEqual(qualified, [], "dark selectors must stay unqualified so they can scope a subtree");
 });
+
+/**
+ * Slice 1.1 (T4): the tints are recipes over --card (`color-mix(in srgb, …)`),
+ * and a custom property substitutes var() on the element it is DECLARED on.
+ * A tint declared only in :root resolves against the light --card on <html>
+ * and is inherited as that computed colour, so a dark subtree (a `.dark` card
+ * on a light page) would paint the LIGHT tint. Every tint therefore carries
+ * its dark pair in the dark block, under both spellings (the block above).
+ */
+function blockBody(source, selectorPattern) {
+  const head = new RegExp(`(^|[};])\\s*${selectorPattern}\\s*\\{`, "g");
+  const bodies = [];
+  let match;
+  while ((match = head.exec(source)) !== null) {
+    let depth = 1;
+    let i = head.lastIndex;
+    for (; i < source.length && depth > 0; i += 1) {
+      if (source[i] === "{") depth += 1;
+      else if (source[i] === "}") depth -= 1;
+    }
+    bodies.push(source.slice(head.lastIndex, i - 1));
+    head.lastIndex = i;
+  }
+  return bodies.join("\n");
+}
+
+const declared = (body) => new Set([...body.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
+
+test("every --tint-* in :root has its dark pair in the dark block", () => {
+  const light = [...declared(blockBody(css, ":root"))].filter((n) => n.startsWith("--tint-"));
+  const dark = declared(blockBody(css, String.raw`\.dark\s*,\s*\[data-theme="dark"\]`));
+  assert.ok(light.length >= 4, `expected the four T4 tints in :root, found ${light.join(", ") || "none"}`);
+  assert.deepEqual(
+    light.filter((n) => !dark.has(n)),
+    [],
+    "a tint is a recipe over --card; without a dark declaration a dark subtree inherits the light tint",
+  );
+});
