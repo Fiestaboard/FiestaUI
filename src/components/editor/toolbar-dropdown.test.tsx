@@ -213,10 +213,16 @@ describe("ToolbarDropdown · presentation=sheet (WEB-05)", () => {
 
   it("closeOnOutsideClick={false} keeps the sheet up while the page is used", async () => {
     const user = userEvent.setup();
-    const { trigger } = setup({ presentation: "sheet", closeOnOutsideClick: false });
+    const { trigger, onClose } = setup({ presentation: "sheet", closeOnOutsideClick: false });
     await user.click(trigger);
     await screen.findByRole("dialog");
     await user.click(screen.getByRole("button", { name: "Outside" }));
+    // Base UI closes asynchronously; give it the chance before asserting it did not.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
@@ -261,12 +267,12 @@ describe("ToolbarDropdown · presentation=sheet (WEB-05)", () => {
 });
 
 describe("ToolbarDropdown · presentation=auto", () => {
-  it("is a sheet below 640px and a popover at or above it, following resizes", async () => {
+  it("is a sheet below 48rem or on a coarse pointer, and a popover otherwise, following changes", async () => {
     const user = userEvent.setup();
     const vp = mockViewport(true);
     try {
       const { trigger } = setup({ presentation: "auto" });
-      expect(window.matchMedia).toHaveBeenCalledWith("(max-width: 639.98px)");
+      expect(window.matchMedia).toHaveBeenCalledWith("(width < 48rem), (pointer: coarse)");
       expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
       await user.click(trigger);
       expect(await screen.findByRole("dialog")).toBeInTheDocument();

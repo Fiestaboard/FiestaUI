@@ -70,6 +70,13 @@ async function settled() {
   await waitFor(() => expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true));
 }
 
+/** Let Base UI's async close (if any) run before asserting it did not happen. */
+async function flush() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
+}
+
 async function expectClosed() {
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 }
@@ -251,11 +258,27 @@ describe("SheetContent side=bottom · grabber (C3, 53:100588)", () => {
     expect(popup().style.getPropertyValue("--sheet-drag-y")).toBe("");
   });
 
-  it("pointer cancel never dismisses", () => {
-    renderSheet({ grabber: true });
+  it("pointer cancel never dismisses", async () => {
+    const onOpenChange = vi.fn();
+    renderSheet({ grabber: true }, { onOpenChange });
     stubHeight(popup(), 300);
     drag(document.querySelector('[data-slot="sheet-grabber"]')!, 250, { cancel: true });
+    await flush();
+    expect(onOpenChange).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("a long secondary-button drag never dismisses", async () => {
+    const onOpenChange = vi.fn();
+    renderSheet({ grabber: true }, { onOpenChange });
+    stubHeight(popup(), 300);
+    const strip = document.querySelector('[data-slot="sheet-grabber"]')!;
+    fireEvent.pointerDown(strip, { pointerId: 1, button: 2, clientY: 100 });
+    fireEvent.pointerMove(strip, { pointerId: 1, clientY: 700 });
+    fireEvent.pointerUp(strip, { pointerId: 1, clientY: 700 });
+    await flush();
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(popup()).not.toHaveAttribute("data-sheet-drag");
   });
 
   it("ignores secondary buttons and stray moves", () => {
@@ -356,6 +379,29 @@ describe("SheetContent side=bottom · detents", () => {
     expect(s).toHaveAttribute("aria-valuenow", "50");
     fireEvent.click(s);
     expect(s).toHaveAttribute("aria-valuenow", "90");
+  });
+
+  it("a tap with a few px of finger jitter still cycles (4px slop)", () => {
+    renderSheet({ detents: [0.5, 0.9] });
+    stubHeight(popup(), 384);
+    const s = strip();
+    fireEvent.pointerDown(s, { pointerId: 1, button: 0, clientY: 400 });
+    fireEvent.pointerMove(s, { pointerId: 1, clientY: 403 });
+    fireEvent.pointerUp(s, { pointerId: 1, clientY: 403 });
+    fireEvent.click(s);
+    expect(s).toHaveAttribute("aria-valuenow", "90");
+  });
+
+  it("names each detent in aria-valuetext, localizable", () => {
+    const { unmount } = renderSheet({ detents: [0.5, 0.75, 1] });
+    expect(strip()).toHaveAttribute("aria-valuetext", "Half height");
+    fireEvent.keyDown(strip(), { key: "ArrowUp" });
+    expect(strip()).toHaveAttribute("aria-valuetext", "75% height");
+    fireEvent.keyDown(strip(), { key: "End" });
+    expect(strip()).toHaveAttribute("aria-valuetext", "Full height");
+    unmount();
+    renderSheet({ detents: [0.5], labels: { detentValue: (f) => `${f * 100} Prozent` } });
+    expect(strip()).toHaveAttribute("aria-valuetext", "50 Prozent");
   });
 
   it("is controllable through detent / onDetentChange", () => {
@@ -506,5 +552,82 @@ describe("SheetContent · focus", () => {
     }
     render(<WithInitialFocus />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Blue" })).toHaveFocus());
+  });
+
+  it("initial focus skips hidden, inert and aria-disabled controls", async () => {
+    render(
+      <Sheet defaultOpen>
+        <SheetContent side="bottom" grabber>
+          <SheetTitle>Colors</SheetTitle>
+          <div hidden>
+            <button type="button">Hidden</button>
+          </div>
+          <button type="button" aria-disabled="true">
+            Unavailable
+          </button>
+          <button type="button">Red</button>
+        </SheetContent>
+      </Sheet>,
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: "Red" })).toHaveFocus());
+  });
+});
+
+describe("SheetContent side=bottom · regions (07a 297:7667)", () => {
+  function renderRegions() {
+    return render(
+      <Sheet defaultOpen>
+        <SheetContent side="bottom" grabber>
+          <SheetHeader>
+            <button type="button">Back</button>
+            <SheetTitle>Compose a message</SheetTitle>
+          </SheetHeader>
+          <p>Body copy</p>
+          <SheetFooter>
+            <button type="button">Show now</button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>,
+    );
+  }
+
+  it("pins SheetHeader above and SheetFooter below the scrolling body", () => {
+    renderRegions();
+    const head = document.querySelector('[data-slot="sheet-head"]')!;
+    const body = document.querySelector('[data-slot="sheet-body"]')!;
+    const foot = document.querySelector('[data-slot="sheet-foot"]')!;
+    expect(head).toContainElement(screen.getByText("Compose a message"));
+    expect(body).toContainElement(screen.getByText("Body copy"));
+    expect(body).not.toContainElement(screen.getByRole("button", { name: "Show now" }));
+    expect(foot).toContainElement(screen.getByRole("button", { name: "Show now" }));
+    expect(foot).toHaveClass("shrink-0");
+    // DOM order is visual order: grabber, head, body, foot.
+    const order = [...popup().querySelectorAll("[data-slot^='sheet-']")].map((el) => el.getAttribute("data-slot"));
+    expect(order.indexOf("sheet-head")).toBeLessThan(order.indexOf("sheet-body"));
+    expect(order.indexOf("sheet-body")).toBeLessThan(order.indexOf("sheet-foot"));
+  });
+
+  it("reserves the grabber's 24px hit band above the body, keeping head controls tappable", () => {
+    renderRegions();
+    const head = document.querySelector('[data-slot="sheet-head"]')!;
+    expect(head).toHaveClass("min-h-6", "shrink-0", "pointer-events-none", "relative");
+    expect(head.className).toContain("pointer-events-auto");
+  });
+
+  it("an empty head still reserves the band, and no footer region renders without a footer", () => {
+    renderSheet({ grabber: true });
+    expect(document.querySelector('[data-slot="sheet-head"]')).toHaveClass("min-h-6");
+    expect(document.querySelector('[data-slot="sheet-foot"]')).toBeNull();
+  });
+
+  it("initial focus may land in the head", async () => {
+    renderRegions();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Back" })).toHaveFocus());
+  });
+
+  it("the close chip has a 44px hit area around its 40px visual", () => {
+    renderSheet({ grabber: true });
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close).toHaveClass("size-10", "before:absolute", "before:-inset-0.5", "top-6");
   });
 });

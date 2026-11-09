@@ -32,12 +32,19 @@ export const DEFAULT_TOOLBAR_DROPDOWN_LABELS: ToolbarDropdownLabels = {
  * - `popover` (default): the panel drops down under the trigger, as before.
  * - `sheet`: the panel is a non-modal bottom sheet with a grabber and no scrim,
  *   so the board preview above it stays visible and live (WEB-05, 07c).
- * - `auto`: `sheet` below 640px (Tailwind `sm`), `popover` at or above it.
+ * - `auto`: `sheet` below 768px (48rem, Tailwind `md`) **or** on a coarse
+ *   pointer, `popover` otherwise. This is the same rule as the touch editor
+ *   toolbar (MASTER-PLAN 2.5), so a touch-sized toolbar never opens a popover.
+ *
+ * In sheet mode, dismissal follows Base UI's non-modal dialog: Esc, the close
+ * button, an outside press, and also Tab moving focus out of the sheet, all
+ * unless `closeOnOutsideClick={false}`. The popover only closes on an outside
+ * mousedown and Esc.
  */
 export type ToolbarDropdownPresentation = "auto" | "popover" | "sheet";
 
-/** Below Tailwind's `sm` (40rem). The .98 keeps 640 itself on the popover side. */
-const SHEET_QUERY = "(max-width: 639.98px)";
+/** Below Tailwind's `md` (48rem), or any coarse pointer. rem, so it follows the root font size. */
+const SHEET_QUERY = "(width < 48rem), (pointer: coarse)";
 
 function subscribeSheetQuery(onChange: () => void) {
   const mql = window.matchMedia(SHEET_QUERY);

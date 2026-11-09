@@ -115,11 +115,19 @@ export interface SheetLabels {
    * `detents`. Default: "Resize sheet".
    */
   grabber: string;
+  /**
+   * The separator's `aria-valuetext` for a detent, given its viewport
+   * fraction. Default: "Half height" (0.5), "Full height" (1), otherwise
+   * "N% height".
+   */
+  detentValue: (fraction: number) => string;
 }
 
 export const DEFAULT_SHEET_LABELS: SheetLabels = {
   close: "Close",
   grabber: "Resize sheet",
+  detentValue: (fraction) =>
+    fraction === 0.5 ? "Half height" : fraction === 1 ? "Full height" : `${Math.round(fraction * 100)}% height`,
 };
 
 /** Smallest movement, in px, that turns a press on the grabber into a drag. */
@@ -131,6 +139,27 @@ const DISMISS_BELOW_SMALLEST = 0.5;
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** First control a user could actually reach: not hidden, inert or aria-disabled. */
+function firstFocusable(regions: (HTMLElement | null)[]): HTMLElement | null {
+  for (const region of regions) {
+    for (const el of region?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []) {
+      if (el.closest('[hidden], [inert], [aria-hidden="true"]') || el.getAttribute("aria-disabled") === "true")
+        continue;
+      return el;
+    }
+  }
+  return null;
+}
+
+/*
+ * Under a grabber, the 44px hit area hangs 24px below the 20px strip. The
+ * head region always fills at least that band (min-h-6), so the scrolling
+ * body never starts under it. The head lets presses through to the grabber
+ * (so the title row drags) except on its own controls, which stay tappable.
+ */
+const SHEET_HEAD_CLASS =
+  "relative min-h-6 shrink-0 pointer-events-none [&_:is(button,a,input,select,textarea,[role=button],[tabindex])]:pointer-events-auto";
 
 function detentFraction(detent: SheetDetent): number {
   if (detent === "half") return 0.5;
@@ -159,7 +188,12 @@ export interface SheetContentProps
    * set, otherwise `false`, so an existing bottom sheet renders as before.
    *
    * The grabber also switches the sheet to the Figma surface: popover fill,
-   * 16px top corners, 16px side padding, and a scrolling body under it.
+   * 16px top corners, 16px side padding, and three regions. A direct
+   * `SheetHeader` child is pinned at the top, a direct `SheetFooter` child is
+   * pinned at the bottom (a sticky footer, 07a `297:7667`), and everything
+   * else scrolls between them. The head region always reserves the 24px the
+   * grabber's hit area hangs below its strip, so the body never sits under it;
+   * header controls stay tappable while the rest of the head row drags.
    */
   grabber?: boolean;
   /**
@@ -232,7 +266,9 @@ function SheetContent({
   };
 
   const popupRef = React.useRef<HTMLDivElement>(null);
+  const headRef = React.useRef<HTMLDivElement>(null);
   const bodyRef = React.useRef<HTMLDivElement>(null);
+  const footRef = React.useRef<HTMLDivElement>(null);
   const dismissRef = React.useRef<HTMLButtonElement>(null);
   const dragRef = React.useRef<{ pointerId: number; startY: number; startHeight: number; moved: boolean } | null>(null);
   const suppressClickRef = React.useRef(false);
@@ -334,9 +370,24 @@ function SheetContent({
   }
 
   // With a grabber, the first tabbable is the grabber itself; land on the
-  // body's first control instead (touch keeps Base UI's popup focus).
+  // first control in the head, body or footer instead (touch keeps Base UI's
+  // popup focus).
   const grabberInitialFocus = (openType: string) =>
-    openType === "touch" ? true : (bodyRef.current?.querySelector<HTMLElement>(FOCUSABLE) ?? true);
+    openType === "touch" ? true : (firstFocusable([headRef.current, bodyRef.current, footRef.current]) ?? true);
+
+  // Slots: SheetHeader children pin above the scrolling body, SheetFooter
+  // children pin below it (07a Mobile sheet 297:7667's sticky footer). Only
+  // direct children are sorted; anything wrapped goes to the body.
+  const head: React.ReactNode[] = [];
+  const body: React.ReactNode[] = [];
+  const foot: React.ReactNode[] = [];
+  if (grabberOn) {
+    React.Children.toArray(children).forEach((child) => {
+      if (React.isValidElement(child) && child.type === SheetHeader) head.push(child);
+      else if (React.isValidElement(child) && child.type === SheetFooter) foot.push(child);
+      else body.push(child);
+    });
+  }
 
   const grabberA11y = hasDetents
     ? {
@@ -347,6 +398,7 @@ function SheetContent({
         "aria-valuemin": 0,
         "aria-valuemax": 100,
         "aria-valuenow": Math.round(entries[detentIndex].fraction * 100),
+        "aria-valuetext": l.detentValue(entries[detentIndex].fraction),
         onKeyDown: handleGrabberKeyDown,
         onClick: handleGrabberClick,
       }
@@ -391,13 +443,21 @@ function SheetContent({
                 className="h-[var(--sheet-grabber-height)] w-[var(--sheet-grabber-width)] rounded-full bg-input"
               />
             </div>
+            <div ref={headRef} data-slot="sheet-head" className={SHEET_HEAD_CLASS}>
+              {head}
+            </div>
             <div
               ref={bodyRef}
               data-slot="sheet-body"
               className="-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 py-1"
             >
-              {children}
+              {body}
             </div>
+            {foot.length > 0 && (
+              <div ref={footRef} data-slot="sheet-foot" className="shrink-0 pt-2">
+                {foot}
+              </div>
+            )}
             {/* Drag-to-dismiss closes through Base UI, so onOpenChange fires with a real reason. */}
             <SheetPrimitive.Close
               ref={dismissRef}
@@ -410,11 +470,17 @@ function SheetContent({
         ) : (
           children
         )}
-        {/* 40px chip — the reference size of the shared OverlayClose design.
+        {/* 40px chip — the reference size of the shared OverlayClose design —
+            with a transparent 44px hit area (07a "OverlayClose (44 hit)").
             Under a grabber it drops by the 20px strip to centre on a 48px
             header row (07 53:100588); give the title row min-h-12. The body
             pads 4px inside its scroll box so focus rings are not clipped. */}
-        <OverlayClose data-slot="sheet-close" size="md" label={l.close} className={grabberOn ? "top-6" : undefined} />
+        <OverlayClose
+          data-slot="sheet-close"
+          size="md"
+          label={l.close}
+          className={cn("before:absolute before:-inset-0.5 before:rounded-full", grabberOn && "top-6")}
+        />
       </SheetPrimitive.Popup>
     </SheetPortal>
   );

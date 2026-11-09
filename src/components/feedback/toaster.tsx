@@ -13,14 +13,6 @@ export type ToastOptions = ExternalToast;
 /** Messages for `toast.promise`, re-exported so apps never import Sonner. */
 export type ToastPromiseMessages<T> = NonNullable<Parameters<typeof sonnerToast.promise<T>>[1]>;
 
-/**
- * The imperative side of the toast surface. Re-exported from Sonner so apps
- * import the emitter from the same package as the surface it renders into —
- * owning one without the other would leave `sonner` as a direct app
- * dependency (issue #303).
- */
-export const toast: typeof sonnerToast = sonnerToast;
-
 export interface ToasterLabels {
   /** Accessible name of the live region. Default: "Notifications". */
   container?: string;
@@ -84,7 +76,7 @@ const TOKEN_STYLE = {
 } as React.CSSProperties;
 
 /** Sonner's own edge offsets (24px desktop, 16px below 600px), plus the nav. */
-const NAV_CLEAR_OFFSET = { bottom: "calc(24px + var(--bottom-nav-offset, 0px))" };
+const NAV_CLEAR_OFFSET = { bottom: "calc(24px + var(--bottom-nav-offset, 0px) + env(safe-area-inset-bottom, 0px))" };
 const NAV_CLEAR_MOBILE_OFFSET = {
   bottom: "calc(16px + var(--bottom-nav-offset, 0px) + env(safe-area-inset-bottom, 0px))",
 };
@@ -94,23 +86,119 @@ const NAV_CLEAR_MOBILE_OFFSET = {
  * row under the text, indented 28px (16px glyph + 12px gap), as 44px Buttons.
  * The text takes the row minus the glyph and its margins (2.25rem), which is
  * what pushes the buttons onto the next line.
- * `action` is the primary one (secondary fill: "Undo", "Show now"); Sonner's
- * `cancel` is the second (ghost: "Add to Schedule") and follows it. The
- * `has-[[data-button]]` guards keep toasts without actions exactly as before.
- * `!` beats Sonner's own `[data-button]` rules, which outrank a class.
+ * `action` is the primary one (secondary fill: "Undo", "Show now"); `cancel`
+ * is the second (ghost: "Add to Schedule") and follows it, in the DOM as well
+ * as on screen (see `toast` below). The `has-[[data-button]]` guards keep
+ * toasts without actions exactly as before. `!` beats Sonner's own
+ * `[data-button]` rules, which outrank a class.
  */
 const ACTION_BASE = "!h-control-touch !rounded-md !px-6 !text-sm !font-medium focus-visible:!shadow-none focus-ring";
+const PRIMARY_ACTION_CLASS = cn(ACTION_BASE, "!ms-7 !bg-secondary !text-secondary-foreground hover:!bg-secondary/80");
+/** Indented when it leads the row; flush after a primary action. */
+const SECONDARY_ACTION_CLASS = cn(
+  ACTION_BASE,
+  "!ms-7 [[data-action]~&]:!ms-0 !bg-transparent !text-foreground hover:!bg-accent",
+);
 const TOAST_CLASSNAMES = {
   toast:
     "group/toast font-sans shadow-lg has-[[data-button]]:flex-wrap has-[[data-button]]:!items-start has-[[data-button]]:!gap-3",
   content: "group-has-[[data-button]]/toast:!basis-[calc(100%-2.25rem)]",
   description: "!text-muted-foreground",
-  actionButton: cn(ACTION_BASE, "order-1 !ms-7 !bg-secondary !text-secondary-foreground hover:!bg-secondary/80"),
-  cancelButton: cn(
-    ACTION_BASE,
-    "order-2 !ms-0 !bg-transparent !text-foreground hover:!bg-accent [&:not(:has(~[data-action]))]:!ms-7",
-  ),
+  actionButton: PRIMARY_ACTION_CLASS,
+  cancelButton: SECONDARY_ACTION_CLASS,
 };
+
+type ToastAction = Exclude<ExternalToast["action"], React.ReactNode>;
+
+function isAction(value: ExternalToast["action"]): value is ToastAction {
+  return typeof value === "object" && value !== null && !React.isValidElement(value) && "label" in value;
+}
+
+/**
+ * Sonner renders `cancel` before `action` in the DOM. With both set, the
+ * primary action must come first for the eye, the Tab key and a screen
+ * reader alike (WCAG 1.3.2 / 2.4.3), so the pair is rendered here in that
+ * order, with Sonner's own dismissal rules: the primary dismisses unless its
+ * handler calls `preventDefault()`; the second dismisses unless the toast is
+ * `dismissible: false`.
+ */
+function ToastActionPair({
+  id,
+  primary,
+  secondary,
+  dismissible,
+}: {
+  id: string | number;
+  primary: ToastAction;
+  secondary: ToastAction;
+  dismissible?: boolean;
+}) {
+  return (
+    <>
+      <button
+        type="button"
+        data-button=""
+        data-action=""
+        className={PRIMARY_ACTION_CLASS}
+        style={primary.actionButtonStyle}
+        onClick={(event) => {
+          primary.onClick?.(event);
+          if (!event.defaultPrevented) sonnerToast.dismiss(id);
+        }}
+      >
+        {primary.label}
+      </button>
+      <button
+        type="button"
+        data-button=""
+        data-cancel=""
+        className={SECONDARY_ACTION_CLASS}
+        style={secondary.actionButtonStyle}
+        onClick={(event) => {
+          if (dismissible === false) return;
+          secondary.onClick?.(event);
+          sonnerToast.dismiss(id);
+        }}
+      >
+        {secondary.label}
+      </button>
+    </>
+  );
+}
+
+let pairedToastSeq = 0;
+
+function orderActions(data?: ExternalToast): ExternalToast | undefined {
+  if (!data || !isAction(data.action) || !isAction(data.cancel)) return data;
+  const id = data.id ?? `fiestaui-toast-${++pairedToastSeq}`;
+  return {
+    ...data,
+    id,
+    cancel: undefined,
+    action: <ToastActionPair id={id} primary={data.action} secondary={data.cancel} dismissible={data.dismissible} />,
+  };
+}
+
+function withOrderedActions<F extends (message: never, data?: ExternalToast) => string | number>(emit: F): F {
+  return ((message: Parameters<F>[0], data?: ExternalToast) => emit(message, orderActions(data))) as unknown as F;
+}
+
+/**
+ * The imperative side of the toast surface. Re-exported from Sonner so apps
+ * import the emitter from the same package as the surface it renders into —
+ * owning one without the other would leave `sonner` as a direct app
+ * dependency (issue #303). The plain emitters (`toast()`, `.success`,
+ * `.info`, `.warning`, `.error`, `.message`, `.loading`) put a two-button
+ * toast's actions in visual order; everything else is Sonner's.
+ */
+export const toast: typeof sonnerToast = Object.assign(withOrderedActions(sonnerToast), sonnerToast, {
+  success: withOrderedActions(sonnerToast.success),
+  info: withOrderedActions(sonnerToast.info),
+  warning: withOrderedActions(sonnerToast.warning),
+  error: withOrderedActions(sonnerToast.error),
+  message: withOrderedActions(sonnerToast.message),
+  loading: withOrderedActions(sonnerToast.loading),
+});
 
 /**
  * Transient notification surface. Mount once near the app root and raise

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { Settings } from "lucide-react";
+import { ChevronLeft, Settings } from "lucide-react";
 import type { ComponentProps } from "react";
 
 import { Button } from "../forms/button";
@@ -406,6 +406,44 @@ export const BottomNoScrim: Story = {
             ))}
           </SwatchGroup>
           <p className="text-sm text-muted-foreground">Tap a color to insert a tile at the cursor.</p>
+        </SheetContent>
+      </Sheet>
+    </>
+  ),
+};
+
+/**
+ * 07a Dialog shell · Mobile sheet (`297:7667`): a pinned header with Back, a
+ * scrolling body and a sticky footer with a full-width 44px primary. Direct
+ * `SheetHeader` / `SheetFooter` children are pinned; the rest scrolls.
+ */
+export const BottomStickyFooter: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => (
+    <>
+      <EditorPageMock />
+      <Sheet defaultOpen>
+        <SheetContent side="bottom" detents={[0.6]}>
+          <SheetHeader className="min-h-12 flex-row items-start gap-3 pr-12 text-left sm:text-left">
+            <Button variant="ghost" size="icon" aria-label="Back">
+              <ChevronLeft aria-hidden="true" />
+            </Button>
+            <div className="flex flex-col gap-1">
+              <SheetTitle>Compose a message</SheetTitle>
+              <SheetDescription>Shows on Kitchen board as soon as you choose Show now.</SheetDescription>
+            </div>
+          </SheetHeader>
+          <div className="flex flex-col gap-4 py-2">
+            {["Line 1", "Line 2", "Line 3", "Line 4", "Line 5", "Line 6"].map((line, i) => (
+              <div key={line} className="grid gap-1.5">
+                <Label htmlFor={`compose-${i}`}>{line}</Label>
+                <Input id={`compose-${i}`} defaultValue={i === 0 ? "DINNER AT 7" : ""} />
+              </div>
+            ))}
+          </div>
+          <SheetFooter>
+            <Button className="h-11 w-full">Show now</Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     </>

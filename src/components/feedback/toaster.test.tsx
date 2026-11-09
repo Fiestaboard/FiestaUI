@@ -65,7 +65,9 @@ describe("Toaster", () => {
     });
     await screen.findByText("Hi");
     const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]")!;
-    expect(toaster.style.getPropertyValue("--offset-bottom")).toBe("calc(24px + var(--bottom-nav-offset, 0px))");
+    expect(toaster.style.getPropertyValue("--offset-bottom")).toBe(
+      "calc(24px + var(--bottom-nav-offset, 0px) + env(safe-area-inset-bottom, 0px))",
+    );
     expect(toaster.style.getPropertyValue("--mobile-offset-bottom")).toBe(
       "calc(16px + var(--bottom-nav-offset, 0px) + env(safe-area-inset-bottom, 0px))",
     );
@@ -118,22 +120,89 @@ describe("Toaster · snackbar actions (C18, 07a Web / Toast 297:7793)", () => {
     await waitFor(() => expect(screen.queryByText("Override canceled")).not.toBeInTheDocument());
   });
 
-  it("styles the second action (Sonner's cancel) as a ghost button after the primary one", async () => {
+  it("puts the primary action first in the DOM, tab order and on screen, the ghost second", async () => {
+    const user = userEvent.setup();
+    const onShow = vi.fn();
+    const onSchedule = vi.fn();
     render(<Toaster />);
     act(() => {
       toast.success("Saved to Pages", {
         description: "Kitchen morning is in your page library.",
-        action: { label: "Show now", onClick: () => {} },
-        cancel: { label: "Add to Schedule", onClick: () => {} },
+        action: { label: "Show now", onClick: onShow },
+        cancel: { label: "Add to Schedule", onClick: onSchedule },
         duration: Infinity,
       });
     });
     const primary = await screen.findByRole("button", { name: "Show now" });
     const secondary = screen.getByRole("button", { name: "Add to Schedule" });
-    expect(primary).toHaveClass("order-1", "!h-control-touch");
-    expect(secondary).toHaveClass("order-2", "!h-control-touch", "!bg-transparent");
-    // Actions drop to their own row, indented under the text (28px).
     const toastEl = primary.closest("[data-sonner-toast]")!;
+    expect([...toastEl.querySelectorAll("[data-button]")].map((b) => b.textContent)).toEqual([
+      "Show now",
+      "Add to Schedule",
+    ]);
+    expect(primary).toHaveAttribute("data-action");
+    expect(secondary).toHaveAttribute("data-cancel");
+    expect(primary).toHaveClass("!h-control-touch", "!bg-secondary", "!ms-7");
+    expect(secondary).toHaveClass("!h-control-touch", "!bg-transparent", "[[data-action]~&]:!ms-0");
+    // Actions drop to their own row, indented under the text (28px).
     expect(toastEl).toHaveClass("group/toast", "has-[[data-button]]:flex-wrap");
+    await user.click(secondary);
+    expect(onSchedule).toHaveBeenCalledTimes(1);
+    expect(onShow).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByText("Saved to Pages")).not.toBeInTheDocument());
+  });
+
+  it("the paired primary keeps the toast when its handler calls preventDefault", async () => {
+    const user = userEvent.setup();
+    render(<Toaster />);
+    act(() => {
+      toast("Override canceled", {
+        action: { label: "Undo", onClick: (e) => e.preventDefault() },
+        cancel: { label: "Details", onClick: () => {} },
+        duration: Infinity,
+      });
+    });
+    await user.click(await screen.findByRole("button", { name: "Undo" }));
+    expect(screen.getByText("Override canceled")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByText("Override canceled")).toBeInTheDocument();
+  });
+
+  it("dismissible: false keeps the toast when the second action is pressed", async () => {
+    const user = userEvent.setup();
+    const onSecond = vi.fn();
+    render(<Toaster />);
+    act(() => {
+      toast.info("Pinned", {
+        id: "pinned",
+        dismissible: false,
+        action: { label: "Open", onClick: () => {} },
+        cancel: { label: "Later", onClick: onSecond },
+        duration: Infinity,
+      });
+    });
+    await user.click(await screen.findByRole("button", { name: "Later" }));
+    expect(onSecond).not.toHaveBeenCalled();
+    expect(screen.getByText("Pinned")).toBeInTheDocument();
+  });
+
+  it("every emitter orders the pair; a cancel alone stays Sonner's, indented", async () => {
+    render(<Toaster />);
+    act(() => {
+      for (const emit of [toast.warning, toast.error, toast.message, toast.loading] as const) {
+        emit(`via ${emit === toast.loading ? "loading" : "emitter"}`, {
+          action: { label: "A", onClick: () => {} },
+          cancel: { label: "B", onClick: () => {} },
+          duration: Infinity,
+        });
+      }
+      toast("Cancel only", { cancel: { label: "Dismiss", onClick: () => {} }, duration: Infinity });
+    });
+    const solo = await screen.findByRole("button", { name: "Dismiss" });
+    expect(solo).toHaveClass("!ms-7");
+    for (const el of document.querySelectorAll("[data-sonner-toast]")) {
+      const labels = [...el.querySelectorAll("[data-button]")].map((b) => b.textContent);
+      if (labels.length === 2) expect(labels).toEqual(["A", "B"]);
+    }
   });
 });
