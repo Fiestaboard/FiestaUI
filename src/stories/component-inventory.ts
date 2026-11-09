@@ -174,8 +174,16 @@ export const INVENTORY = [
         summary: "Rounded square that centres one icon; three sizes, muted or board-black ground, decorative.",
       },
       { name: "JsonTree", summary: "Expandable JSON viewer with per-type colouring and path selection." },
+      {
+        name: "ListRow",
+        summary: "One record in a list: leading, title, description, meta and trailing slots; stacks for large text.",
+      },
       { name: "MediaFrame", summary: "Framed figure for screenshots and media, with a caption/toolbar bar slot." },
       { name: "ScrollArea", summary: "Overflow container with a styled scrollbar." },
+      {
+        name: "SortableList",
+        summary: "Reorder by drag (mouse, pen, touch), keyboard lift or Move up / Move down, with announcements.",
+      },
       { name: "Table", summary: "Data table with header, body, row and cell parts." },
       { name: "Tabs", summary: "Tab list plus panels." },
     ],
