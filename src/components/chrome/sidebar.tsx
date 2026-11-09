@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, Ellipsis, Menu, Settings, Sparkles, X } from "lucide-react";
 import { Fragment, memo, useEffect, useId, useRef, useState } from "react";
 
+import { isDevBuild } from "../../lib/dev";
 import { cn } from "../../lib/utils";
 import { Button } from "../forms/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
@@ -84,7 +85,7 @@ const MOBILE_MENU_BASE =
 // tab bar instead of dropping from the header — 12px above the bar, which
 // floats 12px above the viewport edge (and the home indicator).
 const MOBILE_MENU_BOTTOM_BASE =
-  "fixed bottom-[calc(var(--bottom-nav-offset,88px)+env(safe-area-inset-bottom))] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-var(--bottom-nav-offset,88px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
+  "fixed bottom-[calc(var(--bottom-nav-offset,0px)+env(safe-area-inset-bottom))] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-var(--bottom-nav-offset,0px)-env(safe-area-inset-bottom)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
 
 const MOBILE_HEADER_BASE =
   "fixed top-2 left-3 right-3 z-[var(--z-mobile-header)] overflow-hidden sidebar-gradient-horizontal";
@@ -104,6 +105,16 @@ const BOTTOM_ITEM_INACTIVE = cn(BOTTOM_ITEM_BASE, NAV_ITEM_INACTIVE);
 
 /** At most this many tabs; past it the last slot becomes "More". */
 const BOTTOM_NAV_SLOTS = 5;
+
+/**
+ * The bar's footprint above the viewport's bottom edge (safe-area inset
+ * aside): its 12px float (`bottom-[calc(0.75rem+…)]`), its 64px height
+ * (`h-16`) and 12px of air above it. Published as `--bottom-nav-offset` on
+ * <html> while the bar is shown, so MainContent, PageLayout, the drawer and
+ * anything else that must clear the bar (a toast) read one number, and fall
+ * back to 0 when there is no bar.
+ */
+const BOTTOM_NAV_OFFSET_PX = 12 + 64 + 12;
 
 /**
  * Every class that differs by `railBreakpoint` (slice 1.4b), spelled out per
@@ -188,15 +199,26 @@ export interface SidebarNavItem {
   badge?: SidebarNavBadge;
 }
 
+/**
+ * Red is attention (an item needs the user); brand is a notice (something is
+ * waiting, like an update) — the amber the hamburger and account trigger
+ * already wear for `menuNotice` (07 `53:100587`).
+ */
+type BadgeTone = "destructive" | "brand";
+
 /** Badge overlay for a nav icon. Decorative: its words go in the row's name. */
-function NavBadge({ badge }: { badge: SidebarNavBadge }) {
+function NavBadge({ badge, tone = "destructive" }: { badge: SidebarNavBadge; tone?: BadgeTone }) {
   if (badge.count == null) {
     return (
       <span
         data-slot="nav-badge"
         data-kind="dot"
+        data-tone={tone}
         aria-hidden="true"
-        className="pointer-events-none absolute -end-1 -top-0.5 size-2.5 rounded-full bg-destructive ring-2 ring-card"
+        className={cn(
+          "pointer-events-none absolute -end-1 -top-0.5 size-2.5 rounded-full ring-2 ring-card",
+          tone === "brand" ? "bg-brand" : "bg-destructive",
+        )}
       />
     );
   }
@@ -204,6 +226,7 @@ function NavBadge({ badge }: { badge: SidebarNavBadge }) {
     <span
       data-slot="nav-badge"
       data-kind="count"
+      data-tone={tone}
       aria-hidden="true"
       className="pointer-events-none absolute -end-2.5 -top-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-xs leading-none font-medium text-destructive-foreground ring-2 ring-card"
     >
@@ -212,16 +235,49 @@ function NavBadge({ badge }: { badge: SidebarNavBadge }) {
   );
 }
 
+/** A row's badge, if it has one worth drawing: a count of 0 is no badge. */
+function badgeOf(item: SidebarNavItem): SidebarNavBadge | undefined {
+  const badge = item.badge;
+  return badge && badge.count !== 0 ? badge : undefined;
+}
+
+/**
+ * What a closed drawer is holding, for the control that opens it (More, or
+ * the hamburger). Any badged row makes it a red COUNT — each row's count, a
+ * dot counting as one (07a `308:36070`: "1" on More for one integration that
+ * needs attention). A notice alone is a brand dot. The words of all of them
+ * are the badge's label, so the opener says what is behind it.
+ */
+function rollUp(items: SidebarNavItem[], notice?: string): { badge?: SidebarNavBadge; tone: BadgeTone } {
+  let count = 0;
+  const words: string[] = [];
+  for (const item of items) {
+    const badge = badgeOf(item);
+    if (!badge) continue;
+    count += badge.count ?? 1;
+    words.push(badge.label);
+  }
+  if (notice) words.push(notice);
+  if (count > 0) return { badge: { count, label: words.join(", ") }, tone: "destructive" };
+  if (notice) return { badge: { label: notice }, tone: "brand" };
+  return { tone: "destructive" };
+}
+
 /**
  * A nav row's icon, with its badge when it has one. An un-badged row keeps
  * the bare icon, so rows without badges render exactly as before.
  */
-function navIcon(Icon: SidebarNavItem["icon"], className: string, badge?: SidebarNavBadge) {
+function navIcon(
+  Icon: React.ComponentType<{ className?: string }>,
+  className: string,
+  badge?: SidebarNavBadge,
+  tone?: BadgeTone,
+) {
   if (!badge) return <Icon className={className} />;
   return (
     <span className="relative inline-flex shrink-0">
       <Icon className={className} />
-      <NavBadge badge={badge} />
+      <NavBadge badge={badge} tone={tone} />
     </span>
   );
 }
@@ -473,10 +529,16 @@ export const Sidebar = memo(function Sidebar({
   const barItems = !bottomNav ? EMPTY_ITEMS : needsMore ? navItems.slice(0, BOTTOM_NAV_SLOTS - 1) : navItems;
   const drawerItems = needsMore ? navItems.slice(BOTTOM_NAV_SLOTS - 1) : navItems;
   const menuId = useId();
-
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // An empty string is no notice, as on the trigger.
-  const hamburgerNotice = !mobileMenuOpen && Boolean(menuNotice);
+  // What the closed drawer holds, for the hamburger (header-menu): badged rows
+  // make a red count that stands for everything, notice included; a notice
+  // alone keeps the brand dot cut out of the glyph. An empty string is no
+  // notice, as on the trigger.
+  const drawerRollUp = bottomNav ? undefined : rollUp(navItems, menuNotice || undefined);
+  const hamburgerBadge = !mobileMenuOpen && drawerRollUp?.badge?.count ? drawerRollUp.badge : undefined;
+  const hamburgerNotice = !mobileMenuOpen && Boolean(menuNotice) && !hamburgerBadge;
+  const hamburgerWords = hamburgerBadge ? hamburgerBadge.label : hamburgerNotice ? menuNotice : undefined;
+  const moreLabel = labels.more ?? labels.navigationMenu;
   const hamburgerNoticeId = useId();
   const [appInset, setAppInset] = useState(0);
   const headerRef = useRef<HTMLElement>(null);
@@ -484,6 +546,34 @@ export const Sidebar = memo(function Sidebar({
   // The element that opened the menu (the hamburger button), captured at open
   // so focus can be restored to it when the menu closes (issue #59).
   const menuTriggerRef = useRef<HTMLElement | null>(null);
+
+  // `navigationMenu` is a sentence; in a 52px tab it truncates.
+  const unlabelledMore = bottomNav && !labels.more;
+  useEffect(() => {
+    if (!unlabelledMore || !isDevBuild()) return;
+    console.warn(
+      '[Sidebar] variant="bottom-nav" without `labels.more`: the More tab falls back to `labels.navigationMenu`, which truncates in a tab. Pass the app\'s word for "More".',
+    );
+  }, [unlabelledMore]);
+
+  // Publish the bar's footprint while it is on screen (below the rail
+  // breakpoint), and only then: everything that clears the bar reads
+  // var(--bottom-nav-offset, 0px), so no bar means no gap.
+  useEffect(() => {
+    if (!bottomNav) return;
+    const root = document.documentElement;
+    const phone = window.matchMedia(railBreakpoint === "lg" ? "(max-width: 1023.98px)" : "(max-width: 767.98px)");
+    const apply = () => {
+      if (phone.matches) root.style.setProperty("--bottom-nav-offset", `${BOTTOM_NAV_OFFSET_PX}px`);
+      else root.style.removeProperty("--bottom-nav-offset");
+    };
+    apply();
+    phone.addEventListener("change", apply);
+    return () => {
+      phone.removeEventListener("change", apply);
+      root.style.removeProperty("--bottom-nav-offset");
+    };
+  }, [bottomNav, railBreakpoint]);
 
   useEffect(() => {
     if (!ignoringDeprecatedItems) return;
@@ -675,9 +765,9 @@ export const Sidebar = memo(function Sidebar({
     const mobileClassName = item.active ? MOBILE_ITEM_ACTIVE : MOBILE_ITEM_INACTIVE;
     const content = (
       <>
-        {navIcon(Icon, "h-5 w-5", item.badge)}
+        {navIcon(Icon, "h-5 w-5", badgeOf(item))}
         {item.label}
-        {badgeText(item.badge?.label)}
+        {badgeText(badgeOf(item)?.label)}
       </>
     );
 
@@ -720,13 +810,14 @@ export const Sidebar = memo(function Sidebar({
 
     const inner = (
       <>
-        {navIcon(Icon, "h-5 w-5 flex-shrink-0", item.badge)}
+        {navIcon(Icon, "h-5 w-5 flex-shrink-0", badgeOf(item))}
         <span className={collapsed ? NAV_LABEL_COLLAPSED : NAV_LABEL_EXPANDED}>{item.label}</span>
         {/* Collapsed, the name is the aria-label below, which carries these words itself. */}
-        {collapsed ? null : badgeText(item.badge?.label)}
+        {collapsed ? null : badgeText(badgeOf(item)?.label)}
       </>
     );
-    const collapsedName = item.badge ? `${item.label}, ${item.badge.label}` : item.label;
+    const rowBadge = badgeOf(item);
+    const collapsedName = rowBadge ? `${item.label}, ${rowBadge.label}` : item.label;
 
     const link = item.external ? (
       <a
@@ -899,16 +990,29 @@ export const Sidebar = memo(function Sidebar({
 
   function renderBottomNavItem(item: SidebarNavItem) {
     const className = item.active ? BOTTOM_ITEM_ACTIVE : BOTTOM_ITEM_INACTIVE;
+    const badge = badgeOf(item);
     const content = (
       <>
-        {navIcon(item.icon, "h-5 w-5", item.badge)}
+        {navIcon(item.icon, "h-5 w-5", badge)}
         <span className="max-w-full truncate">{item.label}</span>
-        {badgeText(item.badge?.label)}
+        {badgeText(badge?.label)}
       </>
     );
+    // The bar sits above the drawer's backdrop (so More can close what it
+    // opened), which leaves every tab reachable while the drawer is open. A
+    // tab is a navigation, like a drawer row, so it closes the drawer too;
+    // otherwise the route changes under a drawer that stays open, with the
+    // page's scroll still locked.
     if (item.external) {
       return (
-        <a key={item.key} href={item.href} target="_blank" rel="noopener noreferrer" className={className}>
+        <a
+          key={item.key}
+          href={item.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={closeMobileMenu}
+          className={className}
+        >
           {content}
         </a>
       );
@@ -918,6 +1022,7 @@ export const Sidebar = memo(function Sidebar({
         {renderLink(
           {
             href: item.href,
+            onClick: closeMobileMenu,
             onMouseEnter: item.onPrefetch,
             onFocus: item.onPrefetch,
             "aria-current": item.active ? "page" : undefined,
@@ -940,11 +1045,7 @@ export const Sidebar = memo(function Sidebar({
   const moreButton = () => {
     if (!needsMore) return null;
     const lit = mobileMenuOpen || drawerItems.some((item) => item.active);
-    const notices = [
-      ...drawerItems.flatMap((item) => (item.badge ? [item.badge.label] : [])),
-      ...(menuNotice ? [menuNotice] : []),
-    ];
-    const noticeBadge = notices.length > 0 ? { label: notices.join(", ") } : undefined;
+    const { badge: noticeBadge, tone } = rollUp(drawerItems, menuNotice || undefined);
     return (
       <button
         type="button"
@@ -959,8 +1060,8 @@ export const Sidebar = memo(function Sidebar({
         }}
         className={lit ? BOTTOM_ITEM_ACTIVE : BOTTOM_ITEM_INACTIVE}
       >
-        {navIcon(Ellipsis, "h-5 w-5", noticeBadge)}
-        <span className="max-w-full truncate">{labels.more ?? labels.navigationMenu}</span>
+        {navIcon(Ellipsis, "h-5 w-5", noticeBadge, tone)}
+        <span className="max-w-full truncate">{moreLabel}</span>
         {badgeText(noticeBadge?.label)}
       </button>
     );
@@ -1049,10 +1150,12 @@ export const Sidebar = memo(function Sidebar({
                 setMobileMenuOpen(!mobileMenuOpen);
               }}
               aria-label={mobileMenuOpen ? labels.closeMenu : labels.openMenu}
-              aria-describedby={hamburgerNotice ? hamburgerNoticeId : undefined}
+              aria-describedby={hamburgerWords ? hamburgerNoticeId : undefined}
             >
               {mobileMenuOpen ? (
                 <X className="h-6 w-6" />
+              ) : hamburgerBadge ? (
+                navIcon(Menu, "h-6 w-6", hamburgerBadge)
               ) : (
                 <Menu className={cn("h-6 w-6", hamburgerNotice && HAMBURGER_NOTICE_CUTOUT)} />
               )}
@@ -1062,16 +1165,16 @@ export const Sidebar = memo(function Sidebar({
                 floated free of anything. Gone while the drawer is open: the
                 glyph is an X then, and a notice on "Close" says nothing. */}
               {hamburgerNotice && (
-                <>
-                  <span
-                    data-slot="sidebar-menu-notice"
-                    aria-hidden="true"
-                    className="pointer-events-none absolute end-2 top-2 size-2 rounded-full bg-brand"
-                  />
-                  <span id={hamburgerNoticeId} hidden>
-                    {menuNotice}
-                  </span>
-                </>
+                <span
+                  data-slot="sidebar-menu-notice"
+                  aria-hidden="true"
+                  className="pointer-events-none absolute end-2 top-2 size-2 rounded-full bg-brand"
+                />
+              )}
+              {hamburgerWords && (
+                <span id={hamburgerNoticeId} hidden>
+                  {hamburgerWords}
+                </span>
               )}
             </Button>
           )}
@@ -1132,10 +1235,19 @@ export const Sidebar = memo(function Sidebar({
             destination scrolls together in this nav, and the only thing
             pinned below it is the settings menu. The assistant is not here
             at all — it lives in the header bar above, always reachable. */}
-        <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {drawerItems.map(renderMobileNavItem)}
-        </nav>
-        <div className="shrink-0 border-t border-sidebar-border mx-3" />
+        {/* Bottom-nav: the list is "More" (the bar is the primary nav), and a
+            More holding only the account menu draws no empty list above it. */}
+        {(!bottomNav || drawerItems.length > 0) && (
+          <>
+            <nav
+              aria-label={bottomNav ? moreLabel : labels.primaryNavigation}
+              className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4"
+            >
+              {drawerItems.map(renderMobileNavItem)}
+            </nav>
+            <div className="shrink-0 border-t border-sidebar-border mx-3" />
+          </>
+        )}
         {/* px-3 matches the nav's own gutter, so the trigger's left edge
             lands under the rows' rounded hit areas rather than under their
             glyphs — it is a control the width of the menu, not a row. */}

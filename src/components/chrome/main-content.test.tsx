@@ -112,7 +112,7 @@ describe("MainContent padding", () => {
       </MainContent>,
     );
     expect(classesOf(main())).toEqual(
-      expect.arrayContaining(["pb-[calc(var(--bottom-nav-offset,88px)+env(safe-area-inset-bottom))]", "lg:pb-0"]),
+      expect.arrayContaining(["pb-[calc(var(--bottom-nav-offset,0px)+env(safe-area-inset-bottom))]", "lg:pb-0"]),
     );
 
     rerender(
@@ -238,5 +238,36 @@ describe("MainContent collapse slide", () => {
     render(<MainContent collapsed={false}>page</MainContent>);
     fireEvent.transitionEnd(shift(), { propertyName: "transform" });
     expect(main().style.overflowX).toBe("");
+  });
+});
+
+describe("MainContent railBreakpoint agreement (S4)", () => {
+  function rail(bp: string) {
+    const aside = document.createElement("aside");
+    aside.setAttribute("data-rail-breakpoint", bp);
+    document.body.appendChild(aside);
+    return aside;
+  }
+
+  it("warns in development when the Sidebar's breakpoint disagrees", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const aside = rail("md");
+    render(<MainContent collapsed={false}>page</MainContent>);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toMatch(/railBreakpoint/);
+    aside.remove();
+  });
+
+  it("stays quiet when they agree, or when there is no rail", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<MainContent collapsed={false}>page</MainContent>);
+    const aside = rail("md");
+    render(
+      <MainContent collapsed={false} railBreakpoint="md">
+        page
+      </MainContent>,
+    );
+    expect(warn).not.toHaveBeenCalled();
+    aside.remove();
   });
 });

@@ -9,14 +9,36 @@ interface PageLayoutProps {
   /** When true, the layout fills the viewport height and hides overflow so
    *  inner content (e.g. the schedule calendar) can scroll independently. */
   fillHeight?: boolean;
+  /**
+   * Where the rail takes over from the phone chrome. Pass the Sidebar's and
+   * MainContent's value: from it the page drops the phone header from its
+   * pinned height and takes the rail's 12px vertical inset. Default `lg`.
+   */
+  railBreakpoint?: "lg" | "md";
 }
+
+// Spelled out per breakpoint: Tailwind compiles only literal class names.
+// The pinned height also gives back any bottom tab bar the Sidebar publishes
+// (`--bottom-nav-offset`, unset, so 0, without one).
+const RAIL_PAGE = {
+  lg: {
+    fill: "min-h-full sm:h-[calc(100dvh-72px-var(--bottom-nav-offset,0px))] sm:flex sm:flex-col sm:overflow-hidden lg:h-dvh",
+    py: "py-4 sm:py-6 md:py-8 lg:py-3",
+  },
+  md: {
+    fill: "min-h-full sm:h-[calc(100dvh-72px-var(--bottom-nav-offset,0px))] sm:flex sm:flex-col sm:overflow-hidden md:h-dvh",
+    py: "py-4 sm:py-6 md:py-3",
+  },
+} as const;
 
 export const PageLayout = memo(function PageLayout({
   children,
   className,
   outerClassName,
   fillHeight,
+  railBreakpoint = "lg",
 }: PageLayoutProps) {
+  const rail = RAIL_PAGE[railBreakpoint];
   return (
     <div
       className={cn(
@@ -33,9 +55,7 @@ export const PageLayout = memo(function PageLayout({
         // calendar grid) can scroll independently. On phones we drop the
         // pinning — viewport-internal scroll on a 24-hour grid is fiddly to
         // discover, so we let the page itself scroll instead.
-        fillHeight
-          ? "min-h-full sm:h-[calc(100dvh-72px)] sm:flex sm:flex-col sm:overflow-hidden lg:h-dvh"
-          : "min-h-full",
+        fillHeight ? rail.fill : "min-h-full",
         outerClassName,
       )}
     >
@@ -63,8 +83,8 @@ export const PageLayout = memo(function PageLayout({
           // mobile header's menu button and wordmark both sit at 20px or
           // beyond), so the content block read as outdented against the only
           // landmarks above it; 16px brings it into line. md+ steps to 24 for
-          // the wider breathing room desktop can afford.
-          "container mx-auto px-4 md:px-6 py-4 sm:py-6 md:py-8 lg:py-3 max-w-full",
+          // the wider breathing room desktop can afford.          "container mx-auto px-4 md:px-6 max-w-full",
+          rail.py,
           // When pinned to the viewport (e.g. calendar mode), the inner content
           // owns the scrolling — trim mobile vertical padding so the child gets
           // back the pixels normally reserved for page breathing room.

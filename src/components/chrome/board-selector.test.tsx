@@ -267,3 +267,26 @@ describe("BoardSelector hub line", () => {
     expect(trigger()).toHaveAccessibleDescription("Unavailable fiestapi.local · Online");
   });
 });
+
+describe("BoardSelector hub glyph shapes (S7)", () => {
+  it.each([
+    ["online", "lucide-wifi"],
+    ["remote", "lucide-globe"],
+    ["unreachable", "lucide-wifi-off"],
+  ] as const)("draws %s as %s", (status, iconClass) => {
+    render(
+      <TooltipProvider>
+        <BoardSelector
+          boards={[{ id: "kitchen", name: "Kitchen board" }]}
+          value="kitchen"
+          onChange={() => {}}
+          labels={{ ...LABELS, hubStatus: { online: "Online", remote: "Remote", unreachable: "Can't reach" } }}
+          status={status}
+          collapsed
+        />
+      </TooltipProvider>,
+    );
+    const glyph = document.querySelector('[data-slot="board-selector-hub-glyph"]')!;
+    expect(glyph.getAttribute("class")!.split(/\s+/)).toContain(iconClass);
+  });
+});

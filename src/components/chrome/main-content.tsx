@@ -1,7 +1,8 @@
 "use client";
 
-import { memo, useLayoutEffect, useRef } from "react";
+import { memo, useEffect, useLayoutEffect, useRef } from "react";
 
+import { isDevBuild } from "../../lib/dev";
 import { cn } from "../../lib/utils";
 
 /** Rail-side left padding of the content root — must match the classes below. */
@@ -34,12 +35,12 @@ const RAIL_LAYOUT = {
 } as const;
 
 /**
- * Room for the bottom tab bar (slice 1.4a): its 64px, the 12px it floats
- * above the viewport edge, and 12px of air — plus the home-indicator inset on
- * phones that have one. `--bottom-nav-offset` lets an app retune it without a
- * release.
+ * Room for the bottom tab bar (slice 1.4a): `--bottom-nav-offset`, which the
+ * Sidebar publishes (88px: the bar's 64, the 12 it floats and 12 of air)
+ * only while its bar is on screen — plus the home-indicator inset on phones
+ * that have one. No bar, no variable, no gap.
  */
-const BOTTOM_NAV_PB = "pb-[calc(var(--bottom-nav-offset,88px)+env(safe-area-inset-bottom))]";
+const BOTTOM_NAV_PB = "pb-[calc(var(--bottom-nav-offset,0px)+env(safe-area-inset-bottom))]";
 
 interface MainContentProps {
   children: React.ReactNode;
@@ -94,6 +95,20 @@ export const MainContent = memo(function MainContent({
   const rootRef = useRef<HTMLElement>(null);
   const shiftRef = useRef<HTMLDivElement>(null);
   const prevCollapsed = useRef(collapsed);
+
+  // The Sidebar and MainContent are siblings with no shared parent to hold
+  // one value, so each takes `railBreakpoint`, and a mismatch is a layout bug
+  // (content under the rail, or padded for a rail that is not there). The
+  // rail marks its <aside> with its value; say so in development.
+  useEffect(() => {
+    if (!isDevBuild()) return;
+    const rail = document.querySelector("aside[data-rail-breakpoint]")?.getAttribute("data-rail-breakpoint");
+    if (rail && rail !== railBreakpoint) {
+      console.warn(
+        `[MainContent] railBreakpoint="${railBreakpoint}" but the Sidebar's is "${rail}". Pass the same value to both.`,
+      );
+    }
+  }, [railBreakpoint]);
 
   useLayoutEffect(() => {
     if (prevCollapsed.current === collapsed) return;

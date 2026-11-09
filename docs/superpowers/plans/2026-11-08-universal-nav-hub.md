@@ -56,3 +56,29 @@
 - Parity: two `pendingRef` entries in `vrt/figma-refs.json`:
   - `chrome-board-selector-hub-online` → `302:2055`;
   - `chrome-sidebar-bottom-nav-home` → `53:100392`.
+
+## Review round 1 (Opus review of #386)
+
+- **M1:** a bar tab now closes the More drawer (internal and external tabs), the same as a drawer row does.
+- **S1/S2 (ruling: follow Figma):**
+  - Rows inside the drawer keep their own badges.
+  - The opener (More, or the hamburger) rolls them up as a **red count**: each row's count, with a dot counting as one, capped at 99+ (07a `308:36070`).
+  - A `menuNotice` alone is a **brand** dot (07 `53:100587`).
+  - The words of all of them go into the opener's name or description.
+- **S3:** the `header-menu` hamburger shows the same roll-up count and description when a badged row sits in the closed drawer. A notice alone keeps the existing brand cut-out dot.
+- **S4:**
+  - `PageLayout railBreakpoint` moves the pinned height (`h-dvh`) and the rail's 12px vertical inset to `md`.
+  - The `fillHeight` height also subtracts `--bottom-nav-offset`.
+  - MainContent warns in development when its `railBreakpoint` differs from the `<aside data-rail-breakpoint>` it finds.
+  - No context: the Sidebar and MainContent are siblings with no shared parent.
+- **S6:**
+  - The Sidebar publishes `--bottom-nav-offset: 88px` on `<html>` while the bar is on screen. It tracks a `max-width` media query of the rail breakpoint and clears the variable on unmount.
+  - MainContent, PageLayout and the drawer read it with a fallback of `0px`, and the drawer's `max-h` also subtracts the safe-area inset (N5).
+- **S7:** tests assert each glyph's lucide class and the bar's safe-area class.
+- **Nits:**
+  - N1: `count: 0` is no badge.
+  - N2: a development warning when the bottom nav has no `labels.more`.
+  - N3: a More holding only the account menu draws no empty list.
+  - N4: the drawer's list is named after More.
+  - N6: a story comment.
+- **Deferred:** S5, a 768–1023 VRT capture. `scripts/vrt/vrt.mjs` shoots a fixed `VIEWPORTS` map with no per-story override, so it needs a global VRT change and its own follow-up row. The 1.4b follow-up for the AI-panel `lg:pr-[396px]` is also open.

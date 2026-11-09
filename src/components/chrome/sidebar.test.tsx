@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FileText, HelpCircle, Home, Settings } from "lucide-react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Sidebar, type SidebarLabels, type SidebarNavItem, type SidebarProps } from "./sidebar";
 
@@ -1014,7 +1014,11 @@ describe("Sidebar bottom nav", () => {
       menuNotice: "Update available",
     });
     expect(more()).toHaveAccessibleName("More, Integrations need attention, Update available");
-    expect(more().querySelector('[data-slot="nav-badge"]')).toHaveAttribute("data-kind", "dot");
+    // 07a 308:36070: More rolls the attention up as a count, in red.
+    const badge = more().querySelector('[data-slot="nav-badge"]');
+    expect(badge).toHaveAttribute("data-kind", "count");
+    expect(badge).toHaveAttribute("data-tone", "destructive");
+    expect(badge).toHaveTextContent("1");
   });
 
   it("does not badge More for a badge already on the bar", () => {
@@ -1179,5 +1183,251 @@ describe("Sidebar rail plumbing", () => {
     fireEvent(window, new Event("resize"));
     await waitFor(() => expect(desktopRail().style.left).toBe("112px"));
     Object.defineProperty(document.body, "clientWidth", { configurable: true, value: 0 });
+  });
+});
+
+/* Review of #386: M1, S1–S3, S6, S7 and nits N1–N4. */
+describe("Sidebar bottom nav, review follow-ups", () => {
+  const MORE_LABELS: SidebarLabels = { ...LABELS, more: "More" };
+  const ITEMS: SidebarNavItem[] = [
+    { key: "home", href: "#home", icon: Home, label: "Home", active: true },
+    { key: "pages", href: "#pages", icon: FileText, label: "Pages" },
+    { key: "schedule", href: "#schedule", icon: FileText, label: "Schedule" },
+    { key: "docs", href: "https://example.com/docs", icon: HelpCircle, label: "Docs", external: true },
+    { key: "integrations", href: "#integrations", icon: Settings, label: "Integrations" },
+    { key: "picks", href: "#picks", icon: FileText, label: "Staff Picks" },
+  ];
+  const bar = () => document.querySelector<HTMLElement>('[data-slot="sidebar-bottom-nav"]')!;
+  const more = () => within(bar()).getByRole("button", { name: /^More/ });
+  const moreBadge = () => more().querySelector('[data-slot="nav-badge"]');
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.documentElement.style.removeProperty("--bottom-nav-offset");
+  });
+
+  it("M1: closes the More drawer when a tab on the bar is followed", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: ITEMS });
+    await user.click(more());
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("hidden");
+
+    await user.click(within(bar()).getByRole("link", { name: "Pages" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("M1: closes it for an external tab too", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: ITEMS });
+    await user.click(more());
+    const docs = within(bar()).getByRole("link", { name: "Docs" });
+    docs.addEventListener("click", (e) => e.preventDefault());
+    await user.click(docs);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("S1: a menu notice alone is a brand dot on More, not an error", () => {
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: ITEMS, menuNotice: "Update available" });
+    expect(moreBadge()).toHaveAttribute("data-kind", "dot");
+    expect(moreBadge()).toHaveAttribute("data-tone", "brand");
+    expect(more()).toHaveAccessibleName("More, Update available");
+  });
+
+  it("S1/S2: child badges roll up as a red count summing counts, a dot counting as one", () => {
+    renderSidebar({
+      variant: "bottom-nav",
+      labels: MORE_LABELS,
+      items: ITEMS.map((item) =>
+        item.key === "integrations"
+          ? { ...item, badge: { label: "Needs attention" } }
+          : item.key === "picks"
+            ? { ...item, badge: { count: 3, label: "3 new" } }
+            : item,
+      ),
+    });
+    expect(moreBadge()).toHaveAttribute("data-tone", "destructive");
+    expect(moreBadge()).toHaveTextContent("4");
+    expect(more()).toHaveAccessibleName("More, Needs attention, 3 new");
+  });
+
+  it("S2: caps the rolled-up count at 99+", () => {
+    renderSidebar({
+      variant: "bottom-nav",
+      labels: MORE_LABELS,
+      items: ITEMS.map((item) => (item.key === "picks" ? { ...item, badge: { count: 150, label: "150 new" } } : item)),
+    });
+    expect(moreBadge()).toHaveTextContent("99+");
+  });
+
+  it("S2: rows inside the drawer keep their own badges", async () => {
+    const user = userEvent.setup();
+    renderSidebar({
+      variant: "bottom-nav",
+      labels: MORE_LABELS,
+      items: ITEMS.map((item) =>
+        item.key === "integrations" ? { ...item, badge: { label: "Needs attention" } } : item,
+      ),
+    });
+    await user.click(more());
+    const row = within(screen.getByRole("dialog")).getByRole("link", { name: "Integrations, Needs attention" });
+    expect(row.querySelector('[data-slot="nav-badge"]')).toHaveAttribute("data-tone", "destructive");
+  });
+
+  it("S7: keeps the bar clear of the home indicator", () => {
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: ITEMS });
+    expect(bar().className).toContain("bottom-[calc(0.75rem+env(safe-area-inset-bottom))]");
+  });
+
+  it("N1: a zero count is no badge, on the row and in the roll-up", () => {
+    renderSidebar({
+      variant: "bottom-nav",
+      labels: MORE_LABELS,
+      items: ITEMS.map((item) =>
+        item.key === "pages" || item.key === "picks" ? { ...item, badge: { count: 0, label: "0 new" } } : item,
+      ),
+    });
+    expect(within(bar()).getByRole("link", { name: "Pages" }).querySelector('[data-slot="nav-badge"]')).toBeNull();
+    expect(moreBadge()).toBeNull();
+    expect(more()).toHaveAccessibleName("More");
+  });
+
+  it("N2: warns in development when bottom-nav has no word for More", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderSidebar({ variant: "bottom-nav", items: ITEMS });
+    expect(warn.mock.calls.some(([msg]) => /labels\.more/.test(String(msg)))).toBe(true);
+  });
+
+  it("N2: stays quiet when More is labelled", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: ITEMS });
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("N3: a More holding only the account menu draws no empty list", async () => {
+    const user = userEvent.setup();
+    renderSidebar({
+      variant: "bottom-nav",
+      labels: MORE_LABELS,
+      items: ITEMS.slice(0, 4),
+      renderSettingsMenu: settingsMenu,
+    });
+    await user.click(more());
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).queryByRole("navigation")).toBeNull();
+    expect(within(dialog).getByTestId("settings-menu")).toBeInTheDocument();
+  });
+
+  it("N4: names the drawer's list after More, so it is not a second 'Primary navigation'", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: ITEMS });
+    await user.click(more());
+    expect(within(screen.getByRole("dialog")).getByRole("navigation")).toHaveAccessibleName("More");
+  });
+});
+
+describe("Sidebar hamburger roll-up (S3)", () => {
+  const hamburger = () => screen.getByRole("button", { name: LABELS.openMenu });
+  const BADGED: SidebarNavItem[] = [
+    ...DESTINATIONS,
+    {
+      key: "integrations",
+      href: "#integrations",
+      icon: Settings,
+      label: "Integrations",
+      badge: { label: "Needs attention" },
+    },
+  ];
+
+  it("counts badges waiting in the closed drawer, in red, and says what they are", () => {
+    renderSidebar({ items: BADGED, menuNotice: "Update available" });
+    const badge = hamburger().querySelector('[data-slot="nav-badge"]');
+    expect(badge).toHaveAttribute("data-tone", "destructive");
+    expect(badge).toHaveTextContent("1");
+    expect(hamburger()).toHaveAccessibleDescription("Needs attention, Update available");
+    // The red count stands for both; the brand dot does not stack on top of it.
+    expect(document.querySelector('[data-slot="sidebar-menu-notice"]')).toBeNull();
+  });
+
+  it("drops the count while the drawer is open", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ items: BADGED });
+    await user.click(hamburger());
+    const close = screen.getByRole("button", { name: LABELS.closeMenu });
+    expect(close.querySelector('[data-slot="nav-badge"]')).toBeNull();
+    expect(close).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("keeps the brand notice dot when nothing in the drawer is badged", () => {
+    renderSidebar({ menuNotice: "Update available" });
+    expect(hamburger().querySelector('[data-slot="nav-badge"]')).toBeNull();
+    expect(document.querySelector('[data-slot="sidebar-menu-notice"]')).not.toBeNull();
+    expect(hamburger()).toHaveAccessibleDescription("Update available");
+  });
+});
+
+describe("Sidebar --bottom-nav-offset (S6)", () => {
+  type Listener = () => void;
+  let listeners: Listener[] = [];
+  let matches = true;
+  let queries: string[] = [];
+
+  function stubMatchMedia() {
+    listeners = [];
+    queries = [];
+    vi.spyOn(window, "matchMedia").mockImplementation((query: string) => {
+      queries.push(query);
+      return {
+        get matches() {
+          return matches;
+        },
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: (_: string, l: Listener) => listeners.push(l),
+        removeEventListener: (_: string, l: Listener) => {
+          listeners = listeners.filter((x) => x !== l);
+        },
+        dispatchEvent: () => false,
+      } as unknown as MediaQueryList;
+    });
+  }
+  const offset = () => document.documentElement.style.getPropertyValue("--bottom-nav-offset");
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.documentElement.style.removeProperty("--bottom-nav-offset");
+    matches = true;
+  });
+
+  it("publishes the bar's footprint below the rail breakpoint, and clears it on unmount", () => {
+    stubMatchMedia();
+    const { unmount } = renderSidebar({ variant: "bottom-nav", labels: { ...LABELS, more: "More" } });
+    expect(queries).toContain("(max-width: 1023.98px)");
+    expect(offset()).toBe("88px");
+    unmount();
+    expect(offset()).toBe("");
+    expect(listeners).toHaveLength(0);
+  });
+
+  it("follows the breakpoint as the window crosses it", () => {
+    stubMatchMedia();
+    renderSidebar({ variant: "bottom-nav", labels: { ...LABELS, more: "More" }, railBreakpoint: "md" });
+    expect(queries).toContain("(max-width: 767.98px)");
+    matches = false;
+    listeners.forEach((l) => l());
+    expect(offset()).toBe("");
+    matches = true;
+    listeners.forEach((l) => l());
+    expect(offset()).toBe("88px");
+  });
+
+  it("publishes nothing for the header-menu variant", () => {
+    stubMatchMedia();
+    renderSidebar();
+    expect(offset()).toBe("");
   });
 });

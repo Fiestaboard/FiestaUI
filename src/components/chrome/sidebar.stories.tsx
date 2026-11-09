@@ -635,8 +635,8 @@ const BOTTOM_NAV_LABELS = { ...LABELS, more: "More" };
 /**
  * `variant="bottom-nav"` on a phone: no hamburger; the destinations are a
  * tab bar pinned to the bottom, and More holds the rest plus the account
- * menu. More wears a dot because Integrations, inside it, has a badge — and
- * says so in words: "More, Needs attention".
+ * menu. More counts the one badge inside it (Integrations) in red, as 07a
+ * `308:36070` does, and says so in words: "More, Needs attention".
  */
 export const BottomNav: Story = {
   globals: {
@@ -668,6 +668,9 @@ export const BottomNavMoreActive: Story = {
 /**
  * Badges on the rail: a dot (needs attention) and a count. Each says what it
  * means in the row's accessible name, since a dot cannot.
+ *
+ * The count on Pages is an API demo only: CANON gives the badge one story,
+ * an integration that needs attention (07a `302:2340`).
  */
 export const WithBadges: Story = {
   render: () => (
@@ -683,6 +686,43 @@ export const WithBadgesCollapsed: Story = {
     <DemoSidebar
       initialCollapsed
       items={WEB_IA.map((item) => (item.key === "pages" ? { ...item, badge: { count: 3, label: "3 drafts" } } : item))}
+    />
+  ),
+};
+
+/**
+ * The default phone chrome with a badged row in the closed drawer: the
+ * hamburger counts it in red and is described by its words, so the
+ * attention signal survives without the bottom nav.
+ */
+export const WithBadgesMobile: Story = {
+  globals: {
+    viewport: { value: "mobile1", isRotated: false },
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+  render: () => <DemoSidebar items={WEB_IA} />,
+};
+
+/**
+ * Only a notice is waiting (an update): More wears the brand dot the
+ * hamburger and account trigger use for it, not the red of attention
+ * (07 `53:100587`).
+ */
+export const BottomNavUpdateAvailable: Story = {
+  globals: {
+    viewport: { value: "mobile1", isRotated: false },
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+  render: () => (
+    <DemoSidebar
+      variant="bottom-nav"
+      labels={BOTTOM_NAV_LABELS}
+      items={WEB_IA.map((item) => ({ ...item, badge: undefined }))}
+      update={DEMO_UPDATE}
     />
   ),
 };
