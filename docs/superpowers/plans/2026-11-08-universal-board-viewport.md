@@ -51,3 +51,17 @@
   - That is 12 stories × 4 shots.
 - **Changed:** `foundations-inventory--all-components` ×4. The new BoardViewport row pushes the page down.
 - **Nothing else should move.** ScaledBoardDisplay's default DOM gains no attributes. The actual-size scroller gains `role`, `tabindex` and a focus ring that shows only on focus.
+
+## Review round 1 (Opus READY; S1–S5, P1, P3)
+
+- **S1.** The scroller is a `region` landmark only while the board overflows. A board that fits is a named `group`.
+- **S2.** The polite live text, a separate always-mounted `sr-only` span, updates on `scrollend` or after 150 ms of quiet. The visible indicator still follows the scroll live, and mode changes are announced at once.
+- **S3.** One tree shape in both modes: a box, then the scaled wrapper, then the board. Fit ↔ Actual no longer remounts BoardDisplay. The ResizeObserver watches the scroller and the stable scaled wrapper. The window resize goes through the same rAF schedule (N4).
+- **S4.** New tests:
+  - the exact flagship snap class;
+  - the resize listener is removed on unmount;
+  - a pending frame is cancelled on unmount.
+- **S5.** The shared session-key behaviour is documented in the module JSDoc, the hook, BoardViewport, ScaledBoardDisplay `persist` and the changeset.
+- **P1.** `indicator="pill" | "dot"`, default `pill` (07). New story `DotIndicator`.
+- **P3.** DESIGN-DELTAS DD-W2 covers the deferred SR Next/Previous actions. DD-W3 covers the pill and the copy.
+- **N1 and N3** are done too: the hydration note, and `useMemo` for `startColumns`.

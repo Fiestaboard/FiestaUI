@@ -51,7 +51,9 @@ export interface ScaledBoardDisplayProps extends BoardDisplayProps {
   defaultMode?: BoardPreviewMode;
   /**
    * Remember the user's choice in `sessionStorage` for the session, and start
-   * from it. Default `true`, as before.
+   * from it. Default `true`, as before. The key is shared with BoardViewport, so
+   * a tap carries over to previews mounted later (not live to ones already on
+   * screen). Pass `false` when you control `mode`.
    */
   persist?: boolean;
   /**

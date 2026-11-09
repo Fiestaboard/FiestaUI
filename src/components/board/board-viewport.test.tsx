@@ -107,7 +107,8 @@ describe("BoardViewport: a board that fits", () => {
     expect(indicator()).toBeNull();
     expect(fade("start")).toBeNull();
     expect(fade("end")).toBeNull();
-    expect(region()).not.toHaveAttribute("tabindex");
+    expect(screen.queryByRole("region")).toBeNull();
+    expect(screen.getByRole("group", { name: "Board preview" })).not.toHaveAttribute("tabindex");
     expect(screen.getByText("NOTE · 15×3")).toBeInTheDocument();
     expect(document.querySelector("[data-slot=board-viewport]")).toHaveAttribute("data-overflow", "false");
   });
@@ -179,7 +180,9 @@ describe("BoardViewport: Actual size (default)", () => {
     layout.viewport = 280;
     render(<BoardViewport deviceType="flagship" message="GOOD MORNING" />);
     expect(region().className).not.toContain("[data-note-col-seam]");
-    expect(region().className).toContain("snap-start");
+    // Every first-row tile is a snap target, not only the first one.
+    expect(region().className).toContain("[&_[data-note-row]:first-child>[data-note-tile]]:snap-start");
+    expect(region().className).not.toContain("[data-note-tile]:first-child]");
   });
 
   it('reads "Column 1 of 2 · 4 notes" on a 2×2 array', () => {
@@ -201,7 +204,7 @@ describe("BoardViewport: Actual size (default)", () => {
   it("appends the hint after the indicator, outside the live text", () => {
     render(<BoardViewport {...NOTE_ARRAY} hint="swipe" />);
     expect(indicator()).toHaveTextContent("Note 1 of 3 · swipe");
-    const live = document.querySelector("[data-slot=board-viewport-indicator] [aria-live]");
+    const live = document.querySelector("[data-slot=board-viewport-live]");
     expect(live).toHaveTextContent(/^Note 1 of 3$/);
   });
 
@@ -377,7 +380,11 @@ describe("BoardViewport: mode precedence (R1)", () => {
 });
 
 describe("BoardViewport: measurement", () => {
-  it("re-measures on window resize", () => {
+  it("re-measures on window resize, once per frame", () => {
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+      cb(0);
+      return 1;
+    });
     layout.viewport = 2000;
     render(<BoardViewport {...NOTE_ARRAY} />);
     expect(screen.queryByRole("button")).toBeNull();
@@ -427,5 +434,121 @@ describe("BoardViewport: measurement", () => {
     render(<BoardViewport {...NOTE_ARRAY} rootClassName="mt-4" className="board-x" />);
     expect(document.querySelector("[data-slot=board-viewport]")).toHaveClass("mt-4");
     expect(screen.getByRole("img")).toHaveClass("board-x");
+  });
+});
+
+describe("BoardViewport: review round 1", () => {
+  it("S1: a fitting board is a named group, an overflowing one a region landmark", () => {
+    const { rerender } = render(<BoardViewport deviceType="note" message="HI" labels={{ region: "Kitchen" }} />);
+    expect(screen.getByRole("group", { name: "Kitchen" })).toBeInTheDocument();
+    expect(screen.queryByRole("region")).toBeNull();
+    rerender(<BoardViewport {...NOTE_ARRAY} labels={{ region: "Kitchen" }} />);
+    expect(screen.getByRole("region", { name: "Kitchen" })).toBeInTheDocument();
+  });
+
+  it("S2: the live text waits for the scroll to settle; the visible text does not", () => {
+    vi.useFakeTimers();
+    try {
+      layout.viewport = 280;
+      render(<BoardViewport deviceType="flagship" message="GOOD MORNING" />);
+      const live = () => document.querySelector("[data-slot=board-viewport-live]");
+      expect(live()).toHaveTextContent("Columns 1–16 of 22");
+      act(() => scrollTo_(16));
+      act(() => scrollTo_(32));
+      expect(indicator()).toHaveTextContent("Columns 3–18 of 22");
+      expect(live()).toHaveTextContent("Columns 1–16 of 22");
+      act(() => {
+        vi.advanceTimersByTime(149);
+      });
+      expect(live()).toHaveTextContent("Columns 1–16 of 22");
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(live()).toHaveTextContent("Columns 3–18 of 22");
+      // scrollend settles at once
+      act(() => scrollTo_(48));
+      act(() => {
+        fireEvent(region(), new Event("scrollend"));
+      });
+      expect(live()).toHaveTextContent("Columns 4–19 of 22");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("S2: a mode change is announced at once", () => {
+    render(<BoardViewport {...NOTE_ARRAY} />);
+    fireEvent.keyDown(region(), { key: "f" });
+    expect(document.querySelector("[data-slot=board-viewport-live]")).toHaveTextContent(
+      "Overview · 3 notes · tap Actual to read",
+    );
+  });
+
+  it("S2: a pending settle is cleared on unmount", () => {
+    const clear = vi.spyOn(globalThis, "clearTimeout");
+    const { unmount } = render(<BoardViewport {...NOTE_ARRAY} />);
+    act(() => scrollTo_(250));
+    unmount();
+    expect(clear).toHaveBeenCalled();
+  });
+
+  it("S3: Fit ↔ Actual keeps the same board node and observes a stable wrapper", () => {
+    const observed: Element[] = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe(el: Element) {
+          observed.push(el);
+        }
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    try {
+      render(<BoardViewport {...NOTE_ARRAY} />);
+      const before = screen.getByRole("img");
+      fireEvent.keyDown(region(), { key: "f" });
+      fireEvent.keyDown(region(), { key: "f" });
+      expect(screen.getByRole("img")).toBe(before);
+      const wrapper = document.querySelector("[data-slot=board-viewport-scaled]");
+      expect(observed).toContain(wrapper);
+      expect(observed).not.toContain(before);
+      expect(wrapper?.isConnected).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("S4: unmount removes the resize listener it added", () => {
+    const add = vi.spyOn(window, "addEventListener");
+    const remove = vi.spyOn(window, "removeEventListener");
+    const { unmount } = render(<BoardViewport {...NOTE_ARRAY} />);
+    const added = add.mock.calls.find(([type]) => type === "resize")?.[1];
+    expect(added).toBeTypeOf("function");
+    unmount();
+    expect(remove).toHaveBeenCalledWith("resize", added);
+  });
+
+  it("S4: unmount cancels a pending measurement frame", () => {
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 42);
+    const cancel = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+    const { unmount } = render(<BoardViewport {...NOTE_ARRAY} />);
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    unmount();
+    expect(cancel).toHaveBeenCalledWith(42);
+  });
+
+  it("P1: the current page is a pill by default, a dot on request", () => {
+    const { unmount } = render(<BoardViewport {...NOTE_ARRAY} />);
+    const current = () => document.querySelector("[data-slot=board-viewport-dot][data-current=true]");
+    expect(current()).toHaveAttribute("data-shape", "pill");
+    expect(current()).toHaveClass("h-1.5", "w-4");
+    unmount();
+    render(<BoardViewport {...NOTE_ARRAY} indicator="dot" />);
+    expect(current()).toHaveAttribute("data-shape", "dot");
+    expect(current()).toHaveClass("size-2");
+    expect(document.querySelector("[data-slot=board-viewport-dot][data-current=false]")).toHaveClass("size-1.5");
   });
 });

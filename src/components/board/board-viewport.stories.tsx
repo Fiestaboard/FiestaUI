@@ -169,3 +169,13 @@ export const WhiteBoard: Story = {
     </Slot>
   ),
 };
+
+/** Mobile 02's 8 px dot instead of web 07's pill (`indicator="dot"`, `36:32684`). */
+export const DotIndicator: Story = {
+  args: { ...OverflowStart.args, indicator: "dot" },
+  render: (args) => (
+    <Slot>
+      <BoardViewport {...args} />
+    </Slot>
+  ),
+};

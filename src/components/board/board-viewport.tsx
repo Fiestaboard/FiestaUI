@@ -24,6 +24,11 @@
  *
  * A board that fits draws no chrome at all: no toggle, indicator or fade.
  *
+ * The mode shares one session key with ScaledBoardDisplay: a Fit tap carries
+ * over to boards mounted later in the session (not to ones already on
+ * screen), and a host that controls `mode` should pass `persist={false}`.
+ * See `useBoardPreviewMode`.
+ *
  * The board renders through `BoardDisplay` with `bezel={false}`; the viewport
  * draws the housing itself so the frame does not scroll away with the tiles.
  */
@@ -35,6 +40,7 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -104,6 +110,11 @@ export interface BoardViewportProps extends Omit<BoardDisplayProps, "bezel">, Bo
   /** The tile floor in px. A Fit view whose tiles fall under it is labelled an overview. Default 13. */
   minTile?: number;
   labels?: BoardViewportLabels;
+  /**
+   * How the current page is marked: `"pill"` (default) is web 07's wide dash;
+   * `"dot"` is mobile 02's 8 px dot.
+   */
+  indicator?: "pill" | "dot";
   /** Class for the viewport's root. (`className` goes to the board, as on BoardDisplay.) */
   rootClassName?: string;
 }
@@ -226,6 +237,7 @@ export function BoardViewport({
   minTile = BOARD_MIN_TILE,
   labels: labelOverrides,
   rootClassName,
+  indicator = "pill",
   mode: modeProp,
   onModeChange,
   defaultMode = "actual",
@@ -244,7 +256,7 @@ export function BoardViewport({
   const notesTall = boardProps.notesTall ?? 1;
   const { cols } = resolveDimensions(deviceType, notesWide, notesTall, boardProps.gridRows, boardProps.gridCols);
   const paging = pagingKind(deviceType, notesWide, notesTall);
-  const startColumns = pageStartColumns(paging, cols);
+  const startColumns = useMemo(() => pageStartColumns(paging, cols), [paging, cols]);
   const isWhite = boardProps.boardType === "white";
 
   const [geometry, setGeometry] = useState<Geometry>(EMPTY_GEOMETRY);
@@ -256,9 +268,7 @@ export function BoardViewport({
       const next = deriveView(g, startColumns, scroller?.scrollLeft ?? 0);
       setView((prev) => (sameView(prev, next) ? prev : next));
     },
-    // startColumns is derived from paging and cols alone.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [paging, cols],
+    [startColumns],
   );
 
   const measure = useCallback(() => {
@@ -308,14 +318,17 @@ export function BoardViewport({
         measure();
       });
     };
+    // Observe the scroller and the scaled wrapper. Both stay mounted across
+    // Fit ↔ Actual (one tree shape), so the observer never watches a detached
+    // node; the wrapper's layout box follows the board's natural size.
     const ro = new ResizeObserver(schedule);
     ro.observe(scroller);
-    const board = scroller.querySelector("[data-slot=board-display]");
-    if (board) ro.observe(board);
-    window.addEventListener("resize", measure);
+    const wrapper = scroller.querySelector("[data-slot=board-viewport-scaled]");
+    if (wrapper) ro.observe(wrapper);
+    window.addEventListener("resize", schedule);
     return () => {
       ro.disconnect();
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", schedule);
       if (frame !== null) cancelAnimationFrame(frame);
     };
   }, [measure]);
@@ -380,6 +393,37 @@ export function BoardViewport({
     indicatorText = labels.overview(notes, cols);
   }
 
+  // The polite region speaks once a scroll settles (scrollend, or 150 ms of
+  // quiet), not on every column a swipe crosses. The visible text follows the
+  // scroll live; changes that are not scrolls (mount, Fit ↔ Actual) speak at once.
+  const [announced, setAnnounced] = useState(indicatorText);
+  const latestTextRef = useRef(indicatorText);
+  latestTextRef.current = indicatorText;
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settle = useCallback(() => {
+    if (settleTimerRef.current !== null) clearTimeout(settleTimerRef.current);
+    settleTimerRef.current = null;
+    setAnnounced(latestTextRef.current);
+  }, []);
+  useEffect(() => {
+    if (settleTimerRef.current === null) setAnnounced(indicatorText);
+  }, [indicatorText]);
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    /* v8 ignore next */
+    if (!scroller) return;
+    scroller.addEventListener("scrollend", settle);
+    return () => {
+      scroller.removeEventListener("scrollend", settle);
+      if (settleTimerRef.current !== null) clearTimeout(settleTimerRef.current);
+    };
+  }, [settle]);
+  const onScroll = () => {
+    updateView(geometry);
+    if (settleTimerRef.current !== null) clearTimeout(settleTimerRef.current);
+    settleTimerRef.current = setTimeout(settle, 150);
+  };
+
   const fadeFrom = isWhite ? "var(--color-board-bezel-light)" : "var(--board-edge-fade)";
   const fadeTo = isWhite ? "transparent" : "var(--board-edge-fade-clear)";
   const fade = (side: "start" | "end", visible: boolean) => (
@@ -422,17 +466,18 @@ export function BoardViewport({
         }}
       >
         {/* A scrollable region must be focusable (axe scrollable-region-focusable),
-            and its keys are what replace the scrollbar it hides: ← → Home End F. */}
-        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
+            and its keys are what replace the scrollbar it hides: ← → Home End F.
+            It is a `region` landmark only while it scrolls; a board that fits is a
+            named `group`, so a list of boards does not pile up landmarks. In a
+            list, pass each board its own `labels.region`. */}
         <div
           ref={scrollerRef}
-          role="region"
+          role={overflowing ? "region" : "group"}
           aria-label={labels.region}
-          aria-describedby={indicatorText ? indicatorId : undefined}
-          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          aria-describedby={announced ? indicatorId : undefined}
           tabIndex={overflowing ? 0 : undefined}
           data-slot="board-viewport-scroller"
-          onScroll={() => updateView(geometry)}
+          onScroll={onScroll}
           onKeyDown={onKeyDown}
           className={cn(
             "overflow-y-hidden outline-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
@@ -441,25 +486,36 @@ export function BoardViewport({
           )}
           style={{ padding: BOARD_VIEWPORT_PADDING, scrollPaddingLeft: BOARD_VIEWPORT_PADDING }}
         >
-          {fitted ? (
+          {/* One tree shape in both modes, so Fit ↔ Actual never remounts the
+              board (its flap state survives) and observers keep their targets. */}
+          <div
+            data-slot="board-viewport-box"
+            className={cn("mx-auto", !fitted && "w-max")}
+            style={
+              fitted
+                ? { width: scale < 1 ? viewportWidth : geometry.boardWidth, height: geometry.boardHeight * scale }
+                : undefined
+            }
+          >
             <div
-              className="mx-auto"
-              style={{ width: scale < 1 ? viewportWidth : geometry.boardWidth, height: geometry.boardHeight * scale }}
+              data-slot="board-viewport-scaled"
+              style={
+                fitted
+                  ? { transform: `scale(${scale})`, transformOrigin: "top left", width: "fit-content" }
+                  : { width: "fit-content" }
+              }
             >
-              <div
-                data-slot="board-viewport-scaled"
-                style={{ transform: `scale(${scale})`, transformOrigin: "top left", width: "fit-content" }}
-              >
-                {board}
-              </div>
+              {board}
             </div>
-          ) : (
-            <div className="mx-auto w-max">{board}</div>
-          )}
+          </div>
         </div>
         {scrolling && fade("start", !view.atStart)}
         {scrolling && fade("end", !view.atEnd)}
       </div>
+      {/* Always mounted, so its first change is a mutation AT announces. */}
+      <span id={indicatorId} aria-live="polite" className="sr-only" data-slot="board-viewport-live">
+        {announced}
+      </span>
       {indicatorText && (
         <div data-slot="board-viewport-indicator" className="flex items-center gap-2.5 text-xs text-muted-foreground">
           {paging === "column" ? (
@@ -489,14 +545,19 @@ export function BoardViewport({
                     key={i}
                     data-slot="board-viewport-dot"
                     data-current={current}
-                    className={cn("rounded-full", current ? "size-2 bg-foreground" : "size-1.5 bg-muted-foreground/40")}
+                    data-shape={indicator}
+                    className={cn(
+                      "rounded-full",
+                      !current && "size-1.5 bg-muted-foreground/40",
+                      current && (indicator === "pill" ? "h-1.5 w-4 bg-foreground" : "size-2 bg-foreground"),
+                    )}
                   />
                 );
               })}
             </span>
           )}
           <span>
-            <span id={indicatorId} aria-live="polite">
+            <span aria-hidden="true" data-slot="board-viewport-indicator-text">
               {indicatorText}
             </span>
             {hint && scrolling ? <> · {hint}</> : null}

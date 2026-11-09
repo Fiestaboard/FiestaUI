@@ -15,6 +15,16 @@
  * Storage is `sessionStorage`, not `localStorage`, on purpose: a user who taps
  * Fit keeps it for the session only, and a fresh tab returns to the app's
  * default.
+ *
+ * Shared session key (`fiestaboard:boardPreviewMode`), with three consequences:
+ *  - a Fit / Actual tap on any preview (BoardViewport or ScaledBoardDisplay,
+ *    any board type) carries over to every preview mounted later in the
+ *    session — a Flagship's Fit also opens later note arrays in Fit;
+ *  - the value is read once, on mount: previews already on screen do not
+ *    follow each other live;
+ *  - a controlled `mode` still writes the key when `persist` is on, which
+ *    would leak the host's state into uncontrolled siblings. **Hosts that
+ *    control the mode should pass `persist={false}`.**
  */
 
 import { useCallback, useState } from "react";
@@ -76,7 +86,20 @@ export function resolveBoardPreviewMode({
 
 /**
  * The preview mode as `[mode, setMode]`, resolved by the R1 precedence. The
- * stored value is read once, on mount (lazily, so SSR renders `defaultMode`).
+ * stored value is read once, on mount, by a lazy state initialiser. The server
+ * has no session, so a server-rendered host whose session holds a different
+ * mode will hydrate with a mismatch: render previews client-only, or pass a
+ * controlled `mode`.
+ *
+ * Shared session key (`fiestaboard:boardPreviewMode`), with three consequences:
+ * - a Fit / Actual tap on any preview (BoardViewport or ScaledBoardDisplay,
+ *   any board type) carries over to every preview mounted later in the
+ *   session — a Flagship's Fit also opens later note arrays in Fit;
+ * - the value is read once, on mount: previews already on screen do not
+ *   follow each other live;
+ * - a controlled `mode` still writes the key when `persist` is on, which
+ *   would leak the host's state into uncontrolled siblings. **Hosts that
+ *   control the mode should pass `persist={false}`.**
  * `setMode` stores the choice when `persist`, updates the uncontrolled state,
  * and calls `onModeChange`.
  */
