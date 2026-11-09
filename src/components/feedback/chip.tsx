@@ -58,7 +58,7 @@ const chipVariants = cva(
   // is a docs site whose global link styles (Infima) underline anchors on
   // hover, and an underlined pill reads as a link wearing a costume rather
   // than a chip. The border/fill hover above replaces that affordance.
-  "inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none text-foreground no-underline hover:bg-accent hover:text-accent-foreground hover:border-brand active:bg-secondary active:border-brand data-[pressed]:bg-secondary data-[pressed]:border-brand focus-ring transition-[color,background-color,border-color,box-shadow] duration-control disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none text-foreground no-underline hover:bg-accent hover:text-accent-foreground hover:border-brand active:bg-secondary active:border-brand data-[press]:bg-secondary data-[press]:border-brand focus-ring transition-[color,background-color,border-color,box-shadow] duration-control disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       // A boolean, not a variant axis. Mono is typography for code-shaped
@@ -119,7 +119,7 @@ function Chip({
       className: cn(chipVariants({ mono, size }), className),
       ...(asChild ? {} : { children }),
       ...props,
-      // C21: `data-pressed` while a pointer is down (lib/press.ts).
+      // C21: `data-press` while a pointer is down (lib/press.ts).
       ...pressStateHandlers({ onPointerDown, onPointerUp, onPointerCancel, onPointerLeave }),
     },
   });

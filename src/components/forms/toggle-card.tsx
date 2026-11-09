@@ -384,9 +384,9 @@ const segmentedControlItemVariants = cva(
     "border border-input bg-transparent font-medium text-foreground",
     "transition-[color,background-color,border-color,box-shadow] duration-control outline-none",
     "not-data-[checked]:hover:border-primary/50 not-data-[checked]:hover:bg-accent",
-    // C21 pressed: the hover fill, on `:active` and on the `data-pressed`
+    // C21 pressed: the hover fill, on `:active` and on the `data-press`
     // hook (lib/press.ts). A mouse press is a hover too, so only touch sees it.
-    "not-data-[checked]:active:bg-accent not-data-[checked]:data-[pressed]:bg-accent",
+    "not-data-[checked]:active:bg-accent not-data-[checked]:data-[press]:bg-accent",
     "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
     // Selected pills carry a little more fill than a ToggleCard (primary/10 vs
     // primary/5): the tinted area is a tenth the size, so the lighter wash
@@ -564,7 +564,7 @@ function SegmentedControlItem({
       data-layout={resolvedLayout}
       className={cn(segmentedControlItemVariants({ size: resolvedSize, layout: resolvedLayout }), className)}
       {...props}
-      // C21: `data-pressed` while a pointer is down (lib/press.ts).
+      // C21: `data-press` while a pointer is down (lib/press.ts).
       {...pressStateHandlers({ onPointerDown, onPointerUp, onPointerCancel, onPointerLeave })}
     >
       {children}

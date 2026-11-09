@@ -600,7 +600,7 @@ export const KeyboardNavigation = () => (
 /**
  * `SegmentedControl size="touch"` (slice 1.2): 44px pills inline, 44px
  * floors in the grid. The second row holds one unselected pill in the C21
- * pressed state with `data-pressed`.
+ * pressed state with `data-press`.
  */
 export const SegmentedControlTouch = () => (
   <div className="flex w-full sm:w-[400px] flex-col gap-4">
@@ -610,7 +610,7 @@ export const SegmentedControlTouch = () => (
     </SegmentedControl>
     <SegmentedControl aria-label="Repeat" size="touch" defaultValue="weekly">
       <SegmentedControlItem value="once">Once</SegmentedControlItem>
-      <SegmentedControlItem value="daily" data-pressed="">
+      <SegmentedControlItem value="daily" data-press="">
         Daily
       </SegmentedControlItem>
       <SegmentedControlItem value="weekly">Weekly</SegmentedControlItem>

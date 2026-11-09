@@ -23,17 +23,17 @@ const buttonVariants = cva(
         // the other way: the label reads 10.78:1 hovered, 7.04:1 pressed.
         //
         // Pressed (C21, Figma `61:30024`: "Pressed = primary/active") is
-        // `active:` plus its `data-[pressed]:` mirror on every variant — the
+        // `active:` plus its `data-[press]:` mirror on every variant — the
         // attribute is what a touch press sets (lib/press.ts says why).
         default:
-          "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active data-[pressed]:bg-primary-active",
+          "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active data-[press]:bg-primary-active",
         // DEPRECATED — alias of `default` for one minor, then removed.
         // This existed to put the literal tile on a button while --primary was
         // a mustard. --primary IS the tile now, so `brand` and `default` are
         // the same button, and the `ring-1 ring-inset ring-primary` rim that
         // used to bound it would be a rim of the fill's own colour.
         brand:
-          "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active data-[pressed]:bg-primary-active",
+          "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active data-[press]:bg-primary-active",
         destructive:
           // The destructive focus ring was ring-destructive/20 light and /40
           // dark, which composite to 1.34:1 and 1.97:1 — the control where a
@@ -44,7 +44,7 @@ const buttonVariants = cva(
           // is always also a hover, so the hover fill was the press. On touch
           // there is no hover, so the press now names that same fill
           // explicitly — no pixel changes for a mouse.
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/90 data-[pressed]:bg-destructive/90",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/90 data-[press]:bg-destructive/90",
         // The dark fill is a SURFACE token, not --input. --input now means
         // "control boundary" and carries a real 3:1 value (#161); reusing it
         // as a translucent fill both muddies that meaning and — at the new
@@ -55,18 +55,18 @@ const buttonVariants = cva(
         // bg-card (oklch L .16) → bg-muted (L .20), a slightly LARGER step
         // than the translucent pair it replaces (L .179 → .209).
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-card dark:border-input dark:hover:bg-muted active:bg-accent active:text-accent-foreground data-[pressed]:bg-accent data-[pressed]:text-accent-foreground dark:active:bg-muted dark:data-[pressed]:bg-muted",
+          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-card dark:border-input dark:hover:bg-muted active:bg-accent active:text-accent-foreground data-[press]:bg-accent data-[press]:text-accent-foreground dark:active:bg-muted dark:data-[press]:bg-muted",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/80 data-[pressed]:bg-secondary/80",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/80 data-[press]:bg-secondary/80",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 active:bg-accent active:text-accent-foreground data-[pressed]:bg-accent data-[pressed]:text-accent-foreground dark:active:bg-accent/50 dark:data-[pressed]:bg-accent/50",
+          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 active:bg-accent active:text-accent-foreground data-[press]:bg-accent data-[press]:text-accent-foreground dark:active:bg-accent/50 dark:data-[press]:bg-accent/50",
         // NOT text-primary. --primary is the literal tile now, which is
         // 1.83:1 on a light page — legal as a button field, illegal as text.
         // --brand is the same hue at the ink plateau (5.09:1 / 9.63:1).
         // The underline is permanent rather than on hover because colour alone
         // does not distinguish a link from body copy in dark, where --brand vs
         // --foreground is 2.24:1 (G183 wants 3:1).
-        link: "text-brand underline decoration-1 underline-offset-4 hover:decoration-2 active:decoration-2 data-[pressed]:decoration-2",
+        link: "text-brand underline decoration-1 underline-offset-4 hover:decoration-2 active:decoration-2 data-[press]:decoration-2",
       },
       // The second `has-…px-*` rule in each padded size is the loading mirror
       // of the first. While loading, the children move inside the label slot,
@@ -260,7 +260,7 @@ function Button({
       ...(asChild ? {} : { children: content }),
       ...props,
       ...(loading ? { "aria-busy": true, "aria-disabled": true, "data-loading": "" } : {}),
-      // C21: `data-pressed` while a pointer is down (lib/press.ts). Skipped
+      // C21: `data-press` while a pointer is down (lib/press.ts). Skipped
       // while loading — the aria-disabled guard — so a busy button never
       // looks pressable.
       ...pressStateHandlers({ onPointerDown, onPointerUp, onPointerCancel, onPointerLeave }),

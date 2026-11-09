@@ -155,8 +155,8 @@ export const Disabled = () => (
 
 /**
  * The 44px touch sizes (slice 1.2): `touch` (44 tall, at least 44 wide) and
- * `icon-touch` (44×44). The press is `:active` only — Base UI's
- * `data-pressed` already means ON here.
+ * `icon-touch` (44×44). The momentary press is `data-press` (lib/press.ts);
+ * Base UI's `data-pressed` keeps meaning ON.
  */
 export const Touch = () => (
   <div className="flex flex-wrap items-center gap-3">

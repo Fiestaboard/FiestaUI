@@ -167,9 +167,9 @@ const swatchVariants = cva(
         // Slice 1.2: a 44px target (--touch-target) around a 32px fill. The
         // gutter is 6px, so the ring and its offset still draw inside it.
         // The C21 press scales the target to 0.97 (motion-safe), on
-        // `:active` and on the `data-pressed` hook.
+        // `:active` and on the `data-press` hook.
         touch:
-          "size-touch p-1.5 transition-[box-shadow,opacity,scale] motion-safe:active:scale-[0.97] motion-safe:data-[pressed]:scale-[0.97]",
+          "size-touch p-1.5 transition-[box-shadow,opacity,scale] motion-safe:active:scale-[0.97] motion-safe:data-[press]:scale-[0.97]",
       },
     },
     defaultVariants: {
@@ -392,7 +392,7 @@ function Swatch({
       data-size={resolvedSize}
       className={cn(swatchVariants({ size: resolvedSize }), className)}
       {...props}
-      // C21: `data-pressed` while a pointer is down (lib/press.ts).
+      // C21: `data-press` while a pointer is down (lib/press.ts).
       {...pressStateHandlers({ onPointerDown, onPointerUp, onPointerCancel, onPointerLeave })}
     >
       <span

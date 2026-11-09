@@ -10,7 +10,17 @@
  * The strings are literal (not built) so Tailwind's scanner sees every class.
  */
 
-/** ≥44×44 invisible hit area, always on. Used at `size="touch"`. */
+/**
+ * ≥44×44 invisible hit area, always on. Used at `size="touch"`.
+ *
+ * Two layout consequences, both deliberate:
+ * - The `::before` is positioned, so it paints over (and takes taps from)
+ *   adjacent NON-positioned content it overhangs — e.g. description text
+ *   directly under a Switch. Where two hit areas overlap (a wrapping row of
+ *   30px chips with a row gap under 14px), the later sibling in the DOM
+ *   wins. Give a dense row a gap, or make the whole row the target.
+ * - An `overflow-hidden` ancestor clips the area to its own box.
+ */
 export const TOUCH_HIT_AREA =
   "relative before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:size-full before:min-h-touch before:min-w-touch";
 
@@ -20,15 +30,8 @@ export const COARSE_HIT_AREA =
 
 /**
  * The C21 press at touch size: scale 0.97, motion-safe only, on both the live
- * `:active` and the `data-pressed` hook (see ./press.ts). `scale` joins the
+ * `:active` and the `data-press` hook (see ./press.ts). `scale` joins the
  * transition list so the press eases instead of snapping.
  */
 export const TOUCH_PRESS_SCALE =
-  "transition-[color,background-color,border-color,box-shadow,scale] motion-safe:active:scale-[0.97] motion-safe:data-[pressed]:scale-[0.97]";
-
-/**
- * The press scale for a control whose `data-pressed` means something else:
- * Base UI's Toggle stamps it for ON, so a Toggle presses on `:active` only.
- */
-export const TOUCH_ACTIVE_SCALE =
-  "transition-[color,background-color,border-color,box-shadow,scale] motion-safe:active:scale-[0.97]";
+  "transition-[color,background-color,border-color,box-shadow,scale] motion-safe:active:scale-[0.97] motion-safe:data-[press]:scale-[0.97]";

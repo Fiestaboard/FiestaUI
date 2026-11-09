@@ -5,7 +5,8 @@ import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
-import { TOUCH_ACTIVE_SCALE } from "../../lib/touch";
+import { pressStateHandlers } from "../../lib/press";
+import { TOUCH_PRESS_SCALE } from "../../lib/touch";
 import { cn } from "../../lib/utils";
 import type { SelectionGroupNameProps } from "./toggle-card";
 
@@ -55,6 +56,7 @@ const toggleVariants = cva(
     // the component: no variant can exist without a pressed fill.
     "data-[pressed]:bg-primary data-[pressed]:text-primary-foreground",
     "data-[pressed]:hover:bg-primary-hover data-[pressed]:active:bg-primary-active",
+    "data-[pressed]:data-[press]:bg-primary-active",
   ],
   {
     variants: {
@@ -72,6 +74,8 @@ const toggleVariants = cva(
           // hover too, so only touch sees a difference.
           "not-data-[pressed]:active:bg-accent not-data-[pressed]:active:text-accent-foreground",
           "dark:not-data-[pressed]:active:bg-accent/50",
+          "not-data-[pressed]:data-[press]:bg-accent not-data-[pressed]:data-[press]:text-accent-foreground",
+          "dark:not-data-[pressed]:data-[press]:bg-accent/50",
         ],
         // Button `outline`, including its dark surface/boundary treatment.
         // The pressed rim adopts the fill's own colour: keeping --input
@@ -83,6 +87,8 @@ const toggleVariants = cva(
           "dark:border-input dark:not-data-[pressed]:bg-card dark:not-data-[pressed]:hover:bg-muted",
           "not-data-[pressed]:active:bg-accent not-data-[pressed]:active:text-accent-foreground",
           "dark:not-data-[pressed]:active:bg-muted",
+          "not-data-[pressed]:data-[press]:bg-accent not-data-[pressed]:data-[press]:text-accent-foreground",
+          "dark:not-data-[pressed]:data-[press]:bg-muted",
           "data-[pressed]:border-primary",
         ],
       },
@@ -96,18 +102,16 @@ const toggleVariants = cva(
       // `.fui-coarse` on a coarse pointer). The touch sizes are slice 1.2's
       // 44px (--control-h-touch / --touch-target).
       //
-      // C21 pressed state: a Toggle presses on `:active` only. Base UI
-      // already uses `data-pressed` for ON (`aria-pressed`), so the
-      // momentary `data-pressed` hook in lib/press.ts is NOT used here — it
-      // would read as "on" for the length of every tap.
+      // C21: the momentary press is `:active` plus the `data-press` hook
+      // (lib/press.ts) — NOT Base UI's `data-pressed`, which means ON here.
       size: {
         default: "h-9 min-w-9 px-2 coarse:min-h-touch coarse:min-w-touch",
         sm: "h-8 min-w-8 px-1.5 coarse:min-h-touch coarse:min-w-touch",
         lg: "h-10 min-w-10 px-2.5 coarse:min-h-touch coarse:min-w-touch",
         icon: "size-9 coarse:min-h-touch coarse:min-w-touch",
         "icon-sm": "size-8 coarse:min-h-touch coarse:min-w-touch",
-        touch: `h-control-touch min-w-touch px-3 ${TOUCH_ACTIVE_SCALE}`,
-        "icon-touch": `size-touch ${TOUCH_ACTIVE_SCALE}`,
+        touch: `h-control-touch min-w-touch px-3 ${TOUCH_PRESS_SCALE}`,
+        "icon-touch": `size-touch ${TOUCH_PRESS_SCALE}`,
       },
     },
     defaultVariants: {
@@ -144,7 +148,17 @@ const ToggleGroupStyleContext = React.createContext<ToggleGroupStyleContextValue
  * {@link ToggleGroup} it is driven by the group's `value` and MUST carry a
  * `value` prop of its own (Base UI warns in dev if it doesn't).
  */
-function Toggle({ className, variant = "default", size = "default", onPressedChange, ...props }: ToggleProps) {
+function Toggle({
+  className,
+  variant = "default",
+  size = "default",
+  onPressedChange,
+  onPointerDown,
+  onPointerUp,
+  onPointerCancel,
+  onPointerLeave,
+  ...props
+}: ToggleProps) {
   const group = React.useContext(ToggleGroupStyleContext);
 
   return (
@@ -201,6 +215,8 @@ function Toggle({ className, variant = "default", size = "default", onPressedCha
         className,
       )}
       {...props}
+      // C21: `data-press` while a pointer is down (lib/press.ts).
+      {...pressStateHandlers({ onPointerDown, onPointerUp, onPointerCancel, onPointerLeave })}
     />
   );
 }

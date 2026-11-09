@@ -6,7 +6,7 @@ import { pressStateHandlers } from "./press";
 
 /*
  * The C21 pressed state. jsdom has no `:active`, so the hook under test is the
- * one this module owns: `data-pressed` set on a primary pointerdown and cleared
+ * one this module owns: `data-press` set on a primary pointerdown and cleared
  * on up, cancel and leave. `fireEvent` is used deliberately here — userEvent
  * cannot hold a pointer down between two assertions.
  */
@@ -20,25 +20,25 @@ function Target(props: { disabled?: boolean; "aria-disabled"?: boolean; onPointe
 }
 
 describe("pressStateHandlers", () => {
-  it("sets data-pressed on a primary pointerdown and clears it on pointerup", () => {
+  it("sets data-press on a primary pointerdown and clears it on pointerup", () => {
     render(<Target />);
     const button = screen.getByRole("button", { name: "Show now" });
 
     fireEvent.pointerDown(button, { button: 0 });
-    expect(button).toHaveAttribute("data-pressed");
+    expect(button).toHaveAttribute("data-press");
 
     fireEvent.pointerUp(button);
-    expect(button).not.toHaveAttribute("data-pressed");
+    expect(button).not.toHaveAttribute("data-press");
   });
 
-  it.each(["pointerCancel", "pointerLeave"] as const)("clears data-pressed on %s", (type) => {
+  it.each(["pointerCancel", "pointerLeave"] as const)("clears data-press on %s", (type) => {
     render(<Target />);
     const button = screen.getByRole("button", { name: "Show now" });
 
     fireEvent.pointerDown(button, { button: 0 });
     fireEvent[type](button);
 
-    expect(button).not.toHaveAttribute("data-pressed");
+    expect(button).not.toHaveAttribute("data-press");
   });
 
   it("ignores a secondary-button pointerdown", () => {
@@ -47,7 +47,7 @@ describe("pressStateHandlers", () => {
 
     fireEvent.pointerDown(button, { button: 2 });
 
-    expect(button).not.toHaveAttribute("data-pressed");
+    expect(button).not.toHaveAttribute("data-press");
   });
 
   it("never presses a disabled or aria-disabled control", () => {
@@ -55,12 +55,15 @@ describe("pressStateHandlers", () => {
       <>
         <Target disabled />
         <Target aria-disabled />
+        <button type="button" data-disabled="" {...pressStateHandlers()}>
+          Show now
+        </button>
       </>,
     );
 
     for (const button of screen.getAllByRole("button", { name: "Show now" })) {
       fireEvent.pointerDown(button, { button: 0 });
-      expect(button).not.toHaveAttribute("data-pressed");
+      expect(button).not.toHaveAttribute("data-press");
     }
   });
 
@@ -79,6 +82,6 @@ describe("pressStateHandlers", () => {
 
     expect(onPointerDown).toHaveBeenCalledTimes(1);
     expect(onPointerUp).toHaveBeenCalledTimes(1);
-    expect(button).not.toHaveAttribute("data-pressed");
+    expect(button).not.toHaveAttribute("data-press");
   });
 });

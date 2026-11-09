@@ -439,7 +439,7 @@ export const Touch = () => (
 
 /**
  * The C21 pressed state (Figma page 08 `61:30024`: "Pressed = primary/active,
- * scale 0.97"), held with `data-pressed` — the attribute a touch press sets
+ * scale 0.97"), held with `data-press` — the attribute a touch press sets
  * (lib/press.ts) and the mirror of `:active` on every variant. Top row at
  * rest, bottom row pressed. The 0.97 scale is motion-safe and so does not
  * appear in VRT, which captures with reduced motion.
@@ -449,7 +449,7 @@ export const Pressed = () => (
     {[false, true].map((pressed) => (
       <div key={String(pressed)} className="flex flex-wrap items-center gap-3">
         {(["default", "outline", "secondary", "ghost", "destructive"] as const).map((variant) => (
-          <Button key={variant} size="touch" variant={variant} data-pressed={pressed ? "" : undefined}>
+          <Button key={variant} size="touch" variant={variant} data-press={pressed ? "" : undefined}>
             Show now
           </Button>
         ))}

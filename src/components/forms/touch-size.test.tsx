@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { Chip } from "../feedback/chip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../overlays/dropdown-menu";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
@@ -183,6 +184,34 @@ describe("size=touch", () => {
   });
 });
 
+describe("caller overrides win (tailwind-merge knows the touch keys)", () => {
+  it("className h-12 beats a touch height", () => {
+    render(
+      <>
+        <Button size="touch" className="h-12">
+          Tall
+        </Button>
+        <Input size="touch" className="h-12" aria-label="Tall field" />
+      </>,
+    );
+
+    for (const target of [
+      screen.getByRole("button", { name: "Tall" }),
+      screen.getByRole("textbox", { name: "Tall field" }),
+    ]) {
+      expect(classTokens(target)).toContain("h-12");
+      expect(classTokens(target)).not.toContain("h-control-touch");
+    }
+  });
+
+  it("a touch Input carries only the touch height", () => {
+    render(<Input size="touch" aria-label="Name" />);
+    const heights = classTokens(screen.getByRole("textbox", { name: "Name" })).filter((token) => /^h-/.test(token));
+
+    expect(heights).toEqual(["h-control-touch"]);
+  });
+});
+
 describe("existing sizes are unchanged", () => {
   it.each([
     ["default", "h-9"],
@@ -231,6 +260,22 @@ describe("fui-coarse (W2)", () => {
     expect(classTokens(screen.getByRole("radio", { name: "Fit" }))).toContain("coarse:min-h-touch");
   });
 
+  it.each([
+    ["sm", ["h-8", "coarse:min-h-touch"]],
+    ["lg", ["h-10", "coarse:min-h-touch"]],
+    ["icon", ["size-9", "coarse:min-h-touch", "coarse:min-w-touch"]],
+    ["icon-sm", ["size-8", "coarse:min-h-touch", "coarse:min-w-touch"]],
+    ["icon-lg", ["size-10", "coarse:min-h-touch", "coarse:min-w-touch"]],
+  ] as const)("Button %s keeps its size and gains the coarse floor", (size, tokens) => {
+    render(
+      <Button size={size} aria-label="Target">
+        <svg />
+      </Button>,
+    );
+
+    expect(classTokens(screen.getByRole("button", { name: "Target" }))).toEqual(expect.arrayContaining([...tokens]));
+  });
+
   it("leaves icon-xs alone: its host is smaller than 44px by design", () => {
     render(
       <Button size="icon-xs" aria-label="Copy">
@@ -257,15 +302,15 @@ describe("pressed state (C21)", () => {
       "Fit",
     ],
     ["Swatch", () => <Swatch label="Red" color="#e8463b" />, "button", "Red"],
-  ] as const)("%s sets data-pressed while a pointer is down", (_name, ui, role, name) => {
+  ] as const)("%s sets data-press while a pointer is down", (_name, ui, role, name) => {
     render(ui());
     const target = screen.getByRole(role, { name });
 
     fireEvent.pointerDown(target, { button: 0 });
-    expect(target).toHaveAttribute("data-pressed");
+    expect(target).toHaveAttribute("data-press");
 
     fireEvent.pointerUp(target);
-    expect(target).not.toHaveAttribute("data-pressed");
+    expect(target).not.toHaveAttribute("data-press");
   });
 
   it("a loading Button never shows pressed", () => {
@@ -274,16 +319,59 @@ describe("pressed state (C21)", () => {
 
     fireEvent.pointerDown(button, { button: 0 });
 
-    expect(button).not.toHaveAttribute("data-pressed");
+    expect(button).not.toHaveAttribute("data-press");
   });
 
-  it("Toggle keeps data-pressed for ON only; a pointerdown does not stamp it", () => {
+  it("Toggle presses with data-press, leaving Base UI's data-pressed to mean ON", () => {
     render(<Toggle>Bold</Toggle>);
     const bold = screen.getByRole("button", { name: "Bold" });
 
     fireEvent.pointerDown(bold, { button: 0 });
 
+    expect(bold).toHaveAttribute("data-press");
     expect(bold).not.toHaveAttribute("data-pressed");
     expect(bold).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.pointerUp(bold);
+    expect(bold).not.toHaveAttribute("data-press");
+  });
+
+  it("an open DropdownMenu's Button trigger does not look pressed", async () => {
+    render(
+      <DropdownMenu defaultOpen>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline">Board actions</Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem>Rename</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>,
+    );
+    await screen.findByRole("menuitem", { name: "Rename" });
+    const trigger = screen.getByRole("button", { name: "Board actions", hidden: true });
+
+    // Base UI marks the open trigger `data-pressed`; the press style must not
+    // key off it — only off the momentary `data-press` this package writes.
+    expect(trigger).toHaveAttribute("data-pressed");
+    expect(trigger).not.toHaveAttribute("data-press");
+    expect(classTokens(trigger).filter((token) => token.includes("data-[pressed]"))).toEqual([]);
+    expect(classTokens(trigger)).toContain("data-[press]:bg-accent");
+  });
+
+  it("the touch press scales only under motion-safe", () => {
+    render(
+      <>
+        <Button size="touch">Show now</Button>
+        <Swatch size="touch" label="Red" color="#e8463b" />
+      </>,
+    );
+
+    for (const target of [
+      screen.getByRole("button", { name: "Show now" }),
+      screen.getByRole("button", { name: "Red" }),
+    ]) {
+      const scale = classTokens(target).filter((token) => token.includes("scale-[0.97]"));
+      expect(scale).toEqual(["motion-safe:active:scale-[0.97]", "motion-safe:data-[press]:scale-[0.97]"]);
+    }
   });
 });

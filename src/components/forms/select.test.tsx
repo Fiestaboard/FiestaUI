@@ -52,6 +52,7 @@ describe("Select", () => {
     render(<BoardSelect defaultValue="kitchen" onValueChange={onValueChange} />);
 
     await user.click(screen.getByRole("combobox", { name: "Board" }));
+    await screen.findByRole("listbox");
     expect(await screen.findByText("Rooms")).toBeInTheDocument();
     expect(screen.getByRole("separator")).toBeInTheDocument();
 

@@ -96,7 +96,7 @@ export const TagRowWrapping = () => (
  * the pill stays 30px so a run still reads as content, and an invisible
  * ::before carries the 44×44 target. The second row draws the hit areas as
  * dashed outlines (a story-only class). The third holds the C21 pressed
- * state with `data-pressed`.
+ * state with `data-press`.
  */
 export const Touch = () => (
   <div className="flex flex-col gap-6">
@@ -119,7 +119,7 @@ export const Touch = () => (
       </Chip>
     </div>
     <div className="flex flex-wrap items-center gap-4">
-      <Chip size="touch" mono data-pressed="">
+      <Chip size="touch" mono data-press="">
         weather.temp
       </Chip>
     </div>
