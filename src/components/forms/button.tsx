@@ -2,6 +2,8 @@ import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
+import { pressStateHandlers } from "../../lib/press";
+import { TOUCH_PRESS_SCALE } from "../../lib/touch";
 import { cn } from "../../lib/utils";
 import { Spinner } from "../feedback/spinner";
 
@@ -19,19 +21,30 @@ const buttonVariants = cva(
         // composites toward the page, which measured 5.40 -> 4.46 on the field
         // and 5.97 -> 4.94 on the label, i.e. BELOW AA on hover. This one goes
         // the other way: the label reads 10.78:1 hovered, 7.04:1 pressed.
-        default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active",
+        //
+        // Pressed (C21, Figma `61:30024`: "Pressed = primary/active") is
+        // `active:` plus its `data-[pressed]:` mirror on every variant — the
+        // attribute is what a touch press sets (lib/press.ts says why).
+        default:
+          "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active data-[pressed]:bg-primary-active",
         // DEPRECATED — alias of `default` for one minor, then removed.
         // This existed to put the literal tile on a button while --primary was
         // a mustard. --primary IS the tile now, so `brand` and `default` are
         // the same button, and the `ring-1 ring-inset ring-primary` rim that
         // used to bound it would be a rim of the fill's own colour.
-        brand: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active",
+        brand:
+          "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active data-[pressed]:bg-primary-active",
         destructive:
           // The destructive focus ring was ring-destructive/20 light and /40
           // dark, which composite to 1.34:1 and 1.97:1 — the control where a
           // mis-click costs most had the weakest focus indicator in the system.
           // It now uses the shared two-tone ring like everything else.
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          //
+          // The variants below had no `active:` style: with a mouse, a press
+          // is always also a hover, so the hover fill was the press. On touch
+          // there is no hover, so the press now names that same fill
+          // explicitly — no pixel changes for a mouse.
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/90 data-[pressed]:bg-destructive/90",
         // The dark fill is a SURFACE token, not --input. --input now means
         // "control boundary" and carries a real 3:1 value (#161); reusing it
         // as a translucent fill both muddies that meaning and — at the new
@@ -42,16 +55,18 @@ const buttonVariants = cva(
         // bg-card (oklch L .16) → bg-muted (L .20), a slightly LARGER step
         // than the translucent pair it replaces (L .179 → .209).
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-card dark:border-input dark:hover:bg-muted",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-card dark:border-input dark:hover:bg-muted active:bg-accent active:text-accent-foreground data-[pressed]:bg-accent data-[pressed]:text-accent-foreground dark:active:bg-muted dark:data-[pressed]:bg-muted",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/80 data-[pressed]:bg-secondary/80",
+        ghost:
+          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 active:bg-accent active:text-accent-foreground data-[pressed]:bg-accent data-[pressed]:text-accent-foreground dark:active:bg-accent/50 dark:data-[pressed]:bg-accent/50",
         // NOT text-primary. --primary is the literal tile now, which is
         // 1.83:1 on a light page — legal as a button field, illegal as text.
         // --brand is the same hue at the ink plateau (5.09:1 / 9.63:1).
         // The underline is permanent rather than on hover because colour alone
         // does not distinguish a link from body copy in dark, where --brand vs
         // --foreground is 2.24:1 (G183 wants 3:1).
-        link: "text-brand underline decoration-1 underline-offset-4 hover:decoration-2",
+        link: "text-brand underline decoration-1 underline-offset-4 hover:decoration-2 active:decoration-2 data-[pressed]:decoration-2",
       },
       // The second `has-…px-*` rule in each padded size is the loading mirror
       // of the first. While loading, the children move inside the label slot,
@@ -60,11 +75,23 @@ const buttonVariants = cva(
       // the wrapper at the ORIGINAL children only — never at the spinner,
       // which sits in a sibling slot — so a text-only button keeps its wider
       // padding and an icon button keeps its tighter padding.
+      //
+      // `coarse:min-h-touch` (and `min-w` on the icon sizes) is the W2 touch
+      // layer: under an opted-in `.fui-coarse` on a coarse pointer the
+      // control floors at 44px. A min-height beats the fixed `h-*` without
+      // replacing it, so nothing moves anywhere else.
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3 has-[>[data-slot=button-loading]>[data-slot=button-label]>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 has-[>[data-slot=button-loading]>[data-slot=button-label]>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4 has-[>[data-slot=button-loading]>[data-slot=button-label]>svg]:px-4",
-        icon: "size-9",
+        default:
+          "h-9 px-4 py-2 has-[>svg]:px-3 has-[>[data-slot=button-loading]>[data-slot=button-label]>svg]:px-3 coarse:min-h-touch",
+        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 has-[>[data-slot=button-loading]>[data-slot=button-label]>svg]:px-2.5 coarse:min-h-touch",
+        lg: "h-10 rounded-md px-6 has-[>svg]:px-4 has-[>[data-slot=button-loading]>[data-slot=button-label]>svg]:px-4 coarse:min-h-touch",
+        // 44px (--control-h-touch), slice 1.2 / Figma T1 `59:62975`: the
+        // default button's label and radius at Apple's 44pt target, with
+        // lg's padding — the T1 thumbnail draws the touch button 116px wide
+        // around the same "Show now" label the 98px default wears. The C21
+        // press also scales it to 0.97 (motion-safe).
+        touch: `h-control-touch px-6 has-[>svg]:px-5 has-[>[data-slot=button-loading]>[data-slot=button-label]>svg]:px-5 ${TOUCH_PRESS_SCALE}`,
+        icon: "size-9 coarse:min-h-touch coarse:min-w-touch",
         // 24px, for an icon affordance that sits INSIDE something else — a
         // Badge, a chip, a code block, a dense settings row — where 32px
         // (`icon-sm`) is taller than its host and breaks the layout (#240).
@@ -82,8 +109,10 @@ const buttonVariants = cva(
         // A caller who sizes their own glyph (`size-3.5`) still wins, because
         // the `:not([class*='size-'])` guard stops this rule matching at all.
         "icon-xs": "size-6 [&_svg:not([class*='size-'])]:size-3!",
-        "icon-sm": "size-8",
-        "icon-lg": "size-10",
+        "icon-sm": "size-8 coarse:min-h-touch coarse:min-w-touch",
+        "icon-lg": "size-10 coarse:min-h-touch coarse:min-w-touch",
+        // The touch Icon Button: a 44×44 square (--touch-target).
+        "icon-touch": `size-touch ${TOUCH_PRESS_SCALE}`,
       },
     },
     defaultVariants: {
@@ -107,6 +136,8 @@ const SPINNER_SIZE_BY_BUTTON_SIZE: Record<ButtonSize, SpinnerSize> = {
   "icon-sm": "sm",
   lg: "lg",
   "icon-lg": "lg",
+  touch: "lg",
+  "icon-touch": "lg",
 };
 
 function Button({
@@ -118,6 +149,10 @@ function Button({
   loadingLabel,
   children,
   onClick,
+  onPointerDown,
+  onPointerUp,
+  onPointerCancel,
+  onPointerLeave,
   ref,
   ...props
 }: React.ComponentProps<"button"> &
@@ -225,6 +260,10 @@ function Button({
       ...(asChild ? {} : { children: content }),
       ...props,
       ...(loading ? { "aria-busy": true, "aria-disabled": true, "data-loading": "" } : {}),
+      // C21: `data-pressed` while a pointer is down (lib/press.ts). Skipped
+      // while loading — the aria-disabled guard — so a busy button never
+      // looks pressable.
+      ...pressStateHandlers({ onPointerDown, onPointerUp, onPointerCancel, onPointerLeave }),
       onClick: handleClick,
     },
   });

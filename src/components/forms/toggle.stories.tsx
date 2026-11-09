@@ -152,3 +152,28 @@ export const Disabled = () => (
     </Toggle>
   </div>
 );
+
+/**
+ * The 44px touch sizes (slice 1.2): `touch` (44 tall, at least 44 wide) and
+ * `icon-touch` (44×44). The press is `:active` only — Base UI's
+ * `data-pressed` already means ON here.
+ */
+export const Touch = () => (
+  <div className="flex flex-wrap items-center gap-3">
+    <Toggle size="touch" variant="outline">
+      <WrapText /> Wrap
+    </Toggle>
+    <Toggle size="touch" variant="outline" defaultPressed>
+      <PenLine /> Draw
+    </Toggle>
+    <Toggle size="icon-touch" aria-label="Bold">
+      <Bold />
+    </Toggle>
+    <Toggle size="icon-touch" aria-label="Italic" defaultPressed>
+      <Italic />
+    </Toggle>
+    <Toggle size="icon-touch" variant="outline" aria-label="Underline">
+      <Underline />
+    </Toggle>
+  </div>
+);

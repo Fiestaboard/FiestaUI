@@ -5,6 +5,7 @@ import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
+import { TOUCH_ACTIVE_SCALE } from "../../lib/touch";
 import { cn } from "../../lib/utils";
 import type { SelectionGroupNameProps } from "./toggle-card";
 
@@ -67,6 +68,10 @@ const toggleVariants = cva(
           "bg-transparent",
           "not-data-[pressed]:hover:bg-accent not-data-[pressed]:hover:text-accent-foreground",
           "dark:not-data-[pressed]:hover:bg-accent/50",
+          // The OFF press names the hover fill (C21): a mouse press is a
+          // hover too, so only touch sees a difference.
+          "not-data-[pressed]:active:bg-accent not-data-[pressed]:active:text-accent-foreground",
+          "dark:not-data-[pressed]:active:bg-accent/50",
         ],
         // Button `outline`, including its dark surface/boundary treatment.
         // The pressed rim adopts the fill's own colour: keeping --input
@@ -76,6 +81,8 @@ const toggleVariants = cva(
           "border bg-background shadow-xs",
           "not-data-[pressed]:hover:bg-accent not-data-[pressed]:hover:text-accent-foreground",
           "dark:border-input dark:not-data-[pressed]:bg-card dark:not-data-[pressed]:hover:bg-muted",
+          "not-data-[pressed]:active:bg-accent not-data-[pressed]:active:text-accent-foreground",
+          "dark:not-data-[pressed]:active:bg-muted",
           "data-[pressed]:border-primary",
         ],
       },
@@ -84,12 +91,23 @@ const toggleVariants = cva(
       // balloon a 16px glyph into a pill. `min-w` mirrors the height so a
       // lone icon stays square, and every size clears WCAG 2.2 SC 2.5.8's
       // 24×24 target minimum (smallest is 32px).
+      //
+      // `coarse:` is the W2 touch layer (a 44px floor under an opted-in
+      // `.fui-coarse` on a coarse pointer). The touch sizes are slice 1.2's
+      // 44px (--control-h-touch / --touch-target).
+      //
+      // C21 pressed state: a Toggle presses on `:active` only. Base UI
+      // already uses `data-pressed` for ON (`aria-pressed`), so the
+      // momentary `data-pressed` hook in lib/press.ts is NOT used here — it
+      // would read as "on" for the length of every tap.
       size: {
-        default: "h-9 min-w-9 px-2",
-        sm: "h-8 min-w-8 px-1.5",
-        lg: "h-10 min-w-10 px-2.5",
-        icon: "size-9",
-        "icon-sm": "size-8",
+        default: "h-9 min-w-9 px-2 coarse:min-h-touch coarse:min-w-touch",
+        sm: "h-8 min-w-8 px-1.5 coarse:min-h-touch coarse:min-w-touch",
+        lg: "h-10 min-w-10 px-2.5 coarse:min-h-touch coarse:min-w-touch",
+        icon: "size-9 coarse:min-h-touch coarse:min-w-touch",
+        "icon-sm": "size-8 coarse:min-h-touch coarse:min-w-touch",
+        touch: `h-control-touch min-w-touch px-3 ${TOUCH_ACTIVE_SCALE}`,
+        "icon-touch": `size-touch ${TOUCH_ACTIVE_SCALE}`,
       },
     },
     defaultVariants: {

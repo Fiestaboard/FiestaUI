@@ -4,6 +4,8 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { Check } from "lucide-react";
 import * as React from "react";
 
+import { pressStateHandlers } from "../../lib/press";
+import { TOUCH_PRESS_SCALE } from "../../lib/touch";
 import { cn } from "../../lib/utils";
 import {
   SelectableItemRoot,
@@ -382,6 +384,9 @@ const segmentedControlItemVariants = cva(
     "border border-input bg-transparent font-medium text-foreground",
     "transition-[color,background-color,border-color,box-shadow] duration-control outline-none",
     "not-data-[checked]:hover:border-primary/50 not-data-[checked]:hover:bg-accent",
+    // C21 pressed: the hover fill, on `:active` and on the `data-pressed`
+    // hook (lib/press.ts). A mouse press is a hover too, so only touch sees it.
+    "not-data-[checked]:active:bg-accent not-data-[checked]:data-[pressed]:bg-accent",
     "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
     // Selected pills carry a little more fill than a ToggleCard (primary/10 vs
     // primary/5): the tinted area is a tenth the size, so the lighter wash
@@ -404,10 +409,16 @@ const segmentedControlItemVariants = cva(
     variants: {
       // Height is a compound of size x layout below: an inline pill is a fixed
       // h-*, a grid cell is a min-h-* floor so a two-line label can grow.
+      //
+      // `coarse:min-h-touch` is the W2 touch layer: a 44px floor under an
+      // opted-in `.fui-coarse` on a coarse pointer, in both layouts.
+      // `touch` is slice 1.2's 44px (--control-h-touch); its press scales
+      // to 0.97 (motion-safe).
       size: {
-        sm: "rounded-md px-2.5 text-xs",
-        md: "rounded-md px-3 text-sm",
-        lg: "rounded-md px-4 text-sm",
+        sm: "rounded-md px-2.5 text-xs coarse:min-h-touch",
+        md: "rounded-md px-3 text-sm coarse:min-h-touch",
+        lg: "rounded-md px-4 text-sm coarse:min-h-touch",
+        touch: `rounded-md px-4 text-sm ${TOUCH_PRESS_SCALE}`,
       },
       layout: {
         inline: "inline-flex whitespace-nowrap",
@@ -422,12 +433,14 @@ const segmentedControlItemVariants = cva(
       { layout: "inline", size: "sm", class: "h-7" },
       { layout: "inline", size: "md", class: "h-8" },
       { layout: "inline", size: "lg", class: "h-9" },
+      { layout: "inline", size: "touch", class: "h-control-touch" },
       // Same rank values as a floor rather than a height, plus the vertical
       // padding a wrapped second line needs — a stretched cell that kept `h-8`
       // would clip its own label the moment the grid narrowed.
       { layout: "grid", size: "sm", class: "min-h-7 py-1.5" },
       { layout: "grid", size: "md", class: "min-h-8 py-1.5" },
       { layout: "grid", size: "lg", class: "min-h-9 py-2" },
+      { layout: "grid", size: "touch", class: "min-h-touch py-2" },
     ],
     defaultVariants: {
       size: "md",
@@ -529,6 +542,10 @@ function SegmentedControlItem({
   pressed,
   onPressedChange,
   children,
+  onPointerDown,
+  onPointerUp,
+  onPointerCancel,
+  onPointerLeave,
   ...props
 }: SegmentedControlItemProps) {
   const group = React.useContext(SegmentedControlContext);
@@ -547,6 +564,8 @@ function SegmentedControlItem({
       data-layout={resolvedLayout}
       className={cn(segmentedControlItemVariants({ size: resolvedSize, layout: resolvedLayout }), className)}
       {...props}
+      // C21: `data-pressed` while a pointer is down (lib/press.ts).
+      {...pressStateHandlers({ onPointerDown, onPointerUp, onPointerCancel, onPointerLeave })}
     >
       {children}
     </SelectableItemRoot>

@@ -160,3 +160,28 @@ describe("Toggle", () => {
     expect(toggle).toHaveAttribute("aria-pressed", "true");
   });
 });
+
+describe("ToggleGroup segmented", () => {
+  it.each(["horizontal", "vertical"] as const)("stamps the segmented frame, %s", (orientation) => {
+    render(
+      <ToggleGroup aria-label="Alignment" segmented orientation={orientation} defaultValue={["left"]}>
+        <Toggle value="left">Left</Toggle>
+        <Toggle value="right">Right</Toggle>
+      </ToggleGroup>,
+    );
+    const group = screen.getByRole("group", { name: "Alignment" });
+
+    expect(group).toHaveAttribute("data-segmented");
+    expect(within(group).getByRole("button", { name: "Left" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("does not stamp a loose group as segmented", () => {
+    render(
+      <ToggleGroup aria-label="Loose">
+        <Toggle value="a">A</Toggle>
+      </ToggleGroup>,
+    );
+
+    expect(screen.getByRole("group", { name: "Loose" })).not.toHaveAttribute("data-segmented");
+  });
+});

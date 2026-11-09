@@ -90,3 +90,38 @@ export const TagRowWrapping = () => (
     </div>
   </div>
 );
+
+/**
+ * `size="touch"` (slice 1.2; Figma C7 `59:144018`, "30pt chip, 44pt line"):
+ * the pill stays 30px so a run still reads as content, and an invisible
+ * ::before carries the 44×44 target. The second row draws the hit areas as
+ * dashed outlines (a story-only class). The third holds the C21 pressed
+ * state with `data-pressed`.
+ */
+export const Touch = () => (
+  <div className="flex flex-col gap-6">
+    <div className="flex flex-wrap items-center gap-4">
+      <Chip size="touch" mono>
+        weather.temp
+      </Chip>
+      <Chip size="touch" mono>
+        <Tag aria-hidden="true" />
+        stocks.aapl
+      </Chip>
+      <Chip size="touch">Morning</Chip>
+    </div>
+    <div className="flex flex-wrap items-center gap-4">
+      <Chip size="touch" mono className="before:rounded-md before:outline-1 before:outline-dashed before:outline-brand">
+        weather.temp
+      </Chip>
+      <Chip size="touch" className="before:rounded-md before:outline-1 before:outline-dashed before:outline-brand">
+        Morning
+      </Chip>
+    </div>
+    <div className="flex flex-wrap items-center gap-4">
+      <Chip size="touch" mono data-pressed="">
+        weather.temp
+      </Chip>
+    </div>
+  </div>
+);

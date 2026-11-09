@@ -59,6 +59,20 @@
  * ============================================================ */
 @custom-variant dark (&:is(.dark *, [data-theme="dark"] *));
 
+/* The W2 touch layer (slice 1.2): `coarse:` applies on a coarse pointer
+ * (a phone, a tablet) INSIDE an opted-in `.fui-coarse` ancestor, so a host
+ * puts `fui-coarse` on <html> and the default-sized controls gain a 44px
+ * floor (--touch-target). Opt-in, because a coarse pointer on a desktop app
+ * shell (a touchscreen laptop) should not reflow every toolbar uninvited.
+ * `:where()` keeps the selector at the utility's own specificity. */
+@custom-variant coarse {
+  @media (pointer: coarse) {
+    &:where(.fui-coarse *, .fui-coarse) {
+      @slot;
+    }
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -1059,8 +1073,8 @@
    *
    * Fixed px, not rem: a hit area is a property of the finger, not of the
    * text size. Tailwind: `min-h-touch`, `size-touch`, `h-control-touch`,
-   * `h-toolbar-touch` (see @theme above). Additive: nothing in the package
-   * reads them yet; the touch sizes arrive with the components that use them.
+   * `h-toolbar-touch` (see @theme above). Read by the `size="touch"` axis
+   * (slice 1.2) and the `coarse:` variant at the top of this file.
    * ============================================================ */
   --touch-target: 44px;
   --control-h-touch: 44px;
