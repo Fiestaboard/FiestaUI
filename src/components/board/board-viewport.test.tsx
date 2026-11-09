@@ -552,3 +552,23 @@ describe("BoardViewport: review round 1", () => {
     expect(document.querySelector("[data-slot=board-viewport-dot][data-current=false]")).toHaveClass("size-1.5");
   });
 });
+
+describe("BoardViewport: re-review nits", () => {
+  it("R-N1: an overview lights every page as a dot, even with the pill indicator", () => {
+    render(<BoardViewport {...NOTE_ARRAY} defaultMode="fit" />);
+    const dots = [...document.querySelectorAll("[data-slot=board-viewport-dot]")];
+    expect(dots).toHaveLength(3);
+    for (const dot of dots) {
+      expect(dot).toHaveAttribute("data-shape", "dot");
+      expect(dot).toHaveClass("size-2");
+      expect(dot).not.toHaveClass("w-4");
+    }
+  });
+
+  it("R-N2: the visible indicator text stays hidden from AT (the live span speaks)", () => {
+    render(<BoardViewport {...NOTE_ARRAY} hint="swipe" />);
+    const text = document.querySelector("[data-slot=board-viewport-indicator-text]");
+    expect(text).toHaveTextContent("Note 1 of 3");
+    expect(text).toHaveAttribute("aria-hidden", "true");
+  });
+});

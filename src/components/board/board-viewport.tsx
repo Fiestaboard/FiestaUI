@@ -540,16 +540,19 @@ export function BoardViewport({
             <span aria-hidden="true" className="flex shrink-0 items-center gap-1.5">
               {offsets.map((_, i) => {
                 const current = overview || i === view.page;
+                // An overview lights every page as a dot (02): pills on every
+                // page would read as all of them selected.
+                const shape = overview ? "dot" : indicator;
                 return (
                   <span
                     key={i}
                     data-slot="board-viewport-dot"
                     data-current={current}
-                    data-shape={indicator}
+                    data-shape={shape}
                     className={cn(
                       "rounded-full",
                       !current && "size-1.5 bg-muted-foreground/40",
-                      current && (indicator === "pill" ? "h-1.5 w-4 bg-foreground" : "size-2 bg-foreground"),
+                      current && (shape === "pill" ? "h-1.5 w-4 bg-foreground" : "size-2 bg-foreground"),
                     )}
                   />
                 );
