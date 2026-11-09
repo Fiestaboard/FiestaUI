@@ -407,6 +407,39 @@ describe('DropdownMenu trigger="context"', () => {
     expect(inner).toHaveFocus();
   });
 
+  it("returns focus to the keyboard-open element only once: a later long press does not reuse it", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <ContextMenu />
+        <button type="button">Elsewhere</button>
+      </>,
+    );
+    const inner = screen.getByRole("button", { name: "Kitchen board" });
+    inner.focus();
+    fireEvent.keyDown(inner, { key: "F10", shiftKey: true });
+    await waitFor(() => expect(menu()).not.toBeNull());
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(menu()).toBeNull());
+    expect(inner).toHaveFocus();
+    fireEvent.keyUp(inner, { key: "F10" });
+    await tick();
+
+    // A long press goes through touchstart, not onContextMenu, so only the
+    // one-shot clear stops it returning focus to `inner`.
+    const elsewhere = screen.getByRole("button", { name: "Elsewhere" });
+    elsewhere.focus();
+    const row = screen.getByTestId("row");
+    fireEvent.touchStart(row, { touches: [{ clientX: 10, clientY: 10 }] });
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 600)));
+    fireEvent.touchEnd(row);
+    await waitFor(() => expect(menu()).not.toBeNull());
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(menu()).toBeNull());
+
+    expect(inner).not.toHaveFocus();
+  });
+
   it("does not open from a right-click inside another menu's popup that is portaled from inside the row", async () => {
     render(
       <ContextMenu

@@ -519,10 +519,13 @@ function SortableListMoveButtons({ visibility = "focus", className, ...props }: 
         "items-center gap-1",
         "inline-flex",
         // Visually hidden, not display:none, so screen-reader browse modes
-        // (which do not move focus) still find them.
-        visibility === "focus"
-          ? "sr-only group-focus-within/sortable-item:not-sr-only group-data-[lifted]/sortable-item:not-sr-only"
-          : null,
+        // (which do not move focus) still find them. A card being dragged by
+        // a pointer drops them; a keyboard lift keeps them.
+        item.dragging
+          ? "sr-only"
+          : visibility === "focus"
+            ? "sr-only group-focus-within/sortable-item:not-sr-only group-data-[lifted]/sortable-item:not-sr-only"
+            : null,
         className,
       )}
       {...props}

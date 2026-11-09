@@ -165,8 +165,8 @@ export const Dragging: Story = {
     const y = rect.top + rect.height / 2;
     const init = { bubbles: true, cancelable: true, pointerId: 1, button: 0, isPrimary: true, clientX: rect.left };
     handle.dispatchEvent(new PointerEvent("pointerdown", { ...init, clientY: y }));
-    // About one and a half rows down: past the centre of the second row.
-    handle.dispatchEvent(new PointerEvent("pointermove", { ...init, clientY: y + 100 }));
+    // One row plus the gap down, so the card rests in the slot it opened (07 `57:66920`).
+    handle.dispatchEvent(new PointerEvent("pointermove", { ...init, clientY: y + 76 }));
   },
 };
 

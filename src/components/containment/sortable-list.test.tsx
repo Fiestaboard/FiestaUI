@@ -718,3 +718,20 @@ describe("SortableList review fixes (#389)", () => {
     expect(screen.getByRole("list")).toHaveAttribute("role", "list");
   });
 });
+
+describe("SortableList re-review nits (#389)", () => {
+  it("hides the Move buttons on a card dragged by a pointer, and keeps them on a keyboard lift", () => {
+    render(<Harness />);
+    layout();
+    const wrapper = () => row("Market open").querySelector('[data-slot="sortable-list-move-buttons"]');
+
+    fireEvent.pointerDown(handleOf("Market open"), { button: 0, pointerId: 1, clientY: 130 });
+    expect(wrapper()).toHaveClass("sr-only");
+    expect(wrapper()).not.toHaveClass("group-focus-within/sortable-item:not-sr-only");
+    fireEvent.pointerUp(handleOf("Market open"), { pointerId: 1 });
+
+    row("Market open").focus();
+    fireEvent.keyDown(row("Market open"), { key: " " });
+    expect(wrapper()).toHaveClass("group-data-[lifted]/sortable-item:not-sr-only");
+  });
+});
