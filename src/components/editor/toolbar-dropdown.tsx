@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 
 import { cn } from "../../lib/utils";
 import { Box } from "../layout/box";
-import { Sheet, SheetContent, SheetTitle } from "../overlays/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../overlays/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
 import { Text } from "../typography/text";
 
@@ -257,7 +257,9 @@ export function ToolbarDropdown({
             }}
           >
             <SheetContent side="bottom" grabber scrim={false} finalFocus={triggerRef} labels={{ close: l.close }}>
-              <SheetTitle className="flex min-h-12 items-center pr-12 text-lg">{label || l.menu}</SheetTitle>
+              <SheetHeader className="min-h-12 justify-center pr-12 text-left sm:text-left">
+                <SheetTitle className="text-lg">{label || l.menu}</SheetTitle>
+              </SheetHeader>
               {content}
             </SheetContent>
           </Sheet>

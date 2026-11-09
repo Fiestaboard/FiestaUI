@@ -175,6 +175,13 @@ describe("ToolbarDropdown · presentation=sheet (WEB-05)", () => {
     expect(sheet()).toHaveAttribute("data-scrim", "false");
     expect(document.querySelector('[data-slot="sheet-overlay"]')).toBeNull();
     expect(dialog).toContainElement(screen.getByRole("button", { name: "Red" }));
+    // The title is pinned in the head (centred on the close, 07 53:100588), not in the scrolling body.
+    const title = screen.getByRole("heading", { name: "Colors" });
+    expect(document.querySelector('[data-slot="sheet-head"]')).toContainElement(title);
+    expect(title.closest('[data-slot="sheet-header"]')).toHaveClass("min-h-12", "justify-center", "pr-12");
+    expect(document.querySelector('[data-slot="sheet-body"]')).toContainElement(
+      screen.getByRole("button", { name: "Red" }),
+    );
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
     // Non-modal: the page stays in the accessibility tree.

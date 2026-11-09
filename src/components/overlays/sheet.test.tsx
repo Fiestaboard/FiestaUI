@@ -630,4 +630,29 @@ describe("SheetContent side=bottom · regions (07a 297:7667)", () => {
     const close = screen.getByRole("button", { name: "Close" });
     expect(close).toHaveClass("size-10", "before:absolute", "before:-inset-0.5", "top-6");
   });
+
+  it("sees through fragments when sorting the header and footer", () => {
+    render(
+      <Sheet defaultOpen>
+        <SheetContent side="bottom" grabber>
+          <>
+            <SheetHeader>
+              <SheetTitle>Wrapped</SheetTitle>
+            </SheetHeader>
+            <>
+              <p>Body copy</p>
+              <SheetFooter>
+                <button type="button">Done</button>
+              </SheetFooter>
+            </>
+          </>
+        </SheetContent>
+      </Sheet>,
+    );
+    expect(document.querySelector('[data-slot="sheet-head"]')).toContainElement(screen.getByText("Wrapped"));
+    expect(document.querySelector('[data-slot="sheet-body"]')).toContainElement(screen.getByText("Body copy"));
+    expect(document.querySelector('[data-slot="sheet-foot"]')).toContainElement(
+      screen.getByRole("button", { name: "Done" }),
+    );
+  });
 });

@@ -122,28 +122,49 @@ function isAction(value: ExternalToast["action"]): value is ToastAction {
  * handler calls `preventDefault()`; the second dismisses unless the toast is
  * `dismissible: false`.
  */
+/**
+ * Ids of paired toasts being closed by one of their own buttons. Sonner's
+ * native action and cancel close without calling `onDismiss`; the pair closes
+ * through `toast.dismiss`, which would call it, so the flag suppresses that
+ * one call. Otherwise `{ action: Undo, onDismiss: commitDelete }` would commit
+ * the delete when Undo is pressed.
+ */
+const closingFromButton = new Set<string | number>();
+
 function ToastActionPair({
   id,
   primary,
   secondary,
   dismissible,
+  primaryStyle,
+  secondaryStyle,
+  primaryClassName,
+  secondaryClassName,
 }: {
   id: string | number;
   primary: ToastAction;
   secondary: ToastAction;
   dismissible?: boolean;
+  primaryStyle?: React.CSSProperties;
+  secondaryStyle?: React.CSSProperties;
+  primaryClassName?: string;
+  secondaryClassName?: string;
 }) {
+  const close = () => {
+    closingFromButton.add(id);
+    sonnerToast.dismiss(id);
+  };
   return (
     <>
       <button
         type="button"
         data-button=""
         data-action=""
-        className={PRIMARY_ACTION_CLASS}
-        style={primary.actionButtonStyle}
+        className={cn(PRIMARY_ACTION_CLASS, primaryClassName)}
+        style={primaryStyle ?? primary.actionButtonStyle}
         onClick={(event) => {
           primary.onClick?.(event);
-          if (!event.defaultPrevented) sonnerToast.dismiss(id);
+          if (!event.defaultPrevented) close();
         }}
       >
         {primary.label}
@@ -152,12 +173,12 @@ function ToastActionPair({
         type="button"
         data-button=""
         data-cancel=""
-        className={SECONDARY_ACTION_CLASS}
-        style={secondary.actionButtonStyle}
+        className={cn(SECONDARY_ACTION_CLASS, secondaryClassName)}
+        style={secondaryStyle ?? secondary.actionButtonStyle}
         onClick={(event) => {
           if (dismissible === false) return;
           secondary.onClick?.(event);
-          sonnerToast.dismiss(id);
+          close();
         }}
       >
         {secondary.label}
@@ -171,11 +192,28 @@ let pairedToastSeq = 0;
 function orderActions(data?: ExternalToast): ExternalToast | undefined {
   if (!data || !isAction(data.action) || !isAction(data.cancel)) return data;
   const id = data.id ?? `fiestaui-toast-${++pairedToastSeq}`;
+  const { onDismiss } = data;
   return {
     ...data,
     id,
     cancel: undefined,
-    action: <ToastActionPair id={id} primary={data.action} secondary={data.cancel} dismissible={data.dismissible} />,
+    onDismiss: (t) => {
+      // A close started by the pair's own buttons is not a dismissal (Sonner parity).
+      if (closingFromButton.delete(id)) return;
+      onDismiss?.(t);
+    },
+    action: (
+      <ToastActionPair
+        id={id}
+        primary={data.action}
+        secondary={data.cancel}
+        dismissible={data.dismissible}
+        primaryStyle={data.actionButtonStyle}
+        secondaryStyle={data.cancelButtonStyle}
+        primaryClassName={data.classNames?.actionButton}
+        secondaryClassName={data.classNames?.cancelButton}
+      />
+    ),
   };
 }
 

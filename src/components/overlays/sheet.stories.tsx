@@ -424,11 +424,12 @@ export const BottomStickyFooter: Story = {
       <EditorPageMock />
       <Sheet defaultOpen>
         <SheetContent side="bottom" detents={[0.6]}>
-          <SheetHeader className="min-h-12 flex-row items-start gap-3 pr-12 text-left sm:text-left">
+          {/* Back (36px) and the title's first line centre 24px into the head, on the close chip. */}
+          <SheetHeader className="min-h-12 flex-row items-start gap-3 pt-1.5 pr-12 text-left sm:text-left">
             <Button variant="ghost" size="icon" aria-label="Back">
               <ChevronLeft aria-hidden="true" />
             </Button>
-            <div className="flex flex-col gap-1">
+            <div className="mt-1 flex flex-col gap-1">
               <SheetTitle>Compose a message</SheetTitle>
               <SheetDescription>Shows on Kitchen board as soon as you choose Show now.</SheetDescription>
             </div>

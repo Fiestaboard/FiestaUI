@@ -140,6 +140,15 @@ const DISMISS_BELOW_SMALLEST = 0.5;
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/** Children with fragments unwrapped, so `<>{header}{body}</>` still slots. */
+function flattenFragments(children: React.ReactNode): React.ReactNode[] {
+  return React.Children.toArray(children).flatMap((child) =>
+    React.isValidElement<{ children?: React.ReactNode }>(child) && child.type === React.Fragment
+      ? flattenFragments(child.props.children)
+      : [child],
+  );
+}
+
 /** First control a user could actually reach: not hidden, inert or aria-disabled. */
 function firstFocusable(regions: (HTMLElement | null)[]): HTMLElement | null {
   for (const region of regions) {
@@ -191,7 +200,9 @@ export interface SheetContentProps
    * 16px top corners, 16px side padding, and three regions. A direct
    * `SheetHeader` child is pinned at the top, a direct `SheetFooter` child is
    * pinned at the bottom (a sticky footer, 07a `297:7667`), and everything
-   * else scrolls between them. The head region always reserves the 24px the
+   * else scrolls between them. Fragments are seen through; a header or footer
+   * inside any other wrapper element scrolls with the body, so put the title
+   * in a `SheetHeader`. The head region always reserves the 24px the
    * grabber's hit area hangs below its strip, so the body never sits under it;
    * header controls stay tappable while the rest of the head row drags.
    */
@@ -376,13 +387,14 @@ function SheetContent({
     openType === "touch" ? true : (firstFocusable([headRef.current, bodyRef.current, footRef.current]) ?? true);
 
   // Slots: SheetHeader children pin above the scrolling body, SheetFooter
-  // children pin below it (07a Mobile sheet 297:7667's sticky footer). Only
-  // direct children are sorted; anything wrapped goes to the body.
+  // children pin below it (07a Mobile sheet 297:7667's sticky footer). The
+  // sort sees direct children and children of fragments; a SheetHeader inside
+  // any other wrapper element goes to the body.
   const head: React.ReactNode[] = [];
   const body: React.ReactNode[] = [];
   const foot: React.ReactNode[] = [];
   if (grabberOn) {
-    React.Children.toArray(children).forEach((child) => {
+    flattenFragments(children).forEach((child) => {
       if (React.isValidElement(child) && child.type === SheetHeader) head.push(child);
       else if (React.isValidElement(child) && child.type === SheetFooter) foot.push(child);
       else body.push(child);

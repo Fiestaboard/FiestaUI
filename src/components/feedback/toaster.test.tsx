@@ -154,18 +154,92 @@ describe("Toaster · snackbar actions (C18, 07a Web / Toast 297:7793)", () => {
 
   it("the paired primary keeps the toast when its handler calls preventDefault", async () => {
     const user = userEvent.setup();
+    const onDismiss = vi.fn();
     render(<Toaster />);
     act(() => {
       toast("Override canceled", {
         action: { label: "Undo", onClick: (e) => e.preventDefault() },
         cancel: { label: "Details", onClick: () => {} },
+        onDismiss,
         duration: Infinity,
       });
     });
     await user.click(await screen.findByRole("button", { name: "Undo" }));
-    expect(screen.getByText("Override canceled")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Undo" }));
-    expect(screen.getByText("Override canceled")).toBeInTheDocument();
+    // Long enough for Sonner to mark and unmount a dismissed toast.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    });
+    const toastEl = screen.getByText("Override canceled").closest("[data-sonner-toast]")!;
+    expect(toastEl).not.toHaveAttribute("data-removed", "true");
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("closing through either paired button does not fire onDismiss (Sonner parity: Undo must not commit)", async () => {
+    const user = userEvent.setup();
+    const commitDelete = vi.fn();
+    const onUndo = vi.fn();
+    render(<Toaster />);
+    act(() => {
+      toast("Page deleted", {
+        id: "deleted",
+        action: { label: "Undo", onClick: onUndo },
+        cancel: { label: "OK", onClick: () => {} },
+        onDismiss: commitDelete,
+        duration: Infinity,
+      });
+      toast("Board removed", {
+        id: "removed",
+        action: { label: "Restore", onClick: () => {} },
+        cancel: { label: "Got it", onClick: () => {} },
+        onDismiss: commitDelete,
+        duration: Infinity,
+      });
+    });
+    await user.click(await screen.findByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(screen.queryByText("Page deleted")).not.toBeInTheDocument());
+    expect(onUndo).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("button", { name: "Got it" }));
+    await waitFor(() => expect(screen.queryByText("Board removed")).not.toBeInTheDocument());
+    expect(commitDelete).not.toHaveBeenCalled();
+  });
+
+  it("a paired toast dismissed some other way still fires onDismiss", async () => {
+    const onDismiss = vi.fn();
+    render(<Toaster />);
+    act(() => {
+      toast("Page deleted", {
+        id: "deleted-2",
+        action: { label: "Undo", onClick: () => {} },
+        cancel: { label: "OK", onClick: () => {} },
+        onDismiss,
+        duration: Infinity,
+      });
+    });
+    await screen.findByText("Page deleted");
+    act(() => {
+      toast.dismiss("deleted-2");
+    });
+    await waitFor(() => expect(onDismiss).toHaveBeenCalledTimes(1));
+  });
+
+  it("honours per-toast button styles and classNames in two-button mode", async () => {
+    render(<Toaster />);
+    act(() => {
+      toast("Styled", {
+        action: { label: "Go", onClick: () => {} },
+        cancel: { label: "Skip", onClick: () => {} },
+        actionButtonStyle: { outlineColor: "red" },
+        cancelButtonStyle: { outlineColor: "blue" },
+        classNames: { actionButton: "custom-primary", cancelButton: "custom-secondary" },
+        duration: Infinity,
+      });
+    });
+    const go = await screen.findByRole("button", { name: "Go" });
+    const skip = screen.getByRole("button", { name: "Skip" });
+    expect(go).toHaveClass("custom-primary", "!bg-secondary");
+    expect(skip).toHaveClass("custom-secondary", "!bg-transparent");
+    expect(go.style.outlineColor).toBe("red");
+    expect(skip.style.outlineColor).toBe("blue");
   });
 
   it("dismissible: false keeps the toast when the second action is pressed", async () => {
