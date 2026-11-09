@@ -529,6 +529,7 @@ export const Sidebar = memo(function Sidebar({
   const barItems = !bottomNav ? EMPTY_ITEMS : needsMore ? navItems.slice(0, BOTTOM_NAV_SLOTS - 1) : navItems;
   const drawerItems = needsMore ? navItems.slice(BOTTOM_NAV_SLOTS - 1) : navItems;
   const menuId = useId();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   // What the closed drawer holds, for the hamburger (header-menu): badged rows
   // make a red count that stands for everything, notice included; a notice

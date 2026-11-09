@@ -83,7 +83,8 @@ export const PageLayout = memo(function PageLayout({
           // mobile header's menu button and wordmark both sit at 20px or
           // beyond), so the content block read as outdented against the only
           // landmarks above it; 16px brings it into line. md+ steps to 24 for
-          // the wider breathing room desktop can afford.          "container mx-auto px-4 md:px-6 max-w-full",
+          // the wider breathing room desktop can afford.
+          "container mx-auto px-4 md:px-6 max-w-full",
           rail.py,
           // When pinned to the viewport (e.g. calendar mode), the inner content
           // owns the scrolling — trim mobile vertical padding so the child gets
