@@ -83,9 +83,9 @@ export const InsetGroup: Story = {
       />
       <ListRow
         leading={tile(<Clock />)}
-        title="Quiet hours"
-        description="Silence Schedule from 10:00 PM"
-        trailing={<Switch aria-label="Quiet hours" defaultChecked />}
+        title="Silence Schedule"
+        description="From 10:00 PM to 7:00 AM"
+        trailing={<Switch aria-label="Silence Schedule" defaultChecked />}
       />
       <ListRow title="Firmware" meta="8.17.0" />
     </ListRowGroup>

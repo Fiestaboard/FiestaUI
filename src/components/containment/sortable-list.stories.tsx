@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { ArrowDown, ArrowUp, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import { expect, waitFor } from "storybook/test";
 
 import { Button } from "../forms/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../overlays/dropdown-menu";
@@ -165,8 +166,19 @@ export const Dragging: Story = {
     const y = rect.top + rect.height / 2;
     const init = { bubbles: true, cancelable: true, pointerId: 1, button: 0, isPrimary: true, clientX: rect.left };
     handle.dispatchEvent(new PointerEvent("pointerdown", { ...init, clientY: y }));
-    // One row plus the gap down, so the card rests in the slot it opened (07 `57:66920`).
-    handle.dispatchEvent(new PointerEvent("pointermove", { ...init, clientY: y + 76 }));
+    // Move the first card's centre just past the second card's centre, so it
+    // rests in the slot it opened (07 `57:66920`). Derived from the rows, not
+    // a constant: the target only changes once the centres strictly cross.
+    const [first, second] = Array.from(
+      canvasElement.querySelectorAll<HTMLElement>('[data-slot="sortable-list-item"]'),
+    ).map((row) => row.getBoundingClientRect());
+    const offset = second.top + second.height / 2 - (first.top + first.height / 2) + 4;
+    handle.dispatchEvent(new PointerEvent("pointermove", { ...init, clientY: y + offset }));
+    await waitFor(() =>
+      expect(canvasElement.querySelector('[data-slot="sortable-list-status"]')).toHaveTextContent(
+        "moving to position 2 of 4",
+      ),
+    );
   },
 };
 
