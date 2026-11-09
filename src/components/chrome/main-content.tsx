@@ -4,9 +4,42 @@ import { memo, useLayoutEffect, useRef } from "react";
 
 import { cn } from "../../lib/utils";
 
-/** lg: left padding of the content root — must match the classes below. */
+/** Rail-side left padding of the content root — must match the classes below. */
 const EXPANDED_PL = 268;
 const COLLAPSED_PL = 76;
+
+/**
+ * Where the rail takes over from the phone chrome (slice 1.4b). Must match the
+ * Sidebar's `railBreakpoint`: the two read the same prop so the padding and
+ * the rail switch on the same pixel.
+ *
+ * Every class is spelled out in full, per breakpoint, because Tailwind only
+ * compiles class names it can find verbatim in the source.
+ */
+const RAIL_LAYOUT = {
+  lg: {
+    query: "(min-width: 1024px)",
+    pt: "lg:pt-0",
+    plExpanded: "lg:pl-[268px]",
+    plCollapsed: "lg:pl-[76px]",
+    pb: "lg:pb-0",
+  },
+  md: {
+    query: "(min-width: 768px)",
+    pt: "md:pt-0",
+    plExpanded: "md:pl-[268px]",
+    plCollapsed: "md:pl-[76px]",
+    pb: "md:pb-0",
+  },
+} as const;
+
+/**
+ * Room for the bottom tab bar (slice 1.4a): its 64px, the 12px it floats
+ * above the viewport edge, and 12px of air — plus the home-indicator inset on
+ * phones that have one. `--bottom-nav-offset` lets an app retune it without a
+ * release.
+ */
+const BOTTOM_NAV_PB = "pb-[calc(var(--bottom-nav-offset,88px)+env(safe-area-inset-bottom))]";
 
 interface MainContentProps {
   children: React.ReactNode;
@@ -22,6 +55,17 @@ interface MainContentProps {
   maxWidth?: number;
   /** Fired when the collapse/expand slide completes. */
   onTransitionEnd?: () => void;
+  /**
+   * The breakpoint from which the rail is shown, and so from which the
+   * content is padded for it instead of for the mobile header. Pass the same
+   * value as the Sidebar's `railBreakpoint`. Defaults to `lg` (1024px).
+   */
+  railBreakpoint?: "lg" | "md";
+  /**
+   * The Sidebar is `variant="bottom-nav"`: below the rail breakpoint, pad the
+   * bottom so the last of the page clears the tab bar. Off by default.
+   */
+  bottomNav?: boolean;
 }
 
 /**
@@ -43,7 +87,10 @@ export const MainContent = memo(function MainContent({
   isAuthScreen = false,
   maxWidth,
   onTransitionEnd,
+  railBreakpoint = "lg",
+  bottomNav = false,
 }: MainContentProps) {
+  const layout = RAIL_LAYOUT[railBreakpoint];
   const rootRef = useRef<HTMLElement>(null);
   const shiftRef = useRef<HTMLDivElement>(null);
   const prevCollapsed = useRef(collapsed);
@@ -54,8 +101,9 @@ export const MainContent = memo(function MainContent({
     const root = rootRef.current;
     const shift = shiftRef.current;
     if (!root || !shift || isAuthScreen) return;
-    // Below lg the sidebar padding doesn't apply, so there is nothing to slide.
-    if (!window.matchMedia("(min-width: 1024px)").matches) return;
+    // Below the rail breakpoint the sidebar padding doesn't apply, so there
+    // is nothing to slide.
+    if (!window.matchMedia(layout.query).matches) return;
     // Reduced motion (media query or the app's .reduce-motion class) zeroes
     // the transition — the instant padding snap is the whole "animation".
     if (parseFloat(getComputedStyle(shift).transitionDuration) === 0) return;
@@ -78,16 +126,18 @@ export const MainContent = memo(function MainContent({
     void shift.getBoundingClientRect();
     shift.style.transition = "";
     shift.style.transform = "";
-  }, [collapsed, isAuthScreen]);
+  }, [collapsed, isAuthScreen, layout.query]);
 
   return (
     <main
       ref={rootRef}
       id="main-content"
+      data-rail-breakpoint={railBreakpoint}
       className={cn(
         "min-h-dvh flex flex-col w-full mx-auto",
-        !isAuthScreen && "pt-[calc(var(--mobile-header-height,56px)+16px)] lg:pt-0 content-root",
-        !isAuthScreen && (collapsed ? "lg:pl-[76px]" : "lg:pl-[268px]"),
+        !isAuthScreen && cn("pt-[calc(var(--mobile-header-height,56px)+16px)]", layout.pt, "content-root"),
+        !isAuthScreen && (collapsed ? layout.plCollapsed : layout.plExpanded),
+        !isAuthScreen && bottomNav && cn(BOTTOM_NAV_PB, layout.pb),
         // 396 = the 384-wide AI panel plus the 12px inset it sits on, mirroring
         // lg:pl-[268px] on the left (12px inset + a 256-wide rail). It was 384
         // while the panel ran edge-to-edge; once the panel is inset like the

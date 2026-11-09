@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FileText, HelpCircle, Home, Settings } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
@@ -827,5 +827,357 @@ describe("Sidebar mobile menu closing", () => {
     });
 
     expect(menu()).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Slice 1.4a — the NavItem badge (C1, WEB-14; 07a `302:2340`). A badge is an
+ * overlay on the row's icon: a dot, or a count. Either way it is colour and
+ * shape, so its meaning travels as words the app supplies (`badge.label`) —
+ * in the row's accessible name, where a screen reader hears it with the row.
+ */
+describe("Sidebar nav badge", () => {
+  const BADGED: SidebarNavItem[] = [
+    { key: "home", href: "#home", icon: Home, label: "Home", active: true },
+    {
+      key: "integrations",
+      href: "#integrations",
+      icon: Settings,
+      label: "Integrations",
+      badge: { label: "Needs attention" },
+    },
+    { key: "pages", href: "#pages", icon: FileText, label: "Pages", badge: { count: 3, label: "3 drafts" } },
+    {
+      key: "help",
+      href: "https://example.com/docs",
+      icon: HelpCircle,
+      label: "Help",
+      external: true,
+      badge: { count: 120, label: "120 new" },
+    },
+  ];
+
+  it("draws a dot on the row's icon and says what it means", () => {
+    renderSidebar({ items: BADGED });
+    const row = within(desktopNav()).getByRole("link", { name: "Integrations, Needs attention" });
+    const badge = row.querySelector('[data-slot="nav-badge"]');
+    expect(badge).toHaveAttribute("data-kind", "dot");
+    expect(badge).toHaveAttribute("aria-hidden", "true");
+    expect(badge).toHaveTextContent("");
+  });
+
+  it("draws a count, capped at 99+", () => {
+    renderSidebar({ items: BADGED });
+    const pages = within(desktopNav()).getByRole("link", { name: "Pages, 3 drafts" });
+    expect(pages.querySelector('[data-slot="nav-badge"]')).toHaveTextContent("3");
+    expect(pages.querySelector('[data-slot="nav-badge"]')).toHaveAttribute("data-kind", "count");
+    const help = within(desktopNav()).getByRole("link", { name: "Help, 120 new" });
+    expect(help.querySelector('[data-slot="nav-badge"]')).toHaveTextContent("99+");
+  });
+
+  it("keeps the badge's words in the name on the collapsed rail, where the label is an aria-label", () => {
+    renderSidebar({ items: BADGED, collapsed: true });
+    expect(within(desktopNav()).getByRole("link", { name: "Integrations, Needs attention" })).toBeInTheDocument();
+    expect(within(desktopNav()).getByRole("link", { name: "Help, 120 new" })).toBeInTheDocument();
+    expect(within(desktopNav()).getByRole("link", { name: "Home" })).toBeInTheDocument();
+  });
+
+  it("badges the drawer's rows too", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ items: BADGED });
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+    const dialog = screen.getByRole("dialog", { name: LABELS.navigationMenu });
+    expect(within(dialog).getByRole("link", { name: "Integrations, Needs attention" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: "Help, 120 new" })).toBeInTheDocument();
+  });
+
+  it("draws nothing for a row without a badge", () => {
+    renderSidebar();
+    expect(document.querySelector('[data-slot="nav-badge"]')).toBeNull();
+  });
+});
+
+/*
+ * Slice 1.4a — `variant="bottom-nav"` (C1, WEB-01; 07 `53:100587`). Below the
+ * rail breakpoint the hamburger gives way to a five-slot tab bar pinned to
+ * the bottom. Up to five destinations fit as they are; past that (or when
+ * the app has an account menu to reach) the fifth slot is "More", which
+ * opens the existing drawer with what did not fit. Order stays the app's.
+ */
+describe("Sidebar bottom nav", () => {
+  const MORE_LABELS: SidebarLabels = { ...LABELS, more: "More" };
+  const FIVE: SidebarNavItem[] = [
+    { key: "home", href: "#home", icon: Home, label: "Home", active: true },
+    { key: "pages", href: "#pages", icon: FileText, label: "Pages" },
+    { key: "schedule", href: "#schedule", icon: FileText, label: "Schedule" },
+    { key: "displays", href: "#displays", icon: FileText, label: "Displays" },
+    { key: "help", href: "https://example.com/docs", icon: HelpCircle, label: "Help", external: true },
+  ];
+  const EIGHT: SidebarNavItem[] = [
+    ...FIVE.slice(0, 4),
+    { key: "integrations", href: "#integrations", icon: Settings, label: "Integrations" },
+    { key: "picks", href: "#picks", icon: FileText, label: "Staff Picks" },
+    { key: "settings", href: "#settings", icon: Settings, label: "Settings" },
+    FIVE[4],
+  ];
+
+  function bar() {
+    return document.querySelector<HTMLElement>('[data-slot="sidebar-bottom-nav"]')!;
+  }
+  function more() {
+    return within(bar()).getByRole("button", { name: /^More/ });
+  }
+
+  it("is not rendered by the default variant", () => {
+    renderSidebar();
+    expect(document.querySelector('[data-slot="sidebar-bottom-nav"]')).toBeNull();
+    expect(screen.getByRole("button", { name: LABELS.openMenu })).toBeInTheDocument();
+  });
+
+  it("replaces the hamburger with a tab bar named like the rail's nav", () => {
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: FIVE });
+    expect(screen.queryByRole("button", { name: LABELS.openMenu })).not.toBeInTheDocument();
+    expect(bar().tagName).toBe("NAV");
+    expect(bar()).toHaveAccessibleName(LABELS.primaryNavigation);
+  });
+
+  it("shows up to five destinations as they are, with no More", () => {
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: FIVE });
+    expect(rowsOf(bar())).toEqual(["Home", "Pages", "Schedule", "Displays", "Help"]);
+    expect(within(bar()).queryByRole("button")).toBeNull();
+    expect(within(bar()).getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+    expect(within(bar()).getByRole("link", { name: "Help" })).toHaveAttribute("target", "_blank");
+  });
+
+  it("folds the sixth destination onward behind More, in order", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: EIGHT });
+    expect(rowsOf(bar())).toEqual(["Home", "Pages", "Schedule", "Displays", "More"]);
+    expect(more()).toHaveAttribute("aria-expanded", "false");
+    expect(more()).toHaveAttribute("aria-haspopup", "dialog");
+
+    await user.click(more());
+
+    const dialog = screen.getByRole("dialog", { name: LABELS.navigationMenu });
+    expect(more()).toHaveAttribute("aria-expanded", "true");
+    expect(more()).toHaveAttribute("aria-controls", dialog.id);
+    expect(rowsOf(within(dialog).getByRole("navigation"))).toEqual(["Integrations", "Staff Picks", "Settings", "Help"]);
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(more()).toHaveFocus();
+  });
+
+  it("toggles the drawer shut from More", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: EIGHT });
+    await user.click(more());
+    await user.click(more());
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("keeps More for five destinations when there is an account menu to reach", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: FIVE, renderSettingsMenu: settingsMenu });
+    expect(rowsOf(bar())).toEqual(["Home", "Pages", "Schedule", "Displays", "More"]);
+    await user.click(more());
+    const dialog = screen.getByRole("dialog", { name: LABELS.navigationMenu });
+    expect(within(dialog).getByTestId("settings-menu")).toBeInTheDocument();
+    expect(rowsOf(within(dialog).getByRole("navigation"))).toEqual(["Help"]);
+  });
+
+  it("lights More while the current route is one it holds", () => {
+    renderSidebar({
+      variant: "bottom-nav",
+      labels: MORE_LABELS,
+      items: EIGHT.map((item) => ({ ...item, active: item.key === "settings" })),
+    });
+    expect(more().className.split(/\s+/)).toContain("nav-active");
+    expect(more()).toHaveAttribute("data-active", "true");
+    for (const link of within(bar()).getAllByRole("link")) {
+      expect(link).not.toHaveAttribute("aria-current");
+    }
+  });
+
+  it("leaves More unlit while the route is on the bar", () => {
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: EIGHT });
+    expect(more().className.split(/\s+/)).not.toContain("nav-active");
+  });
+
+  it("badges More for a badge it holds, and for the menu notice, in words", () => {
+    renderSidebar({
+      variant: "bottom-nav",
+      labels: MORE_LABELS,
+      items: EIGHT.map((item) =>
+        item.key === "integrations" ? { ...item, badge: { label: "Integrations need attention" } } : item,
+      ),
+      menuNotice: "Update available",
+    });
+    expect(more()).toHaveAccessibleName("More, Integrations need attention, Update available");
+    expect(more().querySelector('[data-slot="nav-badge"]')).toHaveAttribute("data-kind", "dot");
+  });
+
+  it("does not badge More for a badge already on the bar", () => {
+    renderSidebar({
+      variant: "bottom-nav",
+      labels: MORE_LABELS,
+      items: EIGHT.map((item) => (item.key === "pages" ? { ...item, badge: { count: 2, label: "2 drafts" } } : item)),
+    });
+    expect(within(bar()).getByRole("link", { name: "Pages, 2 drafts" })).toBeInTheDocument();
+    expect(more().querySelector('[data-slot="nav-badge"]')).toBeNull();
+    expect(more()).toHaveAccessibleName("More");
+  });
+
+  it("falls back to the drawer's name when the app has not localised More", () => {
+    renderSidebar({ variant: "bottom-nav", items: EIGHT });
+    expect(within(bar()).getByRole("button", { name: LABELS.navigationMenu })).toBeInTheDocument();
+  });
+
+  it("closes the drawer when a row in it is followed", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: EIGHT });
+    await user.click(more());
+    await user.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Settings" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("anchors the drawer above the bar rather than under the header", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: EIGHT });
+    await user.click(more());
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-anchor", "bottom");
+  });
+
+  it("shows the mark alone on a phone, so the hub pill shares the header's row", () => {
+    const { unmount } = renderSidebar();
+    expect(document.querySelector("header .logo-on-gradient")!.className).not.toMatch(/max-\[479px\]:hidden/);
+    unmount();
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: EIGHT });
+    expect(document.querySelector("header .logo-on-gradient")!.className).toMatch(/max-\[479px\]:hidden/);
+  });
+
+  it("gives every tab at least a 44px target", () => {
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: EIGHT });
+    for (const tab of [...within(bar()).getAllByRole("link"), more()]) {
+      expect(tab.className).toMatch(/min-h-\[52px\]/);
+    }
+  });
+});
+
+/*
+ * Slice 1.4b — `railBreakpoint` (WEB-02, W5; 07 `61:17544`). The rail can come
+ * in at `md` (768) instead of `lg` (1024), so a 900px window gets the rail
+ * rather than the phone chrome. jsdom runs no media queries, so the contract
+ * is the breakpoint prefix on the classes that swap the two chromes.
+ */
+describe("Sidebar rail breakpoint", () => {
+  function header() {
+    return document.querySelector("header")!;
+  }
+
+  it("swaps chromes at lg by default", () => {
+    renderSidebar();
+    expect(header().className).toMatch(/(^|\s)lg:hidden(\s|$)/);
+    expect(desktopRail().className).toMatch(/(^|\s)lg:block(\s|$)/);
+    expect(desktopRail().className).not.toMatch(/(^|\s)md:/);
+    expect(desktopRail()).toHaveAttribute("data-rail-breakpoint", "lg");
+  });
+
+  it("swaps chromes at md when asked", () => {
+    renderSidebar({ railBreakpoint: "md" });
+    expect(header().className).toMatch(/(^|\s)md:hidden(\s|$)/);
+    expect(header().className).not.toMatch(/(^|\s)lg:hidden(\s|$)/);
+    expect(desktopRail().className).toMatch(/(^|\s)md:block(\s|$)/);
+    expect(desktopRail().className).toMatch(/(^|\s)md:w-64(\s|$)/);
+    expect(desktopRail().className).not.toMatch(/(^|\s)lg:/);
+    expect(screen.getByTestId("mobile-backdrop").className).toMatch(/(^|\s)md:hidden(\s|$)/);
+  });
+
+  it("narrows the md rail to the icon column when collapsed", () => {
+    renderSidebar({ railBreakpoint: "md", collapsed: true });
+    expect(desktopRail().className).toMatch(/(^|\s)md:w-16(\s|$)/);
+  });
+
+  it("hides the bottom bar from the same breakpoint", () => {
+    renderSidebar({ railBreakpoint: "md", variant: "bottom-nav", labels: { ...LABELS, more: "More" } });
+    expect(document.querySelector('[data-slot="sidebar-bottom-nav"]')!.className).toMatch(/(^|\s)md:hidden(\s|$)/);
+  });
+});
+
+/* Behaviour the 1.4 changes moved through but no earlier test pinned down. */
+describe("Sidebar mobile menu keyboard", () => {
+  it("wraps Tab and Shift+Tab inside the open drawer", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ renderSettingsMenu: settingsMenu });
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+    const dialog = screen.getByRole("dialog");
+    const links = within(dialog).getAllByRole("link");
+    const last = within(dialog).getByTestId("settings-menu");
+
+    expect(links[0]).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(last).toHaveFocus();
+    await user.tab();
+    expect(links[0]).toHaveFocus();
+  });
+
+  it("lets Tab move on between the ends of the drawer", async () => {
+    const user = userEvent.setup();
+    renderSidebar();
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+    const links = within(screen.getByRole("dialog")).getAllByRole("link");
+    await user.tab();
+    expect(links[1]).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "ArrowDown" });
+    expect(links[1]).toHaveFocus();
+  });
+
+  it("holds focus in a drawer with nothing focusable", async () => {
+    const user = userEvent.setup();
+    renderSidebar({ items: [] });
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveFocus();
+    const event = fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(event).toBe(false);
+  });
+
+  it("closes an external row's drawer when it is followed", async () => {
+    const user = userEvent.setup();
+    renderSidebar();
+    await user.click(screen.getByRole("button", { name: LABELS.openMenu }));
+    const external = within(screen.getByRole("dialog")).getByRole("link", { name: "Help & Docs" });
+    external.addEventListener("click", (e) => e.preventDefault());
+    await user.click(external);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+describe("Sidebar rail plumbing", () => {
+  it("renders the logo as a button when the app handles its click", async () => {
+    const user = userEvent.setup();
+    const onLogoClick = vi.fn();
+    renderSidebar({ onLogoClick, labels: { ...LABELS, logoButtonAriaLabel: "FiestaBoard home" } });
+    const [, desktopLogo] = screen.getAllByRole("button", { name: "FiestaBoard home" });
+    await user.click(desktopLogo);
+    expect(onLogoClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports the end of the rail's width transition, and only that", () => {
+    const onTransitionEnd = vi.fn();
+    renderSidebar({ onTransitionEnd });
+    fireEvent.transitionEnd(desktopRail(), { propertyName: "opacity" });
+    expect(onTransitionEnd).not.toHaveBeenCalled();
+    fireEvent.transitionEnd(desktopRail(), { propertyName: "width" });
+    expect(onTransitionEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-centres the rail against maxWidth when the window resizes", async () => {
+    renderSidebar({ maxWidth: 100, sidebarInset: 12 });
+    Object.defineProperty(document.body, "clientWidth", { configurable: true, value: 300 });
+    fireEvent(window, new Event("resize"));
+    fireEvent(window, new Event("resize"));
+    await waitFor(() => expect(desktopRail().style.left).toBe("112px"));
+    Object.defineProperty(document.body, "clientWidth", { configurable: true, value: 0 });
   });
 });
