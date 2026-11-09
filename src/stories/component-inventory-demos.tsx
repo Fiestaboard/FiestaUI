@@ -69,6 +69,7 @@ import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
 import { BoardSizeIndicator } from "../components/board/board-size-indicator";
 import { BoardTeaser } from "../components/board/board-teaser";
+import { BoardViewport } from "../components/board/board-viewport";
 import { CharacterGlyph } from "../components/board/character-glyph";
 import { CharacterSetSpecimen } from "../components/board/character-set-specimen";
 import { DisplayPreview } from "../components/board/display-preview";
@@ -1662,6 +1663,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ScaledBoardDisplay: () => (
     <div className="w-full max-w-[320px]">
       <ScaledBoardDisplay message={BOARD_MESSAGE} size="md" />
+    </div>
+  ),
+  BoardViewport: () => (
+    <div className="w-full max-w-[320px]">
+      <BoardViewport
+        deviceType="note_array"
+        notesWide={3}
+        message="LOBBY  COFFEE $3   WIFI FIESTA"
+        size="sm"
+        title="Note array 3×1 · 45×3"
+        hint="swipe"
+        persist={false}
+      />
     </div>
   ),
   PreviewSlot: () => (

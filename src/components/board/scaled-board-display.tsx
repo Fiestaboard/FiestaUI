@@ -5,33 +5,28 @@ import { memo, useLayoutEffect, useRef, useState } from "react";
 import { isNoteArray } from "../../lib/board-dimensions";
 import { cn } from "../../lib/utils";
 import { BoardDisplay, type BoardDisplayProps } from "./board-display";
+import { type BoardPreviewMode, useBoardPreviewMode } from "./board-preview-mode";
 
-type DisplayMode = "fit" | "actual";
+/**
+ * Where a board sits (C8, CANON addendum), each with its tile size:
+ * - `phone-hero`: Tile sm, the phone's board at the top of Home (fits 370);
+ * - `medium-hero`: Tile md, a tablet or medium window;
+ * - `pane`: Tile md, an editor or inspector pane;
+ * - `full-screen`: Tile lg, letterboxed and centred in the slot (phone
+ *   landscape, the Guest persona).
+ */
+export type ScaledBoardLayout = "phone-hero" | "medium-hero" | "pane" | "full-screen";
 
-/** sessionStorage key persisting the preview mode across re-mounts in a tab. */
-const MODE_STORAGE_KEY = "fiestaboard:boardPreviewMode";
+const LAYOUT_SIZE: Record<ScaledBoardLayout, NonNullable<BoardDisplayProps["size"]>> = {
+  "phone-hero": "sm",
+  "medium-hero": "md",
+  pane: "md",
+  "full-screen": "lg",
+};
 
-/** Read the persisted preview mode, guarding for SSR / no sessionStorage. */
-function readStoredMode(): DisplayMode {
-  if (typeof window === "undefined") return "fit";
-  try {
-    const stored = window.sessionStorage.getItem(MODE_STORAGE_KEY);
-    return stored === "actual" ? "actual" : "fit";
-  } catch {
-    // sessionStorage can throw (private mode, blocked storage) — fall back.
-    return "fit";
-  }
-}
-
-/** Persist the preview mode, swallowing storage failures. */
-function writeStoredMode(mode: DisplayMode): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(MODE_STORAGE_KEY, mode);
-  } catch {
-    // Ignore — persistence is best-effort.
-  }
-}
+const LAYOUT_CLASS: Partial<Record<ScaledBoardLayout, string>> = {
+  "full-screen": "flex h-full flex-col items-center justify-center",
+};
 
 export interface ScaledBoardDisplayProps extends BoardDisplayProps {
   /** Accessible label for the Fit / Actual size toggle group (note arrays only). */
@@ -40,6 +35,31 @@ export interface ScaledBoardDisplayProps extends BoardDisplayProps {
   fitModeLabel?: string;
   /** Label for the actual-size mode toggle button. */
   actualModeLabel?: string;
+  /** Accessible name of the actual-size scroll region (note arrays). Default "Board preview". */
+  scrollRegionLabel?: string;
+  /**
+   * Controlled Fit / Actual size mode (note arrays only; every other board
+   * always fits). Wins over `persist` and `defaultMode` (R1).
+   */
+  mode?: BoardPreviewMode;
+  /** Called with the new mode when the user taps the toggle. */
+  onModeChange?: (mode: BoardPreviewMode) => void;
+  /**
+   * The mode a note array starts in when the session has no stored choice.
+   * Default `"fit"`, as before; FiestaBoard passes `"actual"`.
+   */
+  defaultMode?: BoardPreviewMode;
+  /**
+   * Remember the user's choice in `sessionStorage` for the session, and start
+   * from it. Default `true`, as before.
+   */
+  persist?: boolean;
+  /**
+   * Where the board sits. Picks the tile size (an explicit `size` wins) and,
+   * for `full-screen`, letterboxes the board in its slot. Applied on this
+   * wrapper only; BoardDisplay is unchanged. Omit for the previous rendering.
+   */
+  layout?: ScaledBoardLayout;
 }
 
 /**
@@ -73,8 +93,20 @@ function ScaledBoardDisplayImpl({
   previewSizeLabel = "Preview size",
   fitModeLabel = "Fit",
   actualModeLabel = "Actual size",
-  ...props
+  scrollRegionLabel = "Board preview",
+  mode: modeProp,
+  onModeChange,
+  defaultMode = "fit",
+  persist = true,
+  layout,
+  ...boardProps
 }: ScaledBoardDisplayProps) {
+  const size = boardProps.size ?? (layout ? LAYOUT_SIZE[layout] : undefined);
+  const props: BoardDisplayProps = size === boardProps.size ? boardProps : { ...boardProps, size };
+  // The layout lives on this wrapper only. Without one the wrapper renders
+  // exactly as it always has: no attributes, no extra classes.
+  const layoutAttrs = layout ? { "data-layout": layout, "data-size": size } : {};
+  const rootClass = cn("w-full min-w-0", layout && LAYOUT_CLASS[layout]);
   const containerRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -85,18 +117,14 @@ function ScaledBoardDisplayImpl({
   // (`gridRows` / `gridCols` reach the board through the `props` spread.)
   const showToggle = isNoteArray(props.deviceType ?? "flagship");
 
-  // Lazily read the persisted mode on mount (guarded for SSR/no-window).
-  const [displayMode, setDisplayMode] = useState<DisplayMode>(() => readStoredMode());
+  // R1 precedence: controlled mode, then the session's stored choice (when
+  // persisting), then defaultMode, then "fit".
+  const [displayMode, setMode] = useBoardPreviewMode({ mode: modeProp, onModeChange, defaultMode, persist });
 
   // Effective mode: only note arrays can ever be "actual". This keeps the
   // scaling effect below active for flagship/note even if some other tab
   // left "actual" in sessionStorage.
-  const mode: DisplayMode = showToggle ? displayMode : "fit";
-
-  const setMode = (next: DisplayMode) => {
-    setDisplayMode(next);
-    writeStoredMode(next);
-  };
+  const mode: BoardPreviewMode = showToggle ? displayMode : "fit";
 
   useLayoutEffect(() => {
     // In actual-size mode we render at natural scale with no transform box,
@@ -253,9 +281,18 @@ function ScaledBoardDisplayImpl({
     // nothing constrains this box's height: its scrollport is exactly as tall
     // as the board, which is what "no vertical clipping" was reaching for.
     return (
-      <div data-slot="scaled-board-display" className="w-full min-w-0">
+      <div data-slot="scaled-board-display" {...layoutAttrs} className={rootClass}>
         {toggle}
-        <div data-testid="actual-size-scroll" className="w-full overflow-x-auto">
+        {/* A scroll container has to be reachable by keyboard (axe
+            scrollable-region-focusable) — arrow keys then scroll it natively. */}
+        <div
+          data-testid="actual-size-scroll"
+          role="region"
+          aria-label={scrollRegionLabel}
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
+          className="w-full overflow-x-auto focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
           <div className="min-w-max">
             <BoardDisplay {...props} />
           </div>
@@ -265,7 +302,7 @@ function ScaledBoardDisplayImpl({
   }
 
   return (
-    <div data-slot="scaled-board-display" className="w-full min-w-0">
+    <div data-slot="scaled-board-display" {...layoutAttrs} className={rootClass}>
       {toggle}
       {/*
         Outer: full-width, centers the scaled board horizontally.
