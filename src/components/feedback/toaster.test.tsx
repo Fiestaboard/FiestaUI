@@ -1,5 +1,6 @@
-import { act, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { toast, Toaster } from "./toaster";
 
@@ -55,5 +56,84 @@ describe("Toaster", () => {
     const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]");
     expect(toaster).toHaveAttribute("data-sonner-theme", "dark");
     expect(toaster?.style.getPropertyValue("--normal-bg")).toBe("var(--popover)");
+  });
+
+  it("is offset above the bottom nav, falling back to 0 when no nav publishes --bottom-nav-offset", async () => {
+    render(<Toaster />);
+    act(() => {
+      toast("Hi");
+    });
+    await screen.findByText("Hi");
+    const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]")!;
+    expect(toaster.style.getPropertyValue("--offset-bottom")).toBe("calc(24px + var(--bottom-nav-offset, 0px))");
+    expect(toaster.style.getPropertyValue("--mobile-offset-bottom")).toBe(
+      "calc(16px + var(--bottom-nav-offset, 0px) + env(safe-area-inset-bottom, 0px))",
+    );
+    // The other edges keep Sonner's defaults.
+    expect(toaster.style.getPropertyValue("--offset-right")).toBe("24px");
+    expect(toaster.style.getPropertyValue("--mobile-offset-left")).toBe("16px");
+  });
+
+  it("clearBottomNav={false} restores Sonner's plain offsets", async () => {
+    render(<Toaster clearBottomNav={false} />);
+    act(() => {
+      toast("Hi");
+    });
+    await screen.findByText("Hi");
+    const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]")!;
+    expect(toaster.style.getPropertyValue("--offset-bottom")).toBe("24px");
+    expect(toaster.style.getPropertyValue("--mobile-offset-bottom")).toBe("16px");
+  });
+});
+
+describe("Toaster · snackbar actions (C18, 07a Web / Toast 297:7793)", () => {
+  it("renders an Undo action as a 44px button that runs and dismisses, without stealing focus", async () => {
+    const user = userEvent.setup();
+    const onUndo = vi.fn();
+    render(
+      <>
+        <button type="button">Cancel override</button>
+        <Toaster />
+      </>,
+    );
+    const origin = screen.getByRole("button", { name: "Cancel override" });
+    origin.focus();
+    act(() => {
+      toast.info("Override canceled", {
+        description: "Kitchen board is back on Schedule Mode.",
+        action: { label: "Undo", onClick: onUndo },
+        duration: Infinity,
+      });
+    });
+    const undo = await screen.findByRole("button", { name: "Undo" });
+    expect(origin).toHaveFocus();
+    expect(undo).toHaveClass("!h-control-touch", "!bg-secondary", "!px-6");
+    // The message sits in the polite live region, so it is announced.
+    const region = screen.getByRole("region", { name: /^Notifications/ });
+    expect(region).toHaveAttribute("aria-live", "polite");
+    expect(region).toContainElement(screen.getByText("Override canceled"));
+    expect(region).toContainElement(undo);
+    await user.click(undo);
+    expect(onUndo).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.queryByText("Override canceled")).not.toBeInTheDocument());
+  });
+
+  it("styles the second action (Sonner's cancel) as a ghost button after the primary one", async () => {
+    render(<Toaster />);
+    act(() => {
+      toast.success("Saved to Pages", {
+        description: "Kitchen morning is in your page library.",
+        action: { label: "Show now", onClick: () => {} },
+        cancel: { label: "Add to Schedule", onClick: () => {} },
+        duration: Infinity,
+      });
+    });
+    const primary = await screen.findByRole("button", { name: "Show now" });
+    const secondary = screen.getByRole("button", { name: "Add to Schedule" });
+    expect(primary).toHaveClass("order-1", "!h-control-touch");
+    expect(secondary).toHaveClass("order-2", "!h-control-touch", "!bg-transparent");
+    // Actions drop to their own row, indented under the text (28px).
+    const toastEl = primary.closest("[data-sonner-toast]")!;
+    expect(toastEl).toHaveClass("group/toast", "has-[[data-button]]:flex-wrap");
   });
 });

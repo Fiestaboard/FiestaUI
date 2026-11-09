@@ -45,6 +45,13 @@ export interface ToasterProps {
    * pass these in — the same contract as ThemeToggle's `label`.
    */
   labels?: ToasterLabels;
+  /**
+   * Lift bottom-anchored toasts above the mobile bottom nav (C18, "above
+   * nav"). The offset reads `--bottom-nav-offset`, which the bottom-nav
+   * Sidebar publishes while its bar is on screen, and falls back to `0px`, so
+   * without a bar the toasts sit exactly where they always did. Default: true.
+   */
+  clearBottomNav?: boolean;
   className?: string;
 }
 
@@ -76,6 +83,35 @@ const TOKEN_STYLE = {
   "--border-radius": "var(--radius)",
 } as React.CSSProperties;
 
+/** Sonner's own edge offsets (24px desktop, 16px below 600px), plus the nav. */
+const NAV_CLEAR_OFFSET = { bottom: "calc(24px + var(--bottom-nav-offset, 0px))" };
+const NAV_CLEAR_MOBILE_OFFSET = {
+  bottom: "calc(16px + var(--bottom-nav-offset, 0px) + env(safe-area-inset-bottom, 0px))",
+};
+
+/**
+ * Snackbar actions, 07a Web / Toast `297:7793`: the actions drop to their own
+ * row under the text, indented 28px (16px glyph + 12px gap), as 44px Buttons.
+ * The text takes the row minus the glyph and its margins (2.25rem), which is
+ * what pushes the buttons onto the next line.
+ * `action` is the primary one (secondary fill: "Undo", "Show now"); Sonner's
+ * `cancel` is the second (ghost: "Add to Schedule") and follows it. The
+ * `has-[[data-button]]` guards keep toasts without actions exactly as before.
+ * `!` beats Sonner's own `[data-button]` rules, which outrank a class.
+ */
+const ACTION_BASE = "!h-control-touch !rounded-md !px-6 !text-sm !font-medium focus-visible:!shadow-none focus-ring";
+const TOAST_CLASSNAMES = {
+  toast:
+    "group/toast font-sans shadow-lg has-[[data-button]]:flex-wrap has-[[data-button]]:!items-start has-[[data-button]]:!gap-3",
+  content: "group-has-[[data-button]]/toast:!basis-[calc(100%-2.25rem)]",
+  description: "!text-muted-foreground",
+  actionButton: cn(ACTION_BASE, "order-1 !ms-7 !bg-secondary !text-secondary-foreground hover:!bg-secondary/80"),
+  cancelButton: cn(
+    ACTION_BASE,
+    "order-2 !ms-0 !bg-transparent !text-foreground hover:!bg-accent [&:not(:has(~[data-action]))]:!ms-7",
+  ),
+};
+
 /**
  * Transient notification surface. Mount once near the app root and raise
  * toasts with the re-exported `toast`.
@@ -90,6 +126,11 @@ const TOKEN_STYLE = {
  *   animation, and the loading glyph is the kit's Spinner, which swaps its
  *   arc for a static ring.
  *
+ * - Actions (`toast(msg, { action, cancel })`) are real buttons inside the
+ *   live region, so their labels are read with the message. Focus stays where
+ *   the user was; Alt+T reaches the action, and focus or hover pauses the
+ *   timer. Give an Undo toast a duration long enough to act on.
+ *
  * Presentation-only: theme state and i18n stay in the app and come in as
  * props, as with ThemeToggle and LanguageSelector.
  */
@@ -100,6 +141,7 @@ function Toaster({
   closeButton = false,
   visibleToasts = 3,
   labels,
+  clearBottomNav = true,
   className,
 }: ToasterProps) {
   return (
@@ -113,12 +155,11 @@ function Toaster({
       className={cn("toaster group", className)}
       icons={ICONS}
       style={TOKEN_STYLE}
+      offset={clearBottomNav ? NAV_CLEAR_OFFSET : undefined}
+      mobileOffset={clearBottomNav ? NAV_CLEAR_MOBILE_OFFSET : undefined}
       toastOptions={{
         closeButtonAriaLabel: labels?.close ?? "Close",
-        classNames: {
-          toast: "font-sans shadow-lg",
-          description: "!text-muted-foreground",
-        },
+        classNames: TOAST_CLASSNAMES,
       }}
     />
   );
