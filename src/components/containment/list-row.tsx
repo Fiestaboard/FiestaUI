@@ -121,8 +121,9 @@ const textClasses: Record<ListRowLayout, string> = {
   inline: "min-w-0 flex-1",
   stacked: "min-w-0 basis-full",
   // 10rem is the narrowest the text column gets before the meta wraps. At the
-  // default 16px root that is 160px, which a 390px phone row clears; at 200%
-  // text it is 320px, which it does not, and the row stacks.
+  // default 16px root that is 160px: a 390px phone row with a leading tile and
+  // a chevron keeps a short meta ("On") inline but stacks a medium one
+  // ("Every 15 min"). At 200% text it is 320px, and the row stacks.
   auto: "min-w-0 flex-[1_1_10rem]",
 };
 

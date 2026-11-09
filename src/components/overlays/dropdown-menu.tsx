@@ -84,33 +84,49 @@ type ContextTriggerProps = React.ComponentProps<typeof ContextMenuPrimitive.Trig
 };
 
 /**
+ * How long the trigger swallows the browser's own `contextmenu` after a
+ * Shift+F10 or Menu key press if the key's keyup never arrives.
+ */
+const KEY_ECHO_WINDOW_MS = 1000;
+
+/**
  * The context-mode trigger: Base UI's ContextMenu.Trigger (right-click and
  * long press) plus the keyboard path, which Base UI leaves to the browser.
  *
  * Browsers disagree on the keys. Some fire `contextmenu` at (0, 0), which
  * would open the menu in the page corner; macOS has no Menu key; Firefox
- * may also show its own menu. So the trigger handles Shift+F10 and the Menu
- * key itself: it prevents the default, dispatches one synthetic
- * `contextmenu` at the focused element's bottom-left corner (Base UI anchors
- * the menu there), and swallows a native `contextmenu` that arrives in the
- * same task.
+ * may also show its own menu; Chrome on Windows fires the Menu key's
+ * `contextmenu` on keyup, a later task, by which time focus is inside our
+ * popup. So the trigger handles Shift+F10 and the Menu key itself: it
+ * prevents the default and dispatches one synthetic `contextmenu` at the
+ * focused element's bottom-left corner (Base UI anchors the menu there).
+ * Then, until the key's keyup plus one task (or {@link KEY_ECHO_WINDOW_MS}
+ * if no keyup comes), a document capture listener swallows any native
+ * `contextmenu`, wherever focus has gone.
  *
  * Events that reach the area only through React's portal bubbling (from
  * another menu's popup rendered inside the row) are ignored: their DOM
  * target is outside the area.
+ *
+ * The area is `select-none` with no touch callout, so an iOS long press
+ * opens the menu without also starting a text selection. Rows without a
+ * context trigger keep selectable text.
  */
 function DropdownMenuContextTrigger({
   asChild = false,
   children,
   onKeyDown,
   onContextMenu,
+  className,
   ref,
   ...props
 }: ContextTriggerProps) {
   const { returnFocusRef, disabled } = React.useContext(DropdownMenuModeContext);
   const areaRef = React.useRef<HTMLDivElement | null>(null);
-  const swallowNativeRef = React.useRef(false);
   const dispatchingRef = React.useRef(false);
+  const closeEchoWindowRef = React.useRef<(() => void) | null>(null);
+
+  React.useEffect(() => () => closeEchoWindowRef.current?.(), []);
 
   const setRefs = React.useCallback(
     (node: HTMLDivElement | null) => {
@@ -123,6 +139,31 @@ function DropdownMenuContextTrigger({
 
   const isInside = (target: EventTarget | null) =>
     target instanceof Node && areaRef.current != null && areaRef.current.contains(target);
+
+  /** Swallow the browser's echo of `key` until its keyup plus one task. */
+  const openEchoWindow = (doc: Document, key: string) => {
+    closeEchoWindowRef.current?.();
+    const swallow = (event: Event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const close = () => {
+      clearTimeout(timer);
+      doc.removeEventListener("contextmenu", swallow, true);
+      doc.removeEventListener("keyup", onKeyUp, true);
+      closeEchoWindowRef.current = null;
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key !== key) return;
+      // The keyup's own default action may still fire `contextmenu`.
+      clearTimeout(timer);
+      timer = setTimeout(close, 0);
+    };
+    let timer = setTimeout(close, KEY_ECHO_WINDOW_MS);
+    doc.addEventListener("contextmenu", swallow, true);
+    doc.addEventListener("keyup", onKeyUp, true);
+    closeEchoWindowRef.current = close;
+  };
 
   const handleKeyDown = (event: Parameters<NonNullable<ContextTriggerProps["onKeyDown"]>>[0]) => {
     onKeyDown?.(event);
@@ -145,20 +186,13 @@ function DropdownMenuContextTrigger({
     } finally {
       dispatchingRef.current = false;
     }
-    swallowNativeRef.current = true;
-    setTimeout(() => {
-      swallowNativeRef.current = false;
-    }, 0);
+    openEchoWindow(target.ownerDocument, event.key);
   };
 
   const handleContextMenu = (event: Parameters<NonNullable<ContextTriggerProps["onContextMenu"]>>[0]) => {
     onContextMenu?.(event);
     if (dispatchingRef.current) return;
-    const outside = !isInside(event.target);
-    // The browser's own event for the key press just handled.
-    const echo = swallowNativeRef.current;
-    if (outside || echo) {
-      if (echo) event.preventDefault();
+    if (!isInside(event.target)) {
       event.preventBaseUIHandler();
       return;
     }
@@ -172,6 +206,9 @@ function DropdownMenuContextTrigger({
       ref={setRefs}
       {...(asChild ? { render: React.Children.only(children) as React.ReactElement } : { children })}
       {...props}
+      className={(state) =>
+        cn("select-none [-webkit-touch-callout:none]", typeof className === "function" ? className(state) : className)
+      }
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
     />
@@ -225,7 +262,17 @@ function DropdownMenuContent({
         <DropdownMenuPrimitive.Popup
           // After a keyboard open, focus goes back to the element that had it;
           // the context area itself cannot take focus.
-          {...(context ? { finalFocus: () => returnFocusRef.current ?? true } : {})}
+          {...(context
+            ? {
+                finalFocus: () => {
+                  // Once only: a later long-press open must not return focus
+                  // to an element from an earlier keyboard open.
+                  const element = returnFocusRef.current;
+                  returnFocusRef.current = null;
+                  return element ?? true;
+                },
+              }
+            : {})}
           data-slot="dropdown-menu-content"
           className={cn(
             "max-h-[var(--available-height)] min-w-[8rem] origin-[var(--transform-origin)] overflow-x-hidden overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[ending-style]:animate-out data-[ending-style]:fade-out-0 data-[ending-style]:zoom-out-95 data-[open]:animate-in data-[open]:fade-in-0 data-[open]:zoom-in-95",

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { Dialog, DialogContent, DialogTitle } from "../overlays/dialog";
 import {
   arrayMove,
   DEFAULT_SORTABLE_LIST_LABELS,
@@ -51,7 +52,9 @@ function Harness({
   hideStatus,
   moveButtons = true,
   labels,
+  size,
 }: {
+  size?: "default" | "touch";
   initial?: Page[];
   onMove?: (from: number, to: number) => void;
   disabled?: boolean;
@@ -69,6 +72,7 @@ function Harness({
       disabled={disabled}
       hideStatus={hideStatus}
       labels={labels}
+      size={size}
       onMove={(from, to) => {
         onMove?.(from, to);
         setItems((prev) => arrayMove(prev, from, to));
@@ -343,11 +347,39 @@ describe("SortableList move buttons", () => {
     expect(row("Morning commute")).toHaveFocus();
   });
 
-  it("are hidden until the row has focus or is lifted, unless always visible", () => {
+  it("are visually hidden until the row has focus or is lifted, but stay in the accessibility tree", () => {
     render(<Harness />);
-    const wrapper = row("Market open").querySelector('[data-slot="sortable-list-move-buttons"]');
-    expect(wrapper?.className).toContain("hidden");
-    expect(wrapper?.className).toContain("group-focus-within/sortable-item:inline-flex");
+    const wrapper = row("Market open").querySelector<HTMLElement>('[data-slot="sortable-list-move-buttons"]');
+    // sr-only, never display:none: browse modes do not move focus.
+    expect(wrapper).toHaveClass(
+      "sr-only",
+      "group-focus-within/sortable-item:not-sr-only",
+      "group-data-[lifted]/sortable-item:not-sr-only",
+    );
+    expect(wrapper).not.toHaveClass("hidden");
+  });
+
+  it("are always visible with visibility=always", () => {
+    render(
+      <SortableList
+        aria-label="Always"
+        items={["x", "y"]}
+        getKey={(v) => v}
+        getLabel={(v) => v}
+        onMove={() => undefined}
+        renderItem={() => <SortableListMoveButtons visibility="always" />}
+      />,
+    );
+    const wrapper = document.querySelector('[data-slot="sortable-list-move-buttons"]');
+    expect(wrapper).not.toHaveClass("sr-only");
+  });
+
+  it("are 44px tall in a touch list and 32px otherwise", () => {
+    const { unmount } = render(<Harness size="touch" />);
+    expect(within(row("Market open")).getByRole("button", { name: "Move down" })).toHaveClass("h-11");
+    unmount();
+    render(<Harness />);
+    expect(within(row("Market open")).getByRole("button", { name: "Move down" })).not.toHaveClass("h-11");
   });
 
   it("take localised labels", () => {
@@ -374,14 +406,31 @@ describe("SortableList pointer drag", () => {
     const line = document.querySelector<HTMLElement>('[data-slot="sortable-list-indicator"]');
     expect(line).not.toBeNull();
     expect(line).toHaveAttribute("aria-hidden", "true");
-    // Below row 3 (bottom at 100+136+60=296), half the 8px gap further, relative to the list top.
-    expect(line?.style.top).toBe(`${296 + 4 - 100}px`);
+    // Rows 2 and 3 step up by one row plus the gap (68px), opening the slot
+    // where row 3 was; row 4 stays.
+    expect(row("Morning commute").style.transform).toBe("translateY(-68px)");
+    expect(row("Weather + surf").style.transform).toBe("translateY(-68px)");
+    expect(row("Good morning, Maya").style.transform).toBe("");
+    // The siblings glide (motion-safe only); the dragged row does not.
+    expect(row("Morning commute").className).toContain("motion-safe:transition-transform");
+    expect(row("Morning commute").className).not.toMatch(/(^|\s)transition-transform/);
+    expect(row("Market open").className).not.toContain("transition-transform");
+    // The line sits in the gap above the opened slot (slot top 296-60=236,
+    // half the 8px gap higher), relative to the list top...
+    expect(line?.style.top).toBe(`${236 - 4 - 100}px`);
+    // ...and under the dragged card, which is z-10.
+    expect(line).toHaveClass("z-[5]");
+    expect(row("Market open")).toHaveClass("data-[dragging]:z-10");
     expect(status()).toHaveTextContent("Market open · moving to position 3 of 4");
 
     fireEvent.pointerUp(handle, { pointerId: 1, clientY: 270 });
 
     expect(onMove).toHaveBeenCalledWith(0, 2);
     expect(names()).toEqual(["Morning commute", "Weather + surf", "Market open", "Good morning, Maya"]);
+    for (const r of rows()) {
+      expect(r.style.transform).toBe("");
+      expect(r.className).not.toContain("transition-transform");
+    }
     expect(row("Market open")).not.toHaveAttribute("data-dragging");
     expect(row("Market open").style.transform).toBe("");
     expect(document.querySelector('[data-slot="sortable-list-indicator"]')).toBeNull();
@@ -401,6 +450,10 @@ describe("SortableList pointer drag", () => {
     const line = document.querySelector<HTMLElement>('[data-slot="sortable-list-indicator"]');
     // Above row 2 (top at 168), half the gap higher.
     expect(line?.style.top).toBe(`${168 - 4 - 100}px`);
+    // Rows 2 and 3 step down to open that slot; row 1 stays.
+    expect(row("Morning commute").style.transform).toBe("translateY(68px)");
+    expect(row("Weather + surf").style.transform).toBe("translateY(68px)");
+    expect(row("Market open").style.transform).toBe("");
 
     fireEvent.pointerUp(handle, { pointerId: 1 });
     expect(onMove).toHaveBeenCalledWith(3, 1);
@@ -537,5 +590,131 @@ describe("useSortableItem", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     expect(() => render(<Lonely />)).toThrow(/SortableList/);
     spy.mockRestore();
+  });
+});
+
+describe("SortableList review fixes (#389)", () => {
+  it("Escape that cancels a lift does not close a host Dialog", async () => {
+    const onOpenChange = vi.fn();
+    render(
+      <Dialog open onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogTitle>Weekday mornings</DialogTitle>
+          <Harness />
+        </DialogContent>
+      </Dialog>,
+    );
+    const r = await screen.findByText("Morning commute");
+    const li = r.closest("li") as HTMLElement;
+    li.focus();
+    fireEvent.keyDown(li, { key: " " });
+    fireEvent.keyDown(li, { key: "ArrowDown" });
+
+    const escape = fireEvent.keyDown(row("Morning commute"), { key: "Escape" });
+
+    expect(escape).toBe(false);
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(names()[1]).toBe("Morning commute");
+
+    // An Escape the list does not handle still reaches the dialog.
+    fireEvent.keyDown(row("Morning commute"), { key: "Escape" });
+    expect(onOpenChange).toHaveBeenCalledWith(false, expect.anything());
+  });
+
+  it("Escape that cancels a drag does not close a host Dialog", async () => {
+    const onOpenChange = vi.fn();
+    render(
+      <Dialog open onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogTitle>Weekday mornings</DialogTitle>
+          <Harness />
+        </DialogContent>
+      </Dialog>,
+    );
+    await screen.findByText("Market open");
+    layout();
+    const handle = handleOf("Market open");
+    fireEvent.pointerDown(handle, { button: 0, pointerId: 1, clientY: 130 });
+    fireEvent.keyDown(row("Market open"), { key: "Escape" });
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(row("Market open")).not.toHaveAttribute("data-dragging");
+  });
+
+  it("a lifted row is named by its label alone, without the instructions", () => {
+    render(<Harness />);
+    const r = row("Morning commute");
+    r.focus();
+    fireEvent.keyDown(r, { key: " " });
+
+    expect(row("Morning commute")).toHaveAttribute("aria-label", "Morning commute");
+    expect(row("Morning commute")).not.toHaveAttribute("aria-describedby");
+    expect(row("Market open")).toHaveAttribute("aria-describedby");
+    expect(row("Market open")).not.toHaveAttribute("aria-label");
+
+    fireEvent.keyDown(row("Morning commute"), { key: " " });
+    expect(row("Morning commute")).toHaveAttribute("aria-describedby");
+    expect(row("Morning commute")).not.toHaveAttribute("aria-label");
+  });
+
+  it("draws a single 2px ring on a lifted row (no focus-ring shadow beside it)", () => {
+    render(<Harness />);
+    expect(rows()[0]).toHaveClass(
+      "data-[lifted]:outline-2",
+      "data-[lifted]:outline-primary",
+      "data-[lifted]:focus-visible:shadow-none",
+    );
+  });
+
+  it("ignores a held Space or Enter", () => {
+    render(<Harness />);
+    const r = row("Morning commute");
+    r.focus();
+    fireEvent.keyDown(r, { key: " " });
+    fireEvent.keyDown(r, { key: " ", repeat: true });
+    fireEvent.keyDown(r, { key: "Enter", repeat: true });
+    expect(row("Morning commute")).toHaveAttribute("data-lifted");
+  });
+
+  it("stays lifted when focus moves to a control inside the row", () => {
+    render(<Harness />);
+    const r = row("Morning commute");
+    r.focus();
+    fireEvent.keyDown(r, { key: " " });
+    act(() => within(row("Morning commute")).getByRole("button", { name: "Move down" }).focus());
+    expect(row("Morning commute")).toHaveAttribute("data-lifted");
+  });
+
+  it("prevents the default on drag start, so a mouse drag does not select text", () => {
+    render(<Harness />);
+    layout();
+    expect(fireEvent.pointerDown(handleOf("Market open"), { button: 0, pointerId: 1, clientY: 130 })).toBe(false);
+  });
+
+  it("focuses the dragged row", () => {
+    render(<Harness />);
+    layout();
+    fireEvent.pointerDown(handleOf("Weather + surf"), { button: 0, pointerId: 1, clientY: 266 });
+    expect(row("Weather + surf")).toHaveFocus();
+  });
+
+  it("the lift scale is motion-safe only", () => {
+    render(<Harness />);
+    const cls = rows()[0].className;
+    expect(cls).toContain("motion-safe:data-[dragging]:scale-[1.01]");
+    expect(cls).not.toMatch(/(^|\s)data-\[dragging\]:scale/);
+  });
+
+  it("makes the handle a 44px target in a touch list and 40px otherwise", () => {
+    const { unmount } = render(<Harness size="touch" />);
+    expect(handleOf("Market open")).toHaveClass("size-11");
+    expect(handleOf("Market open")).toHaveAttribute("data-size", "touch");
+    unmount();
+    render(<Harness />);
+    expect(handleOf("Market open")).toHaveClass("size-10");
+  });
+
+  it("keeps an explicit role=list (Safari drops list semantics from list-style:none)", () => {
+    render(<Harness />);
+    expect(screen.getByRole("list")).toHaveAttribute("role", "list");
   });
 });

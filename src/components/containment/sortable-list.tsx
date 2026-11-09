@@ -20,12 +20,16 @@ import { Button } from "../forms/button";
  *     away drops it where it is.
  *   * **Buttons.** {@link SortableListMoveButtons} ("Move up" / "Move down")
  *     appear on the focused or lifted row, for pointer users who cannot
- *     drag. {@link useSortableItem} exposes the same moves, so a row's
+ *     drag. Elsewhere they are visually hidden but stay in the
+ *     accessibility tree, so screen-reader browse modes find them. {@link useSortableItem} exposes the same moves, so a row's
  *     "More actions" menu can carry them too (07 mobile).
  *   * **Pointer.** Drag {@link SortableListHandle} with a mouse, pen or
  *     finger. Pointer events with pointer capture, so one code path covers
  *     all three; `touch-action: none` on the handle stops a touch drag from
- *     scrolling the page. An insertion line marks the target slot.
+ *     scrolling the page. The rows between the start and the target step
+ *     aside to open the slot, and a line marks it, under the dragged card.
+ *     Escape cancels a drag or a lift without also closing a host Dialog
+ *     or Sheet.
  *   * **Announcements.** One polite live region announces each step. It is
  *     also the visible status line under the list in the Figma
  *     ("Morning commute · moving to position 1 of 4"); `hideStatus` keeps it
@@ -203,7 +207,10 @@ function SortableList<T>({
   const handleRowKeyDown = (event: React.KeyboardEvent<HTMLLIElement>, key: React.Key, index: number) => {
     if (disabled) return;
     if (dragRef.current && event.key === "Escape") {
+      // Stop it too: a host Dialog, Sheet or Popover closes on any document
+      // Escape (Base UI's useDismiss ignores defaultPrevented).
       event.preventDefault();
+      event.stopPropagation();
       cancelDrag();
       return;
     }
@@ -211,6 +218,12 @@ function SortableList<T>({
     // row belongs to that control.
     if (event.target !== event.currentTarget) return;
     const row = event.currentTarget;
+
+    // Holding Space or Enter must not toggle lift and drop.
+    if (event.repeat && (event.key === " " || event.key === "Enter")) {
+      event.preventDefault();
+      return;
+    }
 
     if (lifted?.key !== key) {
       if (event.key === " ") {
@@ -243,6 +256,7 @@ function SortableList<T>({
     }
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
       move(key, index, lifted.origin, row);
       setLifted(null);
       setMessage(labels.cancelled(labelOfKey(key), lifted.origin + 1, total));
@@ -317,11 +331,25 @@ function SortableList<T>({
     if (dragRef.current?.pointerId === event.pointerId) cancelDrag();
   };
 
+  // While dragging, the rows between the start and the target slot step
+  // aside by the dragged row's height plus the gap, opening the slot where it
+  // will land (07 `57:66920`). The line sits in the gap above that slot,
+  // under the dragged card, so it never strikes through its text.
   let indicatorTop: number | null = null;
-  if (drag && drag.over !== drag.from) {
+  let rowShift = (_index: number) => 0;
+  if (drag) {
     const { rects, over, from } = drag;
     const gap = rects.length > 1 ? Math.max(0, rects[1].top - rects[0].bottom) : 0;
-    indicatorTop = over < from ? rects[over].top - gap / 2 : rects[over].bottom + gap / 2;
+    const step = rects[from].height + gap;
+    rowShift = (i) => {
+      if (over > from && i > from && i <= over) return -step;
+      if (over < from && i >= over && i < from) return step;
+      return 0;
+    };
+    if (over !== from) {
+      const slotTop = over < from ? rects[over].top : rects[over].bottom - rects[from].height;
+      indicatorTop = slotTop - gap / 2;
+    }
   }
 
   return (
@@ -377,17 +405,32 @@ function SortableList<T>({
                 data-lifted={isLifted || undefined}
                 data-dragging={isDragging || undefined}
                 tabIndex={disabled ? undefined : 0}
-                aria-describedby={instructionsId}
+                // While lifted, the row is refocused after each move (React
+                // moves the focused node on a downward step). Naming it by its
+                // label alone, with no instructions, keeps that re-read to the
+                // name; the live region carries the position.
+                aria-describedby={isLifted ? undefined : instructionsId}
+                aria-label={isLifted ? label : undefined}
                 onKeyDown={(event) => handleRowKeyDown(event, key, index)}
                 onBlur={(event) => handleRowBlur(event, key)}
-                style={isDragging ? { transform: `translateY(${drag.dy}px)` } : undefined}
+                style={
+                  isDragging
+                    ? { transform: `translateY(${drag.dy}px)` }
+                    : drag && rowShift(index) !== 0
+                      ? { transform: `translateY(${rowShift(index)}px)` }
+                      : undefined
+                }
                 className={cn(
                   "group/sortable-item relative rounded-xl outline-none",
                   "focus-visible:shadow-[var(--focus-ring-shadow)]",
-                  // Lifted: a 2px amber outline over the row's own border.
-                  "data-[lifted]:outline-2 data-[lifted]:-outline-offset-1 data-[lifted]:outline-primary data-[lifted]:outline-solid",
+                  // Lifted: one 2px amber ring over the row's own border, as in
+                  // 07c, so the focus-ring shadow steps aside.
+                  "data-[lifted]:outline-2 data-[lifted]:-outline-offset-1 data-[lifted]:outline-primary data-[lifted]:outline-solid data-[lifted]:focus-visible:shadow-none",
                   "data-[dragging]:z-10 data-[dragging]:outline-2 data-[dragging]:-outline-offset-1 data-[dragging]:outline-primary data-[dragging]:outline-solid data-[dragging]:shadow-lg",
-                  "motion-safe:transition-shadow motion-safe:data-[dragging]:scale-[1.01]",
+                  "motion-safe:data-[dragging]:scale-[1.01]",
+                  // Siblings glide aside only while a drag is on, so the drop
+                  // (new order, transforms cleared in one commit) never animates.
+                  drag && !isDragging ? "motion-safe:transition-transform motion-safe:duration-control" : null,
                 )}
               >
                 {renderItem(item, index)}
@@ -400,7 +443,7 @@ function SortableList<T>({
         <div
           data-slot="sortable-list-indicator"
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 z-20 flex -translate-y-1/2 items-center"
+          className="pointer-events-none absolute inset-x-0 z-[5] flex -translate-y-1/2 items-center"
           style={{ top: `${indicatorTop}px` }}
         >
           <span className="size-2 shrink-0 rounded-full bg-primary" />
@@ -466,22 +509,42 @@ interface SortableListMoveButtonsProps extends React.ComponentProps<"span"> {
 /** "Move up" / "Move down" for the current row, disabled at either end. */
 function SortableListMoveButtons({ visibility = "focus", className, ...props }: SortableListMoveButtonsProps) {
   const item = useSortableItem();
+  // TODO(#385): once Button size="touch" is on alpha, pass size={item.size === "touch" ? "touch" : "sm"}
+  // instead of these classes.
+  const touchClass = item.size === "touch" ? "h-11 px-4" : undefined;
   return (
     <span
       data-slot="sortable-list-move-buttons"
       className={cn(
         "items-center gap-1",
+        "inline-flex",
+        // Visually hidden, not display:none, so screen-reader browse modes
+        // (which do not move focus) still find them.
         visibility === "focus"
-          ? "hidden group-focus-within/sortable-item:inline-flex group-data-[lifted]/sortable-item:inline-flex"
-          : "inline-flex",
+          ? "sr-only group-focus-within/sortable-item:not-sr-only group-data-[lifted]/sortable-item:not-sr-only"
+          : null,
         className,
       )}
       {...props}
     >
-      <Button type="button" variant="outline" size="sm" disabled={!item.canMoveUp} onClick={item.moveUp}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={touchClass}
+        disabled={!item.canMoveUp}
+        onClick={item.moveUp}
+      >
         {item.labels.moveUp}
       </Button>
-      <Button type="button" variant="outline" size="sm" disabled={!item.canMoveDown} onClick={item.moveDown}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={touchClass}
+        disabled={!item.canMoveDown}
+        onClick={item.moveDown}
+      >
         {item.labels.moveDown}
       </Button>
     </span>

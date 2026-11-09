@@ -47,6 +47,11 @@ import {
  * bubbling (from inside another menu's popup) must not open it.
  */
 
+/** Let one macrotask run (the echo window closes a task after keyup). */
+function tick() {
+  return act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+}
+
 function menu(): HTMLElement | null {
   return screen.queryByRole("menu");
 }
@@ -283,23 +288,98 @@ describe('DropdownMenu trigger="context"', () => {
     expect(onOpenChange.mock.calls.filter(([open]) => open === true)).toHaveLength(1);
   });
 
-  it("only swallows the native event within the same task", async () => {
-    vi.useFakeTimers();
+  it("swallows the browser's echo until the key's keyup plus one task (Chrome on Windows fires it on keyup)", async () => {
+    render(<ContextMenu />);
+    const inner = screen.getByRole("button", { name: "Kitchen board" });
+    inner.focus();
+
+    fireEvent.keyDown(inner, { key: "ContextMenu" });
+    await waitFor(() => expect(menu()).not.toBeNull());
+
+    // Wherever focus has gone (into the popup), the echo is swallowed.
+    expect(fireEvent.contextMenu(document.body)).toBe(false);
+    fireEvent.keyUp(document.activeElement ?? document.body, { key: "a" });
+    await tick();
+    expect(fireEvent.contextMenu(document.body)).toBe(false);
+
+    fireEvent.keyUp(document.activeElement ?? document.body, { key: "ContextMenu" });
+    // The keyup's own default action fires the echo in the same task.
+    expect(fireEvent.contextMenu(document.body)).toBe(false);
+    await tick();
+    expect(fireEvent.contextMenu(document.body)).toBe(true);
+    expect(screen.getAllByRole("menu")).toHaveLength(1);
+  });
+
+  it("closes the echo window after a second when no keyup arrives", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       render(<ContextMenu />);
       const inner = screen.getByRole("button", { name: "Kitchen board" });
       inner.focus();
-      fireEvent.keyDown(inner, { key: "ContextMenu" });
+      fireEvent.keyDown(inner, { key: "F10", shiftKey: true });
+
       act(() => {
-        vi.runAllTimers();
+        vi.advanceTimersByTime(999);
       });
-      // Escape closes; a later right-click must open again.
-      fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+      expect(fireEvent.contextMenu(document.body)).toBe(false);
+      act(() => {
+        vi.advanceTimersByTime(2);
+      });
+      expect(fireEvent.contextMenu(document.body)).toBe(true);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("opens again from a right-click once the echo window has closed", async () => {
+    render(<ContextMenu />);
+    const inner = screen.getByRole("button", { name: "Kitchen board" });
+    inner.focus();
+    fireEvent.keyDown(inner, { key: "ContextMenu" });
+    await waitFor(() => expect(menu()).not.toBeNull());
+    fireEvent.keyUp(document.activeElement ?? document.body, { key: "ContextMenu" });
+    await tick();
+
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    await waitFor(() => expect(menu()).toBeNull());
+
     fireEvent.contextMenu(screen.getByTestId("row"), { clientX: 5, clientY: 5 });
     await waitFor(() => expect(menu()).not.toBeNull());
+  });
+
+  it("removes its echo listener on unmount", () => {
+    const { unmount } = render(<ContextMenu />);
+    const inner = screen.getByRole("button", { name: "Kitchen board" });
+    inner.focus();
+    fireEvent.keyDown(inner, { key: "ContextMenu" });
+    unmount();
+    expect(fireEvent.contextMenu(document.body)).toBe(true);
+  });
+
+  it("makes the area unselectable with no touch callout, so a long press does not select text", () => {
+    render(<ContextMenu />);
+    expect(screen.getByTestId("row")).toHaveClass("select-none", "[-webkit-touch-callout:none]");
+  });
+
+  it("keeps a caller className on the area, string or function", () => {
+    render(
+      <>
+        <DropdownMenu trigger="context">
+          <DropdownMenuTrigger className="from-string">A</DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>Rename</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DropdownMenu trigger="context">
+          <DropdownMenuTrigger className={() => "from-function"}>B</DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>Rename</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </>,
+    );
+    expect(screen.getByText("A")).toHaveClass("from-string", "select-none");
+    expect(screen.getByText("B")).toHaveClass("from-function", "select-none");
   });
 
   it("ignores other keys and plain F10", () => {

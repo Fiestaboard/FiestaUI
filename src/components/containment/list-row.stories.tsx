@@ -137,16 +137,20 @@ export const LargeText: Story = {
       return <Story />;
     },
   ],
+  // Storybook's centered padding is rem-based too, so this story pads in px.
+  parameters: { layout: "fullscreen" },
   render: () => (
-    <ListRowGroup aria-label="Large text" className="w-[calc(100vw-4rem)] max-w-[400px]">
-      <ListRow
-        leading={tile(<Calendar />)}
-        title="Schedule Mode"
-        description="Pages change on their own"
-        meta="On"
-        trailing={<ChevronRight />}
-      />
-    </ListRowGroup>
+    <div className="p-[16px]">
+      <ListRowGroup aria-label="Large text" className="w-full max-w-[400px]">
+        <ListRow
+          leading={tile(<Calendar />)}
+          title="Schedule Mode"
+          description="Pages change on their own"
+          meta="On"
+          trailing={<ChevronRight />}
+        />
+      </ListRowGroup>
+    </div>
   ),
 };
 

@@ -30,3 +30,19 @@
 - Auto-scroll while dragging near the viewport edge.
 - `fui-coarse` / `coarse:` (#385): not used, so no dependency; `size="touch"` carries the 44px handle.
 - Code Connect mappings: the repo has no Code Connect setup yet.
+
+## Review round 1 (Opus, READY with should-fixes)
+
+- **S1:** a handled Escape (cancelling a lift or a drag) also stops propagation, so a host Dialog or Sheet stays open.
+- **S2:**
+  - dragging opens a gap at the target slot, and the line sits in that gap under the dragged card;
+  - a lifted row drops `aria-describedby` and is named by its label, so the refocus after a downward move reads only the name;
+  - Move buttons are `sr-only` rather than `hidden`;
+  - a lifted row has a single 2px ring.
+- **S3:** the Shift+F10 and Menu-key echo is swallowed by a document capture listener until that key's keyup plus one task (1s cap). This covers Chrome on Windows, which fires on keyup.
+- **S4:**
+  - the context area is `select-none` with no touch callout;
+  - the vacuous same-task test is replaced by keyup, timeout and reopen tests.
+- **S5:** Move buttons are 44px in a `size="touch"` list (TODO: Button `size="touch"` once #385 lands).
+- **Nits taken:** `event.repeat` is ignored; `returnFocusRef` is cleared after use; the LargeText story pads in px; the `auto` comment is corrected.
+- **Mutants:** the listed survivors are all killed (15 targeted mutants).

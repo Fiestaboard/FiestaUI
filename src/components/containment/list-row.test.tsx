@@ -155,6 +155,17 @@ describe("ListRow", () => {
     expect(row()).toHaveAttribute("data-popup-open");
   });
 
+  it("keeps row text selectable when there is no context trigger", () => {
+    render(<ListRow title="Kitchen board" />);
+    expect(row()).not.toHaveClass("select-none");
+  });
+
+  it("gives only link and button rows the hover fill", () => {
+    render(<ListRow title="Kitchen board" />);
+    expect(row().className).toContain("[&:is(a,button)]:hover:bg-accent");
+    expect(row().className).not.toMatch(/(^|\s)hover:bg-accent/);
+  });
+
   it("merges a caller className", () => {
     render(<ListRow title="Kitchen board" className="custom-row" />);
     expect(row().className).toContain("custom-row");
@@ -172,6 +183,8 @@ describe("ListRowGroup", () => {
 
     const list = screen.getByRole("list", { name: "Displays" });
     expect(list.tagName).toBe("UL");
+    // Explicit, because Safari drops list semantics from list-style:none.
+    expect(list).toHaveAttribute("role", "list");
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getAllByRole("listitem")[0]).toHaveAttribute("data-slot", "list-row");
   });
