@@ -488,4 +488,23 @@ describe("SheetContent · focus", () => {
     expect(screen.queryByRole("button", { name: "Outside" })).toBeNull();
     expect(dialog).toBeInTheDocument();
   });
+
+  it("a caller's initialFocus wins over the grabber default", async () => {
+    function WithInitialFocus() {
+      const ref = React.useRef<HTMLButtonElement>(null);
+      return (
+        <Sheet defaultOpen>
+          <SheetContent side="bottom" detents={[0.5, 0.9]} initialFocus={ref}>
+            <SheetTitle>Colors</SheetTitle>
+            <button type="button">Red</button>
+            <button type="button" ref={ref}>
+              Blue
+            </button>
+          </SheetContent>
+        </Sheet>
+      );
+    }
+    render(<WithInitialFocus />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Blue" })).toHaveFocus());
+  });
 });
