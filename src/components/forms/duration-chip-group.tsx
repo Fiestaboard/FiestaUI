@@ -103,7 +103,16 @@ export type DurationChipGroupProps = SelectionGroupBaseProps &
   SelectionGroupNameProps & {
     /** The chips, in order. Use {@link buildDurationOptions} for CANON's set. */
     options: DurationOption[];
-    /** @default "auto" */
+    /**
+     * `row` hugs the labels in one wrapping row (the desktop dialog); `grid` is
+     * 2 × 2 with chips filling their cells (the phone sheet); `auto` is grid
+     * below the `sm` VIEWPORT breakpoint and row from `sm` up.
+     *
+     * `auto` reads the viewport, not the container. In a sheet or dialog
+     * narrower than about 400 px on a wide viewport (a tablet side sheet, a
+     * narrow inspector), pass `layout="grid"`, or the row wraps 3 + 1.
+     * @default "auto"
+     */
     layout?: DurationChipGroupLayout;
     /**
      * The outcome sentence for the current choice, e.g. "Holds until 9:00 PM

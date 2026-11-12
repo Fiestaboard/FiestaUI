@@ -44,7 +44,10 @@ export interface CountdownLabels {
   until: (time: string) => string;
   /** Shown in the timer once time is up, until the hub reports the change. */
   ended: string;
-  /** Announced once when time is up. */
+  /**
+   * Announced once when time is up. The default, "Override ended", is the C15
+   * Override copy; any other host passes its own.
+   */
   endedAnnouncement: string;
 }
 
@@ -73,9 +76,16 @@ export type CountdownProps = Omit<React.ComponentProps<"div">, "children"> & {
   locale?: string;
   timeZone?: string;
   labels?: Partial<CountdownLabels>;
-  /** Remaining-time thresholds (ms) that are announced once each. @default [300000] */
+  /**
+   * Remaining-time thresholds (ms) that are announced once each. Ticks land on
+   * minute boundaries, so a threshold off the minute grid (90 s) is announced
+   * at the next boundary below it (1 min). @default [300000]
+   */
   announceAt?: readonly number[];
-  /** Called once when the time is up (also on mount when already past). */
+  /**
+   * Called once per `endsAt` when the time is up (also on mount when already
+   * past), including under React Strict Mode.
+   */
   onEnd?: () => void;
 };
 
@@ -97,7 +107,10 @@ function Countdown({
   const l = { ...DEFAULT_COUNTDOWN_LABELS, ...labels };
   const end = toMs(endsAt);
   const [now, setNow] = React.useState(() => Date.now());
-  const [announcement, setAnnouncement] = React.useState("");
+  // Keyed on the end time it belongs to: when `endsAt` changes the previous
+  // hold's text ("Override ended") renders as "" at once, and the next hold's
+  // identical text is a real DOM change, so it is announced again.
+  const [announcement, setAnnouncement] = React.useState<{ end: number; text: string } | null>(null);
 
   // Latest values for the timer effect without re-arming it on every render.
   const latest = React.useRef({ onEnd, announceAt, remaining: l.remaining, endedAnnouncement: l.endedAnnouncement });
@@ -105,20 +118,31 @@ function Countdown({
     latest.current = { onEnd, announceAt, remaining: l.remaining, endedAnnouncement: l.endedAnnouncement };
   });
 
+  // The end time whose onEnd has fired. A ref, not effect-local state, so it
+  // survives React Strict Mode's simulated unmount/remount (which keeps refs)
+  // and onEnd stays "once per endsAt" even when the effect runs twice.
+  const endedFor = React.useRef<number | null>(null);
+
   React.useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let done = false;
     const startRemaining = end - Date.now();
     // Thresholds already crossed at mount are spent: no announcement for them.
     const spent = new Set(latest.current.announceAt.filter((threshold) => startRemaining <= threshold));
 
     const tick = (initial: boolean) => {
+      clearTimeout(timer);
       const current = Date.now();
       const remaining = end - current;
       setNow(current);
 
       if (remaining <= 0) {
-        if (!initial) setAnnouncement(latest.current.endedAnnouncement);
-        latest.current.onEnd?.();
+        done = true;
+        if (!initial) setAnnouncement({ end, text: latest.current.endedAnnouncement });
+        if (endedFor.current !== end) {
+          endedFor.current = end;
+          latest.current.onEnd?.();
+        }
         return;
       }
       if (!initial) {
@@ -127,15 +151,25 @@ function Countdown({
         );
         if (crossed.length > 0) {
           for (const threshold of crossed) spent.add(threshold);
-          setAnnouncement(latest.current.remaining(remaining));
+          setAnnouncement({ end, text: latest.current.remaining(remaining) });
         }
       }
       // Next minute boundary of the remaining time (where the ceiling drops).
       timer = setTimeout(() => tick(false), remaining % MINUTE || MINUTE);
     };
 
+    // Background tabs throttle timers (Chrome aligns chained timers to ~1 min
+    // after 5 min hidden), so catch up the moment the page is visible again.
+    const onVisibilityChange = () => {
+      if (!done && document.visibilityState === "visible") tick(false);
+    };
+
     tick(true);
-    return () => clearTimeout(timer);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [end]);
 
   const remaining = end - now;
@@ -181,7 +215,7 @@ function Countdown({
         </div>
       )}
       <span data-slot="countdown-announcer" aria-live="polite" className="sr-only">
-        {announcement}
+        {announcement?.end === end ? announcement.text : ""}
       </span>
     </div>
   );

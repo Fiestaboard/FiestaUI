@@ -122,14 +122,14 @@ function NowShowingCard({
 
   const modeBadge =
     mode !== undefined && !preview ? (
-      <Badge data-slot="now-showing-mode" data-variant={MODE_BADGE_VARIANT[mode]} variant={MODE_BADGE_VARIANT[mode]}>
+      <Badge data-slot="now-showing-mode" variant={MODE_BADGE_VARIANT[mode]}>
         {modeLabels[mode]}
       </Badge>
     ) : null;
 
   const previewId = React.useId();
   const leading = preview ? (
-    <Badge id={previewId} data-slot="now-showing-preview" data-variant="outline" variant="outline">
+    <Badge id={previewId} data-slot="now-showing-preview" variant="outline">
       {l.preview}
     </Badge>
   ) : (

@@ -74,6 +74,32 @@ export const Grid: Story = {
   ),
 };
 
+/**
+ * A narrow side sheet on a wide viewport: `auto` would read the desktop
+ * viewport and wrap the row 3 + 1, so the host pins `layout="grid"`.
+ */
+export const InNarrowSheet: Story = {
+  render: function Render() {
+    const [value, setValue] = React.useState("next-change");
+    const id = React.useId();
+    return (
+      <div className="flex w-[360px] max-w-full flex-col gap-3 rounded-xl border bg-card p-4 shadow-card">
+        <p id={id} className="text-sm leading-5 font-semibold">
+          How long should Taco Tuesday stay up?
+        </p>
+        <DurationChipGroup
+          aria-labelledby={id}
+          options={OPTIONS}
+          layout="grid"
+          value={value}
+          onValueChange={setValue}
+          outcome={OUTCOMES[value]}
+        />
+      </div>
+    );
+  },
+};
+
 /** Each chip selected in turn (Figma `Selected=` variants), row and grid. */
 export const AllSelections: Story = {
   render: () => (

@@ -5,6 +5,12 @@ import { NowShowingCard } from "./now-showing-card";
 
 const board = <div data-testid="board">BOARD</div>;
 
+/** The fill classes Badge's own variants emit (badge.tsx). */
+const BADGE_FILL = {
+  default: ["bg-primary", "text-primary-foreground"],
+  secondary: ["bg-secondary", "text-secondary-foreground"],
+} as const;
+
 describe("NowShowingCard", () => {
   it("is a region named by its header (hero, the web Home card)", () => {
     render(<NowShowingCard display="Kitchen board" title="Dinner note" mode="override" board={board} />);
@@ -36,7 +42,39 @@ describe("NowShowingCard", () => {
     render(<NowShowingCard display="Kitchen board" title="Morning commute" mode={mode} board={board} />);
     const badge = document.querySelector('[data-slot="now-showing-mode"]')!;
     expect(badge).toHaveTextContent(label);
-    expect(badge).toHaveAttribute("data-variant", variant);
+    // Badge's own variant classes, not a stamp the card sets itself.
+    expect(badge).toHaveClass(...BADGE_FILL[variant]);
+    for (const [other, classes] of Object.entries(BADGE_FILL)) {
+      if (other !== variant) expect(badge).not.toHaveClass(classes[0]);
+    }
+  });
+
+  it("wraps the hero header so the label is never truncated at phone width", () => {
+    // jsdom has no layout, so the 390 px wrap is pinned by its classes (VRT
+    // shoots the Mobile story at 390): a wrapping row, a label that grows
+    // rather than truncates, and a meta that wraps right-aligned.
+    render(
+      <NowShowingCard
+        display="Kitchen board"
+        meta="Flagship 22 × 6 · Maya’s FiestaPi"
+        title="Dinner note"
+        board={board}
+      />,
+    );
+    const header = document.querySelector('[data-slot="now-showing-header"]')!;
+    expect(header).toHaveClass("flex-wrap");
+    const label = header.querySelector('[data-slot="now-showing-label"]')!;
+    expect(label).toHaveClass("flex-[1_1_auto]");
+    expect(label).not.toHaveClass("truncate");
+    expect(header.querySelector('[data-slot="now-showing-meta"]')).toHaveClass("ms-auto", "min-w-0");
+    expect(header.querySelector('[data-slot="now-showing-meta"]')).not.toHaveClass("shrink-0");
+  });
+
+  it("keeps the compact header on one line with a truncating eyebrow", () => {
+    render(<NowShowingCard variant="compact" display="Kitchen board" title="Clock" mode="schedule" board={board} />);
+    const header = document.querySelector('[data-slot="now-showing-header"]')!;
+    expect(header).not.toHaveClass("flex-wrap");
+    expect(header.querySelector('[data-slot="now-showing-label"]')).toHaveClass("truncate", "flex-1");
   });
 
   it("omits the badge without a mode, and takes a custom mode label", () => {
@@ -141,7 +179,9 @@ describe("NowShowingCard", () => {
     expect(card.querySelector('[data-slot="status-dot"]')).toBeNull();
     const preview = card.querySelector('[data-slot="now-showing-preview"]')!;
     expect(preview).toHaveTextContent("Preview");
-    expect(preview).toHaveAttribute("data-variant", "outline");
+    // Badge's outline variant: no fill, foreground ink.
+    expect(preview).toHaveClass("text-foreground");
+    expect(preview).not.toHaveClass("bg-primary", "bg-secondary");
     // A preview is not on the board yet, so it never claims a mode.
     expect(card.querySelector('[data-slot="now-showing-mode"]')).toBeNull();
   });

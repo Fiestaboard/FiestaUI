@@ -65,6 +65,17 @@ describe("DurationChipGroup", () => {
     }
   });
 
+  it("wears the Duration chip skin: a 44 px pill, inverted when selected", () => {
+    render(<DurationChipGroup aria-label="Duration" options={OPTIONS} defaultValue="1h" />);
+    for (const radio of screen.getAllByRole("radio")) {
+      // jsdom runs no Tailwind, so the recipe is pinned by its classes; VRT owns the pixels.
+      expect(radio).toHaveClass("h-(--control-h-touch)", "rounded-full", "bg-card", "border-input");
+      expect(radio).toHaveClass("data-[checked]:bg-foreground", "data-[checked]:text-background");
+      // The stock SegmentedControl look is merged away, not stacked under it.
+      expect(radio).not.toHaveClass("h-8", "rounded-md", "data-[checked]:bg-primary/10");
+    }
+  });
+
   it("selects on click (uncontrolled) and reports the value", async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();
@@ -131,6 +142,17 @@ describe("DurationChipGroup", () => {
   ] as const)("stamps layout %s as %s", (layout, expected) => {
     const { container } = render(<DurationChipGroup aria-label="Duration" options={OPTIONS} layout={layout} />);
     expect(container.querySelector('[data-slot="duration-chip-group"]')).toHaveAttribute("data-layout", expected);
+  });
+
+  it.each([
+    ["row", ["flex", "flex-wrap"], ["grid", "max-sm:grid"]],
+    ["grid", ["grid", "grid-cols-2", "w-full"], ["max-sm:grid"]],
+    ["auto", ["flex", "flex-wrap", "max-sm:grid", "max-sm:grid-cols-2"], ["grid"]],
+  ] as const)("lays %s out with the matching classes", (layout, present, absent) => {
+    render(<DurationChipGroup aria-label="Duration" options={OPTIONS} layout={layout} />);
+    const group = screen.getByRole("radiogroup");
+    expect(group).toHaveClass(...present);
+    for (const cls of absent) expect(group).not.toHaveClass(cls);
   });
 
   it("renders the outcome line as a polite live region that describes the group", () => {

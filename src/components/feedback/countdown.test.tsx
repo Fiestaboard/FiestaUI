@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
+import * as React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Countdown, formatRemaining } from "./countdown";
@@ -64,6 +65,15 @@ describe("Countdown", () => {
     expect(vi.getTimerCount()).toBe(1);
   });
 
+  it("arms its timer for the next minute boundary, never a second", () => {
+    const spy = vi.spyOn(globalThis, "setTimeout");
+    vi.setSystemTime(END - (42 * MIN + 30_000));
+    render(<Countdown endsAt={END} />);
+    expect(spy.mock.calls.map((call) => call[1])).toEqual([30_000]);
+    act(() => vi.advanceTimersByTime(30_000));
+    expect(spy.mock.calls.map((call) => call[1])).toEqual([30_000, MIN]);
+  });
+
   it("announces only at the thresholds and at the end", () => {
     const onEnd = vi.fn();
     vi.setSystemTime(END - 6 * MIN);
@@ -106,9 +116,84 @@ describe("Countdown", () => {
 
   it("calls onEnd immediately when mounted after the end", () => {
     const onEnd = vi.fn();
-    render(<Countdown endsAt={NOW - MIN} onEnd={onEnd} />);
+    const { container } = render(<Countdown endsAt={NOW - MIN} onEnd={onEnd} />);
     expect(screen.getByRole("timer")).toHaveTextContent("Ending now");
     expect(onEnd).toHaveBeenCalledTimes(1);
+    // Nothing ended while the reader was here, so nothing is announced.
+    expect(container.querySelector('[data-slot="countdown-announcer"]')).toHaveTextContent("");
+  });
+
+  it("calls onEnd once per endsAt under StrictMode (mounted after the end)", () => {
+    const onEnd = vi.fn();
+    render(
+      <React.StrictMode>
+        <Countdown endsAt={NOW - MIN} onEnd={onEnd} />
+      </React.StrictMode>,
+    );
+    expect(onEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onEnd once per endsAt under StrictMode (end reached while mounted)", () => {
+    const onEnd = vi.fn();
+    render(
+      <React.StrictMode>
+        <Countdown endsAt={NOW + 2 * MIN} onEnd={onEnd} />
+      </React.StrictMode>,
+    );
+    act(() => vi.advanceTimersByTime(2 * MIN));
+    expect(onEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-arms for a new endsAt and ends on the new time", () => {
+    const onEnd = vi.fn();
+    const { rerender, container } = render(<Countdown endsAt={END} onEnd={onEnd} />);
+    rerender(<Countdown endsAt={NOW + 2 * MIN} onEnd={onEnd} />);
+    act(() => vi.advanceTimersByTime(2 * MIN));
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-slot="countdown"]')).toHaveAttribute("data-state", "ended");
+  });
+
+  it("clears a stale announcement when endsAt changes, and announces the next end", () => {
+    const { rerender, container } = render(<Countdown endsAt={NOW + MIN} />);
+    const live = container.querySelector('[data-slot="countdown-announcer"]')!;
+    act(() => vi.advanceTimersByTime(MIN));
+    expect(live).toHaveTextContent("Override ended");
+
+    // A second, short hold (inside the 5 min threshold, so no threshold speaks).
+    rerender(<Countdown endsAt={Date.now() + 3 * MIN} />);
+    expect(live).toHaveTextContent("");
+    act(() => vi.advanceTimersByTime(3 * MIN));
+    expect(live).toHaveTextContent("Override ended");
+  });
+
+  it("catches up when a hidden tab becomes visible again", () => {
+    const onEnd = vi.fn();
+    const visibility = vi.spyOn(document, "visibilityState", "get");
+    render(<Countdown endsAt={NOW + 10 * MIN} onEnd={onEnd} />);
+
+    // A throttled background tab: the clock moves, the timer has not fired.
+    vi.setSystemTime(NOW + 4 * MIN + 30_000);
+    visibility.mockReturnValue("hidden");
+    act(() => document.dispatchEvent(new Event("visibilitychange")));
+    expect(screen.getByRole("timer")).toHaveTextContent("10m left");
+
+    visibility.mockReturnValue("visible");
+    act(() => document.dispatchEvent(new Event("visibilitychange")));
+    expect(screen.getByRole("timer")).toHaveTextContent("6m left");
+    expect(vi.getTimerCount()).toBe(1);
+
+    vi.setSystemTime(NOW + 11 * MIN);
+    act(() => document.dispatchEvent(new Event("visibilitychange")));
+    expect(screen.getByRole("timer")).toHaveTextContent("Ending now");
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("stops listening for visibility changes on unmount", () => {
+    const remove = vi.spyOn(document, "removeEventListener");
+    const { unmount } = render(<Countdown endsAt={END} />);
+    unmount();
+    expect(remove).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
   });
 
   it("restarts when endsAt changes", () => {
