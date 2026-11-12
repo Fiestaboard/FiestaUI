@@ -127,13 +127,16 @@ function EditorPreview({
         // Sticky in both variants: the template scrolls under the dock, and the
         // pane stays in view beside a long template (07 annotation). `self-start`
         // keeps a grid or flex parent from stretching the pane to the row height,
-        // which would leave sticky nothing to stick with.
-        "sticky top-0 flex min-w-0 flex-col self-start",
+        // which would leave sticky nothing to stick with. `self-start` also stops
+        // a column parent from stretching it across, so `w-full` restores the
+        // width there; without it the header and board size the pane and long
+        // names push it past its slot instead of truncating.
+        "sticky top-0 flex w-full min-w-0 flex-col self-start",
         docked
           ? // 07 `57:64661`: base/background, padding 8, gap 6, square. z-10 is
             // local (the dock over its own scrolling template), well under the
             // chrome ladder that starts at --z-sidebar (50).
-            "z-10 w-full gap-1.5 bg-background p-2"
+            "z-10 gap-1.5 bg-background p-2"
           : // 07 `53:137378`: card/default, radius 14 (--radius-chrome), padding 16, gap 14.
             "gap-3.5 rounded-[var(--radius-chrome)] bg-card p-4 text-card-foreground",
         className,

@@ -38,7 +38,9 @@ describe("EditorPreview", () => {
       const slot = screen.getByTestId("board").parentElement!;
       expect(slot).toBeVisible();
       expect(slot.className).not.toMatch(/(^|\s)(hidden|lg:hidden|md:hidden|sm:hidden)(\s|$)/);
-      expect(screen.getByRole("region").className).toMatch(/\bsticky\b/);
+      // Sticky, and full width even under `self-start` (a column parent would
+      // otherwise shrink-wrap it and long names would overflow).
+      expect(screen.getByRole("region")).toHaveClass("sticky", "self-start", "w-full", "min-w-0");
       unmount();
     }
   });

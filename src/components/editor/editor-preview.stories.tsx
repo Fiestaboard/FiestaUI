@@ -43,6 +43,8 @@ const replay = (
   </Button>
 );
 
+const SCROLLER = "h-[420px] overflow-y-auto rounded-md border border-border focus-ring";
+
 /** The page behind the preview: px padding so the mobile shot keeps its gutter. */
 function Page({ children, width }: { children: React.ReactNode; width: string }) {
   return (
@@ -117,7 +119,9 @@ export const DockedOverTemplate: Story = {
   },
   render: (args) => (
     <Page width="w-full max-w-[390px]">
-      <div className="h-[420px] overflow-y-auto rounded-md border border-border" data-testid="scroller">
+      {/* A scroll container must be keyboard-reachable (axe scrollable-region-focusable). */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
+      <div role="region" aria-label="Template" tabIndex={0} className={SCROLLER}>
         <EditorPreview {...args} />
         <ol className="space-y-3 p-4 font-mono text-sm text-foreground">
           {["GOOD MORNING", "72°", "NICE OUT", "N JUDAH 4 MIN", "HAVE A GREAT DAY", "", "", "", ""].map(
