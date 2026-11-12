@@ -29,6 +29,12 @@
  * TV a split-flap board draws no housing of its own — only its flaps, as
  * the Apple TV app shows them — so the flaps are what is fitted to the
  * screen (`bezel`).
+ *
+ * Content follows Figma's Display / LED & Panel `Content` axis (02
+ * `39:49571`): `content="sample"` draws fixed sample art sized to the
+ * model, and `lines` is Line 1–3 (on an LED, line 2 board green and line 3
+ * board orange). Both are only a message: the renderers draw them exactly
+ * as they draw any other (../../lib/display-content).
  */
 
 import { useEffect } from "react";
@@ -43,6 +49,7 @@ import {
 } from "../../lib/board-dimensions";
 import { isDevBuild } from "../../lib/dev";
 import { type DeviceModel, type DeviceModelRef, resolveDeviceModel } from "../../lib/devices";
+import { type DisplayContent, displayLinesMarkup, displaySampleMessage } from "../../lib/display-content";
 import { type LedBitmapLayer } from "../../lib/led-bitmap-layers";
 import { type LedFontId } from "../../lib/led-fonts";
 import { type BoardCellGrid, type LedBlockPadding, type LedLetterCase, type LedTileGap } from "../../lib/led-matrix";
@@ -66,6 +73,23 @@ export interface DisplayPreviewProps {
   model: DeviceModelRef;
   /** Board markup. Ignored when `cells` is given. */
   message?: string | null;
+  /**
+   * The message as lines: Figma's Content = Message, Line 1–3. Each line is
+   * board markup. On an LED, line 2 is drawn board green and line 3 board
+   * orange (`DISPLAY_LINE_COLORS`); later lines, and every line on
+   * split-flap, keep the default colour. Used only when neither `message`
+   * nor `cells` is given.
+   */
+  lines?: readonly string[];
+  /**
+   * What the preview shows. `"message"` (the default) is `cells`, else
+   * `message`, else `lines`. `"sample"` is Figma's Content = Sample: fixed
+   * sample art sized to the model and the board's grid (a Pixoo's schedule,
+   * a TC001's "72° OK", a Flagship's greeting; `displaySampleMessage`),
+   * drawn in place of anything passed. Marked on the housing as
+   * `data-content`.
+   */
+  content?: DisplayContent;
   /** A grid of parsed cells (`BoardToken[][]`), as FiestaBoard core hands
    *  it after parsing the markup once. Wins over `message`. */
   cells?: BoardCellGrid;
@@ -246,12 +270,28 @@ function splitFlapGeometry(
   }
 }
 
+/** A Note's width in flaps: a note array is this many columns per note wide. */
+const NOTE_COLS = 15;
+
+/**
+ * The split-flap width a sample is sized to, when the preview's props set
+ * it: a panel's `gridCols`, a note array's `notesWide` notes. Otherwise
+ * the model's own geometry decides (`displaySampleMessage`).
+ */
+function sampleCols(model: DeviceModel, gridCols?: number, notesWide?: number): number | undefined {
+  if (model.geometry.kind === "panel") return gridCols;
+  if (model.geometry.kind === "note_array" && notesWide !== undefined) return notesWide * NOTE_COLS;
+  return undefined;
+}
+
 const isBoardColor = (v: string | undefined): v is "black" | "white" => v === "black" || v === "white";
 const isPixelShape = (v: string | undefined): v is LedPixelShape => v === "round" || v === "square";
 
 export function DisplayPreview({
   model: modelRef,
   message,
+  lines,
+  content: contentKind = "message",
   cells,
   layers,
   appearance,
@@ -295,8 +335,23 @@ export function DisplayPreview({
   const bare = frame === "tv" && model.technology === "split_flap";
   const housingShown = bezel ?? !bare;
 
+  // The message: a sample sized to the board drawn, else what was passed,
+  // with `lines` the last resort (`cells`, when given, wins in the renderer).
+  const sample = contentKind === "sample";
+  const shown = sample
+    ? displaySampleMessage(model, { font, cols: sampleCols(model, gridCols, notesWide) })
+    : (message ?? (lines ? displayLinesMarkup(lines, model.technology) : message));
+
   // Shared by every renderer; each adds its own defaults for what is unset.
-  const content = { message, cells, className, previewLabel, messageLabel, emptyLabel, bezel: housingShown };
+  const content = {
+    message: shown,
+    cells: sample ? undefined : cells,
+    className,
+    previewLabel,
+    messageLabel,
+    emptyLabel,
+    bezel: housingShown,
+  };
   const defined = <T extends object>(o: T): T =>
     Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 
@@ -348,6 +403,7 @@ export function DisplayPreview({
       data-model={model.id}
       data-technology={model.technology}
       data-frame={frame}
+      data-content={contentKind}
       data-geometry-clamped={geometryClamped}
     >
       {frame === "tv" ? <TvFrame {...tv}>{board}</TvFrame> : board}

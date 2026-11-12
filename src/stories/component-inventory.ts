@@ -267,6 +267,11 @@ export const INVENTORY = [
       { name: "BoardTeaser", summary: "One-line teaser strip for cards and lists." },
       { name: "BoardSizeIndicator", summary: "Compact rows × cols readout, with the layout name for note arrays." },
       {
+        name: "DisplayTypeChip",
+        summary:
+          "Which kind of display it is — Flagship, Note, Pixoo, TC001, FiestaPanel TV… — as a 24 px icon-and-mono label. Informational; filters use Chip.",
+      },
+      {
         name: "CharacterGlyph",
         summary:
           "One token from a character set on its own — LED dots or a flap tile, with the set's fallback when unsupported.",

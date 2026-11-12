@@ -145,6 +145,9 @@ export {
 // of plugin-declared devices are derived from their data, never shipped as
 // plugin React. The override gate is pure data and stays internal.
 export { DisplayPreview, type DisplayPreviewFrame, type DisplayPreviewProps } from "./components/board/display-preview";
+// Which kind of display something is, for mixed households (02 FB / Display
+// type): a 24 px informational chip, plus the model → type mapping.
+export * from "./components/board/display-type-chip";
 // The OLED television FiestaPanel shows on, around any board renderer:
 // `DisplayPreview frame="tv"` uses it, with the set in `tv`. The geometry
 // and fit helpers stay internal.
@@ -220,6 +223,15 @@ export {
   tryResolveDeviceModel,
   validateDeviceModel,
 } from "./lib/devices";
+// Display content (02 Display / LED & Panel's Content axis): Message lines
+// as board markup, and the Sample art sized to a model.
+export {
+  DISPLAY_LINE_COLORS,
+  DISPLAY_SAMPLES,
+  type DisplayContent,
+  displayLinesMarkup,
+  displaySampleMessage,
+} from "./lib/display-content";
 // Bitmap layers: a page's pixel canvases, rasterised by FiestaBoard core and
 // drawn over the cells (`layers` on the layout options, LedMatrixDisplay and
 // DisplayPreview). The decoder takes `rgba` as bytes or base64.
