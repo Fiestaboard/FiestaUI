@@ -133,6 +133,7 @@ import { BarList } from "../components/data/bar-list";
 import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
+import { EditorPreview } from "../components/editor/editor-preview";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
 import { TemplateEditor } from "../components/editor/template-editor";
@@ -1770,6 +1771,16 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
 
   /* ---- Template editor ---- */
   TemplateEditor: TemplateEditorDemo,
+  EditorPreview: () => (
+    <EditorPreview
+      className="static w-full max-w-md"
+      boardName="Kitchen board"
+      details="Flagship 22 × 6"
+      statusLine="Off by default every time the editor opens."
+    >
+      <ScaledBoardDisplay message={BOARD_MESSAGE} size="sm" />
+    </EditorPreview>
+  ),
   TemplateEditorToolbar: () => (
     <Frame className="max-w-2xl">
       <TemplateEditorToolbar editor={null} templateVariables={TEMPLATE_VARIABLES} />
