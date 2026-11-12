@@ -11,10 +11,13 @@
  * without nesting one interactive element inside another.
  */
 
-import type { CSSProperties, ReactNode } from "react";
+import { Check } from "lucide-react";
+import { type CSSProperties, type ReactNode, useId } from "react";
 
 import type { Code62Glyph } from "../../lib/board-characters";
 import { cn } from "../../lib/utils";
+import { IconTile } from "../containment/icon-tile";
+import { Button } from "../forms/button";
 import { Heading } from "../typography/heading";
 import { Text } from "../typography/text";
 import { PluginCategoryBadge } from "./plugin-category-badge";
@@ -26,7 +29,30 @@ const STRETCHED_LINK_CLASS =
   "outline-none focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50 " +
   "text-foreground no-underline hover:no-underline hover:text-foreground";
 
+/**
+ * Where a plugin stands for this hub, in the compact (list) card — 08 C25
+ * (`65:30673`), 06 Marketplace `42:89748` and Installed `42:89411`.
+ */
+export type PluginInstallState = "available" | "installing" | "installed" | "needs-setup" | "update";
+
+/** English defaults for the install action; pass `installLabels` to localize. */
+export const DEFAULT_PLUGIN_INSTALL_LABELS: Record<PluginInstallState, string> = {
+  available: "Install",
+  installing: "Installing…",
+  installed: "Installed",
+  "needs-setup": "Set up",
+  update: "Update",
+};
+
 export interface PluginCardProps {
+  /**
+   * `"card"` (default) is the directory grid card with the teaser strip.
+   * `"compact"` is the list row for Marketplace and Installed on a phone: a
+   * board icon tile, name + category, author, an install action and the
+   * display types the plugin works with. The compact row has no surface of
+   * its own — put a run of them in a Card or a ListRowGroup.
+   */
+  variant?: "card" | "compact";
   name: string;
   description?: ReactNode;
   /**
@@ -59,13 +85,37 @@ export interface PluginCardProps {
    * the card, and the card title as children.
    */
   renderLink: (props: { className: string; children: ReactNode }) => ReactNode;
-  /** Trailing action, e.g. an Install button. Rendered above the stretched link. */
+  /** Trailing action, e.g. an Install button. Rendered above the stretched link. In `compact` it replaces the install action. */
   action?: ReactNode;
+  /** `compact` only. The plugin's glyph, drawn in a 40px board-black IconTile. */
+  icon?: ReactNode;
+  /**
+   * `compact` only. Draws the install action for this state: Install,
+   * Installing… (busy, keeps focus), Installed (a status, not a button),
+   * Set up, Update. Omit for no action.
+   */
+  installState?: PluginInstallState;
+  /** `compact` only. Fired with the state whose button was pressed. */
+  onInstallAction?: (state: PluginInstallState) => void;
+  /** `compact` only. Overrides any of {@link DEFAULT_PLUGIN_INSTALL_LABELS}. */
+  installLabels?: Partial<Record<PluginInstallState, string>>;
+  /**
+   * `compact` only. The display types the plugin works with — a run of
+   * DisplayTypeChips (slice 1.5c) under the text.
+   */
+  displayTypes?: ReactNode;
+  /** `compact` only. Accessible name of the display-types group. @default "Works with" */
+  displayTypesLabel?: string;
   className?: string;
   style?: CSSProperties;
 }
 
-export function PluginCard({
+export function PluginCard(props: PluginCardProps) {
+  if (props.variant === "compact") return <CompactPluginCard {...props} />;
+  return <DirectoryPluginCard {...props} />;
+}
+
+function DirectoryPluginCard({
   name,
   description,
   authorLabel,
@@ -83,6 +133,7 @@ export function PluginCard({
   return (
     <div
       data-slot="plugin-card"
+      data-variant="card"
       style={style}
       className={cn(
         "group relative flex h-full flex-col overflow-hidden rounded-xl border bg-card text-card-foreground",
@@ -130,3 +181,131 @@ export function PluginCard({
     </div>
   );
 }
+
+/**
+ * The 44px install action, or the Installed status. Button `size="touch"`
+ * (#385) replaces the `h-11` once it is on alpha.
+ */
+function PluginInstallAction({
+  state,
+  labels,
+  describedBy,
+  onAction,
+}: {
+  state: PluginInstallState;
+  labels: Record<PluginInstallState, string>;
+  describedBy: string;
+  onAction?: (state: PluginInstallState) => void;
+}) {
+  if (state === "installed") {
+    return (
+      <span
+        data-slot="plugin-card-install"
+        data-state={state}
+        className="inline-flex h-11 items-center gap-1.5 px-2 text-sm font-medium text-muted-foreground"
+      >
+        <Check aria-hidden="true" className="size-4" />
+        {labels.installed}
+      </span>
+    );
+  }
+  const installing = state === "installing";
+  return (
+    <Button
+      data-slot="plugin-card-install"
+      data-state={state}
+      variant="outline"
+      className="h-11 px-4"
+      loading={installing}
+      // The busy copy is the visible label while installing, and the button
+      // reserves the wider of the two so the row does not reflow.
+      loadingLabel={installing ? labels.installing : undefined}
+      aria-describedby={describedBy}
+      onClick={() => onAction?.(state)}
+    >
+      {installing ? labels.available : labels[state]}
+    </Button>
+  );
+}
+
+/** 06 `42:89748` "Result · …": the Marketplace / Installed list row. */
+function CompactPluginCard({
+  name,
+  description,
+  authorLabel,
+  category,
+  categoryLabel,
+  renderLink,
+  action,
+  icon,
+  installState,
+  onInstallAction,
+  installLabels,
+  displayTypes,
+  displayTypesLabel = "Works with",
+  className,
+  style,
+}: PluginCardProps) {
+  const nameId = useId();
+  const labels = { ...DEFAULT_PLUGIN_INSTALL_LABELS, ...installLabels };
+  const trailing =
+    action ??
+    (installState ? (
+      <PluginInstallAction state={installState} labels={labels} describedBy={nameId} onAction={onInstallAction} />
+    ) : null);
+
+  return (
+    <div
+      data-slot="plugin-card"
+      data-variant="compact"
+      data-install-state={installState}
+      style={style}
+      className={cn(
+        "group relative flex flex-col text-card-foreground",
+        "transition-colors duration-control hover:bg-accent/50",
+        className,
+      )}
+    >
+      <div className={cn("flex items-center gap-3 px-4 pt-3", displayTypes != null ? "pb-1.5" : "pb-3")}>
+        {icon != null && (
+          <IconTile size="md" tone="board">
+            {icon}
+          </IconTile>
+        )}
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <Heading id={nameId} level={3} className="min-w-0 text-base">
+              {renderLink({ className: STRETCHED_LINK_CLASS_COMPACT, children: name })}
+            </Heading>
+            {category && <PluginCategoryBadge category={category} label={categoryLabel} />}
+          </div>
+          {authorLabel && (
+            <Text as="span" tone="muted" size="sm" className="truncate">
+              {authorLabel}
+            </Text>
+          )}
+          {description && (
+            <Text tone="muted" size="sm" className="line-clamp-2">
+              {description}
+            </Text>
+          )}
+        </div>
+        {trailing != null && <div className="relative z-10 shrink-0">{trailing}</div>}
+      </div>
+      {displayTypes != null && (
+        <div
+          role="group"
+          aria-label={displayTypesLabel}
+          data-slot="plugin-card-display-types"
+          // Inset to the text column: 16 gutter + 40 tile + 12 gap = 68 (06).
+          className={cn("flex flex-wrap gap-1.5 pr-4 pb-3.5", icon != null ? "pl-[68px]" : "pl-4")}
+        >
+          {displayTypes}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The compact row is square-cornered inside its list; the focus ring follows. */
+const STRETCHED_LINK_CLASS_COMPACT = STRETCHED_LINK_CLASS.replace("after:rounded-xl", "after:rounded-none");

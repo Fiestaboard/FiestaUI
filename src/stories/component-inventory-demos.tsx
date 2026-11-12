@@ -126,6 +126,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../componen
 import { IconTile } from "../components/containment/icon-tile";
 import { JsonTree } from "../components/containment/json-tree";
 import { MediaFrame, MediaFrameBar, MediaFrameMedia } from "../components/containment/media-frame";
+import { PagePreviewCard } from "../components/containment/page-preview-card";
 import { ScrollArea } from "../components/containment/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/containment/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containment/tabs";
@@ -151,6 +152,7 @@ import { StatusDot } from "../components/feedback/status-dot";
 import { toast, Toaster } from "../components/feedback/toaster";
 import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
+import { ChoiceCard, ChoiceCardGroup, ChoiceCardPreview } from "../components/forms/choice-card";
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
 import { CopyableCode } from "../components/forms/copyable-code";
@@ -791,6 +793,22 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </Toggle>
     </Flex>
   ),
+  ChoiceCard: () => (
+    <ChoiceCardGroup aria-label="Display type" defaultValue="flagship" className="w-full max-w-[370px]">
+      <ChoiceCard
+        value="flagship"
+        media={
+          <ChoiceCardPreview offsetX={-72} offsetY={-40}>
+            <StaticBoardDisplay size="sm" deviceType="flagship" message={"\n   GOOD MORNING\n   72° SUNNY  HI 78"} />
+          </ChoiceCardPreview>
+        }
+        title="Vestaboard Flagship"
+        description="Split-flap · 22 × 6 characters"
+        meta="Local API · Cloud API"
+      />
+      <ChoiceCard value="panel" title="FiestaPanel TV" description="Any TV or browser, sized to fit" meta="TV app" />
+    </ChoiceCardGroup>
+  ),
   ToggleCard: () => (
     <ToggleCardGroup aria-label="Board type" defaultValue="flagship" columns="2" className="w-full max-w-lg">
       <ToggleCard
@@ -1168,6 +1186,15 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </MediaFrameMedia>
       <MediaFrameBar>The kitchen board running the morning briefing page.</MediaFrameBar>
     </MediaFrame>
+  ),
+  PagePreviewCard: () => (
+    <div className="w-full max-w-[371px]">
+      <PagePreviewCard
+        title="Dinner note"
+        description="Last shown yesterday, 6:30 PM"
+        board={<StaticBoardDisplay size="sm" deviceType="flagship" message={"\n    DINNER AT 7\n     TACO NIGHT"} />}
+      />
+    </div>
   ),
   ScrollArea: () => (
     <ScrollArea className="h-40 w-48 rounded-md border border-border">
