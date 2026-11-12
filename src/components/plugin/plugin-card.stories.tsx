@@ -185,7 +185,7 @@ const compactBase = {
   icon: <TrainFront />,
 };
 
-/** Marketplace result row: icon tile, name + category, author, Install, works-with chips. */
+/** The Marketplace result row (06 `42:89748`): icon tile, name + category, author, Install, works-with chips. */
 export const Compact: Story = {
   args: { ...compactBase, installState: "available", displayTypes: <WorksWith types={ALL_TYPES} /> },
   render: (args) => (
@@ -210,12 +210,23 @@ const STATES: { state: PluginInstallState; name: string; author: string; categor
     category: "transit",
     label: "Transit",
   },
-  { state: "installed", name: "Weather", author: "Configured · San Francisco", category: "weather", label: "Weather" },
-  { state: "needs-setup", name: "Google Calendar", author: "Reconnect needed", category: "utility", label: "Utility" },
-  { state: "update", name: "Stocks", author: "Update available · 2.1.0", category: "data", label: "Data" },
+  { state: "installed", name: "Weather", author: "by FiestaBoard · Official", category: "weather", label: "Weather" },
+  {
+    state: "needs-setup",
+    name: "Google Calendar",
+    author: "by FiestaBoard · Official",
+    category: "utility",
+    label: "Utility",
+  },
+  { state: "update", name: "Stocks", author: "by @mtran · Community", category: "data", label: "Data" },
 ];
 
-/** Every install state in one list: Install, Installing…, Installed, Set up, Update. */
+/**
+ * Marketplace results in every install state: Install, Installing…,
+ * Installed, Set up (installed, still needs its settings) and Update. The 06
+ * Installed screen (`42:89411`) is a ListRow list in web slice 2.14, not this
+ * card (DD-W12).
+ */
 export const CompactInstallStates: Story = {
   args: compactBase,
   render: (args) => (

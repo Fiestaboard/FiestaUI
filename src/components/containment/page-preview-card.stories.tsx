@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, userEvent, waitFor } from "storybook/test";
 
 import { StaticBoardDisplay } from "../board/static-board-display";
 import { PagePreviewCard } from "./page-preview-card";
@@ -41,7 +42,11 @@ export const Default: Story = {
   ),
 };
 
-/** The page that is showing now: ring, tint and the check — not colour alone. */
+/**
+ * The page that is showing now: ring, tint and the check — not colour alone.
+ * The selected state has no 03 Figma variant yet; it follows ChoiceCard's
+ * selected language (08 C17 proposal).
+ */
 export const Selected: Story = {
   args: { ...Default.args, selected: true },
   render: Default.render,
@@ -103,4 +108,22 @@ export const Library: Story = {
       />
     </div>
   ),
+};
+
+/** Keyboard focus on the selected card keeps the selected ring (see ChoiceCard SelectedFocused). */
+export const SelectedFocused: Story = {
+  args: { ...Default.args, selected: true },
+  render: Default.render,
+  play: async ({ canvasElement }) => {
+    await userEvent.tab();
+    const card = canvasElement.querySelector<HTMLElement>('[data-slot="page-preview-card"]');
+    await expect(card).toHaveFocus();
+    // Waits out the box-shadow transition: both end states, never a frame of it.
+    await waitFor(() => {
+      const shadow = getComputedStyle(card as HTMLElement).boxShadow;
+      // The selected ring's inset pixel survives, and the focus stack is drawn.
+      expect(shadow).toContain("inset");
+      expect(shadow.match(/0px 0px 0px/g)?.length).toBe(4);
+    });
+  },
 };

@@ -78,12 +78,38 @@ describe("ChoiceCardGroup (single)", () => {
     expect(document.body).toHaveFocus();
   });
 
+  it("End skips a disabled LAST option; Home skips a disabled first", async () => {
+    const user = userEvent.setup();
+    render(
+      <ChoiceCardGroup aria-label="Display type" defaultValue="b">
+        <ChoiceCard value="a" title="A" disabled />
+        <ChoiceCard value="b" title="B" />
+        <ChoiceCard value="c" title="C" />
+        <ChoiceCard value="d" title="D" disabled />
+      </ChoiceCardGroup>,
+    );
+    await user.tab();
+    expect(screen.getByRole("radio", { name: "B" })).toHaveFocus();
+    await user.keyboard("{End}");
+    expect(screen.getByRole("radio", { name: "C" })).toHaveFocus();
+    expect(screen.getByRole("radio", { name: "C" })).toHaveAttribute("aria-checked", "true");
+    await user.keyboard("{Home}");
+    expect(screen.getByRole("radio", { name: "B" })).toHaveFocus();
+  });
+
+  it("uses the shared selected ring and focus ring classes", () => {
+    render(<DisplayTypes />);
+    const card = screen.getByRole("radio", { name: "Vestaboard Flagship" });
+    expect(card).toHaveClass("selected-ring", "focus-ring");
+  });
+
   it("draws a round indicator that is decorative", () => {
     render(<DisplayTypes />);
     const indicator = screen
       .getByRole("radio", { name: "Vestaboard Flagship" })
       .querySelector('[data-slot="choice-card-indicator"]');
     expect(indicator).toHaveAttribute("data-shape", "radio");
+    expect(indicator).toHaveClass("rounded-full");
     expect(indicator).toHaveAttribute("aria-hidden", "true");
   });
 

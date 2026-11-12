@@ -145,15 +145,20 @@ function PagePreviewCard({
       ...(selected ? { "data-selected": "", "aria-current": "true" as const } : {}),
       ...(disabled ? { "data-disabled": "" } : {}),
       className: cn(
-        // 03 36:7418: board, then the meta row; py 8, gap 8. No surface of its
-        // own — the board is the card — so hover and selection paint a
-        // rounded ground behind both, with the 8px above and below.
-        "group/page-preview-card flex w-full cursor-pointer flex-col items-stretch gap-2 rounded-xl py-2 text-left",
+        // 03 36:7418: board, then the meta row; gap 8. No surface of its own —
+        // the board is the card — so hover and selection paint a rounded
+        // ground behind both. The ground is inset 8px on every side (a 1px
+        // transparent border + 7px), so the selected ring never sits on the
+        // board's edge. Figma's card has no side inset; the selected state has
+        // no Figma ref yet (see status/fiestaui-1.8c.md).
+        "group/page-preview-card flex w-full cursor-pointer flex-col items-stretch gap-2 rounded-xl text-left",
+        "border border-transparent p-1.75",
         "text-foreground no-underline hover:no-underline",
-        "transition-[background-color,box-shadow] duration-control",
-        "focus-ring",
+        "transition-[background-color,border-color,box-shadow] duration-control",
+        // The same selected ring as ChoiceCard (theme.css `.selected-ring`).
+        "focus-ring selected-ring",
         "not-data-[selected]:hover:bg-accent/50",
-        "data-[selected]:bg-tint-selected data-[selected]:ring-2 data-[selected]:ring-primary",
+        "data-[selected]:bg-tint-selected",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className,
       ),

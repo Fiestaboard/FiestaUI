@@ -108,9 +108,67 @@ describe("PluginCard variant=compact", () => {
     expect(onInstallAction).not.toHaveBeenCalled();
   });
 
+  it("every actionable state reserves the Installing… width (no reflow on the flip)", () => {
+    for (const state of ["available", "needs-setup", "update"] as const) {
+      const { unmount } = compact({ installState: state });
+      const button = root().querySelector('[data-slot="plugin-card-install"]');
+      expect(button?.querySelector('[data-slot="button-loading-label"]')).toHaveTextContent("Installing…");
+      unmount();
+    }
+  });
+
+  it("Installing… → Installed: focus moves to the name link and the change is announced", () => {
+    const props = {
+      variant: "compact" as const,
+      name: "Muni Transit",
+      renderLink,
+    };
+    const { rerender } = render(<PluginCard {...props} installState="available" />);
+    const status = screen.getByRole("status");
+    expect(status).toBeEmptyDOMElement();
+    rerender(<PluginCard {...props} installState="installing" />);
+    expect(status).toHaveTextContent("Muni Transit: Installing…");
+    screen.getByRole("button", { name: "Installing…" }).focus();
+    rerender(<PluginCard {...props} installState="installed" />);
+    expect(screen.getByRole("link", { name: "Muni Transit" })).toHaveFocus();
+    expect(status).toHaveTextContent("Muni Transit: Installed");
+  });
+
+  it("does not steal focus when the user had moved elsewhere", () => {
+    const props = { variant: "compact" as const, name: "Muni Transit", renderLink };
+    const { rerender } = render(
+      <>
+        <PluginCard {...props} installState="installing" />
+        <button type="button">Elsewhere</button>
+      </>,
+    );
+    screen.getByRole("button", { name: "Installing…" }).focus();
+    screen.getByRole("button", { name: "Elsewhere" }).focus();
+    rerender(
+      <>
+        <PluginCard {...props} installState="installed" />
+        <button type="button">Elsewhere</button>
+      </>,
+    );
+    expect(screen.getByRole("button", { name: "Elsewhere" })).toHaveFocus();
+  });
+
+  it("formatInstallAnnouncement localizes the announcement", () => {
+    const props = { variant: "compact" as const, name: "Muni", renderLink };
+    const { rerender } = render(<PluginCard {...props} installState="available" />);
+    rerender(<PluginCard {...props} installState="installed" formatInstallAnnouncement={(p, l) => `${l} — ${p}`} />);
+    expect(screen.getByRole("status")).toHaveTextContent("Installed — Muni");
+  });
+
+  it("a custom action has no install status region", () => {
+    compact({ installState: "available", action: <button type="button">Open</button> });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("installed: a status, not a button", () => {
     compact({ installState: "installed" });
     expect(screen.queryByRole("button")).toBeNull();
+    expect(root().querySelector('[data-slot="plugin-card-display-types"]')).toBeNull();
     const status = root().querySelector('[data-slot="plugin-card-install"]');
     expect(status).toHaveTextContent("Installed");
     expect(status).toHaveAttribute("data-state", "installed");

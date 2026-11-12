@@ -49,6 +49,8 @@ describe("PagePreviewCard", () => {
     render(<PagePreviewCard title="Dinner note" selected />);
     expect(card()).toHaveAttribute("aria-current", "true");
     expect(card()).toHaveAttribute("data-selected", "");
+    // The shared ring (theme.css .selected-ring) — the same one ChoiceCard uses.
+    expect(card()).toHaveClass("selected-ring", "focus-ring");
     expect(card().querySelector('[data-slot="page-preview-card-trailing"]')).toHaveAttribute("data-kind", "check");
   });
 

@@ -116,10 +116,11 @@ const choiceCardClassName = cn(
   // The house unchecked-hover recipe (ToggleCard, ActionCard): never on the selected card.
   "not-data-[checked]:hover:border-primary/50 not-data-[checked]:hover:bg-accent/50",
   // Selected = 2px primary ring + tint + filled mark — never colour alone.
-  // The second pixel of the ring is an inset shadow, not `border-2`, so the
-  // card keeps its height when it is selected (Figma grows 82 → 84).
-  "data-[checked]:border-primary data-[checked]:bg-tint-selected data-[checked]:shadow-[inset_0_0_0_1px_var(--color-primary)]",
-  "focus-ring",
+  // The ring is the shared `.selected-ring` (theme.css): border + one inset
+  // pixel, so the card keeps its height (Figma grows 82 → 84, DD-W9) and the
+  // ring survives keyboard focus, which composes outside it.
+  "data-[checked]:bg-tint-selected",
+  "focus-ring selected-ring",
   "disabled:pointer-events-none disabled:opacity-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
 );
 

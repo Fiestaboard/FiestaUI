@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { expect, userEvent, waitFor } from "storybook/test";
 
 import { LedMatrixDisplay } from "../board/led-matrix-display";
 import { StaticBoardDisplay } from "../board/static-board-display";
@@ -218,4 +219,42 @@ export const WithoutMedia: Story = {
       <ChoiceCard value="cloud" title="Cloud API" description="Works anywhere; needs a read/write key." />
     </ChoiceCardGroup>
   ),
+};
+
+/**
+ * Keyboard focus on the selected card: the outset focus ring and the inset
+ * selected ring compose (theme.css `.selected-ring`) — focus never wipes the
+ * selection. `play` tabs in and asserts both shadows are present.
+ */
+export const SelectedFocused: Story = {
+  args: { "aria-label": "Display type", defaultValue: "flagship" },
+  render: (args) => (
+    <ChoiceCardGroup {...args} className="w-full max-w-[370px]">
+      <ChoiceCard
+        value="flagship"
+        media={<FlagshipPreview />}
+        title="Vestaboard Flagship"
+        description="Split-flap · 22 × 6 characters"
+        meta="Local API · Cloud API"
+      />
+      <ChoiceCard
+        value="panel"
+        media={<PanelPreview />}
+        title="FiestaPanel TV"
+        description="Any TV or browser, sized to fit"
+      />
+    </ChoiceCardGroup>
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.tab();
+    const selected = canvasElement.querySelector<HTMLElement>('[data-slot="choice-card"][data-checked]');
+    await expect(selected).toHaveFocus();
+    // Waits out the box-shadow transition: both end states, never a frame of it.
+    await waitFor(() => {
+      const shadow = getComputedStyle(selected as HTMLElement).boxShadow;
+      // The selected ring's inset pixel survives, and the focus stack is drawn.
+      expect(shadow).toContain("inset");
+      expect(shadow.match(/0px 0px 0px/g)?.length).toBe(4);
+    });
+  },
 };
