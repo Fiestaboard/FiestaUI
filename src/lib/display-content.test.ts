@@ -152,6 +152,15 @@ describe("displaySampleMessage: split-flap", () => {
     );
   });
 
+  it("measures the greeting by its text, not its rainbow: a 20 × 6 board still gets it, rainbow at 20", () => {
+    expect(displaySampleMessage(DEVICE_MODELS.vestaboard_panel, { grid: { rows: 6, cols: 20 } })).toBe(
+      DISPLAY_SAMPLES.flapBoard.replace(rainbow(22), rainbow(20)),
+    );
+    expect(displaySampleMessage(DEVICE_MODELS.vestaboard_panel, { grid: { rows: 6, cols: 18 } })).toBe(
+      `\n${DISPLAY_SAMPLES.flapNote.replace(rainbow(15), rainbow(18))}`,
+    );
+  });
+
   it("centres the art vertically on a taller board, as 02 draws the FiestaPanel", () => {
     const panel = displaySampleMessage(FIESTAPANEL_SPLIT_FLAP_MODEL).split("\n");
     // 12 rows, 6 lines of art: 3 blank rows above it.

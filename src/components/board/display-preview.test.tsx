@@ -448,6 +448,16 @@ describe("DisplayPreview", () => {
       // A note array with no notesWide / notesTall draws one Note, as the renderer does.
       render(<DisplayPreview model="vestaboard_note_array" content="sample" />);
       expect(name()).toBe("Board preview: GOOD MORNING N JUDAH 4 MIN");
+      // Sized to that one Note (15 × 3): the greeting on the top row, no blank row above it.
+      const flaps = [...screen.getByRole("img").querySelectorAll("[data-note-tile]")];
+      expect(flaps).toHaveLength(3 * 15);
+      expect(
+        flaps
+          .slice(0, 15)
+          .map((t) => t.textContent || " ")
+          .join("")
+          .trimEnd(),
+      ).toBe("GOOD MORNING");
       cleanup();
       // Only notesTall: one Note wide, two tall (15 × 6), the Note sample centred.
       render(<DisplayPreview model="vestaboard_note_array" content="sample" notesTall={2} />);
