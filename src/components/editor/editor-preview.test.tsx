@@ -31,18 +31,36 @@ describe("EditorPreview", () => {
     });
   });
 
-  it("never collapses: no show/hide control and no hidden board in either variant", () => {
+  // Any class that hides, under any variant prefix (`hidden`, `max-lg:hidden`,
+  // `md:max-xl:invisible`, `sr-only`…). `overflow-hidden` does not match: the
+  // hiding word has to be the whole utility after its prefixes.
+  const HIDING = /(^|\s)([^\s:]+:)*(hidden|invisible|collapse|sr-only)(\s|$)/;
+
+  it("never collapses: no show/hide control and nothing hides the board in either variant", () => {
     for (const variant of ["pane", "docked"] as const) {
       const { unmount } = render(<EditorPreview variant={variant}>{board}</EditorPreview>);
       expect(screen.queryByRole("button", { name: /show preview|hide preview/i })).toBeNull();
+      const root = screen.getByRole("region");
       const slot = screen.getByTestId("board").parentElement!;
       expect(slot).toBeVisible();
-      expect(slot.className).not.toMatch(/(^|\s)(hidden|lg:hidden|md:hidden|sm:hidden)(\s|$)/);
-      // Sticky, and full width even under `self-start` (a column parent would
-      // otherwise shrink-wrap it and long names would overflow).
-      expect(screen.getByRole("region")).toHaveClass("sticky", "self-start", "w-full", "min-w-0");
+      for (const el of [root, slot]) expect(el.className).not.toMatch(HIDING);
+      // Sticky to the top, and full width even under `self-start` (a column
+      // parent would otherwise shrink-wrap it and long names would overflow).
+      expect(root).toHaveClass("sticky", "top-0", "self-start", "w-full", "min-w-0");
       unmount();
     }
+  });
+
+  it("the hiding pattern catches prefixed hides and spares overflow-hidden", () => {
+    for (const hide of ["hidden", "max-lg:hidden", "md:max-xl:invisible", "max-md:sr-only", "lg:collapse"]) {
+      expect(`flex ${hide} min-w-0`).toMatch(HIDING);
+    }
+    expect("overflow-hidden min-w-0 sm:overflow-x-hidden").not.toMatch(HIDING);
+  });
+
+  it("the dock stacks over the template it is stuck above", () => {
+    render(<EditorPreview variant="docked">{board}</EditorPreview>);
+    expect(screen.getByRole("region")).toHaveClass("z-10");
   });
 
   describe("pane", () => {
@@ -144,9 +162,37 @@ describe("EditorPreview", () => {
       expect(live.compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
-    it("has no status line when none is given", () => {
-      render(<EditorPreview>{board}</EditorPreview>);
-      expect(document.querySelector('[data-slot="editor-preview-status"]')).toBeNull();
+    it("keeps an empty, visually hidden status region mounted when there is no status line", () => {
+      for (const empty of [undefined, null, false, ""]) {
+        const { unmount } = render(<EditorPreview statusLine={empty}>{board}</EditorPreview>);
+        const status = document.querySelector('[data-slot="editor-preview-status"]')!;
+        expect(status).toHaveAttribute("aria-live", "polite");
+        expect(status).toBeEmptyDOMElement();
+        expect(status).toHaveClass("sr-only");
+        unmount();
+      }
+    });
+
+    it("announces the first message: the same live region receives it, not a new node", () => {
+      const { rerender } = render(<EditorPreview>{board}</EditorPreview>);
+      const region = document.querySelector('[data-slot="editor-preview-status"]')!;
+      rerender(<EditorPreview statusLine="Sending…">{board}</EditorPreview>);
+      const after = document.querySelector('[data-slot="editor-preview-status"]')!;
+      expect(after).toBe(region);
+      expect(after).toHaveTextContent("Sending…");
+      expect(after).not.toHaveClass("sr-only");
+      rerender(<EditorPreview>{board}</EditorPreview>);
+      expect(document.querySelector('[data-slot="editor-preview-status"]')).toBe(region);
+      expect(region).toBeEmptyDOMElement();
+    });
+
+    it("can keep the status line visible but silent", () => {
+      render(
+        <EditorPreview statusLine="13 / 22 characters" statusPoliteness="off">
+          {board}
+        </EditorPreview>,
+      );
+      expect(screen.getByText("13 / 22 characters")).toHaveAttribute("aria-live", "off");
     });
   });
 
@@ -194,11 +240,11 @@ describe("EditorPreview", () => {
 
     it("puts the status line under the board", () => {
       render(
-        <EditorPreview variant="docked" statusLine="5 / 6 lines">
+        <EditorPreview variant="docked" statusLine="Sent to the Kitchen board">
           {board}
         </EditorPreview>,
       );
-      const status = screen.getByText("5 / 6 lines");
+      const status = screen.getByText("Sent to the Kitchen board");
       const slot = screen.getByTestId("board").parentElement!;
       expect(slot.compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });

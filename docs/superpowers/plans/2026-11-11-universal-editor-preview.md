@@ -17,24 +17,33 @@
 
 ## API
 
-`EditorPreview { variant: "pane" | "docked", title, boardName, details, dotStatus, headerAction, live, defaultLive, onLiveChange, liveLabel, liveDisabled, liveAction, mirroringLabel, statusLine, children }` plus `DEFAULT_EDITOR_PREVIEW_LABELS`.
+`EditorPreview { variant: "pane" | "docked", title, boardName, details, dotStatus, headerAction, live, defaultLive, onLiveChange, liveLabel, liveDisabled, liveAction, mirroringLabel, statusLine, statusPoliteness, children }` plus `DEFAULT_EDITOR_PREVIEW_LABELS`.
 
 - `children` is the board (ScaledBoardDisplay, BoardViewport, LED matrix…). EditorPreview owns no board geometry.
 - **Never collapses:** no toggle, no hidden state; both variants are `sticky top-0`.
 - `pane` renders the live row (Switch labelled by `liveLabel`, default "Mirror to board while editing") with an optional `liveAction`.
 - `docked` renders no switch; when `live` is on it shows the "Mirroring" badge in its header.
-- `statusLine` is a polite live region under the live row (pane) or under the board (dock).
+- `statusLine` sits in a live region under the live row (pane) or under the board (dock). The region is always mounted, `sr-only` while empty, so the first message is announced. `statusPoliteness` is `polite` (default) or `off`. Counters do not belong in `statusLine`.
 
 ## Steps (TDD)
 
 1. `editor-preview.test.tsx` first: red (missing module).
 2. Implement `src/components/editor/editor-preview.tsx`; green. Changed-file coverage ≥90% lines / ≥85% branches.
-3. Stories (`Editor/EditorPreview`): Pane, PaneMirroring, Docked, DockedMirroring, DockedMobile (mobile viewport), NoteArray (size toggle in the header), LongNames. VRT shoots each in light/dark × desktop/mobile.
-4. Inventory: EditorPreview in "Template editor", a demo, `src/index.ts` export, one minor changeset.
+3. Stories (`Editor/EditorPreview`): Pane, PaneMirroring, Docked, DockedMirroring, DockedOverTemplate (sticky over a scrolling template), NoteArray (ScaledBoardDisplay's own pills, above the board), LongNames (pane details and a 300 px dock truncate), Controlled. The docked stories are full-bleed at 390. VRT shoots each in light/dark × desktop/mobile.
+4. Inventory: EditorPreview in "Template editor", a demo, `src/index.ts` export, one minor changeset. `src/stories/component-inventory.test.tsx` is byte-identical to #384/#387's.
+5. Browser guard: `.storybook/editor-preview-regression.ts` resizes the Pane and Docked stories through 768 / 900 / 1000 / 1023 px in the test-runner and fails if the board loses its box or anything from the root down hides it. VRT never shoots that band.
+
+## Review round 1 (Opus, READY; pane and docked CLOSE)
+
+- **S1:** the status region is always mounted (`sr-only` while empty). A test checks the same node receives the first message.
+- **S2:** `statusPoliteness: "polite" | "off"`; JSDoc says counters do not belong in `statusLine`; DockedOverTemplate uses "Sent to the Kitchen board".
+- **S3:** the unit guard rejects any variant-prefixed `hidden` / `invisible` / `collapse` / `sr-only` on the root and the board slot and pins `top-0` and the dock's `z-10`; the browser guard above covers 768–1023.
+- **S4:** not built here. `BoardPreviewModeToggle` is MASTER-PLAN row 1.5d, after #387 and before 2.5.
+- **Nits:** `min-h-5.5` replaces `min-h-[22px]`; the docked stories are full-bleed; the LongNames dock truncates; this plan is synced.
 
 ## Not in this slice
 
-- The Fit / Actual size toggle in the header: it is ScaledBoardDisplay's (note arrays only) or BoardViewport's (#387). The header takes it through `headerAction`.
+- The Fit / Actual size toggle in the header: it is ScaledBoardDisplay's (note arrays only) or BoardViewport's (#387). The header takes it through `headerAction`; the standalone toggle is slice 1.5d.
 - Keyboard scroll / F Fit on the pane (07 shows the pane focused): BoardViewport (#387) owns those keys.
 - Sending / auto-off after 5 min idle (library EditorPreview description): app logic for 2.5; the copy goes in `statusLine`.
 - Code Connect: the repo has no Code Connect setup.

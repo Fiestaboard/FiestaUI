@@ -61,10 +61,23 @@ export interface EditorPreviewProps extends Omit<React.ComponentProps<"section">
   mirroringLabel?: React.ReactNode;
   /**
    * One short line of state under the live row (pane) or the board (dock):
-   * "Sending…", "Sends after each pause in typing…", "5 / 6 lines". A polite
-   * live region, so a change is announced without moving focus.
+   * "Sending…", "Sent to the Kitchen board", "Sends after each pause in
+   * typing…". It is a live region, so every change is announced without
+   * moving focus. The region stays mounted (visually hidden) while this is
+   * empty, so the first message is announced too.
+   *
+   * Put state changes here, not counters. A value that changes on every
+   * keystroke ("5 / 6 lines", "13 / 22 characters") would be read out after
+   * each pause in typing; show it elsewhere, or pass `statusPoliteness="off"`.
    */
   statusLine?: React.ReactNode;
+  /**
+   * How the status line is announced. `polite` (default) waits for the user
+   * to pause; `off` keeps the line visible but silent. There is no `assertive`:
+   * nothing the preview says should interrupt typing. Same values as
+   * StatusBanner's `politeness`, less `assertive`.
+   */
+  statusPoliteness?: "polite" | "off";
 }
 
 /**
@@ -91,6 +104,7 @@ function EditorPreview({
   liveAction,
   mirroringLabel = DEFAULT_EDITOR_PREVIEW_LABELS.mirroringLabel,
   statusLine,
+  statusPoliteness = "polite",
   className,
   ...props
 }: EditorPreviewProps) {
@@ -106,16 +120,20 @@ function EditorPreview({
     onLiveChange?.(next);
   };
 
-  const status =
-    statusLine == null ? null : (
-      <p
-        data-slot="editor-preview-status"
-        aria-live="polite"
-        className={cn("text-xs text-muted-foreground", docked && "pl-2")}
-      >
-        {statusLine}
-      </p>
-    );
+  // Always mounted: a live region inserted already holding its text is often
+  // not announced (VoiceOver, NVDA/JAWS with Chrome), so the first "Sending…"
+  // would be silent. While empty it is `sr-only`, which is absolutely
+  // positioned, so it takes no flex gap and moves no pixels.
+  const statusEmpty = statusLine == null || statusLine === false || statusLine === "";
+  const status = (
+    <p
+      data-slot="editor-preview-status"
+      aria-live={statusPoliteness}
+      className={cn(statusEmpty ? "sr-only" : "text-xs text-muted-foreground", !statusEmpty && docked && "pl-2")}
+    >
+      {statusEmpty ? null : statusLine}
+    </p>
+  );
 
   return (
     <section
@@ -144,7 +162,9 @@ function EditorPreview({
     >
       <div
         data-slot="editor-preview-header"
-        className={cn("flex min-h-[22px] min-w-0 items-center", docked ? "gap-1.5 pl-2" : "gap-2.5")}
+        // min-h-5.5 (22 px): the header row's height in 07 `53:137378` and
+        // `57:64661`, the Size toggle's pill, held even when no action is passed.
+        className={cn("flex min-h-5.5 min-w-0 items-center", docked ? "gap-1.5 pl-2" : "gap-2.5")}
       >
         <StatusDot status={dotStatus} size={docked ? "sm" : "md"} />
         {docked ? (

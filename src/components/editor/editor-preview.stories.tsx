@@ -43,7 +43,7 @@ const replay = (
   </Button>
 );
 
-const SCROLLER = "h-[420px] overflow-y-auto rounded-md border border-border focus-ring";
+const SCROLLER = "h-[420px] overflow-y-auto focus-ring";
 
 /** The page behind the preview: px padding so the mobile shot keeps its gutter. */
 function Page({ children, width }: { children: React.ReactNode; width: string }) {
@@ -52,6 +52,14 @@ function Page({ children, width }: { children: React.ReactNode; width: string })
       <div className={width}>{children}</div>
     </div>
   );
+}
+
+/**
+ * A 390 px phone screen with no page padding: the dock runs edge to edge
+ * under the editor bar, as in 07 `57:64661`, so the shot compares directly.
+ */
+function Phone({ children }: { children: React.ReactNode }) {
+  return <div className="min-h-dvh w-full max-w-[390px] bg-background">{children}</div>;
 }
 
 /** 07 `53:137378`: the desktop editor's sticky pane, mirroring off. */
@@ -91,9 +99,9 @@ export const Docked: Story = {
     children: board("sm"),
   },
   render: (args) => (
-    <Page width="w-full max-w-[390px]">
+    <Phone>
       <EditorPreview {...args} />
-    </Page>
+    </Phone>
   ),
 };
 
@@ -115,10 +123,12 @@ export const DockedOverTemplate: Story = {
   args: {
     ...Docked.args,
     children: board("sm"),
-    statusLine: "5 / 6 lines",
+    // A state change, not a counter: everything here is announced, so a
+    // per-keystroke value like "5 / 6 lines" does not belong in statusLine.
+    statusLine: "Sent to the Kitchen board",
   },
   render: (args) => (
-    <Page width="w-full max-w-[390px]">
+    <Phone>
       {/* A scroll container must be keyboard-reachable (axe scrollable-region-focusable). */}
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
       <div role="region" aria-label="Template" tabIndex={0} className={SCROLLER}>
@@ -134,7 +144,7 @@ export const DockedOverTemplate: Story = {
           )}
         </ol>
       </div>
-    </Page>
+    </Phone>
   ),
 };
 
@@ -158,7 +168,10 @@ export const NoteArray: Story = {
   render: Pane.render,
 };
 
-/** Long names truncate on one line instead of pushing the header to two. */
+/**
+ * Long names truncate on one line instead of pushing the header to two: the
+ * pane's mono details at 520 px, and the dock's title in a 300 px column.
+ */
 export const LongNames: Story = {
   args: {
     boardName: "Upstairs kitchen board by the window over the sink",
@@ -170,9 +183,11 @@ export const LongNames: Story = {
     <Page width="w-full max-w-[520px]">
       <div className="flex flex-col gap-4">
         <EditorPreview {...args} />
-        <EditorPreview {...args} variant="docked" live>
-          {board("sm")}
-        </EditorPreview>
+        <div className="w-[300px] max-w-full">
+          <EditorPreview {...args} variant="docked" live>
+            {board("sm")}
+          </EditorPreview>
+        </div>
       </div>
     </Page>
   ),
