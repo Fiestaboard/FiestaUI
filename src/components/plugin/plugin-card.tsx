@@ -96,7 +96,7 @@ export interface PluginCardProps {
   icon?: ReactNode;
   /**
    * `compact` only. Draws the install action for this state: Install,
-   * Installing… (busy, keeps focus), Installed (a status, not a button),
+   * a busy Install (spinner over the label, same width, keeps focus; the status announces Installing…), Installed (a status, not a button),
    * Set up, Update. Omit for no action.
    */
   installState?: PluginInstallState;
@@ -226,12 +226,12 @@ function PluginInstallAction({
       data-state={state}
       variant="outline"
       className="h-11 px-4"
+      // Plain `loading`, no `loadingLabel`: Button keeps the idle label in
+      // place (invisible) under the spinner, so the busy button is exactly as
+      // wide as "Install" — Figma's 72px — and the row never reflows. The
+      // name stays "Install" (aria-busy), and the polite status below says
+      // "Installing…" (#392 re-review R-M1).
       loading={installing}
-      // Set in EVERY actionable state, not only while installing: Button
-      // renders the busy copy (hidden when idle) whenever a loadingLabel is
-      // set, so it is always as wide as the wider of "Install" and
-      // "Installing…" and the row does not reflow when the state flips.
-      loadingLabel={labels.installing}
       aria-describedby={describedBy}
       onClick={() => onAction?.(state)}
     >

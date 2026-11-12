@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { ArrowDownToLine, CalendarDays, CheckCircle, GripVertical, TrainFront, Tv } from "lucide-react";
+import { expect } from "storybook/test";
 
 import { BoardIcon } from "../chrome/board-icon";
 import { Card } from "../containment/card";
@@ -245,6 +246,17 @@ export const CompactInstallStates: Story = {
       ))}
     </Card>
   ),
+  // Pins R-M1 (#392 re-review): the busy button is exactly as wide as the
+  // idle "Install" (no reflow) and both match 06 42:89748's 72px button.
+  play: async ({ canvasElement }) => {
+    const width = (state: string) =>
+      canvasElement
+        .querySelector<HTMLElement>(`[data-slot="plugin-card-install"][data-state="${state}"]`)
+        ?.getBoundingClientRect().width ?? 0;
+    const idle = width("available");
+    await expect(Math.abs(width("installing") - idle)).toBeLessThan(0.5);
+    await expect(Math.abs(idle - 72)).toBeLessThanOrEqual(4);
+  },
 };
 
 /** A long name wraps the category badge under it (06 "BART Departures"). */

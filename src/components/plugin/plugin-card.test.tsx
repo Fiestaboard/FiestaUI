@@ -101,20 +101,26 @@ describe("PluginCard variant=compact", () => {
     const user = userEvent.setup();
     const onInstallAction = vi.fn();
     compact({ installState: "installing", onInstallAction });
-    const busy = screen.getByRole("button", { name: "Installing…" });
+    // The name stays "Install" (busy); the polite status carries "Installing…".
+    const busy = screen.getByRole("button", { name: "Install" });
     expect(busy).toHaveAttribute("aria-busy", "true");
     expect(busy).toHaveAttribute("aria-disabled", "true");
     await user.click(busy);
     expect(onInstallAction).not.toHaveBeenCalled();
   });
 
-  it("every actionable state reserves the Installing… width (no reflow on the flip)", () => {
-    for (const state of ["available", "needs-setup", "update"] as const) {
-      const { unmount } = compact({ installState: state });
-      const button = root().querySelector('[data-slot="plugin-card-install"]');
-      expect(button?.querySelector('[data-slot="button-loading-label"]')).toHaveTextContent("Installing…");
-      unmount();
-    }
+  it("installing keeps the idle label as its width (no busy copy, no reflow)", () => {
+    // Layout is VRT's job (and the CompactInstallStates play pins 72px in
+    // Chromium); here: the busy button renders the SAME label text as the idle
+    // one, and no wider busy copy that would reserve extra width.
+    const { rerender } = compact({ installState: "available" });
+    const idle = root().querySelector('[data-slot="plugin-card-install"]');
+    expect(idle).toHaveTextContent(/^Install$/);
+    expect(idle?.querySelector('[data-slot="button-loading-label"]')).toBeNull();
+    rerender(<PluginCard variant="compact" name="Muni Transit" renderLink={renderLink} installState="installing" />);
+    const busy = root().querySelector('[data-slot="plugin-card-install"]');
+    expect(busy).toHaveTextContent(/^Install$/);
+    expect(busy?.querySelector('[data-slot="button-loading-label"]')).toBeNull();
   });
 
   it("Installing… → Installed: focus moves to the name link and the change is announced", () => {
@@ -128,7 +134,7 @@ describe("PluginCard variant=compact", () => {
     expect(status).toBeEmptyDOMElement();
     rerender(<PluginCard {...props} installState="installing" />);
     expect(status).toHaveTextContent("Muni Transit: Installing…");
-    screen.getByRole("button", { name: "Installing…" }).focus();
+    screen.getByRole("button", { name: "Install" }).focus();
     rerender(<PluginCard {...props} installState="installed" />);
     expect(screen.getByRole("link", { name: "Muni Transit" })).toHaveFocus();
     expect(status).toHaveTextContent("Muni Transit: Installed");
@@ -142,7 +148,7 @@ describe("PluginCard variant=compact", () => {
         <button type="button">Elsewhere</button>
       </>,
     );
-    screen.getByRole("button", { name: "Installing…" }).focus();
+    screen.getByRole("button", { name: "Install" }).focus();
     screen.getByRole("button", { name: "Elsewhere" }).focus();
     rerender(
       <>

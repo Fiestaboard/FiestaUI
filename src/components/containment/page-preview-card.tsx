@@ -145,14 +145,16 @@ function PagePreviewCard({
       ...(selected ? { "data-selected": "", "aria-current": "true" as const } : {}),
       ...(disabled ? { "data-disabled": "" } : {}),
       className: cn(
-        // 03 36:7418: board, then the meta row; gap 8. No surface of its own —
-        // the board is the card — so hover and selection paint a rounded
-        // ground behind both. The ground is inset 8px on every side (a 1px
-        // transparent border + 7px), so the selected ring never sits on the
-        // board's edge. Figma's card has no side inset; the selected state has
-        // no Figma ref yet (see status/fiestaui-1.8c.md).
-        "group/page-preview-card flex w-full cursor-pointer flex-col items-stretch gap-2 rounded-xl text-left",
-        "border border-transparent p-1.75",
+        // 03 36:7418: board, then the meta row; py 8, gap 8, and NO side
+        // inset — the board is as wide as the column. The hover / selected
+        // ground still needs 8px around the board so the ring never sits on
+        // its edge, so it is pushed OUTWARD into the gutter: 8px of padding
+        // (1px transparent border + 7px) cancelled by an 8px negative margin
+        // and a width of 100% + 16px. The board keeps Figma's width; the
+        // ground and ring sit in the page gutter / grid gap (≥16px in 03).
+        // Vertically the 8px is Figma's own py, so it is not pulled out.
+        "group/page-preview-card flex cursor-pointer flex-col items-stretch gap-2 rounded-xl text-left",
+        "-mx-2 w-[calc(100%+1rem)] border border-transparent p-1.75",
         "text-foreground no-underline hover:no-underline",
         "transition-[background-color,border-color,box-shadow] duration-control",
         // The same selected ring as ChoiceCard (theme.css `.selected-ring`).
