@@ -196,7 +196,7 @@ export const INVENTORY = [
       { name: "Popover", summary: "Non-modal floating panel anchored to its trigger." },
       {
         name: "ShortcutList",
-        summary: "The keyboard-shortcut list (the `?` popover): Kbd chords, platform-aware, hidden trigger on phones.",
+        summary: "The keyboard-shortcut list (the ? popover): Kbd chords, platform-aware, hidden trigger on phones.",
       },
       { name: "DropdownMenu", summary: "Menu with groups, separators, shortcuts, submenus and checkbox items." },
       { name: "Tooltip", summary: "Hover/focus label; needs a TooltipProvider ancestor." },

@@ -182,13 +182,15 @@ export const OpenedByKey: Story = {
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
     }, []);
+    // A small frame: closed, this shot is only the hint and the trigger
+    // (#395 review N2); open, the popup overflows it, which VRT never sees.
     return (
-      <Frame>
+      <div className="bg-background p-4">
         <p className="mb-3 text-sm text-muted-foreground">
           Press <Kbd>?</Kbd> to open the list.
         </p>
         <ShortcutListPopover {...args} open={open} onOpenChange={setOpen} />
-      </Frame>
+      </div>
     );
   },
 };

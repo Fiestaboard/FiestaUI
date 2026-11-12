@@ -37,6 +37,21 @@ const GROUPED: ShortcutGroup[] = [
   { id: "edit", title: "Edit & send", items: [{ id: "undo", label: "Undo", keys: ["Mod", "Z"] }] },
 ];
 
+/**
+ * The text a screen reader gets: text nodes, skipping any aria-hidden
+ * subtree, whitespace-normalised. Kbd caps are adjacent elements, so each
+ * text node is joined with a space.
+ */
+function accessibleText(el: Element): string {
+  const parts: string[] = [];
+  const walk = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) parts.push(node.textContent ?? "");
+    else if (node instanceof Element && node.getAttribute("aria-hidden") !== "true") node.childNodes.forEach(walk);
+  };
+  walk(el);
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
 function caps(el: Element) {
   return [...el.querySelectorAll("[data-slot='kbd-key'], [data-slot='kbd']:not(:has([data-slot='kbd-key']))")].map(
     (k) => k.textContent,
@@ -84,6 +99,22 @@ describe("ShortcutList", () => {
     }
   });
 
+  it("prints Ctrl on a Windows machine when no platform is passed", () => {
+    const platform = vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
+    const agent = vi
+      .spyOn(navigator, "userAgent", "get")
+      .mockReturnValue(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36",
+      );
+    try {
+      const { container } = render(<ShortcutList groups={EDITOR} />);
+      expect(caps([...container.querySelectorAll("dd")][2]!)).toEqual(["Ctrl", "S"]);
+    } finally {
+      platform.mockRestore();
+      agent.mockRestore();
+    }
+  });
+
   it("splits alternatives with a decorative dot and a spoken 'or'", () => {
     const { container } = render(<ShortcutList groups={EDITOR} platform="apple" />);
     const undo = [...container.querySelectorAll("dd")][1]!;
@@ -94,6 +125,8 @@ describe("ShortcutList", () => {
     expect(sep).toHaveTextContent("·");
     const spoken = undo.querySelector(".sr-only")!;
     expect(spoken).toHaveTextContent("or");
+    // What is actually read: the dot is gone, the "or" is there.
+    expect(accessibleText(undo)).toBe("⌘ Z or ⌘ ⇧ Z");
     // A single chord has no separator at all.
     expect([...container.querySelectorAll("dd")][2]!.querySelector("[data-slot='shortcut-list-separator']")).toBeNull();
   });
@@ -223,6 +256,19 @@ describe("ShortcutListPopover", () => {
     await waitFor(() => expect(trigger).toHaveFocus());
   });
 
+  it("keeps the close chip invisible until keyboard focus, but always hittable", async () => {
+    renderPopover({ defaultOpen: true });
+    const dialog = await screen.findByRole("dialog");
+    const close = within(dialog).getByRole("button", { name: "Close" });
+    const classes = close.className.split(/\s+/);
+    expect(classes).toEqual(expect.arrayContaining(["opacity-0", "focus-visible:opacity-100"]));
+    // A screen reader's double-tap is a hit-tested tap at the chip's centre:
+    // it must land on the chip, never fall through to the list.
+    // (The kit chip's own `disabled:pointer-events-none` only applies while disabled.)
+    expect(classes).not.toContain("pointer-events-none");
+    expect(classes.filter((c) => c.includes("pointer-events") && !c.startsWith("disabled:"))).toEqual([]);
+  });
+
   it("closes from the close chip", async () => {
     const user = userEvent.setup();
     renderPopover({ defaultOpen: true });
@@ -327,10 +373,9 @@ describe("ShortcutListPopover", () => {
     // The kit popover's defaults give way to the 07 surface.
     const classes = dialog.className.split(/\s+/);
     expect(classes).toEqual(expect.arrayContaining(["shadow-modal", "p-5", "w-[466px]"]));
-    // tailwind-merge does not know `shadow-modal` is a shadow, so the popover's
-    // `shadow-md` stays in the list; Tailwind emits `.shadow-modal` after it
-    // (same property, sorted by name), so modal wins. The story checks the
-    // computed shadow in Chromium.
+    // `cn` knows the theme shadows, so the popover's `shadow-md` is dropped
+    // rather than left for Tailwind's emit order to settle (#395 S3).
+    expect(classes).not.toContain("shadow-md");
     expect(classes).not.toContain("p-4");
     expect(classes).not.toContain("rounded-md");
   });

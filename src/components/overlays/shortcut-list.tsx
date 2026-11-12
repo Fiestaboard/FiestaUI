@@ -42,6 +42,12 @@ import { Popover, PopoverClose, PopoverContent, PopoverDescription, PopoverTitle
  * itself still opens from controlled `open`, so an iPad with a keyboard and
  * no trackpad still gets the list from `?`. `hideTriggerOnTouch={false}`
  * opts out.
+ *
+ * WHY NOT #385's `coarse:`. That variant is `(pointer: coarse)` plus the
+ * `.fui-coarse` opt-in, and it is a touch-TARGET floor: it grows a control
+ * for a finger. This gate hides a KEYBOARD affordance, so it asks the other
+ * question — is any fine pointer present at all? — and is always on. A touch
+ * laptop or an iPad with a trackpad keeps the trigger; a phone loses it.
  */
 
 /** One chord: the keys pressed together, in order. `["Mod", "S"]`. */
@@ -276,7 +282,10 @@ function ShortcutListPopover({
           aria-label={text.close}
           className={cn(
             overlayCloseVariants({ size: "sm" }),
-            "pointer-events-none opacity-0 focus-visible:pointer-events-auto focus-visible:opacity-100",
+            // Opacity only, never pointer-events-none: VoiceOver and TalkBack
+            // can activate by a hit-tested tap at the element's centre, and
+            // that tap must land on the chip, not fall through to the list.
+            "opacity-0 focus-visible:opacity-100",
           )}
         >
           <X aria-hidden />

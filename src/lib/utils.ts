@@ -9,7 +9,16 @@ import { extendTailwindMerge } from "tailwind-merge";
 // that each span thousands of possible strings, so the default 500-entry
 // cache is exhausted in a real session. Raise the ceiling (~1-2 MB worst
 // case) to move the cliff beyond any realistic session; output is unchanged.
-const twMerge = extendTailwindMerge({ cacheSize: 8000 });
+//
+// `extend.theme.shadow` teaches it the theme's elevation names (theme.css
+// `--shadow-card`, `--shadow-card-hover`, `--shadow-modal`). Without them
+// tailwind-merge reads `shadow-modal` as a shadow COLOUR, so
+// `cn("shadow-md", "shadow-modal")` kept both and the winner was whichever
+// Tailwind happened to emit last (#395 review S3).
+const twMerge = extendTailwindMerge({
+  cacheSize: 8000,
+  extend: { theme: { shadow: ["card", "card-hover", "modal"] } },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
