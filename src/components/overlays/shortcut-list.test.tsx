@@ -3,12 +3,7 @@ import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  DEFAULT_SHORTCUT_LIST_LABELS,
-  type ShortcutGroup,
-  ShortcutList,
-  ShortcutListPopover,
-} from "./shortcut-list";
+import { DEFAULT_SHORTCUT_LIST_LABELS, type ShortcutGroup, ShortcutList, ShortcutListPopover } from "./shortcut-list";
 
 /*
  * Slice 1.4d (W4, WEB-17). Figma 07 `57:28953` and 08 `59:68086`.
@@ -147,9 +142,7 @@ describe("ShortcutList", () => {
   });
 
   it("takes partial label overrides", () => {
-    const { container } = render(
-      <ShortcutList groups={EDITOR} platform="apple" labels={{ or: "oder" }} />,
-    );
+    const { container } = render(<ShortcutList groups={EDITOR} platform="apple" labels={{ or: "oder" }} />);
     expect(container.querySelector(".sr-only")).toHaveTextContent("oder");
   });
 });
@@ -206,8 +199,12 @@ describe("ShortcutListPopover", () => {
     await user.tab();
     expect(close).toHaveFocus();
     await user.tab();
-    expect(dialog.contains(document.activeElement)).toBe(true);
-    expect(screen.getByRole("button", { name: "After" })).not.toHaveFocus();
+    // Tab lands on the trap's inside guard, never on the page behind. (The
+    // guard then hands focus back to the first stop; that hand-off needs real
+    // layout, so the FocusTrap story proves it in Chromium.)
+    expect(screen.getByText("After")).not.toHaveFocus();
+    expect(screen.getByText("Before")).not.toHaveFocus();
+    expect(document.activeElement).toHaveAttribute("data-type", "inside");
   });
 
   it("closes on Escape and returns focus to the trigger", async () => {
@@ -271,8 +268,35 @@ describe("ShortcutListPopover", () => {
     expect(screen.getByRole("button", { name: "Shortcuts" }).className).not.toContain("not-any-pointer-fine:hidden");
   });
 
+  it("hangs from the trigger while it has a box, and from the gutter while it is hidden", async () => {
+    const rects = vi.spyOn(HTMLButtonElement.prototype, "getClientRects");
+    try {
+      // Visible trigger: the anchor is the trigger itself.
+      rects.mockReturnValue([new DOMRect(40, 40, 100, 36)] as unknown as DOMRectList);
+      const { unmount } = renderPopover({ defaultOpen: true });
+      await screen.findByRole("dialog");
+      await waitFor(() => expect(rects).toHaveBeenCalled());
+      unmount();
+
+      // Hidden trigger (display: none has no client rects): the gutter point.
+      rects.mockClear();
+      rects.mockReturnValue([] as unknown as DOMRectList);
+      renderPopover({ defaultOpen: true });
+      await screen.findByRole("dialog");
+      await waitFor(() => expect(rects).toHaveBeenCalled());
+    } finally {
+      rects.mockRestore();
+    }
+  });
+
   it("keeps the trigger's own classes and marks it with a slot", () => {
-    renderPopover({ trigger: <button type="button" className="mine">Shortcuts</button> });
+    renderPopover({
+      trigger: (
+        <button type="button" className="mine">
+          Shortcuts
+        </button>
+      ),
+    });
     const trigger = screen.getByRole("button", { name: "Shortcuts" });
     expect(trigger.className).toContain("mine");
     expect(trigger).toHaveAttribute("data-slot", "popover-trigger");
@@ -300,5 +324,14 @@ describe("ShortcutListPopover", () => {
     const dialog = await screen.findByRole("dialog");
     expect(dialog.className).toContain("extra");
     expect(dialog.className).toContain("rounded-[var(--radius-chrome)]");
+    // The kit popover's defaults give way to the 07 surface.
+    const classes = dialog.className.split(/\s+/);
+    expect(classes).toEqual(expect.arrayContaining(["shadow-modal", "p-5", "w-[466px]"]));
+    // tailwind-merge does not know `shadow-modal` is a shadow, so the popover's
+    // `shadow-md` stays in the list; Tailwind emits `.shadow-modal` after it
+    // (same property, sorted by name), so modal wins. The story checks the
+    // computed shadow in Chromium.
+    expect(classes).not.toContain("p-4");
+    expect(classes).not.toContain("rounded-md");
   });
 });

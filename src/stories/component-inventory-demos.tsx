@@ -46,6 +46,7 @@ import {
   Trash2,
   TrendingUp,
   TriangleAlert,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -226,6 +227,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../components/overlays/sheet";
+import { ShortcutListPopover } from "../components/overlays/shortcut-list";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/overlays/tooltip";
 import { BoardShowcase } from "../components/plugin/board-showcase";
 import { PluginCard } from "../components/plugin/plugin-card";
@@ -1335,6 +1337,24 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </Stack>
       </PopoverContent>
     </Popover>
+  ),
+  ShortcutList: () => (
+    <ShortcutListPopover
+      trigger={
+        <Button variant="secondary">
+          <Zap aria-hidden /> Shortcuts
+        </Button>
+      }
+      groups={[
+        {
+          items: [
+            { label: "Save", keys: ["Mod", "S"] },
+            { label: "Show now", keys: ["Mod", "Enter"] },
+            { label: "Close a picker", keys: ["Esc"] },
+          ],
+        },
+      ]}
+    />
   ),
   DropdownMenu: () => (
     <DropdownMenu>

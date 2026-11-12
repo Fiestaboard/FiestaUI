@@ -11,13 +11,13 @@
 
 ## Measurements (07 `57:28953`)
 
-| Part | Figma | Code |
-|---|---|---|
-| Surface | 466 wide, radius 14, padding 20, gap 10, 1 px `border`, Elevation/modal | `w-[466px] max-w-[var(--available-width)]`, `rounded-[var(--radius-chrome)]` (14), `p-5 gap-2.5`, `border`, `shadow-modal`, `bg-popover` |
-| Header | "Keyboard shortcuts" Heading/base (16/1.25, semibold, -0.4) + note Text/xs muted, gap 8 | `PopoverTitle` overridden to `text-base leading-5 tracking-tight`; note is `PopoverDescription` `text-xs text-muted-foreground` |
-| Row | 24 high, label Text/sm 278 wide, gap 8, keys start at x 286 | subgrid row `min-h-6`, columns `minmax(0,278px) minmax(max-content,1fr)`, `gap-x-2` |
-| Keys | Kbd caps (11.375 px = 0.8125em of 14), gap 4; alternatives split by a muted "·" | `Kbd keys` in a `text-sm` cell; `gap-1`; separator `text-xs text-muted-foreground`, `aria-hidden`, plus sr-only "or" |
-| Footnote | Text/xs muted, full width | `footnote` slot |
+| Part     | Figma                                                                                   | Code                                                                                                                                     |
+| -------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Surface  | 466 wide, radius 14, padding 20, gap 10, 1 px `border`, Elevation/modal                 | `w-[466px] max-w-[var(--available-width)]`, `rounded-[var(--radius-chrome)]` (14), `p-5 gap-2.5`, `border`, `shadow-modal`, `bg-popover` |
+| Header   | "Keyboard shortcuts" Heading/base (16/1.25, semibold, -0.4) + note Text/xs muted, gap 8 | `PopoverTitle` overridden to `text-base leading-5 tracking-tight`; note is `PopoverDescription` `text-xs text-muted-foreground`          |
+| Row      | 24 high, label Text/sm 278 wide, gap 8, keys start at x 286                             | subgrid row `min-h-6`, columns `minmax(0,278px) minmax(max-content,1fr)`, `gap-x-2`                                                      |
+| Keys     | Kbd caps (11.375 px = 0.8125em of 14), gap 4; alternatives split by a muted "·"         | `Kbd keys` in a `text-sm` cell; `gap-1`; separator `text-xs text-muted-foreground`, `aria-hidden`, plus sr-only "or"                     |
+| Footnote | Text/xs muted, full width                                                               | `footnote` slot                                                                                                                          |
 
 ## API
 

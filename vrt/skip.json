@@ -10,5 +10,9 @@
   {
     "id": "board-boarddisplay--loading-transition",
     "reason": "Spends its first 3s in the same setInterval-driven loading state before revealing the message; screenshots land inside that window on arbitrary flip frames. Proven unstable run-to-run locally."
+  },
+  {
+    "id": "overlays-shortcutlist--focus-trap",
+    "reason": "Behaviour test, not a visual: its play function opens the popover, tabs through the trap and presses Escape, so a shot can land on any of those frames. Its open and closed looks are shot by overlays-shortcutlist--default and --triggers."
   }
 ]
