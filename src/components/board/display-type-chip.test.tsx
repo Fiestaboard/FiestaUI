@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { DEVICE_MODELS } from "../../lib/devices";
+import { DEVICE_MODELS, type DeviceModel, validateDeviceModel } from "../../lib/devices";
 import { FIESTAPANEL_LED_MATRIX_MODEL, FIESTAPANEL_SPLIT_FLAP_MODEL } from "../../lib/plugin-model-fixtures";
 import {
   DISPLAY_TYPE_LABELS,
@@ -14,8 +14,33 @@ import {
 /*
  * 02 FB / Display type (`39:49629`): a 24 px muted pill, a 14 px icon and a
  * mono caps label, informational only. The label is written in mixed case
- * and set in caps by CSS, so a screen reader reads words, not letters.
+ * and set in caps by CSS. (Chromium still exposes the caps: `text-transform`
+ * reaches its accessibility tree, so the case is for the source, not AT.)
  */
+
+/**
+ * The shipping TC001 output plugin's model, copied from
+ * fiestaboard-output--ulanzi-tc001 `output/device-models.json` (main
+ * `bd43a07`; `animation.notes` / `sources` dropped). A rename there must
+ * fail here.
+ */
+const ULANZI_TC001_PLUGIN_MODEL = {
+  id: "ulanzi_tc001",
+  label: "Ulanzi TC001 (AWTRIX NG)",
+  technology: "led_matrix",
+  family: "awtrix_ng",
+  geometry: { kind: "pixels", width: 32, height: 8 },
+  color: { kind: "rgb", bitDepth: 24 },
+  charset: "led_3x5",
+  animation: { delivery: "stream", maxFps: 5 },
+  font: "3x5",
+  layoutOptions: {
+    tileGap: { allowed: ["gap", "fill"], default: "gap" },
+    blockPadding: { allowed: [0, 1], default: 0 },
+    font: { allowed: ["3x5", "5x7"], default: "3x5" },
+  },
+  appearance: { pixelShape: "square", dotRatio: 0.82, offColor: "#171717", substrateColor: "#0a0a0a" },
+} as unknown as DeviceModel;
 
 const chip = () => document.querySelector<HTMLElement>("[data-slot=display-type-chip]")!;
 const icon = () => chip().querySelector("svg")!;
@@ -105,6 +130,16 @@ describe("displayTypeForModel", () => {
     expect(displayTypeForModel(DEVICE_MODELS.ulanzi_tc001_awtrix)).toBe("tc001");
     expect(displayTypeForModel(FIESTAPANEL_SPLIT_FLAP_MODEL)).toBe("panel");
     expect(displayTypeForModel(FIESTAPANEL_LED_MATRIX_MODEL)).toBe("panel");
+  });
+
+  it("maps the shipping TC001 plugin's own model (not the built-in id)", () => {
+    expect(validateDeviceModel(ULANZI_TC001_PLUGIN_MODEL).ok).toBe(true);
+    expect(displayTypeForModel(ULANZI_TC001_PLUGIN_MODEL)).toBe("tc001");
+  });
+
+  it("does not read a model id off the object prototype", () => {
+    expect(displayTypeForModel({ ...DEVICE_MODELS.hub75_64x32, id: "toString" })).toBeUndefined();
+    expect(displayTypeForModel({ ...DEVICE_MODELS.hub75_64x32, id: "constructor" })).toBeUndefined();
   });
 
   it("is undefined for a model 02 draws no chip for", () => {

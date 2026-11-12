@@ -15,9 +15,15 @@ import { BoardIcon } from "../chrome/board-icon";
  * SegmentedControl, never this. Shape and text carry the type, never colour.
  *
  * The label is written in mixed case and set in caps by CSS (`uppercase`), so
- * a screen reader reads "Flagship", not "F-L-A-G…". The visual " · " is hidden
- * from assistive tech, with a visually hidden comma in its place. Sizes are
- * CANON columns × rows (Flagship 22×6, Pixoo 64×64).
+ * the source text and a copy-paste stay readable. That is not an a11y
+ * guarantee: Chromium applies `text-transform` to the text it exposes
+ * (measured: the accessibility tree names the chip "FLAGSHIP , 22×6"), and
+ * screen readers read short all-caps words as words in practice. The
+ * visual " · " is hidden from assistive tech, with a visually hidden comma
+ * in its place. Sizes are CANON columns × rows (Flagship 22×6, Pixoo 64×64).
+ *
+ * The chip never wraps or truncates (`whitespace-nowrap`): a long translated
+ * label widens it, and a narrow host wraps whole chips onto the next line.
  */
 
 export const DISPLAY_TYPES = ["flagship", "note", "note-array", "pixoo", "tc001", "tc002", "panel"] as const;
@@ -97,13 +103,18 @@ const TYPE_BY_MODEL: Readonly<Record<string, DisplayType>> = {
   vestaboard_panel: "panel",
   divoom_pixoo64: "pixoo",
   ulanzi_tc001_awtrix: "tc001",
+  // The shipping TC001 output plugin's own model (fiestaboard-output--ulanzi-tc001,
+  // output/device-models.json): AWTRIX NG firmware, 32 × 8.
+  ulanzi_tc001: "tc001",
 };
 
 /**
  * The chip for a device model, or `undefined` when 02 draws none for it (a
- * HUB75 panel, an unknown id). FiestaPanel models, built in or declared by
- * its plugin (`family: "fiestapanel"`), are `"panel"`. The TC002 has no
- * model yet, so nothing maps to `"tc002"`.
+ * HUB75 panel, an unknown id). Keyed by model id, covering the built-ins and
+ * the output plugins' own models (the Pixoo and Vestaboard plugins reuse the
+ * built-in ids; the TC001 plugin declares `ulanzi_tc001`). FiestaPanel
+ * models, built in or declared by its plugin (`family: "fiestapanel"`), are
+ * `"panel"`. The TC002 has no model yet, so nothing maps to `"tc002"`.
  */
 export function displayTypeForModel(ref: DeviceModelRef): DisplayType | undefined {
   const { model } = tryResolveDeviceModel(ref);

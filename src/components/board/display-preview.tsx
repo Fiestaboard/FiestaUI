@@ -46,6 +46,7 @@ import {
   MAX_GRID_ROWS,
   MIN_GRID_COLS,
   MIN_GRID_ROWS,
+  resolveDimensions,
 } from "../../lib/board-dimensions";
 import { isDevBuild } from "../../lib/dev";
 import { type DeviceModel, type DeviceModelRef, resolveDeviceModel } from "../../lib/devices";
@@ -78,16 +79,19 @@ export interface DisplayPreviewProps {
    * board markup. On an LED, line 2 is drawn board green and line 3 board
    * orange (`DISPLAY_LINE_COLORS`); later lines, and every line on
    * split-flap, keep the default colour. Used only when neither `message`
-   * nor `cells` is given.
+   * nor `cells` is given: `message=""` counts as given (an empty board) and
+   * suppresses `lines`; `null` or unset does not.
    */
   lines?: readonly string[];
   /**
    * What the preview shows. `"message"` (the default) is `cells`, else
    * `message`, else `lines`. `"sample"` is Figma's Content = Sample: fixed
-   * sample art sized to the model and the board's grid (a Pixoo's schedule,
-   * a TC001's "72° OK", a Flagship's greeting; `displaySampleMessage`),
-   * drawn in place of anything passed. Marked on the housing as
-   * `data-content`.
+   * sample art that fits the grid actually drawn — the LED's pixels in the
+   * board's face, or the split-flap rows × columns after `notesWide` /
+   * `notesTall` / `gridRows` / `gridCols` (a Pixoo's schedule, a TC001's
+   * "72° OK", a Flagship's greeting; `displaySampleMessage`). It is drawn in
+   * place of anything passed: `message`, `cells`, `lines` and LED `layers`
+   * are all ignored. Marked on the housing as `data-content`.
    */
   content?: DisplayContent;
   /** A grid of parsed cells (`BoardToken[][]`), as FiestaBoard core hands
@@ -270,20 +274,6 @@ function splitFlapGeometry(
   }
 }
 
-/** A Note's width in flaps: a note array is this many columns per note wide. */
-const NOTE_COLS = 15;
-
-/**
- * The split-flap width a sample is sized to, when the preview's props set
- * it: a panel's `gridCols`, a note array's `notesWide` notes. Otherwise
- * the model's own geometry decides (`displaySampleMessage`).
- */
-function sampleCols(model: DeviceModel, gridCols?: number, notesWide?: number): number | undefined {
-  if (model.geometry.kind === "panel") return gridCols;
-  if (model.geometry.kind === "note_array" && notesWide !== undefined) return notesWide * NOTE_COLS;
-  return undefined;
-}
-
 const isBoardColor = (v: string | undefined): v is "black" | "white" => v === "black" || v === "white";
 const isPixelShape = (v: string | undefined): v is LedPixelShape => v === "round" || v === "square";
 
@@ -338,8 +328,17 @@ export function DisplayPreview({
   // The message: a sample sized to the board drawn, else what was passed,
   // with `lines` the last resort (`cells`, when given, wins in the renderer).
   const sample = contentKind === "sample";
+  // A split-flap board's geometry, resolved once: it sizes both the board
+  // and its sample. The renderers default a note array to one Note each way.
+  const flap =
+    model.technology === "led_matrix"
+      ? undefined
+      : splitFlapGeometry(model, { notesWide, notesTall, gridRows, gridCols });
+  const drawnGrid = flap
+    ? resolveDimensions(flap.deviceType, flap.notesWide ?? 1, flap.notesTall ?? 1, flap.gridRows, flap.gridCols)
+    : undefined;
   const shown = sample
-    ? displaySampleMessage(model, { font, cols: sampleCols(model, gridCols, notesWide) })
+    ? displaySampleMessage(model, { font, grid: drawnGrid })
     : (message ?? (lines ? displayLinesMarkup(lines, model.technology) : message));
 
   // Shared by every renderer; each adds its own defaults for what is unset.
@@ -362,12 +361,23 @@ export function DisplayPreview({
     board = (
       <LedMatrixDisplay
         model={model}
-        {...defined({ ...content, size, letterCase, tileGap, blockPadding, font, layers, transition, announceUpdates })}
+        {...defined({
+          ...content,
+          size,
+          letterCase,
+          tileGap,
+          blockPadding,
+          font,
+          // The sample is drawn in place of the page, its bitmap layers included.
+          layers: sample ? undefined : layers,
+          transition,
+          announceUpdates,
+        })}
         pixelShape={isPixelShape(pixelShape) ? pixelShape : undefined}
       />
     );
   } else {
-    const { clamped, ...geometry } = splitFlapGeometry(model, { notesWide, notesTall, gridRows, gridCols });
+    const { clamped, ...geometry } = flap!;
     geometryClamped = clamped;
     const defaultColor = model.appearance?.boardColors?.[0];
     const chosen = applied.board_color;

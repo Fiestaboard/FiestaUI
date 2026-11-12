@@ -434,25 +434,44 @@ describe("DisplayPreview", () => {
       expect(screen.getByRole("img", { name: /^Board preview: GOOD MORNING N JUDAH 4 MIN/ })).toBeInTheDocument();
     });
 
-    it("sizes the sample to the board the preview draws: a panel's own grid and a board's chosen face", () => {
+    it("sizes the sample to the board actually drawn, rows as well as columns", () => {
+      const name = () => screen.getByRole("img").getAttribute("aria-label");
+      // A panel's own 3 × 15 grid: the Note sample.
       render(<DisplayPreview model="vestaboard_panel" content="sample" gridRows={3} gridCols={15} />);
-      expect(screen.getByRole("img").getAttribute("aria-label")).toBe(`Board preview: GOOD MORNING N JUDAH 4 MIN`);
+      expect(name()).toBe("Board preview: GOOD MORNING N JUDAH 4 MIN");
       cleanup();
-      render(<DisplayPreview model="vestaboard_note_array" content="sample" notesWide={1} notesTall={2} />);
-      expect(screen.getByRole("img", { name: /^Board preview: GOOD MORNING N JUDAH 4 MIN/ })).toBeInTheDocument();
+      // Three rows but 29 wide: still the 3-line sample, never the 6-line greeting cut off.
+      render(<DisplayPreview model="vestaboard_panel" content="sample" gridRows={3} gridCols={29} />);
+      expect(name()).toBe("Board preview: GOOD MORNING N JUDAH 4 MIN");
+      expect(tiles()).toBe(3 * 29);
+      cleanup();
+      // A note array with no notesWide / notesTall draws one Note, as the renderer does.
+      render(<DisplayPreview model="vestaboard_note_array" content="sample" />);
+      expect(name()).toBe("Board preview: GOOD MORNING N JUDAH 4 MIN");
+      cleanup();
+      // Only notesTall: one Note wide, two tall (15 × 6), the Note sample centred.
+      render(<DisplayPreview model="vestaboard_note_array" content="sample" notesTall={2} />);
+      expect(name()).toBe("Board preview: GOOD MORNING N JUDAH 4 MIN");
+      expect(tiles()).toBe(6 * 15);
       cleanup();
       render(<DisplayPreview model="vestaboard_note_array" content="sample" notesWide={2} notesTall={1} />);
-      expect(screen.getByRole("img", { name: /^Board preview: GOOD MORNING SUNNY/ })).toBeInTheDocument();
+      expect(name()).toBe("Board preview: GOOD MORNING N JUDAH 4 MIN");
       cleanup();
-      // A fixed-size model ignores a stray gridCols: the Flagship is 22 wide.
+      render(<DisplayPreview model="vestaboard_note_array" content="sample" notesWide={2} notesTall={2} />);
+      expect(name()).toBe("Board preview: GOOD MORNING SUNNY HI 78 LO 61 N JUDAH 4 MIN");
+      cleanup();
+      // A fixed-size model ignores a stray gridCols: the Flagship is 22 × 6.
       render(<DisplayPreview model="vestaboard_flagship" content="sample" gridCols={15} />);
-      expect(screen.getByRole("img", { name: /^Board preview: GOOD MORNING SUNNY/ })).toBeInTheDocument();
+      expect(name()).toBe("Board preview: GOOD MORNING SUNNY HI 78 LO 61 N JUDAH 4 MIN");
       cleanup();
       render(<DisplayPreview model="divoom_pixoo64" content="sample" font="5x7" />);
       expect(ledLabel()).toBe("LED matrix preview: 72° SUNNY N JUDAH 4 HI 78");
       cleanup();
+      render(<DisplayPreview model="p10_hub12_32x16" content="sample" />);
+      expect(ledLabel()).toBe("LED matrix preview: 72°");
+      cleanup();
       render(<DisplayPreview model={FIESTAPANEL_SPLIT_FLAP_MODEL} content="sample" frame="tv" />);
-      expect(screen.getByRole("img", { name: /^Board preview: GOOD MORNING SUNNY HI 78 LO 61/ })).toBeInTheDocument();
+      expect(name()).toBe("Board preview: GOOD MORNING SUNNY HI 78 LO 61 N JUDAH 4 MIN");
     });
 
     it("marks Message content on the housing by default, and leaves the default render unchanged", () => {
