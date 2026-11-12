@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Sparkles } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { expect, waitFor, within } from "storybook/test";
 
 import { Conversation, ConversationContent, ConversationScrollButton } from "./conversation";
 import { Message, MessageAvatar, MessageContent } from "./message";
@@ -55,4 +57,61 @@ export const Default: Story = {
       </Conversation>
     </div>
   ),
+};
+
+/**
+ * Scrolled up to read, so the "Jump to latest" pill shows: a floating
+ * `shadow-card` button over the log (#395 R2-S1 — `cn` now merges theme
+ * shadows, so this is the first time the pill wears the elevation its code
+ * asks for, instead of Button outline's `shadow-xs`).
+ *
+ * The scroll is done after two frames: the log starts pinned by its
+ * ResizeObserver, and only a real scroll away from the bottom (which fires a
+ * scroll event) flips it to "not at bottom".
+ */
+export const ScrolledUp: Story = {
+  render: function Render(args) {
+    const rootRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      let second = 0;
+      const first = requestAnimationFrame(() => {
+        second = requestAnimationFrame(() => {
+          const viewport = rootRef.current?.querySelector<HTMLElement>("[data-slot=conversation-viewport]");
+          if (viewport) viewport.scrollTop = 0;
+        });
+      });
+      return () => {
+        cancelAnimationFrame(first);
+        cancelAnimationFrame(second);
+      };
+    }, []);
+    return (
+      <div ref={rootRef} className="w-full sm:w-[380px]">
+        <Conversation {...args} className="h-56 rounded-lg border">
+          <ConversationContent>
+            {turns.map(([from, text], i) => (
+              <Message key={i} from={from}>
+                {from === "assistant" ? (
+                  <MessageAvatar>
+                    <Sparkles />
+                  </MessageAvatar>
+                ) : null}
+                <MessageContent>{text}</MessageContent>
+              </Message>
+            ))}
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const jump = await canvas.findByRole("button", { name: "Jump to latest" });
+    await waitFor(() => expect(jump).toBeVisible());
+    const classes = jump.className.split(/\s+/);
+    await expect(classes).toContain("shadow-card");
+    await expect(classes).not.toContain("shadow-xs");
+    await expect(getComputedStyle(jump).boxShadow).not.toBe("none");
+  },
 };
