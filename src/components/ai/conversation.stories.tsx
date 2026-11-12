@@ -65,25 +65,33 @@ export const Default: Story = {
  * shadows, so this is the first time the pill wears the elevation its code
  * asks for, instead of Button outline's `shadow-xs`).
  *
- * The scroll is done after two frames: the log starts pinned by its
- * ResizeObserver, and only a real scroll away from the bottom (which fires a
- * scroll event) flips it to "not at bottom".
+ * Deterministic, not timed (#395 Fable M1: a two-frame guess lost the race
+ * to the log's own re-pin on one CI leg). Conversation pins the log from a
+ * ResizeObserver registered in its effect; this story's observer is
+ * registered after it (a parent's effect runs after its child's), so in any
+ * frame it runs after the pin. Once the log is pinned and scrollable, it
+ * scrolls to the top and dispatches the scroll event itself, so
+ * Conversation's handler marks "not at bottom" synchronously, before any
+ * later resize could re-pin.
  */
 export const ScrolledUp: Story = {
   render: function Render(args) {
     const rootRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
-      let second = 0;
-      const first = requestAnimationFrame(() => {
-        second = requestAnimationFrame(() => {
-          const viewport = rootRef.current?.querySelector<HTMLElement>("[data-slot=conversation-viewport]");
-          if (viewport) viewport.scrollTop = 0;
-        });
-      });
-      return () => {
-        cancelAnimationFrame(first);
-        cancelAnimationFrame(second);
+      const viewport = rootRef.current?.querySelector<HTMLElement>("[data-slot=conversation-viewport]");
+      if (!viewport || typeof ResizeObserver === "undefined") return;
+      const scrollUp = () => {
+        const pinned = viewport.scrollTop > 0 && viewport.scrollHeight > viewport.clientHeight;
+        if (!pinned) return false;
+        viewport.scrollTop = 0;
+        viewport.dispatchEvent(new Event("scroll"));
+        return true;
       };
+      const observer = new ResizeObserver(() => {
+        if (scrollUp()) observer.disconnect();
+      });
+      for (const child of Array.from(viewport.children)) observer.observe(child);
+      return () => observer.disconnect();
     }, []);
     return (
       <div ref={rootRef} className="w-full sm:w-[380px]">
