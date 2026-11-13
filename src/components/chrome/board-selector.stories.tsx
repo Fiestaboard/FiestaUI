@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 
 import { TooltipProvider } from "../overlays/tooltip";
-import { BoardSelector } from "./board-selector";
+import { BoardSelector, type BoardSelectorHubStatus } from "./board-selector";
 
 const BOARDS = [
   { id: "living-room", name: "Living Room" },
@@ -15,7 +15,16 @@ const LABELS = {
   selectBoard: "Select a board",
   unnamedBoard: "Unnamed board",
   boardError: "Unavailable",
+  hubStatus: { online: "Online", remote: "Remote", unreachable: "Can’t reach" },
 };
+
+/** The 07a Display switcher's household: one display, three hub states. */
+const KITCHEN = [{ id: "kitchen", name: "Kitchen board" }];
+const HUB_STATES: { status: BoardSelectorHubStatus; host: string }[] = [
+  { status: "online", host: "fiestapi.local" },
+  { status: "remote", host: "fiestapi.example.net" },
+  { status: "unreachable", host: "fiestapi.local" },
+];
 
 /** One board whose client failed to initialize — badged with a status dot. */
 const BOARDS_WITH_STATUS = [
@@ -54,6 +63,16 @@ const meta = {
       description: "Where the selector lives — the sidebar or the compact mobile header bar.",
       control: "inline-radio",
       options: ["sidebar", "mobileHeader"],
+    },
+    host: {
+      description: "The hub this app talks to, e.g. fiestapi.local. Shown on the hub line.",
+      control: "text",
+    },
+    status: {
+      description:
+        "Hub reachability. Always words (labels.hubStatus) beside a StatusDot, or a glyph on the collapsed rail.",
+      control: "inline-radio",
+      options: [undefined, "online", "remote", "unreachable"],
     },
   },
   decorators: [
@@ -126,5 +145,74 @@ export const WithStatus: Story = {
   },
   render: function Render(args) {
     return <ControlledBoardSelector key={args.value} {...args} />;
+  },
+};
+
+/**
+ * Slice 1.4c: the hub line. Under the sidebar trigger it reads "host · State"
+ * beside a StatusDot (07a `302:2055`). The state is words first; the dot
+ * only repeats them.
+ */
+export const HubOnline: Story = {
+  args: {
+    boards: KITCHEN,
+    value: "kitchen",
+    onChange: () => {},
+    labels: LABELS,
+    host: "fiestapi.local",
+    status: "online",
+  },
+};
+
+/** Reached through a remote address: an info dot and the word "Remote". */
+export const HubRemote: Story = {
+  args: { ...HubOnline.args, host: "fiestapi.example.net", status: "remote" } as Story["args"],
+};
+
+/** The hub is not answering: a destructive dot and "Can’t reach". */
+export const HubUnreachable: Story = {
+  args: { ...HubOnline.args, status: "unreachable" } as Story["args"],
+};
+
+/**
+ * On the 48px rail there is no room for words beside the trigger, so a 12px
+ * glyph whose SHAPE differs per state (wifi, globe, wifi-off) sits under it,
+ * and the words move into the tooltip and the trigger's description.
+ */
+export const HubCollapsed: Story = {
+  args: { ...HubUnreachable.args, collapsed: true } as Story["args"],
+};
+
+/** The mobile header's two-line pill: the display, then "State · host", which truncates. */
+export const HubMobileHeader: Story = {
+  args: { ...HubRemote.args, variant: "mobileHeader" } as Story["args"],
+};
+
+/**
+ * Every layout × hub state of the 07a Display switcher (`302:2146`, State =
+ * Default) in one frame: sidebar, rail, mobile header.
+ */
+export const HubStates: Story = {
+  args: { boards: KITCHEN, value: "kitchen", onChange: () => {}, labels: LABELS },
+  render: function Render(args) {
+    return (
+      <div className="flex flex-col gap-4">
+        {HUB_STATES.map((hub) => (
+          <BoardSelector key={`sidebar-${hub.status}`} {...args} {...hub} />
+        ))}
+        <div className="flex gap-3">
+          {HUB_STATES.map((hub) => (
+            <div key={`rail-${hub.status}`} className="w-12">
+              <BoardSelector {...args} {...hub} collapsed />
+            </div>
+          ))}
+        </div>
+        {HUB_STATES.map((hub) => (
+          <div key={`mobile-${hub.status}`}>
+            <BoardSelector {...args} {...hub} variant="mobileHeader" />
+          </div>
+        ))}
+      </div>
+    );
   },
 };
