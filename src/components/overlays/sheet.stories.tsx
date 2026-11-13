@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { Settings } from "lucide-react";
+import { ChevronLeft, Settings } from "lucide-react";
 import type { ComponentProps } from "react";
 
 import { Button } from "../forms/button";
 import { Input } from "../forms/input";
 import { Label } from "../forms/label";
+import { Swatch, SwatchGroup } from "../forms/swatch";
 import { Switch } from "../forms/switch";
 import {
   Sheet,
@@ -275,5 +276,177 @@ export const SettingsPanel: Story = {
         </SheetFooter>
       </SheetContent>
     </Sheet>
+  ),
+};
+
+/*
+ * Bottom sheet (slice 1.3 · C3 · WEB-05). Figma: 07 Web / Bottom sheet
+ * `53:100588`, 07c editor sheets (Formatting, More), 07 Colors sheet
+ * `57:65460`. Each story pins a phone-shaped editor page with `position:
+ * fixed`, which leaves #storybook-root with no box, so VRT captures the whole
+ * viewport and the portalled sheet is in the shot.
+ */
+
+function EditorPageMock() {
+  return (
+    <div className="fixed inset-0 flex flex-col gap-3 bg-background p-4 text-foreground">
+      <div className="flex h-11 items-center justify-between">
+        <div>
+          <p className="text-base font-semibold leading-5">Kitchen morning</p>
+          <p className="text-xs text-muted-foreground">Unsaved</p>
+        </div>
+        <Button size="sm">Show now</Button>
+      </div>
+      <div
+        aria-label="Live preview"
+        role="img"
+        className="grid h-40 place-items-center rounded-lg bg-[var(--color-board-surface-dark)] font-mono text-sm tracking-[0.3em] text-white"
+      >
+        GOOD MORNING
+      </div>
+      <p className="font-mono text-sm text-muted-foreground">1 GOOD MORNING</p>
+    </div>
+  );
+}
+
+const MORE_ROWS = ["Export share string", "Keyboard shortcuts", "Fill board…"];
+
+/** Grabber, no detents: as tall as its content; drag the grabber down (or press Esc / Close) to dismiss. */
+export const BottomGrabber: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => (
+    <>
+      <EditorPageMock />
+      <Sheet defaultOpen>
+        <SheetContent side="bottom" grabber>
+          <SheetHeader className="min-h-12 justify-center pr-12 text-left sm:text-left">
+            <SheetTitle>Formatting</SheetTitle>
+          </SheetHeader>
+          <div className="flex flex-col gap-1 pb-2">
+            {[
+              ["Fill space", "fill_space"],
+              ["Wrap text", "wrap"],
+            ].map(([label, code]) => (
+              <button
+                key={code}
+                type="button"
+                className="flex min-h-11 items-center justify-between rounded-md px-2 text-left text-sm hover:bg-accent focus-ring"
+              >
+                {label}
+                <code className="rounded-full bg-muted px-2 py-0.5 font-mono text-xs">{code}</code>
+              </button>
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Fill space pushes the rest of the line to the right edge. Wrap lets a long value continue on the next line.
+          </p>
+        </SheetContent>
+      </Sheet>
+    </>
+  ),
+};
+
+/**
+ * Detents at half and 90% of the viewport. The grabber is a separator:
+ * ↑/↓, Home/End and Enter/Space move between detents; dragging snaps to the
+ * nearest one and below half of the smallest dismisses.
+ */
+export const BottomDetents: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => (
+    <>
+      <EditorPageMock />
+      <Sheet defaultOpen>
+        <SheetContent side="bottom" detents={["half", 0.9]}>
+          <SheetHeader className="min-h-12 justify-center pr-12 text-left sm:text-left">
+            <SheetTitle>More</SheetTitle>
+          </SheetHeader>
+          <div className="flex items-start justify-between gap-4 py-2">
+            <div>
+              <Label htmlFor="mirror-board">Mirror to board while editing</Label>
+              <p className="text-sm text-muted-foreground">The Kitchen board shows your edits as you type.</p>
+            </div>
+            <Switch id="mirror-board" />
+          </div>
+          <ul className="flex flex-col">
+            {MORE_ROWS.map((row) => (
+              <li key={row}>
+                <button
+                  type="button"
+                  className="flex min-h-12 w-full items-center rounded-md px-2 text-left text-sm hover:bg-accent focus-ring"
+                >
+                  {row}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </SheetContent>
+      </Sheet>
+    </>
+  ),
+};
+
+/**
+ * WEB-05 picker: no scrim and non-modal, so the preview above stays visible
+ * and the page stays usable while the sheet is up.
+ */
+export const BottomNoScrim: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => (
+    <>
+      <EditorPageMock />
+      <Sheet defaultOpen modal={false} disablePointerDismissal>
+        <SheetContent side="bottom" grabber scrim={false}>
+          <SheetHeader className="min-h-12 justify-center pr-12 text-left sm:text-left">
+            <SheetTitle>Colors</SheetTitle>
+          </SheetHeader>
+          <SwatchGroup aria-label="Tile color" defaultValue="red" className="pb-3">
+            {["red", "orange", "yellow", "green", "blue", "violet"].map((hue) => (
+              <Swatch key={hue} value={hue} label={hue} color={`var(--color-board-${hue})`} size="lg" />
+            ))}
+          </SwatchGroup>
+          <p className="text-sm text-muted-foreground">Tap a color to insert a tile at the cursor.</p>
+        </SheetContent>
+      </Sheet>
+    </>
+  ),
+};
+
+/**
+ * 07a Dialog shell · Mobile sheet (`297:7667`): a pinned header with Back, a
+ * scrolling body and a sticky footer with a full-width 44px primary. Direct
+ * `SheetHeader` / `SheetFooter` children are pinned; the rest scrolls.
+ */
+export const BottomStickyFooter: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => (
+    <>
+      <EditorPageMock />
+      <Sheet defaultOpen>
+        <SheetContent side="bottom" detents={[0.6]}>
+          {/* Back (36px) and the title's first line centre 24px into the head, on the close chip. */}
+          <SheetHeader className="min-h-12 flex-row items-start gap-3 pt-1.5 pr-12 text-left sm:text-left">
+            <Button variant="ghost" size="icon" aria-label="Back">
+              <ChevronLeft aria-hidden="true" />
+            </Button>
+            <div className="mt-1 flex flex-col gap-1">
+              <SheetTitle>Compose a message</SheetTitle>
+              <SheetDescription>Shows on Kitchen board as soon as you choose Show now.</SheetDescription>
+            </div>
+          </SheetHeader>
+          <div className="flex flex-col gap-4 py-2">
+            {["Line 1", "Line 2", "Line 3", "Line 4", "Line 5", "Line 6"].map((line, i) => (
+              <div key={line} className="grid gap-1.5">
+                <Label htmlFor={`compose-${i}`}>{line}</Label>
+                <Input id={`compose-${i}`} defaultValue={i === 0 ? "DINNER AT 7" : ""} />
+              </div>
+            ))}
+          </div>
+          <SheetFooter>
+            <Button className="h-11 w-full">Show now</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </>
   ),
 };

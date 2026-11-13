@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Menu, Settings, Sparkles, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Ellipsis, Menu, Settings, Sparkles, X } from "lucide-react";
 import { Fragment, memo, useEffect, useId, useRef, useState } from "react";
 
+import { isDevBuild } from "../../lib/dev";
 import { cn } from "../../lib/utils";
 import { Button } from "../forms/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
@@ -76,14 +77,71 @@ const NAV_LABEL_COLLAPSED = cn(NAV_LABEL_BASE, "opacity-0 max-w-0");
 const NAV_LABEL_EXPANDED = cn(NAV_LABEL_BASE, "opacity-100 max-w-48 delay-150");
 
 const MOBILE_BACKDROP_BASE =
-  "lg:hidden fixed inset-0 z-[var(--z-mobile-backdrop)] bg-black/25 backdrop-blur-[2px] transition-opacity duration-base pointer-events-none";
-const MOBILE_BACKDROP_OPEN = cn(MOBILE_BACKDROP_BASE, "opacity-100 pointer-events-auto");
-const MOBILE_BACKDROP_CLOSED = cn(MOBILE_BACKDROP_BASE, "opacity-0");
+  "fixed inset-0 z-[var(--z-mobile-backdrop)] bg-black/25 backdrop-blur-[2px] transition-opacity duration-base pointer-events-none";
 
 const MOBILE_MENU_BASE =
-  "lg:hidden fixed top-[calc(var(--mobile-header-height,56px)+16px)] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
-const MOBILE_MENU_OPEN = cn(MOBILE_MENU_BASE, "opacity-100");
-const MOBILE_MENU_CLOSED = cn(MOBILE_MENU_BASE, "opacity-0 pointer-events-none");
+  "fixed top-[calc(var(--mobile-header-height,56px)+16px)] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
+// variant="bottom-nav": the drawer is what "More" opens, so it rises from the
+// tab bar instead of dropping from the header — 12px above the bar, which
+// floats 12px above the viewport edge (and the home indicator).
+const MOBILE_MENU_BOTTOM_BASE =
+  "fixed bottom-[calc(var(--bottom-nav-offset,0px)+env(safe-area-inset-bottom))] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-var(--bottom-nav-offset,0px)-env(safe-area-inset-bottom)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
+
+const MOBILE_HEADER_BASE =
+  "fixed top-2 left-3 right-3 z-[var(--z-mobile-header)] overflow-hidden sidebar-gradient-horizontal";
+
+// The bottom tab bar (slice 1.4a; 07 `53:100587`): 64px tall, inset 12px
+// from the sides and the bottom like the header pill is from the top, five
+// equal slots of 52px — every one a ≥44px target. It sits on the drawer's
+// layer so "More" stays tappable over the backdrop and can close what it
+// opened.
+const BOTTOM_NAV_BASE =
+  "fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-[var(--z-mobile-menu)] flex h-16 items-stretch gap-0.5 p-1.5 sidebar-gradient-horizontal";
+const BOTTOM_ITEM_BASE =
+  "focus-ring relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-xs font-medium transition-colors";
+// Medium in both states (07: Text/xs/medium); the fill alone says "here".
+const BOTTOM_ITEM_ACTIVE = cn(BOTTOM_ITEM_BASE, "nav-active");
+const BOTTOM_ITEM_INACTIVE = cn(BOTTOM_ITEM_BASE, NAV_ITEM_INACTIVE);
+
+/** At most this many tabs; past it the last slot becomes "More". */
+const BOTTOM_NAV_SLOTS = 5;
+
+/**
+ * The bar's footprint above the viewport's bottom edge (safe-area inset
+ * aside): its 12px float (`bottom-[calc(0.75rem+…)]`), its 64px height
+ * (`h-16`) and 12px of air above it. Published as `--bottom-nav-offset` on
+ * <html> while the bar is shown, so MainContent, PageLayout, the drawer and
+ * anything else that must clear the bar (a toast) read one number, and fall
+ * back to 0 when there is no bar.
+ */
+const BOTTOM_NAV_OFFSET_PX = 12 + 64 + 12;
+
+/**
+ * Every class that differs by `railBreakpoint` (slice 1.4b), spelled out per
+ * breakpoint — Tailwind compiles only class names it finds verbatim — and
+ * merged once at import, like the constants above.
+ */
+function railChrome(bp: "lg" | "md") {
+  const phoneOnly = bp === "lg" ? "lg:hidden" : "md:hidden";
+  const aside =
+    bp === "lg"
+      ? "hidden lg:fixed lg:top-3 lg:bottom-3 lg:z-[var(--z-sidebar)] lg:block sidebar-gradient sidebar-transition"
+      : "hidden md:fixed md:top-3 md:bottom-3 md:z-[var(--z-sidebar)] md:block sidebar-gradient sidebar-transition";
+  return {
+    header: cn(phoneOnly, MOBILE_HEADER_BASE),
+    backdropOpen: cn(phoneOnly, MOBILE_BACKDROP_BASE, "opacity-100 pointer-events-auto"),
+    backdropClosed: cn(phoneOnly, MOBILE_BACKDROP_BASE, "opacity-0"),
+    menuOpen: cn(phoneOnly, MOBILE_MENU_BASE, "opacity-100"),
+    menuClosed: cn(phoneOnly, MOBILE_MENU_BASE, "opacity-0 pointer-events-none"),
+    menuBottomOpen: cn(phoneOnly, MOBILE_MENU_BOTTOM_BASE, "opacity-100"),
+    menuBottomClosed: cn(phoneOnly, MOBILE_MENU_BOTTOM_BASE, "opacity-0 pointer-events-none"),
+    bottomNav: cn(phoneOnly, BOTTOM_NAV_BASE),
+    asideExpanded: cn(aside, bp === "lg" ? "lg:w-64" : "md:w-64"),
+    asideCollapsed: cn(aside, bp === "lg" ? "lg:w-16" : "md:w-16"),
+  };
+}
+
+const RAIL_CHROME = { lg: railChrome("lg"), md: railChrome("md") };
 
 // The clip-path/transition style object is otherwise reallocated every render.
 const MOBILE_MENU_TRANSITION =
@@ -96,6 +154,11 @@ const MOBILE_MENU_STYLE_CLOSED: React.CSSProperties = {
   clipPath: "inset(0 0 100% 0 round var(--radius-chrome-mobile, 16px))",
   transition: MOBILE_MENU_TRANSITION,
 };
+// Anchored to the tab bar, the drawer reveals upward instead.
+const MOBILE_MENU_STYLE_BOTTOM_CLOSED: React.CSSProperties = {
+  clipPath: "inset(100% 0 0 0 round var(--radius-chrome-mobile, 16px))",
+  transition: MOBILE_MENU_TRANSITION,
+};
 
 // Everything the mobile menu can contain that takes keyboard focus. Used by
 // the aria-modal focus trap below; kept dependency-free (no focus-trap lib)
@@ -103,6 +166,23 @@ const MOBILE_MENU_STYLE_CLOSED: React.CSSProperties = {
 // or removed while the menu is open (e.g. slot content) are always current.
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * A badge on a nav row's icon (slice 1.4a; 07a Nav badge `302:2340`): a dot,
+ * or a count when `count` is set. CANON: for "needs attention" stories, not
+ * decoration.
+ */
+export interface SidebarNavBadge {
+  /** A number to show (99+ past 99). Omit for a dot. */
+  count?: number;
+  /**
+   * What the badge means, in the app's words: "Needs attention", "3 drafts".
+   * Required — the badge itself is colour and shape, so these words are the
+   * only way its meaning reaches a screen reader (WCAG 1.4.1). They join the
+   * row's accessible name: "Integrations, Needs attention".
+   */
+  label: string;
+}
 
 export interface SidebarNavItem {
   key: string;
@@ -115,6 +195,100 @@ export interface SidebarNavItem {
   active?: boolean;
   /** Optional data-prefetch handler fired on hover/focus. */
   onPrefetch?: () => void;
+  /** An attention badge on the row's icon, on the rail, in the drawer and on the tab bar. */
+  badge?: SidebarNavBadge;
+}
+
+/**
+ * Red is attention (an item needs the user); brand is a notice (something is
+ * waiting, like an update) — the amber the hamburger and account trigger
+ * already wear for `menuNotice` (07 `53:100587`).
+ */
+type BadgeTone = "destructive" | "brand";
+
+/** Badge overlay for a nav icon. Decorative: its words go in the row's name. */
+function NavBadge({ badge, tone = "destructive" }: { badge: SidebarNavBadge; tone?: BadgeTone }) {
+  if (badge.count == null) {
+    return (
+      <span
+        data-slot="nav-badge"
+        data-kind="dot"
+        data-tone={tone}
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute -end-1 -top-0.5 size-2.5 rounded-full ring-2 ring-card",
+          tone === "brand" ? "bg-brand" : "bg-destructive",
+        )}
+      />
+    );
+  }
+  return (
+    <span
+      data-slot="nav-badge"
+      data-kind="count"
+      data-tone={tone}
+      aria-hidden="true"
+      className="pointer-events-none absolute -end-2.5 -top-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-xs leading-none font-medium text-destructive-foreground ring-2 ring-card"
+    >
+      {badge.count > 99 ? "99+" : badge.count}
+    </span>
+  );
+}
+
+/** A row's badge, if it has one worth drawing: a count of 0 is no badge. */
+function badgeOf(item: SidebarNavItem): SidebarNavBadge | undefined {
+  const badge = item.badge;
+  return badge && badge.count !== 0 ? badge : undefined;
+}
+
+/**
+ * What a closed drawer is holding, for the control that opens it (More, or
+ * the hamburger). Any badged row makes it a red COUNT — each row's count, a
+ * dot counting as one (07a `308:36070`: "1" on More for one integration that
+ * needs attention). A notice alone is a brand dot. The words of all of them
+ * are the badge's label, so the opener says what is behind it.
+ */
+function rollUp(items: SidebarNavItem[], notice?: string): { badge?: SidebarNavBadge; tone: BadgeTone } {
+  let count = 0;
+  const words: string[] = [];
+  for (const item of items) {
+    const badge = badgeOf(item);
+    if (!badge) continue;
+    count += badge.count ?? 1;
+    words.push(badge.label);
+  }
+  if (notice) words.push(notice);
+  if (count > 0) return { badge: { count, label: words.join(", ") }, tone: "destructive" };
+  if (notice) return { badge: { label: notice }, tone: "brand" };
+  return { tone: "destructive" };
+}
+
+/**
+ * A nav row's icon, with its badge when it has one. An un-badged row keeps
+ * the bare icon, so rows without badges render exactly as before.
+ */
+function navIcon(
+  Icon: React.ComponentType<{ className?: string }>,
+  className: string,
+  badge?: SidebarNavBadge,
+  tone?: BadgeTone,
+) {
+  if (!badge) return <Icon className={className} />;
+  return (
+    <span className="relative inline-flex shrink-0">
+      <Icon className={className} />
+      <NavBadge badge={badge} tone={tone} />
+    </span>
+  );
+}
+
+/**
+ * The badge's words, appended to a row's visible label for assistive tech.
+ * The comma keeps "Integrations, Needs attention" from running together, and
+ * matches the collapsed rail's aria-label.
+ */
+function badgeText(label?: string) {
+  return label ? <span className="sr-only">, {label}</span> : null;
 }
 
 // The "no items" stand-in. Shared rather than a fresh `[]` per render purely
@@ -152,6 +326,11 @@ export interface SidebarLabels {
   collapseSidebar: string;
   aiAssistant: string;
   logoButtonAriaLabel?: string;
+  /**
+   * The bottom tab bar's overflow slot, e.g. "More" (`variant="bottom-nav"`).
+   * Falls back to `navigationMenu`, which names the drawer it opens.
+   */
+  more?: string;
 }
 
 export interface SidebarProps {
@@ -279,6 +458,25 @@ export interface SidebarProps {
   maxWidth: number;
   /** Gap between the app edge and the sidebar in px. */
   sidebarInset: number;
+  /**
+   * The phone chrome, below `railBreakpoint` (slice 1.4a):
+   * - `"header-menu"` (default): a top bar whose hamburger opens a drawer of
+   *   every destination.
+   * - `"bottom-nav"`: the top bar keeps the logo, board selector and
+   *   assistant, and the destinations move to a tab bar pinned to the
+   *   bottom. Up to five fit as they are; past five, or when there is an
+   *   account menu to reach (`renderSettingsMenu`), the first four are tabs
+   *   and the fifth slot is "More" (`labels.more`), which opens the drawer
+   *   with the rest. Order stays the app's: put the destinations you want on
+   *   the bar first. Pair with MainContent's `bottomNav`.
+   */
+  variant?: "header-menu" | "bottom-nav";
+  /**
+   * Where the rail takes over from the phone chrome (slice 1.4b): `"lg"`
+   * (1024px, the default) or `"md"` (768px). Pass the same value to
+   * MainContent so its padding switches on the same pixel.
+   */
+  railBreakpoint?: "lg" | "md";
 }
 
 export const Sidebar = memo(function Sidebar({
@@ -301,7 +499,10 @@ export const Sidebar = memo(function Sidebar({
   menuNotice,
   maxWidth,
   sidebarInset,
+  variant = "header-menu",
+  railBreakpoint = "lg",
 }: SidebarProps) {
+  const chrome = RAIL_CHROME[railBreakpoint];
   // One list, no seam. The deprecated pair used to be spliced around the AI
   // row; the assistant left the list in 7.0.0, so primary+secondary is now
   // a plain concatenation. `items={[]}` is honoured as an explicitly empty
@@ -321,9 +522,24 @@ export const Sidebar = memo(function Sidebar({
   // clean typecheck and a clean build. Say so out loud instead.
   const ignoringDeprecatedItems = Boolean(items && (primaryItems || secondaryItems));
 
+  // Bottom nav: which destinations are tabs, and what "More" holds. Five or
+  // fewer all fit, unless the account menu needs the drawer to live in.
+  const bottomNav = variant === "bottom-nav";
+  const needsMore = bottomNav && (navItems.length > BOTTOM_NAV_SLOTS || Boolean(renderSettingsMenu));
+  const barItems = !bottomNav ? EMPTY_ITEMS : needsMore ? navItems.slice(0, BOTTOM_NAV_SLOTS - 1) : navItems;
+  const drawerItems = needsMore ? navItems.slice(BOTTOM_NAV_SLOTS - 1) : navItems;
+  const menuId = useId();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // An empty string is no notice, as on the trigger.
-  const hamburgerNotice = !mobileMenuOpen && Boolean(menuNotice);
+  // What the closed drawer holds, for the hamburger (header-menu): badged rows
+  // make a red count that stands for everything, notice included; a notice
+  // alone keeps the brand dot cut out of the glyph. An empty string is no
+  // notice, as on the trigger.
+  const drawerRollUp = bottomNav ? undefined : rollUp(navItems, menuNotice || undefined);
+  const hamburgerBadge = !mobileMenuOpen && drawerRollUp?.badge?.count ? drawerRollUp.badge : undefined;
+  const hamburgerNotice = !mobileMenuOpen && Boolean(menuNotice) && !hamburgerBadge;
+  const hamburgerWords = hamburgerBadge ? hamburgerBadge.label : hamburgerNotice ? menuNotice : undefined;
+  const moreLabel = labels.more ?? labels.navigationMenu;
   const hamburgerNoticeId = useId();
   const [appInset, setAppInset] = useState(0);
   const headerRef = useRef<HTMLElement>(null);
@@ -331,6 +547,34 @@ export const Sidebar = memo(function Sidebar({
   // The element that opened the menu (the hamburger button), captured at open
   // so focus can be restored to it when the menu closes (issue #59).
   const menuTriggerRef = useRef<HTMLElement | null>(null);
+
+  // `navigationMenu` is a sentence; in a 52px tab it truncates.
+  const unlabelledMore = bottomNav && !labels.more;
+  useEffect(() => {
+    if (!unlabelledMore || !isDevBuild()) return;
+    console.warn(
+      '[Sidebar] variant="bottom-nav" without `labels.more`: the More tab falls back to `labels.navigationMenu`, which truncates in a tab. Pass the app\'s word for "More".',
+    );
+  }, [unlabelledMore]);
+
+  // Publish the bar's footprint while it is on screen (below the rail
+  // breakpoint), and only then: everything that clears the bar reads
+  // var(--bottom-nav-offset, 0px), so no bar means no gap.
+  useEffect(() => {
+    if (!bottomNav) return;
+    const root = document.documentElement;
+    const phone = window.matchMedia(railBreakpoint === "lg" ? "(max-width: 1023.98px)" : "(max-width: 767.98px)");
+    const apply = () => {
+      if (phone.matches) root.style.setProperty("--bottom-nav-offset", `${BOTTOM_NAV_OFFSET_PX}px`);
+      else root.style.removeProperty("--bottom-nav-offset");
+    };
+    apply();
+    phone.addEventListener("change", apply);
+    return () => {
+      phone.removeEventListener("change", apply);
+      root.style.removeProperty("--bottom-nav-offset");
+    };
+  }, [bottomNav, railBreakpoint]);
 
   useEffect(() => {
     if (!ignoringDeprecatedItems) return;
@@ -520,6 +764,13 @@ export const Sidebar = memo(function Sidebar({
   function renderMobileNavItem(item: SidebarNavItem) {
     const Icon = item.icon;
     const mobileClassName = item.active ? MOBILE_ITEM_ACTIVE : MOBILE_ITEM_INACTIVE;
+    const content = (
+      <>
+        {navIcon(Icon, "h-5 w-5", badgeOf(item))}
+        {item.label}
+        {badgeText(badgeOf(item)?.label)}
+      </>
+    );
 
     if (item.external) {
       return (
@@ -531,8 +782,7 @@ export const Sidebar = memo(function Sidebar({
           onClick={() => setMobileMenuOpen(false)}
           className={mobileClassName}
         >
-          <Icon className="h-5 w-5" />
-          {item.label}
+          {content}
         </a>
       );
     }
@@ -547,12 +797,7 @@ export const Sidebar = memo(function Sidebar({
             onFocus: item.onPrefetch,
             "aria-current": item.active ? "page" : undefined,
             className: mobileClassName,
-            children: (
-              <>
-                <Icon className="h-5 w-5" />
-                {item.label}
-              </>
-            ),
+            children: content,
           },
           item,
         )}
@@ -566,10 +811,14 @@ export const Sidebar = memo(function Sidebar({
 
     const inner = (
       <>
-        <Icon className="h-5 w-5 flex-shrink-0" />
+        {navIcon(Icon, "h-5 w-5 flex-shrink-0", badgeOf(item))}
         <span className={collapsed ? NAV_LABEL_COLLAPSED : NAV_LABEL_EXPANDED}>{item.label}</span>
+        {/* Collapsed, the name is the aria-label below, which carries these words itself. */}
+        {collapsed ? null : badgeText(badgeOf(item)?.label)}
       </>
     );
+    const rowBadge = badgeOf(item);
+    const collapsedName = rowBadge ? `${item.label}, ${rowBadge.label}` : item.label;
 
     const link = item.external ? (
       <a
@@ -577,7 +826,7 @@ export const Sidebar = memo(function Sidebar({
         target="_blank"
         rel="noopener noreferrer"
         className={linkClassName}
-        aria-label={collapsed ? item.label : undefined}
+        aria-label={collapsed ? collapsedName : undefined}
       >
         {inner}
       </a>
@@ -588,7 +837,7 @@ export const Sidebar = memo(function Sidebar({
           onMouseEnter: item.onPrefetch,
           onFocus: item.onPrefetch,
           className: linkClassName,
-          "aria-label": collapsed ? item.label : undefined,
+          "aria-label": collapsed ? collapsedName : undefined,
           // The fill says "you are here" to the eye; this says it to a
           // screen reader. Without it the settings shortcut was the only
           // link on the rail that ever announced itself as current.
@@ -740,10 +989,97 @@ export const Sidebar = memo(function Sidebar({
     );
   };
 
+  function renderBottomNavItem(item: SidebarNavItem) {
+    const className = item.active ? BOTTOM_ITEM_ACTIVE : BOTTOM_ITEM_INACTIVE;
+    const badge = badgeOf(item);
+    const content = (
+      <>
+        {navIcon(item.icon, "h-5 w-5", badge)}
+        <span className="max-w-full truncate">{item.label}</span>
+        {badgeText(badge?.label)}
+      </>
+    );
+    // The bar sits above the drawer's backdrop (so More can close what it
+    // opened), which leaves every tab reachable while the drawer is open. A
+    // tab is a navigation, like a drawer row, so it closes the drawer too;
+    // otherwise the route changes under a drawer that stays open, with the
+    // page's scroll still locked.
+    if (item.external) {
+      return (
+        <a
+          key={item.key}
+          href={item.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={closeMobileMenu}
+          className={className}
+        >
+          {content}
+        </a>
+      );
+    }
+    return (
+      <Fragment key={item.key}>
+        {renderLink(
+          {
+            href: item.href,
+            onClick: closeMobileMenu,
+            onMouseEnter: item.onPrefetch,
+            onFocus: item.onPrefetch,
+            "aria-current": item.active ? "page" : undefined,
+            className,
+            children: content,
+          },
+          item,
+        )}
+      </Fragment>
+    );
+  }
+
+  /**
+   * The tab bar's fifth slot. It is lit while the drawer is open or while
+   * the current route is one of the rows it holds — the tab bar's answer to
+   * "where am I" when the answer is not on the bar. It wears a dot for any
+   * badge among those rows, and for `menuNotice`: the drawer is where the
+   * account menu lives in this variant, so the hamburger's job falls to it.
+   */
+  const moreButton = () => {
+    if (!needsMore) return null;
+    const lit = mobileMenuOpen || drawerItems.some((item) => item.active);
+    const { badge: noticeBadge, tone } = rollUp(drawerItems, menuNotice || undefined);
+    return (
+      <button
+        type="button"
+        data-slot="sidebar-bottom-nav-more"
+        data-active={lit || undefined}
+        aria-haspopup="dialog"
+        aria-expanded={mobileMenuOpen}
+        aria-controls={menuId}
+        onClick={(e) => {
+          if (!mobileMenuOpen) menuTriggerRef.current = e.currentTarget;
+          setMobileMenuOpen(!mobileMenuOpen);
+        }}
+        className={lit ? BOTTOM_ITEM_ACTIVE : BOTTOM_ITEM_INACTIVE}
+      >
+        {navIcon(Ellipsis, "h-5 w-5", noticeBadge, tone)}
+        <span className="max-w-full truncate">{moreLabel}</span>
+        {badgeText(noticeBadge?.label)}
+      </button>
+    );
+  };
+
   const logoBlock = (variant: "mobile" | "desktop") => {
     const logo =
       variant === "mobile" ? (
-        <FiestaLogo size="sm" className="logo-on-gradient whitespace-nowrap" />
+        <FiestaLogo
+          size="sm"
+          className={cn(
+            "logo-on-gradient whitespace-nowrap",
+            // bottom-nav (07 Home at 390): the mark alone, so the hub pill
+            // and the assistant share one row with it instead of wrapping.
+            bottomNav && "max-[479px]:hidden",
+          )}
+        />
       ) : (
         <FiestaLogo
           className={cn(
@@ -794,52 +1130,55 @@ export const Sidebar = memo(function Sidebar({
       {/* Mobile Header — wraps on narrow viewports (the board selector drops
           to a second row at ~320px); its measured height feeds the
           --mobile-header-height var that the menu and MainContent offset by. */}
-      <header
-        ref={headerRef}
-        className="lg:hidden fixed top-2 left-3 right-3 z-[var(--z-mobile-header)] overflow-hidden sidebar-gradient-horizontal"
-      >
+      <header ref={headerRef} className={chrome.header}>
         {/* px-3, not px-4: the pill is already inset 12px by `left-3`, so a
             16px pad put its contents at 28 while the page's own title sat at
             16 — the bar and the page below it shared no vertical. At 12 the
             menu trigger's -ml-2 lands its box on 16, the same line PageLayout
             gives the H1 and the cards. */}
         <div className="relative z-[1] flex min-h-14 flex-wrap items-center gap-y-2 px-3 py-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-9 w-9 flex-shrink-0 -ml-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            onClick={(e) => {
-              // Capture the trigger before opening so close (Escape, backdrop,
-              // nav click, or this same toggle) can restore focus to it.
-              if (!mobileMenuOpen) menuTriggerRef.current = e.currentTarget;
-              setMobileMenuOpen(!mobileMenuOpen);
-            }}
-            aria-label={mobileMenuOpen ? labels.closeMenu : labels.openMenu}
-            aria-describedby={hamburgerNotice ? hamburgerNoticeId : undefined}
-          >
-            {mobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className={cn("h-6 w-6", hamburgerNotice && HAMBURGER_NOTICE_CUTOUT)} />
-            )}
-            {/* The account trigger's dot, cut out of the glyph the same way,
+          {/* The bottom-nav variant has no hamburger: its drawer opens from
+              the tab bar's "More". */}
+          {!bottomNav && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative h-9 w-9 flex-shrink-0 -ml-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              onClick={(e) => {
+                // Capture the trigger before opening so close (Escape, backdrop,
+                // nav click, or this same toggle) can restore focus to it.
+                if (!mobileMenuOpen) menuTriggerRef.current = e.currentTarget;
+                setMobileMenuOpen(!mobileMenuOpen);
+              }}
+              aria-label={mobileMenuOpen ? labels.closeMenu : labels.openMenu}
+              aria-describedby={hamburgerWords ? hamburgerNoticeId : undefined}
+            >
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : hamburgerBadge ? (
+                navIcon(Menu, "h-6 w-6", hamburgerBadge)
+              ) : (
+                <Menu className={cn("h-6 w-6", hamburgerNotice && HAMBURGER_NOTICE_CUTOUT)} />
+              )}
+              {/* The account trigger's dot, cut out of the glyph the same way,
                 so the two read as one signal across breakpoints. On the
                 glyph's top bar end, not the button's corner, where it
                 floated free of anything. Gone while the drawer is open: the
                 glyph is an X then, and a notice on "Close" says nothing. */}
-            {hamburgerNotice && (
-              <>
+              {hamburgerNotice && (
                 <span
                   data-slot="sidebar-menu-notice"
                   aria-hidden="true"
                   className="pointer-events-none absolute end-2 top-2 size-2 rounded-full bg-brand"
                 />
+              )}
+              {hamburgerWords && (
                 <span id={hamburgerNoticeId} hidden>
-                  {menuNotice}
+                  {hamburgerWords}
                 </span>
-              </>
-            )}
-          </Button>
+              )}
+            </Button>
+          )}
           {logoBlock("mobile")}
           {/* Board selector then assistant, both pinned right. The assistant
               is here rather than in the hamburger menu because it is the one
@@ -857,7 +1196,7 @@ export const Sidebar = memo(function Sidebar({
       {/* Mobile Menu Backdrop */}
       <div
         data-testid="mobile-backdrop"
-        className={mobileMenuOpen ? MOBILE_BACKDROP_OPEN : MOBILE_BACKDROP_CLOSED}
+        className={mobileMenuOpen ? chrome.backdropOpen : chrome.backdropClosed}
         onClick={handleBackdropClick}
         aria-hidden="true"
       />
@@ -865,7 +1204,17 @@ export const Sidebar = memo(function Sidebar({
       {/* Mobile Menu */}
       <div
         ref={mobileMenuRef}
-        className={mobileMenuOpen ? MOBILE_MENU_OPEN : MOBILE_MENU_CLOSED}
+        id={menuId}
+        data-anchor={bottomNav ? "bottom" : "top"}
+        className={
+          bottomNav
+            ? mobileMenuOpen
+              ? chrome.menuBottomOpen
+              : chrome.menuBottomClosed
+            : mobileMenuOpen
+              ? chrome.menuOpen
+              : chrome.menuClosed
+        }
         role={mobileMenuOpen ? "dialog" : undefined}
         aria-modal={mobileMenuOpen ? true : undefined}
         aria-label={mobileMenuOpen ? labels.navigationMenu : undefined}
@@ -875,31 +1224,53 @@ export const Sidebar = memo(function Sidebar({
         // also lets the Shift+Tab trap treat container-focus as "at first".
         tabIndex={mobileMenuOpen ? -1 : undefined}
         onKeyDown={handleMobileMenuKeyDown}
-        style={mobileMenuOpen ? MOBILE_MENU_STYLE_OPEN : MOBILE_MENU_STYLE_CLOSED}
+        style={
+          mobileMenuOpen
+            ? MOBILE_MENU_STYLE_OPEN
+            : bottomNav
+              ? MOBILE_MENU_STYLE_BOTTOM_CLOSED
+              : MOBILE_MENU_STYLE_CLOSED
+        }
       >
         {/* One list and one hairline, mirroring the desktop rail: every
             destination scrolls together in this nav, and the only thing
             pinned below it is the settings menu. The assistant is not here
             at all — it lives in the header bar above, always reachable. */}
-        <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {navItems.map(renderMobileNavItem)}
-        </nav>
-        <div className="shrink-0 border-t border-sidebar-border mx-3" />
+        {/* Bottom-nav: the list is "More" (the bar is the primary nav), and a
+            More holding only the account menu draws no empty list above it. */}
+        {(!bottomNav || drawerItems.length > 0) && (
+          <>
+            <nav
+              aria-label={bottomNav ? moreLabel : labels.primaryNavigation}
+              className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4"
+            >
+              {drawerItems.map(renderMobileNavItem)}
+            </nav>
+            <div className="shrink-0 border-t border-sidebar-border mx-3" />
+          </>
+        )}
         {/* px-3 matches the nav's own gutter, so the trigger's left edge
             lands under the rows' rounded hit areas rather than under their
             glyphs — it is a control the width of the menu, not a row. */}
         <div className="shrink-0 px-3 py-3 text-sidebar-foreground">{footerBlock("mobile", false)}</div>
       </div>
 
+      {/* Bottom tab bar (variant="bottom-nav"): the destinations, one tap
+          away, where a thumb reaches. Named like the rail's nav — at any one
+          width only one of the two is shown. */}
+      {bottomNav && (
+        <nav data-slot="sidebar-bottom-nav" aria-label={labels.primaryNavigation} className={chrome.bottomNav}>
+          {barItems.map(renderBottomNavItem)}
+          {moreButton()}
+        </nav>
+      )}
+
       {/* Desktop Sidebar */}
       <TooltipProvider delayDuration={0}>
         <aside
           aria-label={labels.mainNavigation}
-          className={cn(
-            "hidden lg:fixed lg:top-3 lg:bottom-3 lg:z-[var(--z-sidebar)] lg:block sidebar-gradient sidebar-transition",
-            collapsed ? "lg:w-16" : "lg:w-64",
-            transitioning && "is-transitioning",
-          )}
+          data-rail-breakpoint={railBreakpoint}
+          className={cn(collapsed ? chrome.asideCollapsed : chrome.asideExpanded, transitioning && "is-transitioning")}
           style={{ left: appInset + sidebarInset }}
           onTransitionEnd={(e) => {
             if (e.target === e.currentTarget && e.propertyName === "width") {
