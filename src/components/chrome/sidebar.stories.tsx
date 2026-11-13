@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
   ArrowUpCircle,
+  Award,
   Calendar,
   FileText,
   FlaskConical,
@@ -604,4 +605,211 @@ export const UpdateAvailableMobile: Story = {
     viewport: { defaultViewport: "mobile1" },
   },
   render: () => <DemoSidebar update={DEMO_UPDATE} />,
+};
+
+/*
+ * Slice 1.4a — the bottom nav and the NavItem badge (07 `53:100587`, 07a
+ * `302:2340`). The web IA order: Home · Pages · Schedule · Displays, then
+ * everything else behind More. The list is the app's; the Sidebar only
+ * decides where the fifth slot goes.
+ */
+const WEB_IA: SidebarNavItem[] = [
+  { key: "home", href: "#", icon: Home, label: "Home", active: true },
+  { key: "pages", href: "#pages", icon: FileText, label: "Pages" },
+  { key: "schedule", href: "#schedule", icon: Calendar, label: "Schedule" },
+  { key: "displays", href: "#displays", icon: Monitor, label: "Displays" },
+  {
+    key: "integrations",
+    href: "#integrations",
+    icon: Puzzle,
+    label: "Integrations",
+    // CANON: the badge's one story is an integration that needs attention.
+    badge: { label: "Needs attention" },
+  },
+  { key: "picks", href: "#picks", icon: Award, label: "Staff Picks" },
+  ...UTILITIES,
+];
+
+const BOTTOM_NAV_LABELS = { ...LABELS, more: "More" };
+
+/**
+ * `variant="bottom-nav"` on a phone: no hamburger; the destinations are a
+ * tab bar pinned to the bottom, and More holds the rest plus the account
+ * menu. More counts the one badge inside it (Integrations) in red, as 07a
+ * `308:36070` does, and says so in words: "More, Needs attention".
+ */
+export const BottomNav: Story = {
+  globals: {
+    viewport: { value: "mobile1", isRotated: false },
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+  render: () => <DemoSidebar variant="bottom-nav" labels={BOTTOM_NAV_LABELS} items={WEB_IA} />,
+};
+
+/** The current route is inside More (Integrations), so More is the lit tab. */
+export const BottomNavMoreActive: Story = {
+  globals: {
+    viewport: { value: "mobile1", isRotated: false },
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+  render: () => (
+    <DemoSidebar
+      variant="bottom-nav"
+      labels={BOTTOM_NAV_LABELS}
+      items={WEB_IA.map((item) => ({ ...item, active: item.key === "integrations" }))}
+    />
+  ),
+};
+
+/**
+ * Badges on the rail: a dot (needs attention) and a count. Each says what it
+ * means in the row's accessible name, since a dot cannot.
+ *
+ * The count on Pages is an API demo only: CANON gives the badge one story,
+ * an integration that needs attention (07a `302:2340`).
+ */
+export const WithBadges: Story = {
+  render: () => (
+    <DemoSidebar
+      items={WEB_IA.map((item) => (item.key === "pages" ? { ...item, badge: { count: 3, label: "3 drafts" } } : item))}
+    />
+  ),
+};
+
+/** The same badges on the 64px rail, over the icons; the tooltip names the row. */
+export const WithBadgesCollapsed: Story = {
+  render: () => (
+    <DemoSidebar
+      initialCollapsed
+      items={WEB_IA.map((item) => (item.key === "pages" ? { ...item, badge: { count: 3, label: "3 drafts" } } : item))}
+    />
+  ),
+};
+
+/**
+ * The default phone chrome with a badged row in the closed drawer: the
+ * hamburger counts it in red and is described by its words, so the
+ * attention signal survives without the bottom nav.
+ */
+export const WithBadgesMobile: Story = {
+  globals: {
+    viewport: { value: "mobile1", isRotated: false },
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+  render: () => <DemoSidebar items={WEB_IA} />,
+};
+
+/**
+ * Only a notice is waiting (an update): More wears the brand dot the
+ * hamburger and account trigger use for it, not the red of attention
+ * (07 `53:100587`).
+ */
+export const BottomNavUpdateAvailable: Story = {
+  globals: {
+    viewport: { value: "mobile1", isRotated: false },
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+  render: () => (
+    <DemoSidebar
+      variant="bottom-nav"
+      labels={BOTTOM_NAV_LABELS}
+      items={WEB_IA.map((item) => ({ ...item, badge: undefined }))}
+      update={DEMO_UPDATE}
+    />
+  ),
+};
+
+/**
+ * Slice 1.4b — `railBreakpoint="md"`: the rail takes over from 768px instead
+ * of 1024px, so a 900px window (07 `61:17544`) gets the rail. Pair it with
+ * MainContent's `railBreakpoint="md"`. Use the Tablet viewport to see the
+ * difference; VRT's 1200 and 390 widths render the same as `lg`.
+ */
+export const RailBreakpointMd: Story = {
+  globals: {
+    viewport: { value: "tablet", isRotated: false },
+  },
+  parameters: {
+    viewport: { defaultViewport: "tablet" },
+  },
+  render: () => <DemoSidebar railBreakpoint="md" initialCollapsed />,
+};
+
+const HUB_BOARDS = [
+  { id: "kitchen", name: "Kitchen board" },
+  { id: "living", name: "Living room" },
+];
+const HUB_LABELS = {
+  boardSelector: "Select board",
+  selectBoard: "Select a board",
+  unnamedBoard: "Unnamed board",
+  hubStatus: { online: "Online", remote: "Remote", unreachable: "Can’t reach" },
+};
+
+/**
+ * Slice 1.4c on the rail: the BoardSelector names the hub under the trigger
+ * (07a `53:143037`: "fiestapi.local · Online").
+ */
+export const HubIdentity: Story = {
+  render: () => (
+    <DemoSidebar
+      boardSelector={
+        <BoardSelector
+          boards={HUB_BOARDS}
+          value="kitchen"
+          onChange={() => {}}
+          labels={HUB_LABELS}
+          host="fiestapi.local"
+          status="online"
+        />
+      }
+      mobileBoardSelector={
+        <BoardSelector
+          boards={HUB_BOARDS}
+          value="kitchen"
+          onChange={() => {}}
+          labels={HUB_LABELS}
+          host="fiestapi.local"
+          status="online"
+          variant="mobileHeader"
+        />
+      }
+    />
+  ),
+};
+
+/** The phone chrome of the 07 Home: hub pill in the header, tab bar below. */
+export const HubIdentityBottomNav: Story = {
+  globals: {
+    viewport: { value: "mobile1", isRotated: false },
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+  render: () => (
+    <DemoSidebar
+      variant="bottom-nav"
+      labels={BOTTOM_NAV_LABELS}
+      items={WEB_IA}
+      mobileBoardSelector={
+        <BoardSelector
+          boards={HUB_BOARDS}
+          value="kitchen"
+          onChange={() => {}}
+          labels={HUB_LABELS}
+          host="fiestapi.local"
+          status="unreachable"
+          variant="mobileHeader"
+        />
+      }
+    />
+  ),
 };
