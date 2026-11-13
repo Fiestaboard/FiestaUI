@@ -282,6 +282,102 @@
       },
       "tolerance": {},
       "waivers": []
+    },
+    {
+      "id": "chrome-board-selector-hub-online",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "302:2055",
+        "waitingOn": "a ref for this id in a refs checkout (refs repo, O4, or a local MCP capture); O5 is dropped and the Fable visual review is the gate"
+      },
+      "target": {
+        "story": "app-chrome-boardselector--hub-online",
+        "root": "[data-slot=board-selector-stack]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": "[data-slot=board-selector-hub] [data-slot=status-dot]",
+            "property": "background-color",
+            "variable": "var(--success)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "BoardSelector",
+            "selector": "[data-slot=select-trigger]",
+            "measure": "box"
+          },
+          {
+            "node": "StatusDot · success",
+            "selector": "[data-slot=board-selector-hub] [data-slot=status-dot]",
+            "measure": "box"
+          },
+          {
+            "node": "Hub",
+            "selector": "[data-slot=board-selector-hub] > span:last-child",
+            "measure": "text"
+          }
+        ],
+        "text": [
+          {
+            "node": "Hub",
+            "selector": "[data-slot=board-selector-hub] > span:last-child"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "chrome-sidebar-bottom-nav-home",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "53:100392",
+        "waitingOn": "a ref for this id in a refs checkout (refs repo, O4, or a local MCP capture); O5 is dropped and the Fable visual review is the gate"
+      },
+      "target": {
+        "story": "app-chrome-sidebar--bottom-nav",
+        "root": "[data-slot=sidebar-bottom-nav]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": "[aria-current=page]",
+            "property": "background-color",
+            "variable": "var(--nav-active)"
+          },
+          {
+            "selector": "[data-slot=sidebar-bottom-nav-more] [data-slot=nav-badge]",
+            "property": "background-color",
+            "variable": "var(--destructive)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Item · Home",
+            "selector": "[aria-current=page]",
+            "measure": "box"
+          },
+          {
+            "node": "Home",
+            "selector": "[aria-current=page] > span:not(.sr-only)",
+            "measure": "text"
+          }
+        ],
+        "text": [
+          {
+            "node": "Home",
+            "selector": "[aria-current=page] > span:not(.sr-only)"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
     }
   ]
 }

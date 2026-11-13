@@ -1,7 +1,8 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import { TooltipProvider } from "../overlays/tooltip";
 import { type BoardOption, BoardSelector, type BoardSelectorLabels } from "./board-selector";
 
 /*
@@ -88,5 +89,204 @@ describe("BoardSelector status", () => {
     expect(document.querySelector('[data-slot="status-dot"]')).toBeNull();
     expect(list.getByRole("option", { name: "Living Room" })).not.toHaveAttribute("aria-describedby");
     expect(trigger()).not.toHaveAttribute("aria-describedby");
+  });
+});
+
+/*
+ * Hub identity (slice 1.4c, C12 / WEB-09). The selector names WHICH hub the
+ * household is talking to (`host`) and whether it can reach it (`status`),
+ * following the web 07a Display switcher (`302:2146`): Online, Remote and
+ * Can't reach are always WORDS beside the dot or glyph, never colour alone.
+ * The words are the app's (`labels.hubStatus`); a status whose words are
+ * missing draws no indicator at all, so the colour can never stand alone.
+ */
+describe("BoardSelector hub line", () => {
+  const HUB_LABELS: BoardSelectorLabels = {
+    ...LABELS,
+    hubStatus: { online: "Online", remote: "Remote", unreachable: "Can't reach" },
+  };
+  const HEALTHY: BoardOption[] = [{ id: "kitchen", name: "Kitchen board" }];
+
+  function hubLine() {
+    return document.querySelector<HTMLElement>('[data-slot="board-selector-hub"]');
+  }
+
+  it("renders nothing new without a host or status, so existing installs are unchanged", () => {
+    render(<BoardSelector boards={HEALTHY} value="kitchen" onChange={() => {}} labels={HUB_LABELS} />);
+
+    expect(hubLine()).toBeNull();
+    expect(trigger()).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("reads host then state under the sidebar trigger", () => {
+    render(
+      <BoardSelector
+        boards={HEALTHY}
+        value="kitchen"
+        onChange={() => {}}
+        labels={HUB_LABELS}
+        host="fiestapi.local"
+        status="online"
+      />,
+    );
+
+    expect(hubLine()).toHaveTextContent("fiestapi.local · Online");
+    expect(hubLine()?.querySelector('[data-slot="status-dot"]')).toHaveAttribute("data-status", "success");
+    expect(trigger()).toHaveAccessibleDescription("fiestapi.local · Online");
+  });
+
+  it.each([
+    ["online", "success"],
+    ["remote", "info"],
+    ["unreachable", "danger"],
+  ] as const)("maps %s to a %s dot", (status, dotStatus) => {
+    render(
+      <BoardSelector
+        boards={HEALTHY}
+        value="kitchen"
+        onChange={() => {}}
+        labels={HUB_LABELS}
+        host="fiestapi.local"
+        status={status}
+      />,
+    );
+
+    expect(hubLine()?.querySelector('[data-slot="status-dot"]')).toHaveAttribute("data-status", dotStatus);
+  });
+
+  it("leads with the state in the mobile header pill, where the host truncates", () => {
+    render(
+      <BoardSelector
+        boards={HEALTHY}
+        value="kitchen"
+        onChange={() => {}}
+        labels={HUB_LABELS}
+        host="fiestapi.example.net"
+        status="remote"
+        variant="mobileHeader"
+      />,
+    );
+
+    expect(hubLine()).toHaveTextContent("Remote · fiestapi.example.net");
+    expect(trigger()).toContainElement(hubLine());
+    expect(trigger()).toHaveAccessibleDescription("Remote · fiestapi.example.net");
+  });
+
+  it("swaps the dot for a state glyph on the collapsed rail and keeps the words in the description", () => {
+    render(
+      <TooltipProvider>
+        <BoardSelector
+          boards={HEALTHY}
+          value="kitchen"
+          onChange={() => {}}
+          labels={HUB_LABELS}
+          host="fiestapi.local"
+          status="unreachable"
+          collapsed
+        />
+      </TooltipProvider>,
+    );
+
+    const glyph = document.querySelector('[data-slot="board-selector-hub-glyph"]');
+    expect(glyph).toHaveAttribute("data-status", "unreachable");
+    expect(glyph).toHaveAttribute("aria-hidden", "true");
+    expect(document.querySelector('[data-slot="status-dot"]')).toBeNull();
+    expect(trigger()).toHaveAccessibleDescription("fiestapi.local · Can't reach");
+  });
+
+  it("names the hub in the collapsed tooltip", async () => {
+    const user = userEvent.setup();
+    render(
+      <TooltipProvider delayDuration={0}>
+        <BoardSelector
+          boards={HEALTHY}
+          value="kitchen"
+          onChange={() => {}}
+          labels={HUB_LABELS}
+          host="fiestapi.local"
+          status="online"
+          collapsed
+        />
+      </TooltipProvider>,
+    );
+
+    await user.hover(trigger());
+
+    // The sr-only description carries the same words, so look for the
+    // tooltip's own copy: the second match once the tooltip is open.
+    await waitFor(() => expect(screen.getAllByText("fiestapi.local · Online")).toHaveLength(2));
+  });
+
+  it("draws no indicator for a status the app gave no words for", () => {
+    render(
+      <BoardSelector
+        boards={HEALTHY}
+        value="kitchen"
+        onChange={() => {}}
+        labels={LABELS}
+        host="fiestapi.local"
+        status="online"
+      />,
+    );
+
+    expect(hubLine()).toHaveTextContent(/^fiestapi\.local$/);
+    expect(document.querySelector('[data-slot="status-dot"]')).toBeNull();
+  });
+
+  it("draws no glyph on the collapsed rail for a status without words", () => {
+    render(
+      <TooltipProvider>
+        <BoardSelector boards={HEALTHY} value="kitchen" onChange={() => {}} labels={LABELS} status="remote" collapsed />
+      </TooltipProvider>,
+    );
+
+    expect(document.querySelector('[data-slot="board-selector-hub-glyph"]')).toBeNull();
+    expect(hubLine()).toBeNull();
+  });
+
+  it("shows the state alone when there is no host", () => {
+    render(
+      <BoardSelector boards={HEALTHY} value="kitchen" onChange={() => {}} labels={HUB_LABELS} status="unreachable" />,
+    );
+
+    expect(hubLine()).toHaveTextContent(/^Can't reach$/);
+  });
+
+  it("describes the trigger with both the board error and the hub line", () => {
+    render(
+      <BoardSelector
+        boards={BOARDS}
+        value="kitchen"
+        onChange={() => {}}
+        labels={{ ...HUB_LABELS, boardError: "Unavailable" }}
+        host="fiestapi.local"
+        status="online"
+      />,
+    );
+
+    expect(trigger()).toHaveAccessibleDescription("Unavailable fiestapi.local · Online");
+  });
+});
+
+describe("BoardSelector hub glyph shapes (S7)", () => {
+  it.each([
+    ["online", "lucide-wifi"],
+    ["remote", "lucide-globe"],
+    ["unreachable", "lucide-wifi-off"],
+  ] as const)("draws %s as %s", (status, iconClass) => {
+    render(
+      <TooltipProvider>
+        <BoardSelector
+          boards={[{ id: "kitchen", name: "Kitchen board" }]}
+          value="kitchen"
+          onChange={() => {}}
+          labels={{ ...LABELS, hubStatus: { online: "Online", remote: "Remote", unreachable: "Can't reach" } }}
+          status={status}
+          collapsed
+        />
+      </TooltipProvider>,
+    );
+    const glyph = document.querySelector('[data-slot="board-selector-hub-glyph"]')!;
+    expect(glyph.getAttribute("class")!.split(/\s+/)).toContain(iconClass);
   });
 });

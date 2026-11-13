@@ -43,6 +43,15 @@ const meta = {
     },
     isAuthScreen: { description: "Auth screens render edge-to-edge with no chrome padding.", control: "boolean" },
     maxWidth: { description: "App max width in px (FiestaBoard passes MAX_APP_WIDTH).", control: "number" },
+    railBreakpoint: {
+      description: "Where the rail takes over (lg 1024px, md 768px). Match the Sidebar's railBreakpoint.",
+      control: "inline-radio",
+      options: ["lg", "md"],
+    },
+    bottomNav: {
+      description: "The Sidebar is variant=bottom-nav: pad the bottom clear of the tab bar below the rail breakpoint.",
+      control: "boolean",
+    },
     children: { control: false },
     transitioning: { control: false },
     onTransitionEnd: { control: false },
@@ -64,4 +73,14 @@ export const AiPanelOpen: Story = {
 
 export const AuthScreen: Story = {
   args: { isAuthScreen: true },
+};
+
+/** Slice 1.4a: below the rail breakpoint the bottom clears the Sidebar's tab bar. */
+export const BottomNav: Story = {
+  args: { bottomNav: true },
+};
+
+/** Slice 1.4b: the rail padding starts at 768px instead of 1024px. */
+export const RailBreakpointMd: Story = {
+  args: { railBreakpoint: "md", collapsed: true },
 };
