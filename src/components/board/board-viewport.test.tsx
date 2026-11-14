@@ -749,6 +749,31 @@ describe("BoardViewport: layout (slice 1.5e)", () => {
     expect(indicator()).toHaveTextContent("Note 1 of 3");
   });
 
+  it("settles exactly at the tile floor, but scrolls just below it", () => {
+    // Flagship: 22 × 24 px tiles + 21 × 5 px gaps = 633 px.
+    // The 334.5 px scroller minus 18 px hero padding gives scale 0.5:
+    // fitted tiles are exactly 12 px, so equality must remain readable.
+    layout = { ...layout, tileWidth: 24, gap: 5, viewport: 334.5 };
+    const { rerender } = render(<BoardViewport {...FLAGSHIP} layout="medium-hero" minTile={12} />);
+    expect(root()).toHaveAttribute("data-settled", "true");
+    expect(scaled().style.transform).toBe("scale(0.5)");
+    expect(screen.queryByRole("region")).toBeNull();
+    expect(indicator()).toBeNull();
+
+    rerender(<BoardViewport {...FLAGSHIP} layout="medium-hero" minTile={12.01} />);
+    expect(root()).toHaveAttribute("data-settled", "false");
+    expect(region()).toBeInTheDocument();
+    expect(indicator()).not.toBeNull();
+  });
+
+  it("anchors fitted boards at the top left so scaling keeps tiles inside the measured box", () => {
+    layout = { ...layout, tileWidth: 24, gap: 5, viewport: 633 };
+    render(<BoardViewport {...FLAGSHIP} layout="medium-hero" />);
+    expect(root()).toHaveAttribute("data-settled", "true");
+    expect(scaled().style.transform).toContain("scale(");
+    expect(scaled().style.transformOrigin).toBe("top left");
+  });
+
   it("settling respects a host's minTile", () => {
     layout = { ...layout, tileWidth: 24, gap: 5, viewport: 633 };
     render(<BoardViewport {...FLAGSHIP} layout="medium-hero" minTile={24} />);
