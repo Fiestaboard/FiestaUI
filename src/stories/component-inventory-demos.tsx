@@ -249,6 +249,7 @@ import { BoardShowcase } from "../components/plugin/board-showcase";
 import { PluginCard } from "../components/plugin/plugin-card";
 import { PluginCategoryBadge } from "../components/plugin/plugin-category-badge";
 import { ScaledBoardTeaser } from "../components/plugin/scaled-board-teaser";
+import { DEFAULT_SCHEDULE_ENTRY, ScheduleEntryForm } from "../components/schedule/schedule-entry-form";
 import { Code } from "../components/typography/code";
 import { Heading } from "../components/typography/heading";
 import { Kbd } from "../components/typography/kbd";
@@ -1372,6 +1373,20 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Tabs>
   ),
 
+  /* ---- Schedule ---- */
+  ScheduleEntryForm: () => (
+    <div className="w-full max-w-sm">
+      <ScheduleEntryForm
+        targets={[
+          { value: "page-brunch", label: "Weekend brunch", kind: "page" },
+          { value: "collection-morning", label: "Weekday mornings", kind: "collection" },
+        ]}
+        defaultValue={{ ...DEFAULT_SCHEDULE_ENTRY, page_id: "page-brunch", day_pattern: "weekends" }}
+        display="Kitchen board"
+        onSubmit={() => {}}
+      />
+    </div>
+  ),
   /* ---- Data ---- */
   BarList: () => (
     <BarList
