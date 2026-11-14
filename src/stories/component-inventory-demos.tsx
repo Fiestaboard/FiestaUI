@@ -70,6 +70,7 @@ import { Task, TaskContent, TaskItem, TaskTrigger } from "../components/ai/task"
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "../components/ai/tool";
 import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
+import { BoardPreviewModeToggle } from "../components/board/board-preview-mode-toggle";
 import { BoardSizeIndicator } from "../components/board/board-size-indicator";
 import { BoardTeaser } from "../components/board/board-teaser";
 import { BoardViewport } from "../components/board/board-viewport";
@@ -375,6 +376,11 @@ const SeeItsOwnStory = ({ storyPath, why }: { storyPath: string; why: string }) 
 /* ------------------------------------------------------------------ *
  * Controlled components need an owner
  * ------------------------------------------------------------------ */
+
+function BoardPreviewModeToggleDemo() {
+  const [mode, setMode] = useState<"fit" | "actual">("actual");
+  return <BoardPreviewModeToggle mode={mode} onModeChange={setMode} />;
+}
 
 function CountdownDemo() {
   // Pinned at mount, half a second inside the minute, so the inventory
@@ -1883,6 +1889,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       />
     </div>
   ),
+  BoardPreviewModeToggle: () => <BoardPreviewModeToggleDemo />,
   PreviewSlot: () => (
     <PreviewSlot className="w-full max-w-[320px]">
       <StaticBoardDisplay message={BOARD_MESSAGE} size="sm" />

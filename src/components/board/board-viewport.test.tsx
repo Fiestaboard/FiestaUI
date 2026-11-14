@@ -572,3 +572,55 @@ describe("BoardViewport: re-review nits", () => {
     expect(text).toHaveAttribute("aria-hidden", "true");
   });
 });
+
+describe("BoardViewport: shared toggle and header sync (slice 1.5d)", () => {
+  it("renders the shared BoardPreviewModeToggle at the touch size (02 S-1: 44 px on any pointer)", () => {
+    render(<BoardViewport {...NOTE_ARRAY} />);
+    const group = screen.getByRole("group", { name: "Preview size" });
+    expect(group).toHaveAttribute("data-slot", "board-preview-mode-toggle");
+    expect(group).toHaveAttribute("data-size", "touch");
+    expect(fitButton()).toHaveClass("h-5.5", "before:min-h-touch", "before:min-w-touch");
+  });
+
+  it("showModeToggle={false} hides the pills but keeps F, reporting through onModeChange", () => {
+    const onModeChange = vi.fn();
+    render(<BoardViewport {...NOTE_ARRAY} showModeToggle={false} onModeChange={onModeChange} persist={false} />);
+    expect(screen.queryByRole("group", { name: "Preview size" })).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+    fireEvent.keyDown(region(), { key: "f" });
+    expect(onModeChange).toHaveBeenCalledWith("fit");
+    expect(document.querySelector("[data-slot=board-viewport]")).toHaveAttribute("data-mode", "fit");
+  });
+
+  it("drops the empty toggle row when the toggle is hidden and there is no title", () => {
+    render(<BoardViewport {...NOTE_ARRAY} showModeToggle={false} />);
+    const root = document.querySelector("[data-slot=board-viewport]") as HTMLElement;
+    expect(root.firstElementChild).toHaveAttribute("data-slot", "board-viewport-bezel");
+  });
+
+  it("keeps the title row when the toggle is hidden", () => {
+    render(<BoardViewport {...NOTE_ARRAY} showModeToggle={false} title="NOTE ARRAY 3×1" />);
+    expect(screen.getByText("NOTE ARRAY 3×1")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("a host-driven Fit → Actual (a header toggle) also returns to the start of the board", () => {
+    const { rerender } = render(<BoardViewport {...NOTE_ARRAY} mode="fit" showModeToggle={false} />);
+    expect(scrollTo).not.toHaveBeenCalled();
+    rerender(<BoardViewport {...NOTE_ARRAY} mode="actual" showModeToggle={false} />);
+    expect(scrollTo).toHaveBeenLastCalledWith({ left: 0, behavior: "auto" });
+    scrollTo.mockClear();
+    rerender(<BoardViewport {...NOTE_ARRAY} mode="fit" showModeToggle={false} />);
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("does not jump on mount in Actual size", () => {
+    render(<BoardViewport {...NOTE_ARRAY} mode="actual" />);
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("does not pass showModeToggle onto the board", () => {
+    render(<BoardViewport {...NOTE_ARRAY} showModeToggle={false} />);
+    expect(screen.getByRole("img")).not.toHaveAttribute("showModeToggle");
+  });
+});
