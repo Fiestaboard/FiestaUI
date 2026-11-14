@@ -217,6 +217,25 @@ describe("ConnectPhoneCard", () => {
     expect(error).toHaveBeenCalledWith(expect.stringContaining("loopback"));
   });
 
+  it("a refused card explains the refusal instead of claiming to connect", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { rerender } = render(
+      <ConnectPhoneCard qr={QR} qrLabel="QR" hubAddress="localhost:4420" hubLabel="Connects to localhost:4420" />,
+    );
+    const hub = () => card().querySelector('[data-slot="connect-phone-hub"]');
+    expect(hub()).toHaveTextContent("No code: a phone can’t reach localhost:4420");
+    expect(screen.queryByText(/Connects to/)).toBeNull();
+    rerender(
+      <ConnectPhoneCard
+        qr={QR}
+        qrLabel="QR"
+        hubAddress="localhost:4420"
+        refusedLabel="Use your hub’s network address"
+      />,
+    );
+    expect(hub()).toHaveTextContent("Use your hub’s network address");
+  });
+
   it("draws no bar for a non-finite timeLeft", () => {
     render(<ConnectPhoneCard qr={QR} qrLabel="QR" hubAddress="fiestapi.local" timeLeft={Number.NaN} />);
     expect(card().querySelector('[data-slot="connect-phone-time-left"]')).toBeNull();

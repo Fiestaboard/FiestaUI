@@ -7,13 +7,13 @@
 **Reference** (Figma `ZQ8RMELCO6qEOFZUnQu36e`, read only):
 
 - 07e §3 Connect a phone `323:14595`: live `323:16724`, localhost `323:18641`, claimed `323:20460`, expired `323:22216`, phone browser `324:21027`. PairingQR panel: card ground, border, radius 14, p 16, gap 10; QR 208; hub line (shield-check 14 muted + xs medium); countdown (clock 14 + xs medium); time-left bar 208×4 primary on muted. Steps beside it (gap 24); footnote xs muted; inline Alert above for localhost. Expired: QR at 12 % and no countdown.
-- 05 Setup / Recovery steps `36:6344`: card ground, border, radius 14, p 16, gap 12; title Text/sm/semibold; rows gap 12, 24 px muted disc with Mono/label 12 number, Text/sm regular top-aligned. Hub not found `41:76887`: the retry is a screen-level button outside the card.
+- 05 Setup / Recovery steps `36:6344`: card ground, border, radius 14, p 16, gap 12; title Text/sm/semibold; rows gap 12, 24 px muted disc with Mono/label 12 number, Text/sm regular top-aligned (native; the web build follows 07e, DD-W28). Hub not found `41:76887`: the retry is a screen-level button outside the card.
 
 **Architecture:**
 
-- `NumberedSteps` gains `appearance="plain"` (05's disc). The 07e pairing steps draw a 22 px accent disc in Archivo with gap 10: unified to the 05 style (DD-W20, designer ask).
+- `NumberedSteps` gains `appearance="plain"`, which follows **07e** (the web goalpost): a 22 px accent disc, an Archivo 12 medium number and 10 px gaps. RecoverySteps uses it too and so deviates from 05's native drawing (24 px muted Mono disc, 12 px gap). Recorded as **DD-W28** (#398 review M3/M4; first filed as a colliding DD-W20).
 - `RecoverySteps`: titled card (`<p id>` names the `<ol>` through `aria-labelledby`); no role, no live region; no `retry` prop (05 draws the retry outside).
-- `ConnectPhoneCard`: `qr` slot (host-rendered, own light quiet zone), `qrLabel` (role img while live), `hubAddress` / `hubLabel`, `expiresLabel`, `timeLeft` 0–1, `steps` or `aside`, `notice`, `footnote`, `state: live | expired`. Countdown is not a live region. **H18:** a loopback `hubAddress` draws no QR, sets `data-refused="loopback"` and logs an error; `isLoopbackHost()` is exported for 2.12.
+- `ConnectPhoneCard`: `qr` slot (host-rendered, own light quiet zone), `qrLabel` (role img while live), `hubAddress` / `hubLabel`, `expiresLabel`, `timeLeft` 0–1, `steps` or `aside`, `notice`, `footnote`, `state: live | expired`. Countdown is not a live region. **H18:** a loopback `hubAddress` draws no QR, hides the slot, drops the countdown and bar, swaps the hub line for `refusedLabel` ("No code: a phone can’t reach …"), sets `data-refused="loopback"` and logs an error; `isLoopbackHost()` is exported for 2.12.
 - Title, footer actions and the claimed state are the host's (Dialog on desktop, a page on the phone).
 
 ## Steps

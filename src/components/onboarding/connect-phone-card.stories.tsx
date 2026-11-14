@@ -107,6 +107,7 @@ export const Expired: Story = {
 
 /**
  * H18: a loopback address draws no code at all (and logs an error). The
+ * hub line says why ("No code: a phone can’t reach localhost:4420"), the
  * card drops the countdown and bar; the host swaps its steps for what to do
  * instead, since there is nothing to point a camera at.
  */
@@ -114,7 +115,6 @@ export const RefusesLoopback: Story = {
   args: {
     hubAddress: "localhost:4420",
     qrLabel: "Pairing code for localhost:4420",
-    hubLabel: "Connects to localhost:4420",
     footnote: undefined,
     steps: [
       { text: "Open FiestaBoard from your hub’s network address, for example fiestapi.local." },

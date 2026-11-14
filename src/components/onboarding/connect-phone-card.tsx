@@ -1,4 +1,4 @@
-import { Clock, ShieldCheck } from "lucide-react";
+import { Clock, ShieldCheck, ShieldX } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
@@ -61,6 +61,12 @@ export interface ConnectPhoneCardProps extends Omit<React.ComponentProps<"div">,
   hubAddress: string;
   /** The hub line. @default `Connects to ${hubAddress}` (English; pass a localized string). */
   hubLabel?: React.ReactNode;
+  /**
+   * The hub line when `hubAddress` is loopback and the code is refused. It
+   * replaces `hubLabel`, so the card never claims to connect to an address it
+   * refuses. @default `No code: a phone can’t reach ${hubAddress}` (English).
+   */
+  refusedLabel?: React.ReactNode;
   /** "Expires in 4:12 · works once". The host ticks it. */
   expiresLabel?: React.ReactNode;
   /** Share of the code's life left, 0–1, drawn as the bar under the countdown. */
@@ -100,6 +106,7 @@ function ConnectPhoneCard({
   qrLabel,
   hubAddress,
   hubLabel,
+  refusedLabel,
   expiresLabel,
   timeLeft,
   steps,
@@ -143,9 +150,18 @@ function ConnectPhoneCard({
           >
             {refused ? null : qr}
           </div>
-          <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-            <ShieldCheck aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
-            {hubLabel ?? `Connects to ${hubAddress}`}
+          <p data-slot="connect-phone-hub" className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+            {refused ? (
+              <>
+                <ShieldX aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+                {refusedLabel ?? `No code: a phone can’t reach ${hubAddress}`}
+              </>
+            ) : (
+              <>
+                <ShieldCheck aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+                {hubLabel ?? `Connects to ${hubAddress}`}
+              </>
+            )}
           </p>
           {live && expiresLabel != null && (
             <p
