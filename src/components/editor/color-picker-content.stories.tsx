@@ -124,3 +124,31 @@ export const HeartFlapCharset: Story = {
     charset: "vestaboard_v2",
   },
 };
+
+/**
+ * `size="touch"` (slice 1.6b, C6): 48 px swatches in a grid that fills the
+ * bottom sheet (07 `57:65460`), here at a 358 px sheet body.
+ */
+export const Touch: Story = {
+  args: {
+    onInsert: () => {},
+    size: "touch",
+  },
+  render: (args) => (
+    <div className="w-[358px]">
+      <ColorPickerContent {...args} />
+    </div>
+  ),
+};
+
+/** `sections={["icons"]}`: the LED touch bar's Icon sheet. */
+export const IconsOnly: Story = {
+  args: {
+    onInsert: () => {},
+    onInsertIcon: () => {},
+    charset: "led_5x7",
+    size: "touch",
+    sections: ["icons"],
+  },
+  render: Touch.render,
+};
