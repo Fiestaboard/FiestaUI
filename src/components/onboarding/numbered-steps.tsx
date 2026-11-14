@@ -1,0 +1,88 @@
+import { cva } from "class-variance-authority";
+import * as React from "react";
+
+import { cn } from "../../lib/utils";
+
+/*
+ * The one ordered-list-with-a-numbered-disc recipe behind the onboarding step
+ * lists (slice 1.10; Jev 2026-11-13, shared_primitive_variants 0.72). Public
+ * names stay per use (`InstallSteps`, and `RecoverySteps` in 1.10b); the
+ * markup, the list semantics and the disc live here once, and each Figma
+ * style is an `appearance`.
+ *
+ * Internal: not exported from the package barrel.
+ */
+
+export interface NumberedStep {
+  /** Stable key. Falls back to the step's position. */
+  id?: string;
+  /** One action per step. */
+  text: React.ReactNode;
+  /** Trailing glyph. Decorative. */
+  icon?: React.ReactNode;
+}
+
+const stepVariants = cva("flex gap-3 text-sm text-foreground", {
+  variants: {
+    appearance: {
+      // 07 `58:35303`: a muted panel per step, the copy medium and centred
+      // on the disc.
+      panel: "items-center rounded-xl bg-muted p-3 font-medium",
+    },
+  },
+});
+
+const markerVariants = cva("flex shrink-0 items-center justify-center rounded-full", {
+  variants: {
+    appearance: {
+      // 28 px foreground disc, 14 semibold in background ink.
+      panel: "size-7 bg-foreground font-semibold text-background",
+    },
+  },
+});
+
+export type NumberedStepsAppearance = "panel";
+
+export interface NumberedStepsProps extends Omit<React.ComponentProps<"ol">, "children"> {
+  steps: readonly NumberedStep[];
+  appearance: NumberedStepsAppearance;
+}
+
+/**
+ * The drawn number is `aria-hidden`; the list announces position ("1 of 3"),
+ * so a screen reader does not hear the number twice. `role="list"` is
+ * explicit because Safari drops list semantics under `list-style: none`.
+ */
+function NumberedSteps({ steps, appearance, start = 1, className, ...props }: NumberedStepsProps) {
+  return (
+    // eslint-disable-next-line jsx-a11y/no-redundant-roles -- Safari/VoiceOver drops <ol> semantics under list-style: none
+    <ol
+      data-slot="numbered-steps"
+      data-appearance={appearance}
+      role="list"
+      start={start === 1 ? undefined : start}
+      className={cn("flex flex-col gap-3", className)}
+      {...props}
+    >
+      {steps.map((step, index) => (
+        <li key={step.id ?? index} data-slot="numbered-step" className={stepVariants({ appearance })}>
+          <span data-slot="numbered-step-number" aria-hidden="true" className={markerVariants({ appearance })}>
+            {start + index}
+          </span>
+          <span className="min-w-0 flex-1">{step.text}</span>
+          {step.icon != null && (
+            <span
+              data-slot="numbered-step-icon"
+              aria-hidden="true"
+              className="flex shrink-0 [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5"
+            >
+              {step.icon}
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export { NumberedSteps };

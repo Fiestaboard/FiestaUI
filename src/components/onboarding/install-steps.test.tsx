@@ -35,7 +35,7 @@ describe("InstallSteps", () => {
 
   it("draws 1-based numbers, hidden from assistive tech", () => {
     render(<InstallSteps steps={STEPS} />);
-    const numbers = [...document.querySelectorAll<HTMLElement>('[data-slot="install-step-number"]')];
+    const numbers = [...document.querySelectorAll<HTMLElement>('[data-slot="numbered-step-number"]')];
     expect(numbers.map((n) => n.textContent)).toEqual(["1", "2", "3"]);
     for (const n of numbers) expect(n).toHaveAttribute("aria-hidden", "true");
     // The accessible text of an item is the step copy only.
@@ -45,14 +45,14 @@ describe("InstallSteps", () => {
 
   it("starts numbering at `start`", () => {
     render(<InstallSteps steps={STEPS.slice(1)} start={2} />);
-    const numbers = [...document.querySelectorAll('[data-slot="install-step-number"]')].map((n) => n.textContent);
+    const numbers = [...document.querySelectorAll('[data-slot="numbered-step-number"]')].map((n) => n.textContent);
     expect(numbers).toEqual(["2", "3"]);
     expect(document.querySelector("ol")).toHaveAttribute("start", "2");
   });
 
   it("renders the trailing glyph aria-hidden, and omits the slot when there is none", () => {
     render(<InstallSteps steps={[STEPS[0], { text: "No glyph here." }]} />);
-    const icons = document.querySelectorAll<HTMLElement>('[data-slot="install-step-icon"]');
+    const icons = document.querySelectorAll<HTMLElement>('[data-slot="numbered-step-icon"]');
     expect(icons).toHaveLength(1);
     expect(icons[0]).toHaveAttribute("aria-hidden", "true");
     expect(icons[0].querySelector("svg")).not.toBeNull();
@@ -71,6 +71,7 @@ describe("InstallSteps", () => {
     );
     const list = screen.getByTestId("steps");
     expect(list).toHaveAttribute("data-slot", "install-steps");
+    expect(list).toHaveAttribute("data-appearance", "panel");
     expect(list.className).toContain("mt-2");
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });

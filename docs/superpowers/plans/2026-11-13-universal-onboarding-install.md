@@ -13,7 +13,7 @@
 **Architecture** (new folder `src/components/onboarding/`, inventory section "Onboarding"):
 
 - `InstallCard`: a labelled `<section>` on `cardSurfaceClassName`; `IconTile size="sm"` + `Heading size="base"`; body is `children`; `state: "available" | "installing" | "needs-https"`. `installing` is Button `loading` (keeps focus, `aria-busy`). `needs-https` renders no Install button at all (the 07 rule) and the host passes the "needs a secure address" copy. `onDismiss` renders "Not now". Labels overridable. Trigger timing and snooze are the WEB-12 trigger logic and stay in web 2.8.
-- `InstallSteps`: an `<ol role="list">` of muted rows; `steps: { text, icon? }[]`. The number disc is `aria-hidden` (position is announced by the list). It is the sheet's body; the sheet itself is `Sheet side="bottom" grabber` from 1.3, shown in the `InSheet` story.
+- `InstallSteps`: a thin wrapper over the internal `NumberedSteps` primitive (`appearance="panel"`; Jev 2026-11-13 `shared_primitive_variants` 0.72, so 1.10b's RecoverySteps and the pairing steps add a `plain` appearance instead of a second recipe): an `<ol role="list">` of muted rows; `steps: { text, icon? }[]`. The number disc is `aria-hidden` (position is announced by the list). It is the sheet's body; the sheet itself is `Sheet side="bottom" grabber` from 1.3, shown in the `InSheet` story.
 - `PrivacyNote`: static prose like `Note` (no role, no live region), on the card ground with a border and no elevation; `title` + `children`; the shield-check glyph is fixed and `aria-hidden`.
 - Ships no copy: titles and bodies are the consumer's (same rule as StatusBanner). Button labels have English defaults (`DEFAULT_INSTALL_CARD_LABELS`).
 
