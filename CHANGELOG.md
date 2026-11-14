@@ -1,5 +1,119 @@
 # @fiestaboard/ui
 
+## 8.17.0-alpha.2
+
+### Minor Changes
+
+- [#401](https://github.com/Fiestaboard/FiestaUI/pull/401) [`7e81bd9`](https://github.com/Fiestaboard/FiestaUI/commit/7e81bd9a8f6587423c92200715ae6fe3f8ce6948) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Fit / Actual size has one toggle, and fit-scaled boards have clean corners (slice 1.5d).
+
+  - **New `BoardPreviewModeToggle`.** The Fit / Actual size pills (Figma `ScaledBoardDisplay / Size toggle`): 22 px pills, 11 px text, 4 px apart; the active one is `border-primary` on `primary/10`.
+    - It is controlled: pass `mode` and `onModeChange`. Put it in `EditorPreview`'s `headerAction` and drive the board from the same state; BoardViewport's F key reports through the same `onModeChange`, so the two stay in sync.
+    - The tap target is 44 px without moving the layout: under the opted-in `coarse:` layer at `size="default"`, on any pointer at `size="touch"` (the [#385](https://github.com/Fiestaboard/FiestaUI/issues/385) touch axis).
+    - `labels` (`previewSize`, `fit`, `actual`) localise it.
+  - **One source.** `BoardViewport` and `ScaledBoardDisplay` now render this toggle. BoardViewport uses `size="touch"`; its pills are 22 px tall (were 21). ScaledBoardDisplay's pills are 22 px tall (were about 26), so a note array's board sits a few pixels higher.
+  - **`showModeToggle`** on `BoardViewport` and `ScaledBoardDisplay` (default `true`). Pass `false` when the host shows the toggle itself, so a preview never shows two. F still works in BoardViewport.
+  - **BoardViewport** returns to the start of the board on any switch to Actual size, including one made by a host through a controlled `mode`.
+  - **ScaledBoardDisplay corners.** The fit container clipped the board at its square bounding box, so the bezel's drop shadow showed only as grey square notches at the corners (a light square frame in dark). The fit box now reserves room for the original shadow and scales the board and shadow together into the available width. This removes the notches without discarding the shadow or letting it spill outside the slot. Bezel-free boards retain the full slot width.
+
+- [#405](https://github.com/Fiestaboard/FiestaUI/pull/405) [`60bbfae`](https://github.com/Fiestaboard/FiestaUI/commit/60bbfae5eaf3e861107b33a6b9b92f49746b3e78) Thanks [@jeffredodd](https://github.com/jeffredodd)! - `BoardViewport` gets a `layout` prop that places the board the way the screen designs do (slice 1.5e). It uses the same values and the same tile size per layout as `ScaledBoardDisplay`. Without `layout`, nothing changes.
+
+  - **`phone-hero`** (Tile sm), **`medium-hero`** (Tile md) and **`full-screen`** (Tile lg) are hero placements, from 07a's Home hero.
+    - **Inset:** the tiles sit 12 px across and 16 px down from the bezel's outer edge, as drawn. A 22-column Flagship is 373 px wide, so it fits a 390 px phone with 8 px gutters and does not scroll.
+    - **Bezel:** it hugs a board that fits, centred, with 07a's 10 px radius and small shadow.
+    - **Settle to fit:** a hero board that is wider than its slot, but fits with every tile still at or above `minTile` (13 px), is shown fitted, with no scroll chrome. A Flagship at 768 px therefore no longer hides one column behind the edge fade. Below the floor, a board scrolls as before.
+    - Hero viewports expose `data-layout` and `data-settled`.
+  - **`pane`** (Tile md) is the editor preview: the default inset and Actual size, with no settling.
+  - **Export:** `BOARD_VIEWPORT_HERO_INSET` (`{ x: 12, y: 16 }`).
+
+- [#404](https://github.com/Fiestaboard/FiestaUI/pull/404) [`f16c2bc`](https://github.com/Fiestaboard/FiestaUI/commit/f16c2bc4a096aca56f9f04dbe2b18dafcbcb2655) Thanks [@jeffredodd](https://github.com/jeffredodd)! - `ListRow` gains `selected` (and `current`): the open row of a list-detail draws the 07e inset accent pill, sets its title in semibold and carries `aria-current`, without painting over an inset group's rounded corners.
+
+- [#396](https://github.com/Fiestaboard/FiestaUI/pull/396) [`d4ef0d3`](https://github.com/Fiestaboard/FiestaUI/commit/d4ef0d36363913f8e04d748b9a9018fa176aaaf0) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add the onboarding and PWA pieces of the honest install flow (universal slice 1.10a): `InstallCard`, `InstallSteps` and `PrivacyNote`, in a new Onboarding group.
+
+  - `InstallCard` is the in-content install offer (07 Chrome install card): a labelled section on the card surface with a small muted IconTile, a title, a body and the Install (secondary, download icon) and Not now (ghost) actions. `state="installing"` makes Install busy and keeps focus; `state="needs-https"` draws no Install button at all, so an insecure origin never shows a fake button. When to show it and the snooze stay with the consumer. Labels default to `DEFAULT_INSTALL_CARD_LABELS`.
+  - `InstallSteps` is a numbered list of browser steps (07 Safari Add to Home Screen sheet): muted rows with a numbered disc, the step copy and an optional trailing glyph. Host it in `Sheet side="bottom" grabber`.
+  - `PrivacyNote` is the standing "your data stays on your network" promise (05 Setup / Privacy note): static prose with a shield glyph, a title and a body, on the card ground with a border.
+
+  None of them ships copy: titles, bodies and steps are the consumer's.
+
+- [#398](https://github.com/Fiestaboard/FiestaUI/pull/398) [`dc3a253`](https://github.com/Fiestaboard/FiestaUI/commit/dc3a25333fc7e3341cf4cca61c63772acdc7d56f) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add `ConnectPhoneCard` and `RecoverySteps` to the Onboarding group (universal slice 1.10b).
+
+  - `ConnectPhoneCard` is the body of web Settings › Connect a phone (07e). It shows the pairing QR panel, with the host-rendered code, the hub line, an "Expires in …" countdown and a time-left bar. The phone steps sit beside it, or an `aside` in their place, with an optional `notice` above and `footnote` below. `state="expired"` dims the code and drops the countdown. A loopback `hubAddress` draws no code at all: the slot is hidden, the countdown and bar go, the hub line explains the refusal (`refusedLabel`), `data-refused="loopback"` is set and an error is logged, so a phone is never handed an address it cannot reach. `isLoopbackHost()` is exported for hosts.
+  - `RecoverySteps` is a titled card of numbered fixes for an error state (05 Setup / Recovery steps), with the most likely fix first. The retry action stays with the host.
+
+  Both use the same numbered list as `InstallSteps`, in a new `plain` appearance.
+
+- [#406](https://github.com/Fiestaboard/FiestaUI/pull/406) [`233ded5`](https://github.com/Fiestaboard/FiestaUI/commit/233ded587841b9af838d6c9c838f120ff7987364) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add HubDiscoveryRow for host-discovered hubs: a full-row native button composed from ListRow, with name, address, optional decorative icon and status, disabled support and inherited inset-group size. Discovery and navigation stay in the host.
+
+- [#402](https://github.com/Fiestaboard/FiestaUI/pull/402) [`f8b67d0`](https://github.com/Fiestaboard/FiestaUI/commit/f8b67d06f16ea6b4d546c94b0fe70367851b0dcf) Thanks [@jeffredodd](https://github.com/jeffredodd)! - New `ScheduleEntryForm` adds or edits one Schedule entry (slice 1.9a, C27). It uses touch size (44 px controls) by default, and `size="default"` gives the desktop sizes.
+
+  - **The value is the hub's `ScheduleEntry`.** Field names are the same snake_case: `page_id`, `start_type` / `start_time` / `start_sun_offset`, `end_type` / `end_time` (null means open-ended) / `end_sun_offset`, `recurrence_type`, `day_pattern` / `custom_days`, `annual_date` / `annual_end_date`, `one_off_date` / `one_off_end_date` and `enabled`. A host can send the value to the hub without mapping it.
+  - **`validateScheduleEntry`** applies the hub's `validate_config` rules:
+    - a page is required;
+    - a fixed range can't be zero-length, but a midnight rollover is fine;
+    - a custom pattern needs at least one day;
+    - dates must be real, and an end date can't come before its start.
+  - **`normalizeScheduleEntry`** clears the fields that the chosen recurrence and time types don't use, and puts custom days in Monday-first order.
+  - **Controls:**
+    - Page or Collection, grouped by kind. It can be read-only when opened from Shows on.
+    - Starts: At a time, Sunrise or Sunset. Sun times take a ±15-minute offset and show the hub's resolved time.
+    - Ends: At a time, Open-ended, Sunrise or Sunset.
+    - Repeat: Weekly (All, Weekdays, Weekends, or Custom day toggles), Every year on (month and day, with an optional last day) or Once on (a date, with an optional last day).
+    - Entry is on.
+    - A host consequence line, Save (busy state) and Delete entry….
+  - Times and dates use the system pickers (native `time` and `date` inputs). Every word can be overridden through `labels`.
+
+  - Sun-time validation reveals editable fallback-time fields when stored values are invalid, without silently changing the hub's fallback schedule. Controlled date ranges follow replaced entries, busy form submission is guarded, and one-off dates reject year zero.
+
+- [#400](https://github.com/Fiestaboard/FiestaUI/pull/400) [`979ed4b`](https://github.com/Fiestaboard/FiestaUI/commit/979ed4b84121aafda5a26dad6e964c6be2bc2346) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Schedule agenda rows, the day picker and notification rows (slice 1.8d, C24 and C26).
+
+  - **New `AgendaRow`** (a `ListRow`): one row of the phone and mobile-web Schedule, drawn as the 07d day list draws it. The title is the page or collection, the description is "9:00 AM – 1:00 PM · Page", and a chevron trails. `kind`:
+    - `entry`: a plain row.
+    - `now`: the filled row, the word "Now" and `aria-current="time"`.
+    - `gap`: "Gap · <default page>".
+    - `conflict`: the danger tint and the word "Overlap", with the description in destructive.
+      The words are overridable `labels`; `status` overrides the word, and `trailing={null}` drops the chevron.
+  - **New `WeekStrip` and `DayChip`**: the day picker, built on `SegmentedControl` at the 44 px touch size, on one line that scrolls sideways. `DayChip hasGap` adds a warning dot and ", has a gap" to the day's name (`gapLabel`).
+  - **New `NotificationRow`** (a `ListRow`): an alert, why it fires, and a touch `Switch` named by the title and described by the reason. `permission="denied" | "unavailable"` turns the switch off and disables it, and appends "blocked by the browser" or "needs HTTPS" to the reason; `granted` and `ask-on-first` keep it live.
+
+- [#399](https://github.com/Fiestaboard/FiestaUI/pull/399) [`83ec405`](https://github.com/Fiestaboard/FiestaUI/commit/83ec405ab93e1408654dbb8f94d111ea3d240e8a) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Plugin settings from their schema, and settings a display can't offer (slice 1.9c, Figma 08 P9 and P11; web goalpost 07d Integration · Setup required).
+
+  - New `SchemaFormRows`: renders a plugin's or output's JSON Schema settings as stacked rows (label, control, helper line, error in its place). The mapping covers what ships: `ui:widget: "password"` and `secret: true` → `SecretInput` (the hub's `"***"` shows as "Saved — type to replace" and clearing keeps it); `enum` (array or `{ values }`, with `enumNames`) → `Select`; `mode-cards` → a `ToggleCardGroup`; a multi-enum array → chips (`ToggleGroup`); `boolean` → `Switch`; `integer` / `number` → a numeric input with `minimum` / `maximum`; `timezone` → `TimezonePicker`; `textarea` (widget or format) → `Textarea`; `url` / `format: "uri"` and `datetime` → typed inputs; a string array → one per line; a nested object → its own fieldset; `ui:sections` (collapsible) and `ui:placeholder`. Hub-data widgets (remote-options, page-picker, device-picker, tile-grid, json-path-mapper) are rendered by the host through `widgets`; the row still owns label, helper and error.
+  - `ui:visible_when` is evaluated exactly as the hub does (same shared vectors). A field the board's facts hide (`facts`, read by `@device_type` / `@device_model`) is listed as an explainer row with a reason (`labels.unavailable`) instead of vanishing, unless `unavailable="hide"`; a field hidden by a sibling value just goes.
+  - New `UnavailableSettingRow`: a setting this display can't offer, said in place of its control, with the reason. Also for display settings outside a schema (Brightness on a split-flap).
+  - New helpers: `resolveSchemaControl`, `schemaEnumOptions`, `isSecretField`, `isSchemaFieldVisible`, `hiddenByBoard`, `MASKED_SECRET`, `DEFAULT_SCHEMA_FORM_ROWS_LABELS`.
+
+- [#403](https://github.com/Fiestaboard/FiestaUI/pull/403) [`d463a2b`](https://github.com/Fiestaboard/FiestaUI/commit/d463a2b14bbd3c211d8f1d40a9f3c44e41dd2368) Thanks [@jeffredodd](https://github.com/jeffredodd)! - The template editor gets a touch toolbar with bottom-sheet pickers, and the editor can say what the board will drop (slice 1.6b).
+
+  - **`TemplateEditorToolbar size="touch"`.** A 60 px bar of labelled 52 px tools (new `EditorTool`), with no hover-only tooltips. Every picker opens as a non-modal bottom sheet with a grabber, so the live preview above stays visible.
+    - **Split-flap:** Variables · Colors · Formatting · Formula │ Undo · Redo · More.
+    - **LED:** Variables · Text color · Icon · Size · Formula · More. Undo and Redo move into More.
+    - **`capabilities`** (`"split-flap"` or `"led-text"`) picks the tool set. When it is unset, it is derived from `charset`.
+    - Tools disable rather than disappear when there is nothing to insert, so the bar never reflows.
+    - The Colors sheet stays open while you add tiles. The Formatting sheet holds the snippets plus line alignment. More holds cut, copy and paste, Draw on board, sync from board, the wrap switch, and the host's own rows (`moreContent`).
+    - The LED Size sheet comes from the host (`renderSizePicker`). Without it, Size is disabled.
+    - **Draw mode on touch:** the bar becomes Brush · Undo · Redo · Done. Brush opens a sheet with 48 px colour swatches, the eraser and 44 px stamp cells.
+    - `container` portals the bar into a host dock.
+    - New labels have English defaults.
+  - **`pickerPresentation`** on the default toolbar passes `"popover"`, `"sheet"` or `"auto"` to its pickers. The default is `"popover"`, which is unchanged.
+  - **`ToolbarDropdown`** gains `size="touch"` (a labelled tool trigger, `accent` while open), plus `detents` and `defaultDetent` for the sheet presentation.
+  - **`ColorPickerContent`** gains `size="touch"` (48 px swatches in a full-width grid) and `sections`, which picks the groups that render. It also exports `colorSwatchClassName`.
+  - **`DrawCharPickerContent`** gains `size="touch"`: 44 px cells in six columns, and the arrow keys follow the column count.
+  - **New `EditorWarning`** with `EditorWarningAction`.
+    - `kind="line-overflow"` is the validated card: a "Line 4" badge, "24 of 22 columns · 2 cut off", detail, who checked it, and fix buttons (32 px, or 44 px at `size="touch"`).
+    - `kind="line-limit"` is the warning box shown when a page is longer than the board.
+    - Both are polite status regions on the `Alert` surfaces.
+
+  At the default size, nothing changes.
+
+  Add a `trailing` host slot to TemplateEditorToolbar in default and touch sizes, retained in draw mode.
+
+  Docked editor sheets reserve the toolbar's measured height and stay above the soft keyboard, including full detents. Touch tools keep their labels and a 44 px minimum width; the row scrolls horizontally when a narrow viewport or enlarged text needs more space.
+
+- [#397](https://github.com/Fiestaboard/FiestaUI/pull/397) [`9ee0f2d`](https://github.com/Fiestaboard/FiestaUI/commit/9ee0f2dfc23ef204ce3e1362122c68214b2df282) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Schedule week grid and its inspector pane (slice 1.9b, Figma 08 P8; web goalpost 07d Schedule · Week · Conflict).
+
+  - New `WeekCalendar`: a one-to-seven-day time grid with a 56 px gutter (a label every second hour), mono caps day labels and an hour line every `hourHeight` (34 px). Entries are minutes after midnight; each is a button named by its title and described by its meta, time range and state. Kinds `entry`, `gap` (dashed) and `silence` (muted); states `conflict` (opaque danger tint, red title), `off` (faded surface, muted title) and selected (`selectedId`, `aria-current`, a 2 px primary border, or destructive when in conflict). One tab stop with roving focus: ↑ ↓ within a day, ← → to the block nearest in time on the next day that has one, Home / End. An optional `now` line. With `onCreate`, a mouse or pen drag on an empty part of a day proposes a range in `snapMinutes` (15) steps and reports `{ day, start, end }`; a click proposes one hour; touch never drags; Escape cancels. Localizable through `labels`, `formatTime` and `formatHour`.
+  - New `WeekCalendarInspector`: the pane beside the grid, a region named by its title, with a description line, a polite destructive conflict `Alert` with an actions row, a `preview` slot for the board, the fields (children) and an actions row.
+
 ## 8.17.0-alpha.1
 
 ### Minor Changes
