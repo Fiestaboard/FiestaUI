@@ -53,6 +53,30 @@ describe("ScaledBoardDisplay: Fit / Actual size toggle", () => {
     expect(screen.getByRole("button", { name: "Real" })).toBeInTheDocument();
   });
 
+  it("renders the shared BoardPreviewModeToggle (one source, slice 1.5d)", () => {
+    render(<ScaledBoardDisplay {...NOTE_ARRAY} />);
+    const group = screen.getByRole("group", { name: "Preview size" });
+    expect(group).toHaveAttribute("data-slot", "board-preview-mode-toggle");
+    expect(group).toHaveAttribute("data-size", "default");
+    expect(fit()).toHaveAttribute("data-slot", "board-preview-mode-option");
+    expect(fit()).toHaveClass("h-5.5", "coarse:before:min-h-touch");
+  });
+
+  it("showModeToggle={false} hides the pills; a controlled mode still applies (header toggle, 1.5d)", () => {
+    const { rerender } = render(<ScaledBoardDisplay {...NOTE_ARRAY} showModeToggle={false} mode="actual" />);
+    expect(screen.queryByRole("group", { name: "Preview size" })).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByTestId("actual-size-scroll")).toBeInTheDocument();
+    rerender(<ScaledBoardDisplay {...NOTE_ARRAY} showModeToggle={false} mode="fit" />);
+    expect(screen.queryByTestId("actual-size-scroll")).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("does not pass showModeToggle onto the board", () => {
+    render(<ScaledBoardDisplay {...NOTE_ARRAY} showModeToggle={false} />);
+    expect(screen.getByRole("img")).not.toHaveAttribute("showModeToggle");
+  });
+
   it("keeps a flagship fitted even when another board left actual in storage", () => {
     window.sessionStorage.setItem(BOARD_PREVIEW_MODE_STORAGE_KEY, "actual");
     render(<ScaledBoardDisplay deviceType="flagship" message="HI" />);
@@ -170,10 +194,10 @@ describe("ScaledBoardDisplay: fit measurement", () => {
       </div>,
     );
     const scaled = screen.getByRole("img").parentElement?.parentElement as HTMLElement;
-    // (420 - 20) / 800
-    expect(scaled.style.transform).toBe("scale(0.5)");
+    // Reserve the shadow within the same 400px content box.
+    expect(scaled.style.transform).toBe(`scale(${400 / 896})`);
     expect((scaled.parentElement as HTMLElement).style.width).toBe("400px");
-    expect((scaled.parentElement as HTMLElement).style.height).toBe("50px");
+    expect((scaled.parentElement as HTMLElement).style.height).toBe(`${196 * (400 / 896)}px`);
   });
 
   it("never scales up", () => {
@@ -220,12 +244,48 @@ describe("ScaledBoardDisplay: fit measurement", () => {
     });
     act(() => queued?.(0));
     const scaled = screen.getByRole("img").parentElement?.parentElement as HTMLElement;
-    expect(scaled.style.transform).toBe("scale(0.5)");
+    expect(scaled.style.transform).toBe(`scale(${400 / 896})`);
     act(() => callbacks[0]([], {} as ResizeObserver));
     unmount();
     expect(disconnect).toHaveBeenCalled();
     expect(cancel).toHaveBeenCalledWith(7);
     vi.unstubAllGlobals();
+  });
+
+  it("reserves the full bezel shadow within the fit slot without clipping at the board corners", () => {
+    stubLayout({ slot: 420, board: 800 });
+    render(
+      <div data-test-slot="true">
+        <ScaledBoardDisplay message="HI" />
+      </div>,
+    );
+    const scaled = screen.getByRole("img").parentElement?.parentElement as HTMLElement;
+    const clip = scaled.parentElement as HTMLElement;
+    expect(clip).toHaveAttribute("data-slot", "scaled-board-clip");
+    expect(clip).toHaveClass("overflow-hidden");
+    expect(scaled.style.padding).toBe("40px 48px 56px");
+    expect(scaled.style.boxSizing).toBe("content-box");
+    expect(clip.style.width).toBe("400px");
+    expect(clip.style.height).toBe(`${196 * (400 / 896)}px`);
+  });
+
+  it("uses the full slot without shadow space when the bezel is disabled, including after a prop change", () => {
+    stubLayout({ slot: 420, board: 800 });
+    const { rerender } = render(
+      <div data-test-slot="true">
+        <ScaledBoardDisplay message="HI" />
+      </div>,
+    );
+    rerender(
+      <div data-test-slot="true">
+        <ScaledBoardDisplay message="HI" bezel={false} />
+      </div>,
+    );
+    const scaled = screen.getByRole("img").parentElement?.parentElement as HTMLElement;
+    expect(scaled.style.padding).toBe("0px");
+    expect(scaled.style.transform).toBe("scale(0.5)");
+    expect((scaled.parentElement as HTMLElement).style.width).toBe("400px");
+    expect((scaled.parentElement as HTMLElement).style.height).toBe("50px");
   });
 
   it("falls back to its own container when no ancestor caps the width", () => {

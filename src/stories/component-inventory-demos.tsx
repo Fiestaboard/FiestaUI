@@ -70,6 +70,7 @@ import { Task, TaskContent, TaskItem, TaskTrigger } from "../components/ai/task"
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "../components/ai/tool";
 import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
+import { BoardPreviewModeToggle } from "../components/board/board-preview-mode-toggle";
 import { BoardSizeIndicator } from "../components/board/board-size-indicator";
 import { BoardTeaser } from "../components/board/board-teaser";
 import { BoardViewport } from "../components/board/board-viewport";
@@ -147,6 +148,8 @@ import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
 import { EditorPreview } from "../components/editor/editor-preview";
+import { EditorTool } from "../components/editor/editor-tool";
+import { EditorWarning, EditorWarningAction } from "../components/editor/editor-warning";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
 import { TemplateEditor } from "../components/editor/template-editor";
@@ -259,6 +262,7 @@ import { PluginCategoryBadge } from "../components/plugin/plugin-category-badge"
 import { ScaledBoardTeaser } from "../components/plugin/scaled-board-teaser";
 import { AgendaRow } from "../components/schedule/agenda-row";
 import { DayChip, WeekStrip } from "../components/schedule/day-chip";
+import { DEFAULT_SCHEDULE_ENTRY, ScheduleEntryForm } from "../components/schedule/schedule-entry-form";
 import { WeekCalendar } from "../components/schedule/week-calendar";
 import { WeekCalendarInspector } from "../components/schedule/week-calendar-inspector";
 import { Code } from "../components/typography/code";
@@ -377,6 +381,11 @@ const SeeItsOwnStory = ({ storyPath, why }: { storyPath: string; why: string }) 
 /* ------------------------------------------------------------------ *
  * Controlled components need an owner
  * ------------------------------------------------------------------ */
+
+function BoardPreviewModeToggleDemo() {
+  const [mode, setMode] = useState<"fit" | "actual">("actual");
+  return <BoardPreviewModeToggle mode={mode} onModeChange={setMode} />;
+}
 
 function CountdownDemo() {
   // Pinned at mount, half a second inside the minute, so the inventory
@@ -1392,6 +1401,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
 
   /* ---- Schedule ---- */
+  ScheduleEntryForm: () => (
+    <div className="w-full max-w-sm">
+      <ScheduleEntryForm
+        targets={[
+          { value: "page-brunch", label: "Weekend brunch", kind: "page" },
+          { value: "collection-morning", label: "Weekday mornings", kind: "collection" },
+        ]}
+        defaultValue={{ ...DEFAULT_SCHEDULE_ENTRY, page_id: "page-brunch", day_pattern: "weekends" }}
+        display="Kitchen board"
+        onSubmit={() => {}}
+      />
+    </div>
+  ),
   AgendaRow: () => (
     <ListRowGroup aria-label="Sunday" className="w-full max-w-md">
       <AgendaRow kind="now" title="Weekend brunch" time="9:00 AM – 1:00 PM" detail="Page" />
@@ -1885,6 +1907,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       />
     </div>
   ),
+  BoardPreviewModeToggle: () => <BoardPreviewModeToggleDemo />,
   PreviewSlot: () => (
     <PreviewSlot className="w-full max-w-[320px]">
       <StaticBoardDisplay message={BOARD_MESSAGE} size="sm" />
@@ -2013,6 +2036,26 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     <Frame className="max-w-2xl">
       <TemplateEditorToolbar editor={null} templateVariables={TEMPLATE_VARIABLES} />
     </Frame>
+  ),
+  EditorTool: () => (
+    <Frame className="flex max-w-[200px] border-t border-border bg-card px-1 py-1">
+      <EditorTool icon={<Palette />} label="Colors" />
+      <EditorTool icon={<Palette />} label="Active" active />
+    </Frame>
+  ),
+  EditorWarning: () => (
+    <Stack gap="3" className="w-full max-w-md">
+      <EditorWarning
+        kind="line-overflow"
+        line={4}
+        columns={24}
+        maxColumns={22}
+        actions={<EditorWarningAction>Wrap to line 5</EditorWarningAction>}
+      >
+        “N JUDAH 4, 12 AND 25 MIN” — the board shows the first 22 columns.
+      </EditorWarning>
+      <EditorWarning kind="line-limit" lines={7} maxLines={6} />
+    </Stack>
   ),
   ToolbarDropdown: () => (
     <ToolbarDropdown label="Colors" icon={<Palette className="size-4" />}>
