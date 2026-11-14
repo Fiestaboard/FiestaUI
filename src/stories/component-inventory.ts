@@ -87,6 +87,15 @@ export const INVENTORY = [
       { name: "Button", summary: "Seven variants × seven sizes, plus a loading state that reserves its own width." },
       { name: "Checkbox", summary: "Native checkbox styled to the system." },
       {
+        name: "SchemaFormRows",
+        summary:
+          "A plugin's settings schema as form rows: the hub's ui:* hints and ui:visible_when, secrets kept masked, host widgets.",
+      },
+      {
+        name: "UnavailableSettingRow",
+        summary: "A setting this display can't offer, said in place of its control, with the reason.",
+      },
+      {
         name: "Combobox",
         summary: "Filterable option list — a text field over an aria-activedescendant listbox.",
       },
