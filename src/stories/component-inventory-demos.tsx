@@ -199,9 +199,11 @@ import { Box } from "../components/layout/box";
 import { Flex } from "../components/layout/flex";
 import { Grid } from "../components/layout/grid";
 import { Stack } from "../components/layout/stack";
+import { ConnectPhoneCard } from "../components/onboarding/connect-phone-card";
 import { InstallCard } from "../components/onboarding/install-card";
 import { InstallSteps } from "../components/onboarding/install-steps";
 import { PrivacyNote } from "../components/onboarding/privacy-note";
+import { RecoverySteps } from "../components/onboarding/recovery-steps";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -267,6 +269,7 @@ import { Text } from "../components/typography/text";
 import { TextLink } from "../components/typography/text-link";
 import { WizardProgress } from "../components/wizard/wizard-progress";
 import type { InventoryName } from "./component-inventory";
+import { PairingQrStandIn } from "./pairing-qr-stand-in";
 
 /* ------------------------------------------------------------------ *
  * Shared fixtures
@@ -2098,6 +2101,31 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         { text: "Tap ⋯ in Safari’s address bar, then Share.", icon: <Ellipsis /> },
         { text: "Scroll down and tap Add to Home Screen.", icon: <Plus /> },
         { text: "Leave Open as Web App on, then tap Add.", icon: <Check /> },
+      ]}
+    />
+  ),
+  ConnectPhoneCard: () => (
+    <ConnectPhoneCard
+      className="w-full max-w-lg"
+      qr={<PairingQrStandIn />}
+      qrLabel="Pairing code for fiestapi.local"
+      hubAddress="fiestapi.local"
+      expiresLabel="Expires in 4:12 · works once"
+      timeLeft={0.84}
+      steps={[
+        { text: "Open the FiestaBoard app on your phone." },
+        { text: "Tap Connect a hub, then Scan QR code." },
+        { text: "Point the camera at this code and tap Connect to Maya’s FiestaPi." },
+      ]}
+    />
+  ),
+  RecoverySteps: () => (
+    <RecoverySteps
+      className="w-full max-w-sm"
+      title="Try these, in order"
+      steps={[
+        { text: "Make sure the hub is plugged in and has finished starting." },
+        { text: "Docker or Home Assistant? Enter its address instead, for example 192.168.1.50:4420." },
       ]}
     />
   ),
