@@ -153,8 +153,10 @@ import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
 import { Chip } from "../components/feedback/chip";
+import { Countdown } from "../components/feedback/countdown";
 import { EmptyState } from "../components/feedback/empty-state";
 import { Note } from "../components/feedback/note";
+import { NowShowingCard } from "../components/feedback/now-showing-card";
 import { Skeleton } from "../components/feedback/skeleton";
 import { Spinner } from "../components/feedback/spinner";
 import { StatusBanner, StatusBannerAction } from "../components/feedback/status-banner";
@@ -166,6 +168,7 @@ import { ChoiceCard, ChoiceCardGroup, ChoiceCardPreview } from "../components/fo
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
 import { CopyableCode } from "../components/forms/copyable-code";
+import { buildDurationOptions, DurationChipGroup, OutcomeLine } from "../components/forms/duration-chip-group";
 import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
@@ -358,6 +361,17 @@ const SeeItsOwnStory = ({ storyPath, why }: { storyPath: string; why: string }) 
 /* ------------------------------------------------------------------ *
  * Controlled components need an owner
  * ------------------------------------------------------------------ */
+
+function CountdownDemo() {
+  // Pinned at mount, half a second inside the minute, so the inventory
+  // screenshot reads "2h 42m left" however long the shoot takes to reach it.
+  const [endsAt] = useState(() => Date.now() + (2 * 60 + 42) * 60_000 - 500);
+  return (
+    <div className="w-full max-w-sm">
+      <Countdown endsAt={endsAt} startedAt={endsAt - 4 * 60 * 60_000} untilLabel="until 9:00 PM" />
+    </div>
+  );
+}
 
 function TimePickerDemo() {
   const [value, setValue] = useState("20:00");
@@ -708,6 +722,15 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </Flex>
     </Stack>
   ),
+  DurationChipGroup: () => (
+    <DurationChipGroup
+      aria-label="How long should Taco Tuesday stay up?"
+      options={buildDurationOptions({ nextChange: "Until 9:00 PM" })}
+      defaultValue="next-change"
+      layout="row"
+      outcome="Holds until 9:00 PM, then Schedule resumes with Good night."
+    />
+  ),
   Field: () => (
     <Stack gap="4" className="w-full max-w-[320px]">
       {/* Ids are explicit and `inv-` prefixed like every other demo on this
@@ -1049,6 +1072,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </Chip>
     </Flex>
   ),
+  Countdown: () => <CountdownDemo />,
+  NowShowingCard: () => (
+    <NowShowingCard
+      variant="compact"
+      className="w-full max-w-[370px]"
+      display="Kitchen board"
+      mode="schedule"
+      title="Morning commute"
+      description="Until 9:00 AM · then Market open"
+      board={<ScaledBoardDisplay message={BOARD_MESSAGE} size="sm" isStatic />}
+    />
+  ),
+  OutcomeLine: () => <OutcomeLine>Holds until 9:00 PM, then Schedule resumes. Next: Good night.</OutcomeLine>,
   Note: () => (
     <Stack gap="3" className="w-full max-w-lg">
       <Note icon={<Info />}>Transitions are only applied when sending through the local API.</Note>
