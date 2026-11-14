@@ -149,6 +149,7 @@ import { Note } from "../components/feedback/note";
 import { NowShowingCard } from "../components/feedback/now-showing-card";
 import { Skeleton } from "../components/feedback/skeleton";
 import { Spinner } from "../components/feedback/spinner";
+import { StatusBanner, StatusBannerAction } from "../components/feedback/status-banner";
 import { StatusDot } from "../components/feedback/status-dot";
 import { toast, Toaster } from "../components/feedback/toaster";
 import { Button } from "../components/forms/button";
@@ -1073,6 +1074,14 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         Show toast
       </Button>
     </Flex>
+  ),
+  StatusBanner: () => (
+    <StatusBanner
+      kind="paused"
+      title="Kitchen board is paused"
+      description="It keeps showing Evening commute and skips the Schedule until you resume it."
+      action={<StatusBannerAction>Resume</StatusBannerAction>}
+    />
   ),
   StatusDot: () => (
     <Flex gap="4" wrap align="center">
