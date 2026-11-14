@@ -63,6 +63,8 @@ export * from "./components/forms/toggle-card";
 export * from "./components/layout/stack";
 export * from "./components/overlays/sheet";
 export * from "./components/overlays/tooltip";
+export * from "./components/schedule/week-calendar";
+export * from "./components/schedule/week-calendar-inspector";
 export * from "./components/typography/text";
 export * from "./components/typography/text-link";
 // App chrome — branding, sidebar, layout, festive treatments.
