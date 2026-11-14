@@ -5,6 +5,7 @@ import { type BoardToken, parseLine } from "../../lib/board-characters";
 import { materializeCharacterSet } from "../../lib/character-sets";
 import { ACME_SIGN_CHARSET, ACME_SIGN_MODEL } from "../../lib/charset-golden-cases";
 import { DEVICE_MODELS, type DeviceModel, ledSpecForModel, validateDeviceModel } from "../../lib/devices";
+import { displayLinesMarkup } from "../../lib/display-content";
 import { SEQUENCE_PANEL_MODEL } from "../../lib/led-golden-cases";
 import { ledGridLayout } from "../../lib/led-matrix";
 import { FIESTAPANEL_LED_MATRIX_MODEL, FIESTAPANEL_SPLIT_FLAP_MODEL } from "../../lib/plugin-model-fixtures";
@@ -388,6 +389,105 @@ describe("DisplayPreview", () => {
       render(<DisplayPreview model={FIESTAPANEL_SPLIT_FLAP_MODEL} message="HI" tv={{ offline: true }} />);
       expect(document.querySelector("[data-slot=tv-frame]")).toBeNull();
       expect(screen.getByRole("img", { name: "Board preview: HI" })).toBeInTheDocument();
+    });
+  });
+
+  describe("content (02 Display / LED & Panel, Content = Message | Sample)", () => {
+    const ledLabel = () => screen.getByRole("img").getAttribute("aria-label");
+
+    it("draws `lines` on an LED with line 2 green and line 3 orange", () => {
+      render(<DisplayPreview model="divoom_pixoo64" lines={["72° SUNNY", "N JUDAH 4", "HI 78"]} />);
+      expect(ledLabel()).toBe("LED matrix preview: 72° SUNNY N JUDAH 4 HI 78");
+      cleanup();
+      // Same bytes as the equivalent markup: the lines are only a message.
+      render(
+        <DisplayPreview
+          model="divoom_pixoo64"
+          message={displayLinesMarkup(["72° SUNNY", "N JUDAH 4", "HI 78"], "led_matrix")}
+        />,
+      );
+      expect(ledLabel()).toBe("LED matrix preview: 72° SUNNY N JUDAH 4 HI 78");
+    });
+
+    it("draws `lines` plainly on split-flap", () => {
+      render(<DisplayPreview model="vestaboard_flagship" lines={["GOOD MORNING", "N JUDAH 4"]} />);
+      expect(screen.getByRole("img", { name: "Board preview: GOOD MORNING N JUDAH 4" })).toBeInTheDocument();
+    });
+
+    it("lets `message` and `cells` win over `lines`", () => {
+      render(<DisplayPreview model="vestaboard_note" message="HELLO" lines={["IGNORED"]} />);
+      expect(screen.getByRole("img", { name: "Board preview: HELLO" })).toBeInTheDocument();
+      cleanup();
+      render(<DisplayPreview model="vestaboard_note" cells={parsed("CELLS")} lines={["IGNORED"]} />);
+      expect(screen.getByRole("img", { name: "Board preview: CELLS" })).toBeInTheDocument();
+    });
+
+    it('draws the model\'s sample for `content="sample"`, over any message, cells or lines', () => {
+      render(<DisplayPreview model="ulanzi_tc001_awtrix" content="sample" message="NOPE" lines={["NOPE"]} />);
+      expect(ledLabel()).toBe("LED matrix preview: 72° OK");
+      expect(housing()).toHaveAttribute("data-content", "sample");
+      cleanup();
+      render(<DisplayPreview model="divoom_pixoo64" content="sample" cells={parsed("NOPE")} />);
+      expect(ledLabel()).toMatch(/^LED matrix preview: MON OCT 3 09:30 STANDUP/);
+      cleanup();
+      render(<DisplayPreview model="vestaboard_note" content="sample" />);
+      expect(screen.getByRole("img", { name: /^Board preview: GOOD MORNING N JUDAH 4 MIN/ })).toBeInTheDocument();
+    });
+
+    it("sizes the sample to the board actually drawn, rows as well as columns", () => {
+      const name = () => screen.getByRole("img").getAttribute("aria-label");
+      // A panel's own 3 × 15 grid: the Note sample.
+      render(<DisplayPreview model="vestaboard_panel" content="sample" gridRows={3} gridCols={15} />);
+      expect(name()).toBe("Board preview: GOOD MORNING N JUDAH 4 MIN");
+      cleanup();
+      // Three rows but 29 wide: still the 3-line sample, never the 6-line greeting cut off.
+      render(<DisplayPreview model="vestaboard_panel" content="sample" gridRows={3} gridCols={29} />);
+      expect(name()).toBe("Board preview: GOOD MORNING N JUDAH 4 MIN");
+      expect(tiles()).toBe(3 * 29);
+      cleanup();
+      // A note array with no notesWide / notesTall draws one Note, as the renderer does.
+      render(<DisplayPreview model="vestaboard_note_array" content="sample" />);
+      expect(name()).toBe("Board preview: GOOD MORNING N JUDAH 4 MIN");
+      // Sized to that one Note (15 × 3): the greeting on the top row, no blank row above it.
+      const flaps = [...screen.getByRole("img").querySelectorAll("[data-note-tile]")];
+      expect(flaps).toHaveLength(3 * 15);
+      expect(
+        flaps
+          .slice(0, 15)
+          .map((t) => t.textContent || " ")
+          .join("")
+          .trimEnd(),
+      ).toBe("GOOD MORNING");
+      cleanup();
+      // Only notesTall: one Note wide, two tall (15 × 6), the Note sample centred.
+      render(<DisplayPreview model="vestaboard_note_array" content="sample" notesTall={2} />);
+      expect(name()).toBe("Board preview: GOOD MORNING N JUDAH 4 MIN");
+      expect(tiles()).toBe(6 * 15);
+      cleanup();
+      render(<DisplayPreview model="vestaboard_note_array" content="sample" notesWide={2} notesTall={1} />);
+      expect(name()).toBe("Board preview: GOOD MORNING N JUDAH 4 MIN");
+      cleanup();
+      render(<DisplayPreview model="vestaboard_note_array" content="sample" notesWide={2} notesTall={2} />);
+      expect(name()).toBe("Board preview: GOOD MORNING SUNNY HI 78 LO 61 N JUDAH 4 MIN");
+      cleanup();
+      // A fixed-size model ignores a stray gridCols: the Flagship is 22 × 6.
+      render(<DisplayPreview model="vestaboard_flagship" content="sample" gridCols={15} />);
+      expect(name()).toBe("Board preview: GOOD MORNING SUNNY HI 78 LO 61 N JUDAH 4 MIN");
+      cleanup();
+      render(<DisplayPreview model="divoom_pixoo64" content="sample" font="5x7" />);
+      expect(ledLabel()).toBe("LED matrix preview: 72° SUNNY N JUDAH 4 HI 78");
+      cleanup();
+      render(<DisplayPreview model="p10_hub12_32x16" content="sample" />);
+      expect(ledLabel()).toBe("LED matrix preview: 72°");
+      cleanup();
+      render(<DisplayPreview model={FIESTAPANEL_SPLIT_FLAP_MODEL} content="sample" frame="tv" />);
+      expect(name()).toBe("Board preview: GOOD MORNING SUNNY HI 78 LO 61 N JUDAH 4 MIN");
+    });
+
+    it("marks Message content on the housing by default, and leaves the default render unchanged", () => {
+      render(<DisplayPreview model="vestaboard_note" message="HELLO" />);
+      expect(housing()).toHaveAttribute("data-content", "message");
+      expect(screen.getByRole("img", { name: "Board preview: HELLO" })).toBeInTheDocument();
     });
   });
 
