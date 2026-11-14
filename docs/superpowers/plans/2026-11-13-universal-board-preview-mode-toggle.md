@@ -19,9 +19,10 @@ There is one Fit / Actual size toggle. EditorPreview's `headerAction`, BoardView
    - BoardViewport passes `touch`, which keeps its always-44 rule (02 S-1).
    - Jev `jev_decide` chose the pill hit-area axis (p=0.72). It rejected 44 px boxes everywhere (0.01) and a box/pill layout variant (0.03).
 4. **No double toggle.** ScaledBoardDisplay and BoardViewport both gain `showModeToggle` (default `true`). A host that puts the toggle in the header passes `false` and controls `mode`. F still works in BoardViewport.
-5. **Corners.** The middle box of the fit container has the exact post-scale size. It clips at the board's measured border-radius × scale. The grey notches go in every browser, the board's geometry is unchanged, and the inset highlights stay.
-   - The outer drop shadow of a fit-scaled board is no longer drawn. Before, it was only visible as the notches.
-   - Jev `jev_decide` chose this radius clip on the middle box (p=0.86). It rejected `overflow-clip-margin` (no Safari, and the shadow spills past the dock), removing the clip, and padding the clip box (which shrinks the board).
+5. **Corners and shadow.** Reserve 48 px horizontally and 40/56 px above/below in natural coordinates, covering BoardDisplay's 0 8px 32px shadow. Scale the combined footprint into the slot. Bezel-free boards reserve no shadow space.
+   - This supersedes the earlier shadowless radius clip and DD-W54's shadow exception: that choice contradicted condition 5.
+   - Handoff Jev decision chose padding (p=0.94), over removing the clip (0.01) and retaining the shadowless exception (0.00).
+   - Anchor the two touch targets away from their gap so each remains 44 px without overlap; give the integration story vertical clearance.
 
 ## Steps (test-first)
 

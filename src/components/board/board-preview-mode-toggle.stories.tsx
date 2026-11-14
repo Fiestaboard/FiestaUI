@@ -105,7 +105,7 @@ export const WithScaledBoardDisplay: Story = {
   render: function ScaledStory() {
     const [mode, setMode] = useState<BoardPreviewMode>("fit");
     return (
-      <div className="flex w-[370px] max-w-[calc(100vw-4rem)] flex-col gap-2 overflow-hidden">
+      <div className="flex w-[370px] max-w-[calc(100vw-4rem)] flex-col gap-2 py-3">
         <div className="flex min-h-5.5 items-center justify-end">
           <BoardPreviewModeToggle mode={mode} onModeChange={setMode} />
         </div>
