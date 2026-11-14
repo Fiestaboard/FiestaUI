@@ -74,6 +74,7 @@ export * from "./components/overlays/shortcut-list";
 export * from "./components/overlays/tooltip";
 export * from "./components/schedule/agenda-row";
 export * from "./components/schedule/day-chip";
+export * from "./components/schedule/schedule-entry-form";
 export * from "./components/typography/text";
 export * from "./components/typography/text-link";
 // App chrome — branding, sidebar, layout, festive treatments.

@@ -370,6 +370,11 @@ export const INVENTORY = [
       "When pages show. The week grid and the pane that explains the entry picked on it; times are minutes after midnight, and the hub's rules stay with the host.",
     entries: [
       {
+        name: "ScheduleEntryForm",
+        summary:
+          "Add or edit one entry — the hub's own fields: sun times, open ends, weekly / yearly / once, Entry is on — at 44 px.",
+      },
+      {
         name: "AgendaRow",
         summary:
           "One agenda row — entry, now, gap or conflict — written in words: title, time · detail, a status word.",
