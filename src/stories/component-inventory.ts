@@ -370,6 +370,15 @@ export const INVENTORY = [
       "When pages show. The week grid and the pane that explains the entry picked on it; times are minutes after midnight, and the hub's rules stay with the host.",
     entries: [
       {
+        name: "WeekCalendar",
+        summary:
+          "Week time grid: entry, gap and silence blocks, conflict and selected states, roving keys, pointer drag-to-create.",
+      },
+      {
+        name: "WeekCalendarInspector",
+        summary: "The pane beside the grid: title, when and where, the conflict with its fix, the board, fields.",
+      },
+      {
         name: "ScheduleEntryForm",
         summary:
           "Add or edit one entry — the hub's own fields: sun times, open ends, weekly / yearly / once, Entry is on — at 44 px.",

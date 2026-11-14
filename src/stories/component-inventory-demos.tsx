@@ -263,6 +263,8 @@ import { ScaledBoardTeaser } from "../components/plugin/scaled-board-teaser";
 import { AgendaRow } from "../components/schedule/agenda-row";
 import { DayChip, WeekStrip } from "../components/schedule/day-chip";
 import { DEFAULT_SCHEDULE_ENTRY, ScheduleEntryForm } from "../components/schedule/schedule-entry-form";
+import { WeekCalendar } from "../components/schedule/week-calendar";
+import { WeekCalendarInspector } from "../components/schedule/week-calendar-inspector";
 import { Code } from "../components/typography/code";
 import { Heading } from "../components/typography/heading";
 import { Kbd } from "../components/typography/kbd";
@@ -2172,5 +2174,44 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </CardHeader>
       </Card>
     </FadeContent>
+  ),
+  WeekCalendar: () => (
+    <WeekCalendar
+      aria-label="Friday to Sunday"
+      className="w-full max-w-[358px]"
+      startHour={9}
+      endHour={15}
+      days={[
+        { id: "fri", label: "FRI 13", name: "Friday, November 13" },
+        { id: "sat", label: "SAT 14", name: "Saturday, November 14" },
+        { id: "sun", label: "SUN 15", name: "Sunday, November 15" },
+      ]}
+      entries={[
+        { id: "market", day: 0, start: 540, end: 720, title: "Market open", meta: "Page" },
+        {
+          id: "gap",
+          day: 0,
+          start: 720,
+          end: 900,
+          title: "Gap · Good morning, Maya",
+          meta: "Default page",
+          kind: "gap",
+        },
+        { id: "brunch-sat", day: 1, start: 540, end: 780, title: "Weekend brunch", meta: "Page" },
+        { id: "birthday", day: 1, start: 720, end: 900, title: "Happy birthday Sam", meta: "Page", conflict: true },
+        { id: "brunch-sun", day: 2, start: 540, end: 780, title: "Weekend brunch", meta: "Page" },
+      ]}
+      selectedId="birthday"
+    />
+  ),
+  WeekCalendarInspector: () => (
+    <WeekCalendarInspector
+      className="w-full max-w-[458px]"
+      headingLevel={3}
+      title="Happy birthday Sam"
+      description="Sat Nov 14 · 12:00 – 3:00 PM · Kitchen board"
+      conflict="Overlaps Weekend brunch from 12:00 to 1:00 PM; the one-off date wins, so Weekend brunch ends at 12:00 PM that day."
+      conflictActions={<Button size="sm">Start at 1:00 PM instead</Button>}
+    />
   ),
 };
