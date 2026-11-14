@@ -148,6 +148,8 @@ import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
 import { EditorPreview } from "../components/editor/editor-preview";
+import { EditorTool } from "../components/editor/editor-tool";
+import { EditorWarning, EditorWarningAction } from "../components/editor/editor-warning";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
 import { TemplateEditor } from "../components/editor/template-editor";
@@ -2018,6 +2020,26 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     <Frame className="max-w-2xl">
       <TemplateEditorToolbar editor={null} templateVariables={TEMPLATE_VARIABLES} />
     </Frame>
+  ),
+  EditorTool: () => (
+    <Frame className="flex max-w-[200px] border-t border-border bg-card px-1 py-1">
+      <EditorTool icon={<Palette />} label="Colors" />
+      <EditorTool icon={<Palette />} label="Active" active />
+    </Frame>
+  ),
+  EditorWarning: () => (
+    <Stack gap="3" className="w-full max-w-md">
+      <EditorWarning
+        kind="line-overflow"
+        line={4}
+        columns={24}
+        maxColumns={22}
+        actions={<EditorWarningAction>Wrap to line 5</EditorWarningAction>}
+      >
+        “N JUDAH 4, 12 AND 25 MIN” — the board shows the first 22 columns.
+      </EditorWarning>
+      <EditorWarning kind="line-limit" lines={7} maxLines={6} />
+    </Stack>
   ),
   ToolbarDropdown: () => (
     <ToolbarDropdown label="Colors" icon={<Palette className="size-4" />}>
