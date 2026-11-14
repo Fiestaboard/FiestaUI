@@ -84,7 +84,10 @@ export const INVENTORY = [
     title: "Forms",
     description: "Inputs and controls. Every one is keyboard-operable and carries a visible focus ring.",
     entries: [
-      { name: "Button", summary: "Seven variants × seven sizes, plus a loading state that reserves its own width." },
+      {
+        name: "Button",
+        summary: "Seven variants × nine sizes (44px touch and icon-touch included), plus a width-stable loading state.",
+      },
       { name: "Checkbox", summary: "Native checkbox styled to the system." },
       {
         name: "ChoiceCard",
@@ -106,7 +109,7 @@ export const INVENTORY = [
         name: "Field",
         summary: "Label, control, description and error — wired to each other, not just stacked.",
       },
-      { name: "Input", summary: "Single-line text input across the HTML input types." },
+      { name: "Input", summary: "Single-line text input across the HTML input types, with a 44px touch size." },
       { name: "Label", summary: "Form label wired to its control by htmlFor." },
       { name: "SecretInput", summary: "Password input with a reveal toggle." },
       { name: "SegmentedControl", summary: "Pill group for a small set of mutually exclusive options." },
@@ -116,7 +119,10 @@ export const INVENTORY = [
         name: "Swatch",
         summary: "Colour circle where the fill is the choice; groups into a radiogroup picker.",
       },
-      { name: "Switch", summary: "Binary toggle for settings that apply immediately." },
+      {
+        name: "Switch",
+        summary: "Binary toggle for settings that apply immediately; touch size adds a 44px hit area.",
+      },
       { name: "Textarea", summary: "Multi-line text input." },
       { name: "TimePicker", summary: "Hour/minute picker with AM-PM and quick presets." },
       {
@@ -141,7 +147,8 @@ export const INVENTORY = [
       { name: "Badge", summary: "Eight variants: the four solid ones plus the brand and monospace tag tints." },
       {
         name: "Chip",
-        summary: "Badge's operable counterpart — a link/button-shaped tag, optionally mono for versions.",
+        summary:
+          "Badge's operable counterpart — a link/button-shaped tag, optionally mono; 30px with a 44px hit area at touch.",
       },
       { name: "EmptyState", summary: "Icon, title, description and an action for a zero-result view." },
       {
@@ -182,12 +189,20 @@ export const INVENTORY = [
         summary: "Rounded square that centres one icon; three sizes, muted or board-black ground, decorative.",
       },
       { name: "JsonTree", summary: "Expandable JSON viewer with per-type colouring and path selection." },
+      {
+        name: "ListRow",
+        summary: "One record in a list: leading, title, description, meta and trailing slots; stacks for large text.",
+      },
       { name: "MediaFrame", summary: "Framed figure for screenshots and media, with a caption/toolbar bar slot." },
       {
         name: "PagePreviewCard",
         summary: "A page shown as the board it draws — Tile-sm board, name, last shown; button or link.",
       },
       { name: "ScrollArea", summary: "Overflow container with a styled scrollbar." },
+      {
+        name: "SortableList",
+        summary: "Reorder by drag (mouse, pen, touch), keyboard lift or Move up / Move down, with announcements.",
+      },
       { name: "Table", summary: "Data table with header, body, row and cell parts." },
       { name: "Tabs", summary: "Tab list plus panels." },
     ],
@@ -271,6 +286,11 @@ export const INVENTORY = [
       { name: "StaticBoardDisplay", summary: "The unscaled primitive — a real tile grid at sm/md/lg." },
       { name: "ScaledBoardDisplay", summary: "StaticBoardDisplay scaled to fit a slot narrower than the board." },
       {
+        name: "BoardViewport",
+        summary:
+          "A board wider than its slot scrolls in its bezel — edge fade, snap per Note, “Note 1 of 3”, Fit overview.",
+      },
+      {
         name: "PreviewSlot",
         summary: "Equal thumbnail space for differently shaped previews — shrinks to fit, never crops or enlarges.",
       },
@@ -347,6 +367,10 @@ export const INVENTORY = [
         summary: "The editor: line gutter, variable/colour nodes, alignment and wrap controls.",
       },
       { name: "TemplateEditorToolbar", summary: "The editor's toolbar, usable standalone above your own instance." },
+      {
+        name: "EditorPreview",
+        summary: "The editor's always-visible live preview: a sticky pane or a phone dock, with the mirror switch.",
+      },
       { name: "ToolbarDropdown", summary: "The popover shell the toolbar's pickers are mounted in." },
       { name: "VariablePickerContent", summary: "Plugin variables, grouped by plugin with previews." },
       {

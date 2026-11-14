@@ -143,3 +143,28 @@ export const AllStates: Story = {
     </div>
   ),
 };
+
+/**
+ * `size="touch"` (slice 1.2): the 24×44 track is unchanged, and an invisible
+ * ::before carries a 44×44 target. The bottom row draws that hit area as a
+ * dashed outline (a story-only class), as the Figma T1 card does.
+ */
+export const Touch: Story = {
+  render: () => (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        <Switch id="mirror-touch" size="touch" defaultChecked />
+        <Label htmlFor="mirror-touch">Mirror to board while editing</Label>
+      </div>
+      <div className="flex items-center gap-3">
+        <Switch
+          id="mirror-touch-hit"
+          size="touch"
+          className="before:rounded-md before:outline-1 before:outline-dashed before:outline-brand"
+          aria-label="Mirror to board (hit area shown)"
+        />
+        <span className="text-xs text-muted-foreground">44 × 44 hit area</span>
+      </div>
+    </div>
+  ),
+};

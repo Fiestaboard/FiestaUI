@@ -18,10 +18,11 @@ const meta = {
     },
     size: {
       control: "select",
-      options: ["default", "sm", "lg", "icon", "icon-xs", "icon-sm", "icon-lg"],
+      options: ["default", "sm", "lg", "touch", "icon", "icon-xs", "icon-sm", "icon-lg", "icon-touch"],
       description:
-        "Size variant (icon sizes are square: 24 / 32 / 36 / 40px). `icon-xs` is the 24px floor — WCAG 2.2 " +
-        "SC 2.5.8's minimum target, for affordances that sit inside a chip, a code block or a dense row.",
+        "Size variant (icon sizes are square: 24 / 32 / 36 / 40 / 44px). `icon-xs` is the 24px floor — WCAG 2.2 " +
+        "SC 2.5.8's minimum target, for affordances that sit inside a chip, a code block or a dense row. " +
+        "`touch` and `icon-touch` are the 44px touch sizes (--control-h-touch / --touch-target).",
     },
     disabled: {
       control: "boolean",
@@ -289,6 +290,7 @@ export const AllSizes = () => (
     <Button size="sm">Small</Button>
     <Button size="default">Default</Button>
     <Button size="lg">Large</Button>
+    <Button size="touch">Touch</Button>
     <Button size="icon" aria-label="Add">
       <Plus className="h-4 w-4" />
     </Button>
@@ -299,6 +301,9 @@ export const AllSizes = () => (
       <Plus className="h-4 w-4" />
     </Button>
     <Button size="icon-lg" aria-label="Add">
+      <Plus className="h-4 w-4" />
+    </Button>
+    <Button size="icon-touch" aria-label="Add">
       <Plus className="h-4 w-4" />
     </Button>
   </div>
@@ -385,5 +390,70 @@ export const PaginationToolbar = () => (
         New page
       </Button>
     </div>
+  </div>
+);
+
+/**
+ * The 44px touch sizes (slice 1.2; Figma page 08 T1 `59:62975`). `touch` is
+ * the default button's label at Apple's 44pt target with lg's padding;
+ * `icon-touch` is the 44×44 Icon Button. Beside them, the 36px default for
+ * comparison — the left half of the T1 thumbnail.
+ */
+export const Touch = () => (
+  <div className="flex flex-col items-start gap-4">
+    <div className="flex flex-wrap items-center gap-4">
+      <Button>Show now</Button>
+      <Button size="touch">Show now</Button>
+    </div>
+    <div className="flex flex-wrap items-center gap-3">
+      <Button size="touch" variant="outline">
+        <Save />
+        Save
+      </Button>
+      <Button size="touch" variant="secondary">
+        Change Page…
+      </Button>
+      <Button size="touch" variant="ghost">
+        Cancel
+      </Button>
+      <Button size="touch" variant="destructive">
+        Delete
+      </Button>
+    </div>
+    <div className="flex flex-wrap items-center gap-3">
+      <Button size="icon-touch" aria-label="Add">
+        <Plus />
+      </Button>
+      <Button size="icon-touch" variant="outline" aria-label="Previous">
+        <ChevronLeft />
+      </Button>
+      <Button size="icon-touch" variant="ghost" aria-label="Next">
+        <ChevronRight />
+      </Button>
+      <Button size="touch" loading>
+        Show now
+      </Button>
+    </div>
+  </div>
+);
+
+/**
+ * The C21 pressed state (Figma page 08 `61:30024`: "Pressed = primary/active,
+ * scale 0.97"), held with `data-press` — the attribute a touch press sets
+ * (lib/press.ts) and the mirror of `:active` on every variant. Top row at
+ * rest, bottom row pressed. The 0.97 scale is motion-safe and so does not
+ * appear in VRT, which captures with reduced motion.
+ */
+export const Pressed = () => (
+  <div className="flex flex-col items-start gap-4">
+    {[false, true].map((pressed) => (
+      <div key={String(pressed)} className="flex flex-wrap items-center gap-3">
+        {(["default", "outline", "secondary", "ghost", "destructive"] as const).map((variant) => (
+          <Button key={variant} size="touch" variant={variant} data-press={pressed ? "" : undefined}>
+            Show now
+          </Button>
+        ))}
+      </div>
+    ))}
   </div>
 );
