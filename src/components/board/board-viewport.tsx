@@ -31,6 +31,21 @@
  *
  * The board renders through `BoardDisplay` with `bezel={false}`; the viewport
  * draws the housing itself so the frame does not scroll away with the tiles.
+ *
+ * **`layout`** (slice 1.5e) places the board the way the screen designs do, with
+ * the same vocabulary and tile sizes as `ScaledBoardDisplay`:
+ * - `phone-hero` (Tile sm), `medium-hero` (Tile md) and `full-screen` (Tile lg)
+ *   are hero placements (07a `306:53082`, `303:22566`). The tiles sit 12 px
+ *   across and 16 px down from the bezel's outer edge, as drawn: 07a's 3 px
+ *   stroke is inside the frame, so a 22-column Flagship is 373 px wide and fits
+ *   a 390 phone with 8 px gutters. The bezel hugs a board that fits, centred,
+ *   with 07a's radius and shadow. A board that overflows by so little that
+ *   fitting it keeps every tile at or above `minTile` *settles*: it renders
+ *   fitted, with no scroll chrome, instead of hiding a column behind the fade.
+ *   Below the floor it scrolls, as without a layout.
+ * - `pane` (Tile md) is the editor's preview: the default inset and Actual size.
+ * - No layout: the 02 viewport, unchanged. The bezel fills the slot and the
+ *   board sits centred in it (02 `36:32556`).
  */
 
 import {
@@ -59,12 +74,39 @@ import {
   visibleColumns,
 } from "./board-viewport-geometry";
 import { useReducedMotion } from "./reduced-motion";
+import type { ScaledBoardLayout } from "./scaled-board-display";
 
 /** Inset between the bezel and the tiles, in px (Figma: 12). */
 export const BOARD_VIEWPORT_PADDING = 12;
 
 /** The tile floor: Tile sm's width. Below it a Fit view is an overview. */
 export const BOARD_MIN_TILE = 13;
+
+/**
+ * A hero layout's inset, from the bezel's outer edge to the tiles, in px
+ * (07a `306:53082`: StaticBoardDisplay's 12 / 16 with the stroke inside).
+ */
+export const BOARD_VIEWPORT_HERO_INSET = { x: 12, y: 16 } as const;
+
+/** The viewport bezel's border width, in px (`border-[3px]`). */
+const BEZEL_BORDER = 3;
+
+/** Tile size per layout. The same table as ScaledBoardDisplay's; a test pins the two together. */
+const LAYOUT_SIZE: Record<ScaledBoardLayout, NonNullable<BoardDisplayProps["size"]>> = {
+  "phone-hero": "sm",
+  "medium-hero": "md",
+  pane: "md",
+  "full-screen": "lg",
+};
+
+/** The hero placements: 07a inset, hugging bezel, settle to fit. `pane` is not one. */
+const HERO_LAYOUTS: ReadonlySet<ScaledBoardLayout> = new Set(["phone-hero", "medium-hero", "full-screen"]);
+
+/** 07a hero bezel shadow (StaticBoardDisplay `4:3217`: drop 0 2 4, inner highlight). */
+const HERO_SHADOW: Record<"black" | "white", string> = {
+  black: "0 2px 4px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.06)",
+  white: "0 2px 4px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.9)",
+};
 
 export interface BoardViewportLabels {
   /** The scroll region's accessible name. Default "Board preview". */
@@ -123,6 +165,13 @@ export interface BoardViewportProps extends Omit<BoardDisplayProps, "bezel">, Bo
    * F still toggles, through `onModeChange`.
    */
   showModeToggle?: boolean;
+  /**
+   * Where the board sits, as on `ScaledBoardDisplay`. It sets the tile size
+   * (`size` still wins) and, for the hero layouts (`phone-hero`,
+   * `medium-hero`, `full-screen`), 07a's inset, a bezel that hugs a fitting
+   * board, and settle-to-fit above `minTile`. Without it, nothing changes.
+   */
+  layout?: ScaledBoardLayout;
   /** Class for the viewport's root. (`className` goes to the board, as on BoardDisplay.) */
   rootClassName?: string;
 }
@@ -177,13 +226,13 @@ interface View {
   atEnd: boolean;
 }
 
-function deriveView(geometry: Geometry, startColumns: number[], scrollLeft: number): View {
+function deriveView(geometry: Geometry, startColumns: number[], scrollLeft: number, padding: number): View {
   const maxScroll = Math.max(0, geometry.scrollWidth - geometry.clientWidth);
   const offsets = pageOffsets(geometry.tileOffsets, startColumns);
   const { first, last } = visibleColumns(
     geometry.tileOffsets,
     geometry.tileWidth,
-    BOARD_VIEWPORT_PADDING,
+    padding,
     scrollLeft,
     geometry.clientWidth,
   );
@@ -210,6 +259,7 @@ export function BoardViewport({
   rootClassName,
   indicator = "pill",
   showModeToggle = true,
+  layout,
   mode: modeProp,
   onModeChange,
   defaultMode = "actual",
@@ -222,6 +272,12 @@ export function BoardViewport({
   const indicatorId = useId();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const prevModeRef = useRef(mode);
+
+  const size = boardProps.size ?? (layout ? LAYOUT_SIZE[layout] : undefined);
+  const hero = layout !== undefined && HERO_LAYOUTS.has(layout);
+  // Scroller padding inside the 3 px border: 07a's inset on a hero, 12 all round otherwise.
+  const padX = hero ? BOARD_VIEWPORT_HERO_INSET.x - BEZEL_BORDER : BOARD_VIEWPORT_PADDING;
+  const padY = hero ? BOARD_VIEWPORT_HERO_INSET.y - BEZEL_BORDER : BOARD_VIEWPORT_PADDING;
 
   const deviceType = boardProps.deviceType ?? "flagship";
   const notesWide = boardProps.notesWide ?? 1;
@@ -237,10 +293,10 @@ export function BoardViewport({
   const updateView = useCallback(
     (g: Geometry) => {
       const scroller = scrollerRef.current;
-      const next = deriveView(g, startColumns, scroller?.scrollLeft ?? 0);
+      const next = deriveView(g, startColumns, scroller?.scrollLeft ?? 0, padX);
       setView((prev) => (sameView(prev, next) ? prev : next));
     },
-    [startColumns],
+    [startColumns, padX],
   );
 
   const measure = useCallback(() => {
@@ -270,7 +326,7 @@ export function BoardViewport({
     mode,
     boardProps.message,
     boardProps.cells,
-    boardProps.size,
+    size,
     deviceType,
     notesWide,
     notesTall,
@@ -314,13 +370,22 @@ export function BoardViewport({
     if (previous === "fit" && mode === "actual") scrollTo(0, "auto");
   }, [mode]);
 
-  const viewportWidth = geometry.clientWidth - 2 * BOARD_VIEWPORT_PADDING;
+  const viewportWidth = geometry.clientWidth - 2 * padX;
   const measured = viewportWidth > 0 && geometry.boardWidth > 0;
-  const overflowing = measured && geometry.boardWidth > viewportWidth + 0.5;
-  const fitted = overflowing && mode === "fit";
+  const wider = measured && geometry.boardWidth > viewportWidth + 0.5;
+  const fitScale = wider ? viewportWidth / geometry.boardWidth : 1;
+  // A hero board that would hide only what fitting can show at or above the
+  // floor settles to fit (the 768 case): no scroll, no chrome. Below the floor
+  // it scrolls, as boards always do (owner rule).
+  const settled = wider && hero && geometry.tileWidth * fitScale >= minTile;
+  const overflowing = wider && !settled;
+  const fitted = settled || (overflowing && mode === "fit");
   const scrolling = overflowing && mode === "actual";
-  const scale = fitted ? viewportWidth / geometry.boardWidth : 1;
+  const scale = fitted ? fitScale : 1;
   const overview = fitted && geometry.tileWidth * scale < minTile;
+  // G4: a hero bezel hugs a board that fits (07a draws a hugging board). A
+  // wider board's bezel fills the slot, whose width the fit and scroll use.
+  const hug = hero && !wider;
   const maxScroll = Math.max(0, geometry.scrollWidth - geometry.clientWidth);
   const offsets = pageOffsets(geometry.tileOffsets, startColumns);
 
@@ -410,7 +475,7 @@ export function BoardViewport({
     />
   );
 
-  const board = <BoardDisplay {...boardProps} bezel={false} />;
+  const board = <BoardDisplay {...boardProps} size={size} bezel={false} />;
 
   return (
     <div
@@ -418,6 +483,7 @@ export function BoardViewport({
       data-mode={mode}
       data-overflow={overflowing}
       data-overview={overview}
+      {...(layout ? { "data-layout": layout, "data-settled": settled } : {})}
       className={cn("flex w-full min-w-0 flex-col gap-2.5", rootClassName)}
     >
       {(title || (overflowing && showModeToggle)) && (
@@ -437,10 +503,16 @@ export function BoardViewport({
       )}
       <div
         data-slot="board-viewport-bezel"
-        className="relative overflow-hidden rounded-xl border-[3px] has-[[data-slot=board-viewport-scroller]:focus-visible]:ring-2 has-[[data-slot=board-viewport-scroller]:focus-visible]:ring-ring has-[[data-slot=board-viewport-scroller]:focus-visible]:ring-offset-2 has-[[data-slot=board-viewport-scroller]:focus-visible]:ring-offset-background"
+        className={cn(
+          "relative overflow-hidden border-[3px] has-[[data-slot=board-viewport-scroller]:focus-visible]:ring-2 has-[[data-slot=board-viewport-scroller]:focus-visible]:ring-ring has-[[data-slot=board-viewport-scroller]:focus-visible]:ring-offset-2 has-[[data-slot=board-viewport-scroller]:focus-visible]:ring-offset-background",
+          // 07a's StaticBoardDisplay radius (10) on a hero; 02's rounded-xl otherwise.
+          hero ? "rounded-lg" : "rounded-xl",
+          hug && "mx-auto w-fit max-w-full",
+        )}
         style={{
           backgroundColor: isWhite ? "var(--color-board-bezel-light)" : "var(--color-board-bezel-dark)",
           borderColor: isWhite ? "var(--color-board-bezel-border-light)" : "var(--color-board-bezel-border-dark)",
+          ...(hero ? { boxShadow: HERO_SHADOW[isWhite ? "white" : "black"] } : {}),
         }}
       >
         {/* A scrollable region must be focusable (axe scrollable-region-focusable),
@@ -462,7 +534,11 @@ export function BoardViewport({
             fitted ? "overflow-x-hidden" : "overflow-x-auto",
             scrolling && SNAP_CLASSES[paging],
           )}
-          style={{ padding: BOARD_VIEWPORT_PADDING, scrollPaddingLeft: BOARD_VIEWPORT_PADDING }}
+          style={
+            hero
+              ? { padding: `${padY}px ${padX}px`, scrollPaddingLeft: padX }
+              : { padding: BOARD_VIEWPORT_PADDING, scrollPaddingLeft: BOARD_VIEWPORT_PADDING }
+          }
         >
           {/* One tree shape in both modes, so Fit ↔ Actual never remounts the
               board (its flap state survives) and observers keep their targets. */}

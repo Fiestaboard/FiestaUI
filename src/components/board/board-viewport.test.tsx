@@ -1,8 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { type BoardSize, sizeClasses } from "../../lib/board-metrics";
 import { BOARD_PREVIEW_MODE_STORAGE_KEY } from "./board-preview-mode";
-import { BOARD_VIEWPORT_PADDING, BoardViewport } from "./board-viewport";
+import { BOARD_VIEWPORT_HERO_INSET, BOARD_VIEWPORT_PADDING, BoardViewport } from "./board-viewport";
+import { ScaledBoardDisplay, type ScaledBoardLayout } from "./scaled-board-display";
 
 /*
  * jsdom has no layout, so the geometry BoardViewport measures is stubbed on
@@ -66,7 +68,9 @@ beforeEach(() => {
   vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockImplementation(function (this: HTMLElement) {
     if (!isScroller(this)) return 0;
     const board = this.querySelector("[data-slot=board-display]");
-    return board ? boardWidth(board) + 2 * BOARD_VIEWPORT_PADDING : 0;
+    // The scroller's own inline padding: 12 by default, the hero inset (9) on a hero layout.
+    const pad = Number.parseFloat((this as HTMLElement).style.paddingLeft) || BOARD_VIEWPORT_PADDING;
+    return board ? boardWidth(board) + 2 * pad : 0;
   });
   vi.spyOn(HTMLElement.prototype, "scrollLeft", "get").mockImplementation(() => scrollLeft);
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
@@ -622,5 +626,144 @@ describe("BoardViewport: shared toggle and header sync (slice 1.5d)", () => {
   it("does not pass showModeToggle onto the board", () => {
     render(<BoardViewport {...NOTE_ARRAY} showModeToggle={false} />);
     expect(screen.getByRole("img")).not.toHaveAttribute("showModeToggle");
+  });
+});
+
+describe("BoardViewport: layout (slice 1.5e)", () => {
+  const root = () => document.querySelector("[data-slot=board-viewport]") as HTMLElement;
+  const bezel = () => document.querySelector("[data-slot=board-viewport-bezel]") as HTMLElement;
+  const scroller = () => document.querySelector("[data-slot=board-viewport-scroller]") as HTMLElement;
+  // Which tile scale a board renders at, read from its tile classes.
+  const tileSize = (container: ParentNode = document): BoardSize | undefined => {
+    const html = container.querySelector("[data-slot=board-display]")?.innerHTML ?? "";
+    return (["sm", "md", "lg"] as const).find((size) => html.includes(sizeClasses[size]));
+  };
+  const scaled = () => document.querySelector("[data-slot=board-viewport-scaled]") as HTMLElement;
+  // 07a phone hero: a 390 frame with 8 px gutters → a 374 px bezel → 368 inside its 3 px border.
+  const PHONE_SCROLLER = 368;
+  const FLAGSHIP = { deviceType: "flagship", message: "DINNER AT 7" } as const;
+
+  it("without a layout, renders exactly as before: 12 px padding, full-width rounded-xl bezel", () => {
+    render(<BoardViewport deviceType="note" message="HI" />);
+    expect(root()).not.toHaveAttribute("data-layout");
+    expect(root()).not.toHaveAttribute("data-settled");
+    expect(scroller().style.padding).toBe(`${BOARD_VIEWPORT_PADDING}px`);
+    expect(bezel().className).toContain("rounded-xl");
+    expect(bezel().className).not.toContain("w-fit");
+    expect(bezel().style.boxShadow).toBe("");
+  });
+
+  it("the 07a hero inset is 12 px across and 16 px down from the bezel's outer edge", () => {
+    expect(BOARD_VIEWPORT_HERO_INSET).toEqual({ x: 12, y: 16 });
+  });
+
+  it("phone-hero: the Flagship fits at Tile sm in the 390 phone slot, where the default scrolls", () => {
+    layout.viewport = PHONE_SCROLLER;
+    const { unmount } = render(<BoardViewport {...FLAGSHIP} size="sm" />);
+    expect(root()).toHaveAttribute("data-overflow", "true");
+    unmount();
+
+    render(<BoardViewport {...FLAGSHIP} layout="phone-hero" />);
+    expect(root()).toHaveAttribute("data-layout", "phone-hero");
+    expect(root()).toHaveAttribute("data-overflow", "false");
+    expect(root()).toHaveAttribute("data-settled", "false");
+    expect(screen.queryByRole("region")).toBeNull();
+    expect(indicator()).toBeNull();
+    // 3 px border + 9 / 13 px padding = 12 / 16 from the outer edge, as drawn.
+    expect(scroller().style.padding).toBe("13px 9px");
+    expect(scroller().style.scrollPaddingLeft).toBe("9px");
+    // Tile sm (13 × 18), not md's responsive steps.
+    expect(tileSize()).toBe("sm");
+    // 07a's StaticBoardDisplay bezel: radius 10 and its small shadow.
+    expect(bezel().className).toContain("rounded-lg");
+    expect(bezel().className).not.toContain("rounded-xl");
+    expect(bezel().style.boxShadow).toContain("0 2px 4px rgba(0,0,0,0.4)");
+  });
+
+  it("G4: a hero bezel hugs a board that fits, centred; an overflowing one fills the slot", () => {
+    render(<BoardViewport deviceType="note" message="HI" layout="phone-hero" />);
+    expect(bezel().className).toContain("w-fit");
+    expect(bezel().className).toContain("max-w-full");
+    expect(bezel().className).toContain("mx-auto");
+    cleanup();
+    render(<BoardViewport {...NOTE_ARRAY} layout="phone-hero" />);
+    expect(root()).toHaveAttribute("data-overflow", "true");
+    expect(bezel().className).not.toContain("w-fit");
+  });
+
+  it("an explicit size wins over the layout's", () => {
+    render(<BoardViewport deviceType="note" message="HI" layout="phone-hero" size="md" />);
+    expect(tileSize()).toBe("md");
+  });
+
+  it("each layout picks the same tile size as ScaledBoardDisplay's", () => {
+    const layouts: ScaledBoardLayout[] = ["phone-hero", "medium-hero", "pane", "full-screen"];
+    for (const l of layouts) {
+      const a = render(<BoardViewport deviceType="note" message="HI" layout={l} />);
+      const viewportTile = tileSize(a.container);
+      a.unmount();
+      const b = render(<ScaledBoardDisplay deviceType="note" message="HI" layout={l} />);
+      const scaledTile = b.container.querySelector("[data-slot=scaled-board-display]")?.getAttribute("data-size");
+      b.unmount();
+      expect(viewportTile, l).toBeDefined();
+      expect(viewportTile, l).toBe(scaledTile);
+    }
+  });
+
+  it("medium-hero at 768: a board one column too wide settles to fit, with no scroll chrome", () => {
+    // Tile md at the md: step (24 px, gap 5): 633 px of Flagship in a 639 px bezel.
+    layout = { ...layout, tileWidth: 24, gap: 5, viewport: 633 };
+    render(<BoardViewport {...FLAGSHIP} layout="medium-hero" />);
+    expect(root()).toHaveAttribute("data-settled", "true");
+    expect(root()).toHaveAttribute("data-overview", "false");
+    expect(root()).toHaveAttribute("data-overflow", "false");
+    expect(screen.queryByRole("region")).toBeNull();
+    expect(screen.getByRole("group", { name: "Board preview" })).not.toHaveAttribute("tabindex");
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(indicator()).toBeNull();
+    expect(fade("end")).toBeNull();
+    expect(scaled().style.transform).toBe(`scale(${615 / 633})`);
+    // A settled board's bezel fills the slot (its width comes from the slot).
+    expect(bezel().className).not.toContain("w-fit");
+  });
+
+  it("the default never settles: the same 768 board scrolls one column", () => {
+    layout = { ...layout, tileWidth: 24, gap: 5, viewport: 633 };
+    render(<BoardViewport {...FLAGSHIP} size="md" />);
+    expect(root()).toHaveAttribute("data-overflow", "true");
+    expect(indicator()).toHaveTextContent("Columns 1–21 of 22");
+  });
+
+  it("pane does not settle: the editor reads its board at Actual size", () => {
+    layout = { ...layout, tileWidth: 24, gap: 5, viewport: 633 };
+    render(<BoardViewport {...FLAGSHIP} layout="pane" />);
+    expect(root()).toHaveAttribute("data-settled", "false");
+    expect(root()).toHaveAttribute("data-overflow", "true");
+    expect(scroller().style.padding).toBe(`${BOARD_VIEWPORT_PADDING}px`);
+  });
+
+  it("never settles under the tile floor: a 3×1 array on a phone hero still scrolls", () => {
+    render(<BoardViewport {...NOTE_ARRAY} layout="phone-hero" />);
+    expect(root()).toHaveAttribute("data-settled", "false");
+    expect(root()).toHaveAttribute("data-overflow", "true");
+    expect(indicator()).toHaveTextContent("Note 1 of 3");
+  });
+
+  it("settling respects a host's minTile", () => {
+    layout = { ...layout, tileWidth: 24, gap: 5, viewport: 633 };
+    render(<BoardViewport {...FLAGSHIP} layout="medium-hero" minTile={24} />);
+    expect(root()).toHaveAttribute("data-settled", "false");
+    expect(root()).toHaveAttribute("data-overflow", "true");
+  });
+
+  it("full-screen uses Tile lg and the hero inset, and settles", () => {
+    render(<BoardViewport deviceType="note" message="HI" layout="full-screen" />);
+    expect(tileSize()).toBe("lg");
+    expect(scroller().style.padding).toBe("13px 9px");
+  });
+
+  it("a white hero board takes the white shadow", () => {
+    render(<BoardViewport deviceType="note" message="HI" boardType="white" layout="phone-hero" />);
+    expect(bezel().style.boxShadow).toContain("rgba(0,0,0,0.1)");
   });
 });

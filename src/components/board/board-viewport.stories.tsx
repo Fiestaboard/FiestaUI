@@ -179,3 +179,58 @@ export const DotIndicator: Story = {
     </Slot>
   ),
 };
+
+/*
+ * Slice 1.5e: `layout`. Hero placements take 07a's inset (12 across, 16 down,
+ * from the bezel's outer edge), hug a board that fits, and settle to fit above
+ * the tile floor.
+ */
+
+/**
+ * 07a phone hero (`306:53082`): a 390 frame with 8 px gutters. The Flagship
+ * fits at Tile sm (373 px, bezel included), with no scroll chrome.
+ */
+export const PhoneHero: Story = {
+  args: { deviceType: "flagship", message: FLAGSHIP, layout: "phone-hero", size: undefined },
+  parameters: { layout: "fullscreen" },
+  render: (args) => (
+    <div className="w-full max-w-[390px] px-2 py-1">
+      <BoardViewport {...args} />
+    </div>
+  ),
+};
+
+/** A hero board under the floor still scrolls: a 3×1 array at Tile sm, hero inset, full-width bezel. */
+export const PhoneHeroScrolls: Story = {
+  args: { ...OverflowStart.args, layout: "phone-hero", size: undefined },
+  parameters: { layout: "fullscreen" },
+  render: (args) => (
+    <div className="w-full max-w-[390px] px-2 py-1">
+      <BoardViewport {...args} />
+    </div>
+  ),
+};
+
+/**
+ * The 768 case: Home's 639 px board slot. A Flagship a column too wide at
+ * Tile md settles to fit (tiles stay far above 13 px) instead of hiding a
+ * column behind the fade.
+ */
+export const MediumHeroSettles: Story = {
+  args: { deviceType: "flagship", message: FLAGSHIP, layout: "medium-hero", size: undefined },
+  render: (args) => (
+    <Slot width={639}>
+      <BoardViewport {...args} />
+    </Slot>
+  ),
+};
+
+/** G4: a hero bezel hugs a board that fits, centred in a wide slot (07a). Without a layout it fills (`Fits`). */
+export const HeroHugs: Story = {
+  args: { ...Fits.args, layout: "medium-hero", size: undefined, title: "Note · 15×3 · hero" },
+  render: (args) => (
+    <Slot width={760}>
+      <BoardViewport {...args} />
+    </Slot>
+  ),
+};
