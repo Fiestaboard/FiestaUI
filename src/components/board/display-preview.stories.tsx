@@ -28,6 +28,16 @@ const meta = {
       description: "A built-in model id, or (in code) a plugin's model object",
     },
     message: { control: "text", description: "Board markup; ignored when `cells` is given" },
+    lines: {
+      control: "object",
+      description:
+        "Figma Content = Message, Line 1–3: on an LED line 2 is board green and line 3 board orange. Used when neither message nor cells is given",
+    },
+    content: {
+      control: "inline-radio",
+      options: ["message", "sample"],
+      description: "Figma Content: message (the default) or sample, fixed art sized to the model",
+    },
     transition: {
       control: "select",
       options: [undefined, "none", ...LED_TRANSITION_KINDS],
@@ -295,6 +305,56 @@ export const BoardColorOption: Story = {
         <DisplayPreview {...args} appearance={{ board_color: "white" }} />
         <figcaption className="text-xs text-muted-foreground">board_color: white</figcaption>
       </figure>
+    </div>
+  ),
+};
+
+/* ---- Content (02 Display / LED & Panel `39:49571`) ------------------------ */
+
+/**
+ * Content = Message: `lines` is Line 1–3. A Pixoo shows all three (line 2
+ * board green, line 3 board orange); a TC001 strip has room for line 1, up
+ * to 8 characters in its 3×5 face; a
+ * split-flap board draws the same lines in its flaps, uncoloured.
+ */
+export const ContentMessageLines: Story = {
+  name: "Content: Message (lines)",
+  args: { model: "divoom_pixoo64", lines: ["72° SUNNY", "N JUDAH 4", "HI 78"] },
+  render: (args) => (
+    <div className="flex flex-col items-center gap-6">
+      <DisplayPreview {...args} />
+      {/* A TC001 is 8 characters wide in its 3×5 face: line 1 must fit (DD-W16). */}
+      <DisplayPreview model="ulanzi_tc001_awtrix" lines={["SUNNY 72"]} size="lg" />
+      <DisplayPreview model="vestaboard_note" lines={["GOOD MORNING", "N JUDAH  4 MIN", "HI 78"]} size="sm" />
+    </div>
+  ),
+};
+
+/**
+ * Content = Sample: the same fixed art wherever the type appears, sized to
+ * the board: 02's Pixoo schedule and TC001 "72° OK", and the greeting on
+ * split-flap (cut to a Note's 15 columns on a Note).
+ */
+export const ContentSample: Story = {
+  name: "Content: Sample",
+  args: { model: "divoom_pixoo64", content: "sample" },
+  render: (args) => (
+    <div className="flex flex-col items-center gap-6">
+      <DisplayPreview {...args} />
+      <DisplayPreview model="ulanzi_tc001_awtrix" content="sample" size="lg" />
+      <DisplayPreview model="vestaboard_flagship" content="sample" size="sm" />
+      <DisplayPreview model="vestaboard_note" content="sample" size="sm" />
+    </div>
+  ),
+};
+
+/** FiestaPanel's Sample on its television, the 02 overview: the TvFrame thumbnail is never the legible view. */
+export const ContentSampleFiestaPanelTv: Story = {
+  name: "Content: Sample (FiestaPanel TV)",
+  args: { model: FIESTAPANEL_SPLIT_FLAP_MODEL as DeviceModel, content: "sample", frame: "tv" },
+  render: (args) => (
+    <div className="w-[370px] max-w-full">
+      <DisplayPreview {...args} />
     </div>
   ),
 };

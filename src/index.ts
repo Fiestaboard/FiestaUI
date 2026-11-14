@@ -19,14 +19,17 @@ export * from "./components/containment/page-preview-card";
 export * from "./components/feedback/alert";
 export * from "./components/feedback/badge";
 export * from "./components/feedback/chip";
+export * from "./components/feedback/countdown";
 export * from "./components/feedback/empty-state";
 export * from "./components/feedback/note";
+export * from "./components/feedback/now-showing-card";
 export * from "./components/forms/button";
 export * from "./components/forms/checkbox";
 export * from "./components/forms/choice-card";
 export * from "./components/forms/combobox";
 export * from "./components/forms/copy-button";
 export * from "./components/forms/copyable-code";
+export * from "./components/forms/duration-chip-group";
 export * from "./components/forms/field";
 export * from "./components/forms/input";
 export * from "./components/forms/label";
@@ -66,6 +69,7 @@ export * from "./components/forms/toggle";
 export * from "./components/forms/toggle-card";
 export * from "./components/layout/stack";
 export * from "./components/overlays/sheet";
+export * from "./components/overlays/shortcut-list";
 export * from "./components/overlays/tooltip";
 export * from "./components/typography/text";
 export * from "./components/typography/text-link";
@@ -153,6 +157,9 @@ export {
 // of plugin-declared devices are derived from their data, never shipped as
 // plugin React. The override gate is pure data and stays internal.
 export { DisplayPreview, type DisplayPreviewFrame, type DisplayPreviewProps } from "./components/board/display-preview";
+// Which kind of display something is, for mixed households (02 FB / Display
+// type): a 24 px informational chip, plus the model → type mapping.
+export * from "./components/board/display-type-chip";
 // The OLED television FiestaPanel shows on, around any board renderer:
 // `DisplayPreview frame="tv"` uses it, with the set in `tv`. The geometry
 // and fit helpers stay internal.
@@ -228,6 +235,15 @@ export {
   tryResolveDeviceModel,
   validateDeviceModel,
 } from "./lib/devices";
+// Display content (02 Display / LED & Panel's Content axis): Message lines
+// as board markup, and the Sample art sized to a model.
+export {
+  DISPLAY_LINE_COLORS,
+  DISPLAY_SAMPLES,
+  type DisplayContent,
+  displayLinesMarkup,
+  displaySampleMessage,
+} from "./lib/display-content";
 // Bitmap layers: a page's pixel canvases, rasterised by FiestaBoard core and
 // drawn over the cells (`layers` on the layout options, LedMatrixDisplay and
 // DisplayPreview). The decoder takes `rgba` as bytes or base64.

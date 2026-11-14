@@ -46,6 +46,7 @@ import {
   Trash2,
   TrendingUp,
   TriangleAlert,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -74,6 +75,7 @@ import { BoardViewport } from "../components/board/board-viewport";
 import { CharacterGlyph } from "../components/board/character-glyph";
 import { CharacterSetSpecimen } from "../components/board/character-set-specimen";
 import { DisplayPreview } from "../components/board/display-preview";
+import { DisplayTypeChip } from "../components/board/display-type-chip";
 import { LedMatrixDisplay } from "../components/board/led-matrix-display";
 import { LedTransitionPicker } from "../components/board/led-transition-picker";
 import { PreviewSlot } from "../components/board/preview-slot";
@@ -154,8 +156,10 @@ import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
 import { Chip } from "../components/feedback/chip";
+import { Countdown } from "../components/feedback/countdown";
 import { EmptyState } from "../components/feedback/empty-state";
 import { Note } from "../components/feedback/note";
+import { NowShowingCard } from "../components/feedback/now-showing-card";
 import { Skeleton } from "../components/feedback/skeleton";
 import { Spinner } from "../components/feedback/spinner";
 import { StatusBanner, StatusBannerAction } from "../components/feedback/status-banner";
@@ -167,6 +171,7 @@ import { ChoiceCard, ChoiceCardGroup, ChoiceCardPreview } from "../components/fo
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
 import { CopyableCode } from "../components/forms/copyable-code";
+import { buildDurationOptions, DurationChipGroup, OutcomeLine } from "../components/forms/duration-chip-group";
 import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
@@ -239,6 +244,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../components/overlays/sheet";
+import { ShortcutListPopover } from "../components/overlays/shortcut-list";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/overlays/tooltip";
 import { BoardShowcase } from "../components/plugin/board-showcase";
 import { PluginCard } from "../components/plugin/plugin-card";
@@ -363,6 +369,17 @@ const SeeItsOwnStory = ({ storyPath, why }: { storyPath: string; why: string }) 
 function BoardPreviewModeToggleDemo() {
   const [mode, setMode] = useState<"fit" | "actual">("actual");
   return <BoardPreviewModeToggle mode={mode} onModeChange={setMode} />;
+}
+
+function CountdownDemo() {
+  // Pinned at mount, half a second inside the minute, so the inventory
+  // screenshot reads "2h 42m left" however long the shoot takes to reach it.
+  const [endsAt] = useState(() => Date.now() + (2 * 60 + 42) * 60_000 - 500);
+  return (
+    <div className="w-full max-w-sm">
+      <Countdown endsAt={endsAt} startedAt={endsAt - 4 * 60 * 60_000} untilLabel="until 9:00 PM" />
+    </div>
+  );
 }
 
 function TimePickerDemo() {
@@ -714,6 +731,15 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </Flex>
     </Stack>
   ),
+  DurationChipGroup: () => (
+    <DurationChipGroup
+      aria-label="How long should Taco Tuesday stay up?"
+      options={buildDurationOptions({ nextChange: "Until 9:00 PM" })}
+      defaultValue="next-change"
+      layout="row"
+      outcome="Holds until 9:00 PM, then Schedule resumes with Good night."
+    />
+  ),
   Field: () => (
     <Stack gap="4" className="w-full max-w-[320px]">
       {/* Ids are explicit and `inv-` prefixed like every other demo on this
@@ -1055,6 +1081,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </Chip>
     </Flex>
   ),
+  Countdown: () => <CountdownDemo />,
+  NowShowingCard: () => (
+    <NowShowingCard
+      variant="compact"
+      className="w-full max-w-[370px]"
+      display="Kitchen board"
+      mode="schedule"
+      title="Morning commute"
+      description="Until 9:00 AM · then Market open"
+      board={<ScaledBoardDisplay message={BOARD_MESSAGE} size="sm" isStatic />}
+    />
+  ),
+  OutcomeLine: () => <OutcomeLine>Holds until 9:00 PM, then Schedule resumes. Next: Good night.</OutcomeLine>,
   Note: () => (
     <Stack gap="3" className="w-full max-w-lg">
       <Note icon={<Info />}>Transitions are only applied when sending through the local API.</Note>
@@ -1445,6 +1484,24 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </PopoverContent>
     </Popover>
   ),
+  ShortcutList: () => (
+    <ShortcutListPopover
+      trigger={
+        <Button variant="secondary">
+          <Zap aria-hidden /> Shortcuts
+        </Button>
+      }
+      groups={[
+        {
+          items: [
+            { label: "Save", keys: ["Mod", "S"] },
+            { label: "Show now", keys: ["Mod", "Enter"] },
+            { label: "Close a picker", keys: ["Esc"] },
+          ],
+        },
+      ]}
+    />
+  ),
   DropdownMenu: () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -1800,6 +1857,14 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   BoardTeaser: () => <BoardTeaser teaser="AQI 42 GOOD" size="md" />,
   BoardSizeIndicator: () => (
     <BoardSizeIndicator deviceType="note_array" notesWide={2} notesTall={2} layoutLabel="2×2 grid" />
+  ),
+  DisplayTypeChip: () => (
+    <div className="flex flex-wrap gap-1.5">
+      <DisplayTypeChip type="flagship" />
+      <DisplayTypeChip type="pixoo" />
+      <DisplayTypeChip type="tc001" />
+      <DisplayTypeChip type="panel" />
+    </div>
   ),
   CharacterGlyph: () => (
     <div className="flex items-center gap-2">
