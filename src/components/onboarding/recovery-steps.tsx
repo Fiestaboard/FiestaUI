@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
+import { cardGroundClassName } from "../containment/card";
 import { type NumberedStep, NumberedSteps } from "./numbered-steps";
 
 export type RecoveryStep = NumberedStep;
@@ -21,7 +22,8 @@ export interface RecoveryStepsProps extends Omit<React.ComponentProps<"div">, "t
  * found", a failed connection test, a setup step that did not take.
  *
  * A card with a small title over the shared `NumberedSteps` list in its
- * `plain` appearance. Static content: it has no role and no live region,
+ * `plain` appearance. That is the web (07e) step style; 05, the native
+ * drawing, uses a 24 px muted mono disc and a 12 px gap (DD-W28). Static content: it has no role and no live region,
  * because the error it belongs to is announced by its own surface (a
  * StatusScreen, an Alert, the step's heading). The retry action is the
  * host's: 05 draws "Search again" as a screen-level button outside the card.
@@ -31,7 +33,7 @@ function RecoverySteps({ title, steps, start, className, "aria-label": ariaLabel
   return (
     <div
       data-slot="recovery-steps"
-      className={cn("flex flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground", className)}
+      className={cn(cardGroundClassName, "flex flex-col gap-3 p-4", className)}
       {...props}
     >
       {title != null && (

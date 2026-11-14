@@ -5,7 +5,7 @@ import { PairingQrStandIn } from "../../stories/pairing-qr-stand-in";
 import { Alert, AlertDescription, AlertTitle } from "../feedback/alert";
 import { Button } from "../forms/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../forms/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../overlays/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../overlays/dialog";
 import { ConnectPhoneCard } from "./connect-phone-card";
 
 /* Copy is 07e's (`323:14595`). The component ships none but the hub-line default. */
@@ -105,9 +105,22 @@ export const Expired: Story = {
   },
 };
 
-/** H18: a loopback address draws no code at all (and logs an error). */
+/**
+ * H18: a loopback address draws no code at all (and logs an error). The
+ * card drops the countdown and bar; the host swaps its steps for what to do
+ * instead, since there is nothing to point a camera at.
+ */
 export const RefusesLoopback: Story = {
-  args: { hubAddress: "localhost:4420", hubLabel: "Connects to localhost:4420" },
+  args: {
+    hubAddress: "localhost:4420",
+    qrLabel: "Pairing code for localhost:4420",
+    hubLabel: "Connects to localhost:4420",
+    footnote: undefined,
+    steps: [
+      { text: "Open FiestaBoard from your hub’s network address, for example fiestapi.local." },
+      { text: "Then open Settings › Connect a phone again." },
+    ],
+  },
 };
 
 /** The whole 07e dialog: title and footer are the host's. */
@@ -124,13 +137,14 @@ export const InDialog: Story = {
           </DialogDescription>
         </DialogHeader>
         <ConnectPhoneCard {...args} />
-        <DialogFooter>
+        {/* 07e `323:16724`: left-aligned, ghost "Make a new code" then secondary "Done". */}
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost">
             <RotateCw />
             Make a new code
           </Button>
-          <Button variant="outline">Done</Button>
-        </DialogFooter>
+          <Button variant="secondary">Done</Button>
+        </div>
       </DialogContent>
     </Dialog>
   ),

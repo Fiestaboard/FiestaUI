@@ -2,10 +2,12 @@
  * A QR-shaped stand-in for stories and the inventory (07e draws "QR ·
  * stand-in (pairing code)"). It is NOT a scannable code: FiestaUI ships no
  * QR encoder, the host renders the real one. Deterministic (a fixed LCG), so
- * VRT is stable, and dark-on-white with its own quiet zone, the way a real
+ * VRT is stable, and dark-on-white with its own 4-module quiet zone, the way a real
  * pairing code must be drawn to scan in dark mode.
  */
 const N = 25;
+/** Quiet zone in modules: the ISO/IEC 18004 minimum, as ConnectPhoneCard asks of hosts. */
+const Q = 4;
 
 function modules(): boolean[] {
   const cells: boolean[] = [];
@@ -36,8 +38,8 @@ function Finder({ x, y }: { x: number; y: number }) {
 
 export function PairingQrStandIn() {
   return (
-    <svg viewBox={`-2 -2 ${N + 4} ${N + 4}`} shapeRendering="crispEdges" aria-hidden="true">
-      <rect x="-2" y="-2" width={N + 4} height={N + 4} fill="#ffffff" />
+    <svg viewBox={`-${Q} -${Q} ${N + 2 * Q} ${N + 2 * Q}`} shapeRendering="crispEdges" aria-hidden="true">
+      <rect x={-Q} y={-Q} width={N + 2 * Q} height={N + 2 * Q} fill="#ffffff" />
       {CELLS.map((on, i) => {
         const x = i % N;
         const y = Math.floor(i / N);

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { cardGroundClassName } from "../containment/card";
 import { ConnectPhoneCard, isLoopbackHost } from "./connect-phone-card";
 
 /*
@@ -24,30 +25,68 @@ function card(): HTMLElement {
 afterEach(() => vi.restoreAllMocks());
 
 describe("isLoopbackHost", () => {
-  it.each([
+  // The #398 review's 40-input probe (M1), plus the original rows.
+  const LOOPBACK = [
+    "::1",
+    "[::1]",
+    "[::1]:8080",
+    "http://[::1]:8080/",
+    "::ffff:127.0.0.1",
+    "[::ffff:127.0.0.1]",
+    "http://[::ffff:127.0.0.1]/",
+    "0:0:0:0:0:0:0:1",
+    "[0:0:0:0:0:0:0:1]:80",
+    "::",
+    "[::]",
+    "http://[::]/",
+    "127.0.0.1",
+    "127.255.255.254",
+    "127.1",
+    "http://127.1/",
+    "2130706433",
+    "http://2130706433/",
+    "0x7f.0.0.1",
+    "127.0.0.1.",
     "localhost",
+    "LOCALHOST",
+    "LocalHost:8123",
+    "localhost.",
+    "localhost.:8000",
+    "http://localhost./",
+    "foo.localhost",
+    "FOO.LOCALHOST.",
+    "localhost/",
+    "0.0.0.0",
+    "0.0.0.0:8000",
+    "http://0/",
+    "::ffff:7f00:1",
+    // Earlier rows.
     "LOCALHOST:4420",
     "app.localhost",
-    "127.0.0.1",
     "127.1.2.3:4420",
-    "::1",
-    "[::1]:4420",
-    "0.0.0.0",
     "http://localhost:4420/settings",
     "https://127.0.0.1",
-  ])("treats %s as loopback", (host) => {
+  ];
+  const REACHABLE = [
+    "fiestapi.local",
+    "192.168.1.20:8000",
+    "http://fiestapi.local:8000/",
+    "notlocalhost",
+    "localhost.example.com",
+    "127.0.0.1.nip.io",
+    "fe80::1",
+    // Earlier rows.
+    "192.168.1.50:4420",
+    "fiestapi.example.net",
+    "http://[not a host",
+    "",
+  ];
+
+  it.each(LOOPBACK)("treats %s as loopback", (host) => {
     expect(isLoopbackHost(host)).toBe(true);
   });
 
-  it.each([
-    "fiestapi.local",
-    "192.168.1.50:4420",
-    "fiestapi.example.net",
-    "http://fiestapi.local:4420",
-    "localhost.example.com",
-    "http://[not a host",
-    "",
-  ])("treats %s as reachable", (host) => {
+  it.each(REACHABLE)("treats %s as reachable", (host) => {
     expect(isLoopbackHost(host)).toBe(false);
   });
 });
@@ -157,12 +196,36 @@ describe("ConnectPhoneCard", () => {
     expect(card().querySelector('[data-slot="connect-phone-time-left"]')).toBeNull();
   });
 
-  it("refuses to draw a QR for a loopback hub (H18) and reports it", () => {
+  it("refuses to draw a QR for a loopback hub (H18): no image, no countdown, no bar", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    render(<ConnectPhoneCard qr={QR} qrLabel="QR" hubAddress="localhost:4420" />);
+    render(
+      <ConnectPhoneCard
+        qr={QR}
+        qrLabel="Pairing code for localhost:4420"
+        hubAddress="localhost:4420"
+        expiresLabel="Expires in 4:12 · works once"
+        timeLeft={0.84}
+      />,
+    );
     expect(screen.queryByTestId("qr")).toBeNull();
+    expect(screen.queryByRole("img")).toBeNull();
     expect(card()).toHaveAttribute("data-refused", "loopback");
+    expect(card()).toHaveAttribute("data-state", "live");
+    expect(card().querySelector('[data-slot="connect-phone-qr"]')).toHaveAttribute("aria-hidden", "true");
+    expect(card().querySelector('[data-slot="connect-phone-countdown"]')).toBeNull();
+    expect(card().querySelector('[data-slot="connect-phone-time-left"]')).toBeNull();
     expect(error).toHaveBeenCalledWith(expect.stringContaining("loopback"));
+  });
+
+  it("draws no bar for a non-finite timeLeft", () => {
+    render(<ConnectPhoneCard qr={QR} qrLabel="QR" hubAddress="fiestapi.local" timeLeft={Number.NaN} />);
+    expect(card().querySelector('[data-slot="connect-phone-time-left"]')).toBeNull();
+  });
+
+  it("draws the QR panel on the flat card ground", () => {
+    render(<ConnectPhoneCard qr={QR} qrLabel="QR" hubAddress="fiestapi.local" />);
+    const panel = card().querySelector('[data-slot="connect-phone-qr-panel"]');
+    for (const c of cardGroundClassName.split(" ")) expect(panel).toHaveClass(c);
   });
 
   it("forwards className and props", () => {

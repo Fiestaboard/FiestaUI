@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { cardGroundClassName } from "../containment/card";
 import { RecoverySteps } from "./recovery-steps";
 
 /*
@@ -52,6 +53,13 @@ describe("RecoverySteps", () => {
     render(<RecoverySteps title="Try these" steps={STEPS} className="mt-4" id="fixes" />);
     expect(root()).toHaveAttribute("id", "fixes");
     expect(root().className).toContain("mt-4");
-    expect(root().className).toContain("bg-card");
+    for (const c of cardGroundClassName.split(" ")) expect(root()).toHaveClass(c);
+  });
+
+  it("passes `start` through: drawn numbers and announced positions agree", () => {
+    render(<RecoverySteps title="Try these" steps={STEPS.slice(1)} start={2} />);
+    const numbers = [...root().querySelectorAll('[data-slot="numbered-step-number"]')].map((n) => n.textContent);
+    expect(numbers).toEqual(["2", "3"]);
+    expect(screen.getAllByRole("listitem").map((li) => li.getAttribute("aria-posinset"))).toEqual(["2", "3"]);
   });
 });
