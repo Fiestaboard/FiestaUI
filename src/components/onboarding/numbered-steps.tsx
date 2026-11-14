@@ -28,6 +28,9 @@ const stepVariants = cva("flex gap-3 text-sm text-foreground", {
       // 07 `58:35303`: a muted panel per step, the copy medium and centred
       // on the disc.
       panel: "items-center rounded-xl bg-muted p-3 font-medium",
+      // 05 `36:6344` (RecoverySteps) and the 07e pairing steps: plain rows,
+      // regular copy top-aligned with the disc.
+      plain: "items-start",
     },
   },
 });
@@ -37,11 +40,14 @@ const markerVariants = cva("flex shrink-0 items-center justify-center rounded-fu
     appearance: {
       // 28 px foreground disc, 14 semibold in background ink.
       panel: "size-7 bg-foreground font-semibold text-background",
+      // 24 px muted disc, Mono/label 12 medium (05 `36:6347`). 07e draws the
+      // pairing steps' disc 22 px on accent in Archivo; unified here (DD-W20).
+      plain: "size-6 bg-muted font-mono text-xs font-medium",
     },
   },
 });
 
-export type NumberedStepsAppearance = "panel";
+export type NumberedStepsAppearance = "panel" | "plain";
 
 export interface NumberedStepsProps extends Omit<React.ComponentProps<"ol">, "children"> {
   steps: readonly NumberedStep[];

@@ -411,14 +411,19 @@ export const INVENTORY = [
     id: "onboarding",
     title: "Onboarding",
     description:
-      "First-run and install content: the honest install offer, browser install steps and the privacy promise. Presentational only — when to show them (after a success, the snooze, the secure-origin check) stays with the consumer.",
+      "First-run, install and pairing content: the honest install offer, browser install steps, the privacy promise, the Connect a phone QR panel and recovery steps for errors. Presentational only — when to show them (after a success, the snooze, the secure-origin check, the pairing code itself) stays with the consumer.",
     entries: [
+      {
+        name: "ConnectPhoneCard",
+        summary: "Pairing QR panel with hub line, countdown and phone steps; refuses a loopback address.",
+      },
       {
         name: "InstallCard",
         summary: "In-content install offer with Install and Not now; no Install button on an insecure origin.",
       },
       { name: "InstallSteps", summary: "Numbered browser steps for installing, e.g. Safari's Add to Home Screen." },
       { name: "PrivacyNote", summary: 'The standing "your data stays on your network" promise, with a shield glyph.' },
+      { name: "RecoverySteps", summary: "Titled card of numbered fixes for an error state, most likely first." },
     ],
   },
   {
