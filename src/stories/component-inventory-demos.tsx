@@ -25,12 +25,14 @@ import {
   Bell,
   Bold,
   Calendar,
+  Check,
   CheckCircle2,
   ChevronRight,
   ChevronsUpDown,
   Clock,
   Cloud,
   Copy,
+  Ellipsis,
   ExternalLink,
   Inbox,
   Info,
@@ -174,6 +176,7 @@ import { buildDurationOptions, DurationChipGroup, OutcomeLine } from "../compone
 import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
+import { NotificationRow } from "../components/forms/notification-row";
 import { SecretInput } from "../components/forms/secret-input";
 import {
   Select,
@@ -196,7 +199,12 @@ import { Box } from "../components/layout/box";
 import { Flex } from "../components/layout/flex";
 import { Grid } from "../components/layout/grid";
 import { Stack } from "../components/layout/stack";
+import { ConnectPhoneCard } from "../components/onboarding/connect-phone-card";
 import { HubDiscoveryRow } from "../components/onboarding/hub-discovery-row";
+import { InstallCard } from "../components/onboarding/install-card";
+import { InstallSteps } from "../components/onboarding/install-steps";
+import { PrivacyNote } from "../components/onboarding/privacy-note";
+import { RecoverySteps } from "../components/onboarding/recovery-steps";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -250,6 +258,8 @@ import { BoardShowcase } from "../components/plugin/board-showcase";
 import { PluginCard } from "../components/plugin/plugin-card";
 import { PluginCategoryBadge } from "../components/plugin/plugin-category-badge";
 import { ScaledBoardTeaser } from "../components/plugin/scaled-board-teaser";
+import { AgendaRow } from "../components/schedule/agenda-row";
+import { DayChip, WeekStrip } from "../components/schedule/day-chip";
 import { Code } from "../components/typography/code";
 import { Heading } from "../components/typography/heading";
 import { Kbd } from "../components/typography/kbd";
@@ -259,6 +269,7 @@ import { Text } from "../components/typography/text";
 import { TextLink } from "../components/typography/text-link";
 import { WizardProgress } from "../components/wizard/wizard-progress";
 import type { InventoryName } from "./component-inventory";
+import { PairingQrStandIn } from "./pairing-qr-stand-in";
 
 /* ------------------------------------------------------------------ *
  * Shared fixtures
@@ -782,6 +793,12 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <Label htmlFor="inv-label-target">Board name</Label>
       <Input id="inv-label-target" defaultValue="Living room" />
     </Stack>
+  ),
+  NotificationRow: () => (
+    <ListRowGroup aria-label="Notifications" className="w-full max-w-md">
+      <NotificationRow title="A display goes offline" reason="Kitchen board, Desk Pixoo" defaultChecked />
+      <NotificationRow title="Update available" reason="FiestaBoard and plugin updates" permission="denied" />
+    </ListRowGroup>
   ),
   SecretInput: () => (
     <Stack gap="1.5" className="w-full max-w-xs">
@@ -1378,6 +1395,35 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Tabs>
   ),
 
+  /* ---- Schedule ---- */
+  AgendaRow: () => (
+    <ListRowGroup aria-label="Sunday" className="w-full max-w-md">
+      <AgendaRow kind="now" title="Weekend brunch" time="9:00 AM – 1:00 PM" detail="Page" />
+      <AgendaRow kind="gap" title="Good morning, Maya" time="1:00 PM – 9:00 PM" detail="Default page" />
+      <AgendaRow kind="conflict" title="Happy birthday Sam" time="11:00 AM – 2:00 PM" detail="Page" />
+    </ListRowGroup>
+  ),
+  WeekStrip: () => (
+    <div className="w-full max-w-md">
+      <WeekStrip aria-label="Day" defaultValue="sun">
+        <DayChip value="thu">Thu 5</DayChip>
+        <DayChip value="fri" hasGap>
+          Fri 6
+        </DayChip>
+        <DayChip value="sat">Sat 7</DayChip>
+        <DayChip value="sun">Sun 8</DayChip>
+        <DayChip value="mon">Mon 9</DayChip>
+      </WeekStrip>
+    </div>
+  ),
+  DayChip: () => (
+    <WeekStrip aria-label="Day chip states" defaultValue="sun">
+      <DayChip value="sun">Sun 8</DayChip>
+      <DayChip value="mon" hasGap>
+        Mon 9
+      </DayChip>
+    </WeekStrip>
+  ),
   /* ---- Data ---- */
   BarList: () => (
     <BarList
@@ -2028,6 +2074,57 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     <div className="w-full max-w-sm">
       <WizardProgress steps={["Connect", "Customize", "Finish"]} current={2} label="Setup progress" />
     </div>
+  ),
+  InstallCard: () => (
+    <InstallCard
+      className="w-full max-w-sm"
+      title="Add FiestaBoard Control to this phone?"
+      onInstall={() => {}}
+      onDismiss={() => {}}
+    >
+      Installed, it opens straight to Home. It still talks only to your hub; there is no FiestaBoard account or cloud.
+    </InstallCard>
+  ),
+  InstallSteps: () => (
+    <InstallSteps
+      className="w-full max-w-sm"
+      aria-label="Add to Home Screen"
+      steps={[
+        { text: "Tap ⋯ in Safari’s address bar, then Share.", icon: <Ellipsis /> },
+        { text: "Scroll down and tap Add to Home Screen.", icon: <Plus /> },
+        { text: "Leave Open as Web App on, then tap Add.", icon: <Check /> },
+      ]}
+    />
+  ),
+  ConnectPhoneCard: () => (
+    <ConnectPhoneCard
+      className="w-full max-w-lg"
+      qr={<PairingQrStandIn />}
+      qrLabel="Pairing code for fiestapi.local"
+      hubAddress="fiestapi.local"
+      expiresLabel="Expires in 4:12 · works once"
+      timeLeft={0.84}
+      steps={[
+        { text: "Open the FiestaBoard app on your phone." },
+        { text: "Tap Connect a hub, then Scan QR code." },
+        { text: "Point the camera at this code and tap Connect to Maya’s FiestaPi." },
+      ]}
+    />
+  ),
+  RecoverySteps: () => (
+    <RecoverySteps
+      className="w-full max-w-sm"
+      title="Try these, in order"
+      steps={[
+        { text: "Make sure the hub is plugged in and has finished starting." },
+        { text: "Docker or Home Assistant? Enter its address instead, for example 192.168.1.50:4420." },
+      ]}
+    />
+  ),
+  PrivacyNote: () => (
+    <PrivacyNote className="w-full max-w-sm" title="Your data stays on your network">
+      This app talks straight to your FiestaBoard hub over Wi‑Fi. There is no FiestaBoard cloud account.
+    </PrivacyNote>
   ),
   FadeContent: () => (
     <FadeContent>
