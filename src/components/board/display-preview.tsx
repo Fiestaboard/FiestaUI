@@ -29,6 +29,12 @@
  * TV a split-flap board draws no housing of its own — only its flaps, as
  * the Apple TV app shows them — so the flaps are what is fitted to the
  * screen (`bezel`).
+ *
+ * Content follows Figma's Display / LED & Panel `Content` axis (02
+ * `39:49571`): `content="sample"` draws fixed sample art sized to the
+ * model, and `lines` is Line 1–3 (on an LED, line 2 board green and line 3
+ * board orange). Both are only a message: the renderers draw them exactly
+ * as they draw any other (../../lib/display-content).
  */
 
 import { useEffect } from "react";
@@ -40,9 +46,11 @@ import {
   MAX_GRID_ROWS,
   MIN_GRID_COLS,
   MIN_GRID_ROWS,
+  resolveDimensions,
 } from "../../lib/board-dimensions";
 import { isDevBuild } from "../../lib/dev";
 import { type DeviceModel, type DeviceModelRef, resolveDeviceModel } from "../../lib/devices";
+import { type DisplayContent, displayLinesMarkup, displaySampleMessage } from "../../lib/display-content";
 import { type LedBitmapLayer } from "../../lib/led-bitmap-layers";
 import { type LedFontId } from "../../lib/led-fonts";
 import { type BoardCellGrid, type LedBlockPadding, type LedLetterCase, type LedTileGap } from "../../lib/led-matrix";
@@ -66,6 +74,26 @@ export interface DisplayPreviewProps {
   model: DeviceModelRef;
   /** Board markup. Ignored when `cells` is given. */
   message?: string | null;
+  /**
+   * The message as lines: Figma's Content = Message, Line 1–3. Each line is
+   * board markup. On an LED, line 2 is drawn board green and line 3 board
+   * orange (`DISPLAY_LINE_COLORS`); later lines, and every line on
+   * split-flap, keep the default colour. Used only when neither `message`
+   * nor `cells` is given: `message=""` counts as given (an empty board) and
+   * suppresses `lines`; `null` or unset does not.
+   */
+  lines?: readonly string[];
+  /**
+   * What the preview shows. `"message"` (the default) is `cells`, else
+   * `message`, else `lines`. `"sample"` is Figma's Content = Sample: fixed
+   * sample art that fits the grid actually drawn — the LED's pixels in the
+   * board's face, or the split-flap rows × columns after `notesWide` /
+   * `notesTall` / `gridRows` / `gridCols` (a Pixoo's schedule, a TC001's
+   * "72° OK", a Flagship's greeting; `displaySampleMessage`). It is drawn in
+   * place of anything passed: `message`, `cells`, `lines` and LED `layers`
+   * are all ignored. Marked on the housing as `data-content`.
+   */
+  content?: DisplayContent;
   /** A grid of parsed cells (`BoardToken[][]`), as FiestaBoard core hands
    *  it after parsing the markup once. Wins over `message`. */
   cells?: BoardCellGrid;
@@ -252,6 +280,8 @@ const isPixelShape = (v: string | undefined): v is LedPixelShape => v === "round
 export function DisplayPreview({
   model: modelRef,
   message,
+  lines,
+  content: contentKind = "message",
   cells,
   layers,
   appearance,
@@ -295,8 +325,32 @@ export function DisplayPreview({
   const bare = frame === "tv" && model.technology === "split_flap";
   const housingShown = bezel ?? !bare;
 
+  // The message: a sample sized to the board drawn, else what was passed,
+  // with `lines` the last resort (`cells`, when given, wins in the renderer).
+  const sample = contentKind === "sample";
+  // A split-flap board's geometry, resolved once: it sizes both the board
+  // and its sample. The renderers default a note array to one Note each way.
+  const flap =
+    model.technology === "led_matrix"
+      ? undefined
+      : splitFlapGeometry(model, { notesWide, notesTall, gridRows, gridCols });
+  const drawnGrid = flap
+    ? resolveDimensions(flap.deviceType, flap.notesWide ?? 1, flap.notesTall ?? 1, flap.gridRows, flap.gridCols)
+    : undefined;
+  const shown = sample
+    ? displaySampleMessage(model, { font, grid: drawnGrid })
+    : (message ?? (lines ? displayLinesMarkup(lines, model.technology) : message));
+
   // Shared by every renderer; each adds its own defaults for what is unset.
-  const content = { message, cells, className, previewLabel, messageLabel, emptyLabel, bezel: housingShown };
+  const content = {
+    message: shown,
+    cells: sample ? undefined : cells,
+    className,
+    previewLabel,
+    messageLabel,
+    emptyLabel,
+    bezel: housingShown,
+  };
   const defined = <T extends object>(o: T): T =>
     Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 
@@ -307,12 +361,23 @@ export function DisplayPreview({
     board = (
       <LedMatrixDisplay
         model={model}
-        {...defined({ ...content, size, letterCase, tileGap, blockPadding, font, layers, transition, announceUpdates })}
+        {...defined({
+          ...content,
+          size,
+          letterCase,
+          tileGap,
+          blockPadding,
+          font,
+          // The sample is drawn in place of the page, its bitmap layers included.
+          layers: sample ? undefined : layers,
+          transition,
+          announceUpdates,
+        })}
         pixelShape={isPixelShape(pixelShape) ? pixelShape : undefined}
       />
     );
   } else {
-    const { clamped, ...geometry } = splitFlapGeometry(model, { notesWide, notesTall, gridRows, gridCols });
+    const { clamped, ...geometry } = flap!;
     geometryClamped = clamped;
     const defaultColor = model.appearance?.boardColors?.[0];
     const chosen = applied.board_color;
@@ -348,6 +413,7 @@ export function DisplayPreview({
       data-model={model.id}
       data-technology={model.technology}
       data-frame={frame}
+      data-content={contentKind}
       data-geometry-clamped={geometryClamped}
     >
       {frame === "tv" ? <TvFrame {...tv}>{board}</TvFrame> : board}

@@ -90,6 +90,10 @@ export const INVENTORY = [
       },
       { name: "Checkbox", summary: "Native checkbox styled to the system." },
       {
+        name: "ChoiceCard",
+        summary: "Pick by what it looks like — an actual-size board crop, title and meta; radio or checkbox group.",
+      },
+      {
         name: "Combobox",
         summary: "Filterable option list — a text field over an aria-activedescendant listbox.",
       },
@@ -100,6 +104,10 @@ export const INVENTORY = [
       {
         name: "CopyButton",
         summary: "Writes a value to the clipboard and confirms it — awaited, announced, and self-cleaning.",
+      },
+      {
+        name: "DurationChipGroup",
+        summary: "CANON's duration chips on SegmentedControl — 44 px pills, Row or 2×2 Grid — with the outcome line.",
       },
       {
         name: "Field",
@@ -146,10 +154,23 @@ export const INVENTORY = [
         summary:
           "Badge's operable counterpart — a link/button-shaped tag, optionally mono; 30px with a 44px hit area at touch.",
       },
+      {
+        name: "Countdown",
+        summary:
+          "Override time left by the minute, with the end time and a draining bar; announces only at thresholds.",
+      },
       { name: "EmptyState", summary: "Icon, title, description and an action for a zero-result view." },
       {
         name: "Note",
         summary: "Quiet, borderless inline explanation for a control — static prose, no live region, no hue.",
+      },
+      {
+        name: "NowShowingCard",
+        summary: "What a display shows now: board, mode badge, page title, countdown, outcome line and actions.",
+      },
+      {
+        name: "OutcomeLine",
+        summary: "The outcome sentence — “Holds until 9:00 PM, then Schedule resumes” — at dialog and Home scale.",
       },
       { name: "Skeleton", summary: "Loading placeholder block." },
       { name: "Spinner", summary: "Indeterminate progress at three sizes, with an accessible label." },
@@ -190,6 +211,10 @@ export const INVENTORY = [
         summary: "One record in a list: leading, title, description, meta and trailing slots; stacks for large text.",
       },
       { name: "MediaFrame", summary: "Framed figure for screenshots and media, with a caption/toolbar bar slot." },
+      {
+        name: "PagePreviewCard",
+        summary: "A page shown as the board it draws — Tile-sm board, name, last shown; button or link.",
+      },
       { name: "ScrollArea", summary: "Overflow container with a styled scrollbar." },
       {
         name: "SortableList",
@@ -213,6 +238,10 @@ export const INVENTORY = [
         summary: "Click-to-zoom media viewer on a near-black scrim; Esc, backdrop and chip all close.",
       },
       { name: "Popover", summary: "Non-modal floating panel anchored to its trigger." },
+      {
+        name: "ShortcutList",
+        summary: "The keyboard-shortcut list (the ? popover): Kbd chords, platform-aware, hidden trigger on phones.",
+      },
       { name: "DropdownMenu", summary: "Menu with groups, separators, shortcuts, submenus and checkbox items." },
       { name: "Tooltip", summary: "Hover/focus label; needs a TooltipProvider ancestor." },
     ],
@@ -291,6 +320,11 @@ export const INVENTORY = [
       { name: "BoardTeaser", summary: "One-line teaser strip for cards and lists." },
       { name: "BoardSizeIndicator", summary: "Compact rows × cols readout, with the layout name for note arrays." },
       {
+        name: "DisplayTypeChip",
+        summary:
+          "Which kind of display it is — Flagship, Note, Pixoo, TC001, FiestaPanel TV… — as a 24 px icon-and-mono label. Informational; filters use Chip.",
+      },
+      {
         name: "CharacterGlyph",
         summary:
           "One token from a character set on its own — LED dots or a flap tile, with the set's fallback when unsupported.",
@@ -339,7 +373,10 @@ export const INVENTORY = [
     title: "Plugin directory",
     description: "How a plugin is advertised — on a card in the directory, and on its detail page.",
     entries: [
-      { name: "PluginCard", summary: "Directory card: name, author, category and an optional board teaser." },
+      {
+        name: "PluginCard",
+        summary: "Directory card with a board teaser, or a compact list row with install states.",
+      },
       { name: "PluginCategoryBadge", summary: "Category pill, one colour per category." },
       { name: "BoardShowcase", summary: "Tabbed board previews for a plugin's detail page." },
       { name: "ScaledBoardTeaser", summary: "Teaser strip that scales to its container." },
