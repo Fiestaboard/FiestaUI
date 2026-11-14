@@ -89,3 +89,16 @@ export const HeartFlapCharset: Story = {
     charset: "vestaboard_v2",
   },
 };
+
+/** `size="touch"` (slice 1.6b): 44 px stamp cells in six columns, for the Brush sheet. */
+export const Touch: Story = {
+  args: {
+    current: { kind: "char", char: "A" },
+    size: "touch",
+  },
+  render: (args) => (
+    <div className="w-[358px]">
+      <DrawCharPickerContent {...args} />
+    </div>
+  ),
+};

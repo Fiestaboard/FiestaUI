@@ -317,6 +317,10 @@ export const INVENTORY = [
           "A board wider than its slot scrolls in its bezel — edge fade, snap per Note, “Note 1 of 3”, Fit overview.",
       },
       {
+        name: "BoardPreviewModeToggle",
+        summary: "The Fit / Actual size pills — one source for BoardViewport, ScaledBoardDisplay and a preview header.",
+      },
+      {
         name: "PreviewSlot",
         summary: "Equal thumbnail space for differently shaped previews — shrinks to fit, never crops or enlarges.",
       },
@@ -420,7 +424,16 @@ export const INVENTORY = [
         name: "TemplateEditor",
         summary: "The editor: line gutter, variable/colour nodes, alignment and wrap controls.",
       },
-      { name: "TemplateEditorToolbar", summary: "The editor's toolbar, usable standalone above your own instance." },
+      {
+        name: "TemplateEditorToolbar",
+        summary:
+          'The editor\'s toolbar, usable standalone. `size="touch"`: labelled 52 px tools per display (split-flap or LED), pickers in bottom sheets.',
+      },
+      { name: "EditorTool", summary: "One labelled 52 px tool of the touch editor bar." },
+      {
+        name: "EditorWarning",
+        summary: "What the board will drop: the line-limit box, or a validated line-overflow card with fixes.",
+      },
       {
         name: "EditorPreview",
         summary: "The editor's always-visible live preview: a sticky pane or a phone dock, with the mirror switch.",

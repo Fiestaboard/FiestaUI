@@ -112,6 +112,7 @@ export { cn } from "./lib/utils";
 export * from "./components/board/board-backdrop";
 export * from "./components/board/board-display";
 export * from "./components/board/board-preview-mode";
+export * from "./components/board/board-preview-mode-toggle";
 export * from "./components/board/board-size-indicator";
 export * from "./components/board/board-teaser";
 export * from "./components/board/board-viewport";
@@ -353,6 +354,8 @@ export * from "./components/plugin/scaled-board-teaser";
 // separate async chunk rather than the barrel's graph — keep it that way.
 export * from "./components/editor/constants";
 export * from "./components/editor/editor-preview";
+export * from "./components/editor/editor-tool";
+export * from "./components/editor/editor-warning";
 export * from "./components/editor/template-editor";
 export * from "./components/editor/template-editor-toolbar";
 export * from "./components/editor/toolbar-dropdown";

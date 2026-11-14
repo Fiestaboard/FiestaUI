@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -304,5 +304,55 @@ describe("ToolbarDropdown · presentation=auto", () => {
     } finally {
       vp.restore();
     }
+  });
+});
+
+describe("ToolbarDropdown · size=touch (slice 1.6b)", () => {
+  it("renders a labelled 52 px tool, no tooltip, accent while open", async () => {
+    const user = userEvent.setup();
+    const { trigger } = setup({ size: "touch", presentation: "sheet" });
+    expect(trigger).toHaveAttribute("data-slot", "editor-tool");
+    expect(trigger).toHaveTextContent("Colors");
+    expect(trigger.className).toMatch(/\bh-toolbar-touch\b/);
+    expect(trigger).not.toHaveAttribute("data-active");
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute("data-active");
+    expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+    expect(sheet()).toBeInTheDocument();
+  });
+
+  it("forwards the 1.3 detents to the sheet", async () => {
+    const user = userEvent.setup();
+    const { trigger } = setup({
+      size: "touch",
+      presentation: "sheet",
+      detents: ["half", "full"],
+      defaultDetent: "full",
+    });
+    await user.click(trigger);
+    expect(sheet()).toHaveAttribute("data-detent", "1");
+  });
+
+  it("falls back to labels.menu and stays disabled", () => {
+    setup({ size: "touch", label: "", labels: { menu: "Menü" }, disabled: true });
+    const trigger = screen.getByTestId("colors");
+    expect(trigger).toHaveAccessibleName("Menü");
+    expect(trigger).toBeDisabled();
+  });
+});
+
+describe("ToolbarDropdown · sheet initial focus by input", () => {
+  it("a tap keeps focus on the sheet; a key press lands on its first control", async () => {
+    const user = userEvent.setup();
+    const { trigger } = setup({ size: "touch", presentation: "sheet" });
+    await user.pointer([{ keys: "[TouchA]", target: trigger }]);
+    await waitFor(() => expect(sheet()).toBeInTheDocument());
+    await waitFor(() => expect(document.activeElement).toBe(sheet()));
+    await user.click(within(sheet()!).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
+
+    trigger.focus();
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Red" })));
   });
 });
