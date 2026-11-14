@@ -90,6 +90,15 @@ export const INVENTORY = [
       },
       { name: "Checkbox", summary: "Native checkbox styled to the system." },
       {
+        name: "SchemaFormRows",
+        summary:
+          "A plugin's settings schema as form rows: the hub's ui:* hints and ui:visible_when, secrets kept masked, host widgets.",
+      },
+      {
+        name: "UnavailableSettingRow",
+        summary: "A setting this display can't offer, said in place of its control, with the reason.",
+      },
+      {
         name: "ChoiceCard",
         summary: "Pick by what it looks like — an actual-size board crop, title and meta; radio or checkbox group.",
       },
@@ -317,6 +326,10 @@ export const INVENTORY = [
           "A board wider than its slot scrolls in its bezel — edge fade, snap per Note, “Note 1 of 3”, Fit overview.",
       },
       {
+        name: "BoardPreviewModeToggle",
+        summary: "The Fit / Actual size pills — one source for BoardViewport, ScaledBoardDisplay and a preview header.",
+      },
+      {
         name: "PreviewSlot",
         summary: "Equal thumbnail space for differently shaped previews — shrinks to fit, never crops or enlarges.",
       },
@@ -365,6 +378,20 @@ export const INVENTORY = [
     description:
       "When pages show. The week grid and the pane that explains the entry picked on it; times are minutes after midnight, and the hub's rules stay with the host.",
     entries: [
+      {
+        name: "WeekCalendar",
+        summary:
+          "Week time grid: entry, gap and silence blocks, conflict and selected states, roving keys, pointer drag-to-create.",
+      },
+      {
+        name: "WeekCalendarInspector",
+        summary: "The pane beside the grid: title, when and where, the conflict with its fix, the board, fields.",
+      },
+      {
+        name: "ScheduleEntryForm",
+        summary:
+          "Add or edit one entry — the hub's own fields: sun times, open ends, weekly / yearly / once, Entry is on — at 44 px.",
+      },
       {
         name: "AgendaRow",
         summary:
@@ -415,7 +442,16 @@ export const INVENTORY = [
         name: "TemplateEditor",
         summary: "The editor: line gutter, variable/colour nodes, alignment and wrap controls.",
       },
-      { name: "TemplateEditorToolbar", summary: "The editor's toolbar, usable standalone above your own instance." },
+      {
+        name: "TemplateEditorToolbar",
+        summary:
+          'The editor\'s toolbar, usable standalone. `size="touch"`: labelled 52 px tools per display (split-flap or LED), pickers in bottom sheets.',
+      },
+      { name: "EditorTool", summary: "One labelled 52 px tool of the touch editor bar." },
+      {
+        name: "EditorWarning",
+        summary: "What the board will drop: the line-limit box, or a validated line-overflow card with fixes.",
+      },
       {
         name: "EditorPreview",
         summary: "The editor's always-visible live preview: a sticky pane or a phone dock, with the mirror switch.",

@@ -2,6 +2,9 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Play } from "lucide-react";
 import { useState } from "react";
 
+import type { BoardPreviewMode } from "../board/board-preview-mode";
+import { BoardPreviewModeToggle } from "../board/board-preview-mode-toggle";
+import { BoardViewport } from "../board/board-viewport";
 import { ScaledBoardDisplay } from "../board/scaled-board-display";
 import { Button } from "../forms/button";
 import { EditorPreview } from "./editor-preview";
@@ -148,24 +151,75 @@ export const DockedOverTemplate: Story = {
   ),
 };
 
-/** A note array: ScaledBoardDisplay's own Fit / Actual size toggle comes with the board. */
+/**
+ * A note array with the Fit / Actual size toggle in the header (slice 1.5d):
+ * the host owns the mode, passes `BoardPreviewModeToggle` as `headerAction`,
+ * and hides the board's own pills, so the preview shows one toggle.
+ */
 export const NoteArray: Story = {
   args: {
     boardName: "Hallway notes",
     details: "Note array 3 × 1",
-    children: (
-      <ScaledBoardDisplay
-        message={"HELLO\nWORLD\n\n"}
-        size="md"
-        deviceType="note_array"
-        notesWide={3}
-        notesTall={1}
-        animationsEnabled={false}
-      />
-    ),
     liveAction: replay,
+    // The render passes the board itself, wired to the header toggle.
+    children: null,
   },
-  render: Pane.render,
+  render: function NoteArrayStory(args) {
+    const [mode, setMode] = useState<BoardPreviewMode>("fit");
+    return (
+      <Page width="w-full max-w-[822px]">
+        <EditorPreview {...args} headerAction={<BoardPreviewModeToggle mode={mode} onModeChange={setMode} />}>
+          <ScaledBoardDisplay
+            message={"HELLO\nWORLD\n\n"}
+            size="md"
+            deviceType="note_array"
+            notesWide={3}
+            notesTall={1}
+            animationsEnabled={false}
+            persist={false}
+            mode={mode}
+            onModeChange={setMode}
+            showModeToggle={false}
+          />
+        </EditorPreview>
+      </Page>
+    );
+  },
+};
+
+/**
+ * 07 `57:64661`: the dock's header carries the Size toggle (Actual size
+ * active) over a BoardViewport, which hides its own pills and keeps F. The
+ * toggle is `size="touch"`: the dock is a phone surface, so its pills get
+ * 44 px targets on any pointer without growing the 22 px header.
+ */
+export const DockedSizeToggle: Story = {
+  args: {
+    variant: "docked",
+    boardName: "Kitchen board",
+    children: null,
+  },
+  render: function DockedSizeToggleStory(args) {
+    const [mode, setMode] = useState<BoardPreviewMode>("actual");
+    return (
+      <Phone>
+        <EditorPreview
+          {...args}
+          headerAction={<BoardPreviewModeToggle size="touch" mode={mode} onModeChange={setMode} />}
+        >
+          <BoardViewport
+            message={MESSAGE}
+            size="sm"
+            animationsEnabled={false}
+            persist={false}
+            mode={mode}
+            onModeChange={setMode}
+            showModeToggle={false}
+          />
+        </EditorPreview>
+      </Phone>
+    );
+  },
 };
 
 /**

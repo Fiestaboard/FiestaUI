@@ -70,6 +70,7 @@ import { Task, TaskContent, TaskItem, TaskTrigger } from "../components/ai/task"
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "../components/ai/tool";
 import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
+import { BoardPreviewModeToggle } from "../components/board/board-preview-mode-toggle";
 import { BoardSizeIndicator } from "../components/board/board-size-indicator";
 import { BoardTeaser } from "../components/board/board-teaser";
 import { BoardViewport } from "../components/board/board-viewport";
@@ -147,6 +148,8 @@ import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
 import { EditorPreview } from "../components/editor/editor-preview";
+import { EditorTool } from "../components/editor/editor-tool";
+import { EditorWarning, EditorWarningAction } from "../components/editor/editor-warning";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
 import { TemplateEditor } from "../components/editor/template-editor";
@@ -177,6 +180,7 @@ import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
 import { NotificationRow } from "../components/forms/notification-row";
+import { SchemaFormRows, UnavailableSettingRow } from "../components/forms/schema-form-rows";
 import { SecretInput } from "../components/forms/secret-input";
 import {
   Select,
@@ -260,6 +264,9 @@ import { PluginCategoryBadge } from "../components/plugin/plugin-category-badge"
 import { ScaledBoardTeaser } from "../components/plugin/scaled-board-teaser";
 import { AgendaRow } from "../components/schedule/agenda-row";
 import { DayChip, WeekStrip } from "../components/schedule/day-chip";
+import { DEFAULT_SCHEDULE_ENTRY, ScheduleEntryForm } from "../components/schedule/schedule-entry-form";
+import { WeekCalendar } from "../components/schedule/week-calendar";
+import { WeekCalendarInspector } from "../components/schedule/week-calendar-inspector";
 import { Code } from "../components/typography/code";
 import { Heading } from "../components/typography/heading";
 import { Kbd } from "../components/typography/kbd";
@@ -376,6 +383,11 @@ const SeeItsOwnStory = ({ storyPath, why }: { storyPath: string; why: string }) 
 /* ------------------------------------------------------------------ *
  * Controlled components need an owner
  * ------------------------------------------------------------------ */
+
+function BoardPreviewModeToggleDemo() {
+  const [mode, setMode] = useState<"fit" | "actual">("actual");
+  return <BoardPreviewModeToggle mode={mode} onModeChange={setMode} />;
+}
 
 function CountdownDemo() {
   // Pinned at mount, half a second inside the minute, so the inventory
@@ -1396,6 +1408,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
 
   /* ---- Schedule ---- */
+  ScheduleEntryForm: () => (
+    <div className="w-full max-w-sm">
+      <ScheduleEntryForm
+        targets={[
+          { value: "page-brunch", label: "Weekend brunch", kind: "page" },
+          { value: "collection-morning", label: "Weekday mornings", kind: "collection" },
+        ]}
+        defaultValue={{ ...DEFAULT_SCHEDULE_ENTRY, page_id: "page-brunch", day_pattern: "weekends" }}
+        display="Kitchen board"
+        onSubmit={() => {}}
+      />
+    </div>
+  ),
   AgendaRow: () => (
     <ListRowGroup aria-label="Sunday" className="w-full max-w-md">
       <AgendaRow kind="now" title="Weekend brunch" time="9:00 AM – 1:00 PM" detail="Page" />
@@ -1889,6 +1914,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       />
     </div>
   ),
+  BoardPreviewModeToggle: () => <BoardPreviewModeToggleDemo />,
   PreviewSlot: () => (
     <PreviewSlot className="w-full max-w-[320px]">
       <StaticBoardDisplay message={BOARD_MESSAGE} size="sm" />
@@ -2018,6 +2044,26 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <TemplateEditorToolbar editor={null} templateVariables={TEMPLATE_VARIABLES} />
     </Frame>
   ),
+  EditorTool: () => (
+    <Frame className="flex max-w-[200px] border-t border-border bg-card px-1 py-1">
+      <EditorTool icon={<Palette />} label="Colors" />
+      <EditorTool icon={<Palette />} label="Active" active />
+    </Frame>
+  ),
+  EditorWarning: () => (
+    <Stack gap="3" className="w-full max-w-md">
+      <EditorWarning
+        kind="line-overflow"
+        line={4}
+        columns={24}
+        maxColumns={22}
+        actions={<EditorWarningAction>Wrap to line 5</EditorWarningAction>}
+      >
+        “N JUDAH 4, 12 AND 25 MIN” — the board shows the first 22 columns.
+      </EditorWarning>
+      <EditorWarning kind="line-limit" lines={7} maxLines={6} />
+    </Stack>
+  ),
   ToolbarDropdown: () => (
     <ToolbarDropdown label="Colors" icon={<Palette className="size-4" />}>
       <Stack gap="1" className="w-48 p-3">
@@ -2135,5 +2181,67 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </CardHeader>
       </Card>
     </FadeContent>
+  ),
+  SchemaFormRows: () => (
+    <SchemaFormRows
+      className="w-full max-w-md"
+      schema={{
+        type: "object",
+        required: ["api_key"],
+        properties: {
+          api_key: { type: "string", title: "511.org API key", "ui:widget": "password" },
+          lines: {
+            type: "array",
+            title: "Lines",
+            items: { type: "string", enum: ["N", "J"], enumNames: ["N Judah", "J Church"] },
+          },
+          minutes_only: { type: "boolean", title: "Minutes only" },
+        },
+      }}
+      value={{ api_key: "***", lines: ["N"], minutes_only: true }}
+      onChange={() => {}}
+    />
+  ),
+  UnavailableSettingRow: () => (
+    <UnavailableSettingRow title="Brightness" reason="Not adjustable — split-flap has no backlight." />
+  ),
+  WeekCalendar: () => (
+    <WeekCalendar
+      aria-label="Friday to Sunday"
+      className="w-full max-w-[358px]"
+      startHour={9}
+      endHour={15}
+      days={[
+        { id: "fri", label: "FRI 13", name: "Friday, November 13" },
+        { id: "sat", label: "SAT 14", name: "Saturday, November 14" },
+        { id: "sun", label: "SUN 15", name: "Sunday, November 15" },
+      ]}
+      entries={[
+        { id: "market", day: 0, start: 540, end: 720, title: "Market open", meta: "Page" },
+        {
+          id: "gap",
+          day: 0,
+          start: 720,
+          end: 900,
+          title: "Gap · Good morning, Maya",
+          meta: "Default page",
+          kind: "gap",
+        },
+        { id: "brunch-sat", day: 1, start: 540, end: 780, title: "Weekend brunch", meta: "Page" },
+        { id: "birthday", day: 1, start: 720, end: 900, title: "Happy birthday Sam", meta: "Page", conflict: true },
+        { id: "brunch-sun", day: 2, start: 540, end: 780, title: "Weekend brunch", meta: "Page" },
+      ]}
+      selectedId="birthday"
+    />
+  ),
+  WeekCalendarInspector: () => (
+    <WeekCalendarInspector
+      className="w-full max-w-[458px]"
+      headingLevel={3}
+      title="Happy birthday Sam"
+      description="Sat Nov 14 · 12:00 – 3:00 PM · Kitchen board"
+      conflict="Overlaps Weekend brunch from 12:00 to 1:00 PM; the one-off date wins, so Weekend brunch ends at 12:00 PM that day."
+      conflictActions={<Button size="sm">Start at 1:00 PM instead</Button>}
+    />
   ),
 };
