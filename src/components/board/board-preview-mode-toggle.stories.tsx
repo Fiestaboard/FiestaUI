@@ -57,7 +57,12 @@ export const TouchTargets: Story = {
       const height = parseFloat(target.height);
       expect(width).toBeGreaterThanOrEqual(44);
       expect(height).toBeGreaterThanOrEqual(44);
-      const left = button.dataset.value === "fit" ? rect.right - width : rect.left;
+      // Absolute targets anchor to the padding edge, inside the button border.
+      const style = getComputedStyle(button);
+      const left =
+        button.dataset.value === "fit"
+          ? rect.right - parseFloat(style.borderRightWidth) - width
+          : rect.left + parseFloat(style.borderLeftWidth);
       const top = rect.top + (rect.height - height) / 2;
       for (const x of [left + 0.5, left + width - 0.5]) {
         for (const y of [top + 0.5, top + height - 0.5]) {
