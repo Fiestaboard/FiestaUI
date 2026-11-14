@@ -2,6 +2,8 @@ import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
+import { pressStateHandlers } from "../../lib/press";
+import { COARSE_HIT_AREA, TOUCH_HIT_AREA, TOUCH_PRESS_SCALE } from "../../lib/touch";
 import { cn } from "../../lib/utils";
 
 /**
@@ -56,7 +58,7 @@ const chipVariants = cva(
   // is a docs site whose global link styles (Infima) underline anchors on
   // hover, and an underlined pill reads as a link wearing a costume rather
   // than a chip. The border/fill hover above replaces that affordance.
-  "inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none text-foreground no-underline hover:bg-accent hover:text-accent-foreground hover:border-brand active:bg-secondary focus-ring transition-[color,background-color,border-color,box-shadow] duration-control disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none text-foreground no-underline hover:bg-accent hover:text-accent-foreground hover:border-brand active:bg-secondary active:border-brand data-[press]:bg-secondary data-[press]:border-brand focus-ring transition-[color,background-color,border-color,box-shadow] duration-control disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       // A boolean, not a variant axis. Mono is typography for code-shaped
@@ -68,9 +70,19 @@ const chipVariants = cva(
         true: "font-mono",
         false: "",
       },
+      // Slice 1.2 (Figma C7 `59:144018`: "30pt chip, 44pt line"). The pill
+      // stays VISIBLY 30px so a run of chips still reads as inline content,
+      // and an invisible ::before hit area carries the 44×44 target
+      // (lib/touch.ts). `default` gets the same hit area only under the
+      // opted-in coarse-pointer layer (W2). The press also scales to 0.97.
+      size: {
+        default: COARSE_HIT_AREA,
+        touch: `h-[30px] px-3 py-0 text-sm ${TOUCH_HIT_AREA} ${TOUCH_PRESS_SCALE}`,
+      },
     },
     defaultVariants: {
       mono: false,
+      size: "default",
     },
   },
 );
@@ -87,8 +99,13 @@ const chipVariants = cva(
 function Chip({
   className,
   mono,
+  size = "default",
   asChild = false,
   children,
+  onPointerDown,
+  onPointerUp,
+  onPointerCancel,
+  onPointerLeave,
   ref,
   ...props
 }: React.ComponentProps<"button"> & VariantProps<typeof chipVariants> & { asChild?: boolean }) {
@@ -98,9 +115,12 @@ function Chip({
     render: asChild ? (React.Children.only(children) as React.ReactElement) : undefined,
     props: {
       "data-slot": "chip",
-      className: cn(chipVariants({ mono }), className),
+      "data-size": size,
+      className: cn(chipVariants({ mono, size }), className),
       ...(asChild ? {} : { children }),
       ...props,
+      // C21: `data-press` while a pointer is down (lib/press.ts).
+      ...pressStateHandlers({ onPointerDown, onPointerUp, onPointerCancel, onPointerLeave }),
     },
   });
 }
