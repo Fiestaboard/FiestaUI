@@ -6,6 +6,7 @@ import { isNoteArray } from "../../lib/board-dimensions";
 import { cn } from "../../lib/utils";
 import { BoardDisplay, type BoardDisplayProps } from "./board-display";
 import { type BoardPreviewMode, useBoardPreviewMode } from "./board-preview-mode";
+import { BoardPreviewModeToggle } from "./board-preview-mode-toggle";
 
 /**
  * Where a board sits (C8, CANON addendum), each with its tile size:
@@ -44,6 +45,13 @@ export interface ScaledBoardDisplayProps extends BoardDisplayProps {
   mode?: BoardPreviewMode;
   /** Called with the new mode when the user taps the toggle. */
   onModeChange?: (mode: BoardPreviewMode) => void;
+  /**
+   * Show the built-in Fit / Actual size pills above a note array. Default
+   * `true`. Pass `false` when the host renders a `BoardPreviewModeToggle`
+   * itself (e.g. in `EditorPreview`'s `headerAction`) and controls `mode`,
+   * so the preview never shows two toggles.
+   */
+  showModeToggle?: boolean;
   /**
    * The mode a note array starts in when the session has no stored choice.
    * Default `"fit"`, as before; FiestaBoard passes `"actual"`.
@@ -98,6 +106,7 @@ function ScaledBoardDisplayImpl({
   scrollRegionLabel = "Board preview",
   mode: modeProp,
   onModeChange,
+  showModeToggle = true,
   defaultMode = "fit",
   persist = true,
   layout,
@@ -114,10 +123,14 @@ function ScaledBoardDisplayImpl({
   const [scale, setScale] = useState(1);
   const [scaledWidth, setScaledWidth] = useState<number | null>(null);
   const [scaledHeight, setScaledHeight] = useState<number | null>(null);
+  // BoardDisplay's largest outer shadow is 0 8px 32px. A 48px blur
+  // allowance (1.5 × blur radius), offset vertically by 8px, contains its
+  // visible extent. Reserve it in natural coordinates, then scale together.
+  const shadowSpace = props.bezel === false ? 0 : 96;
 
   // The toggle only exists for note arrays; flagship/note/panel always fit.
   // (`gridRows` / `gridCols` reach the board through the `props` spread.)
-  const showToggle = isNoteArray(props.deviceType ?? "flagship");
+  const noteArray = isNoteArray(props.deviceType ?? "flagship");
 
   // R1 precedence: controlled mode, then the session's stored choice (when
   // persisting), then defaultMode, then "fit".
@@ -126,7 +139,7 @@ function ScaledBoardDisplayImpl({
   // Effective mode: only note arrays can ever be "actual". This keeps the
   // scaling effect below active for flagship/note even if some other tab
   // left "actual" in sessionStorage.
-  const mode: BoardPreviewMode = showToggle ? displayMode : "fit";
+  const mode: BoardPreviewMode = noteArray ? displayMode : "fit";
 
   useLayoutEffect(() => {
     // In actual-size mode we render at natural scale with no transform box,
@@ -186,10 +199,10 @@ function ScaledBoardDisplayImpl({
       const bw = inner ? inner.offsetWidth : board.offsetWidth;
       const bh = inner ? inner.offsetHeight : board.offsetHeight;
       if (!bw || !cw) return;
-      const next = Math.min(1, cw / bw);
+      const next = Math.min(1, cw / (bw + shadowSpace));
       setScale((prev) => (Math.abs(prev - next) > 0.001 ? next : prev));
-      setScaledWidth(bw * next);
-      setScaledHeight(bh * next);
+      setScaledWidth((bw + shadowSpace) * next);
+      setScaledHeight((bh + shadowSpace) * next);
     };
     // Coalesce ResizeObserver callbacks via rAF — the resize handle
     // can fire dozens of events per second while the user drags, and
@@ -221,41 +234,23 @@ function ScaledBoardDisplayImpl({
     // scale is computed from; without them (`bezel={false}`) the board is
     // its grid, and the measurement is of the grid alone.
     props.bezel,
+    shadowSpace,
     mode,
   ]);
 
-  const toggle = showToggle ? (
-    <div className="mb-1 flex w-full justify-center" role="group" aria-label={previewSizeLabel}>
-      <div className="flex gap-1">
-        <button
-          type="button"
-          onClick={() => setMode("fit")}
-          aria-pressed={mode === "fit"}
-          className={cn(
-            "rounded-full border px-2.5 py-1 text-[11px] transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-            mode === "fit"
-              ? "border-primary bg-primary/10 text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {fitModeLabel}
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("actual")}
-          aria-pressed={mode === "actual"}
-          className={cn(
-            "rounded-full border px-2.5 py-1 text-[11px] transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-            mode === "actual"
-              ? "border-primary bg-primary/10 text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {actualModeLabel}
-        </button>
+  // The shared toggle (slice 1.5d): one source with BoardViewport and the
+  // EditorPreview header. Note arrays only; a host with its own header toggle
+  // hides this one.
+  const toggle =
+    noteArray && showModeToggle ? (
+      <div className="mb-1 flex w-full justify-center">
+        <BoardPreviewModeToggle
+          mode={mode}
+          onModeChange={setMode}
+          labels={{ previewSize: previewSizeLabel, fit: fitModeLabel, actual: actualModeLabel }}
+        />
       </div>
-    </div>
-  ) : null;
+    ) : null;
 
   if (mode === "actual") {
     // Actual size: render at natural scale and scroll horizontally when the
@@ -313,13 +308,17 @@ function ScaledBoardDisplayImpl({
         This keeps surrounding layout (e.g. preview margin, the live-output
         toggle below) honest — without it, the BoardDisplay's natural
         779px-wide layout box would still take that much room and push
-        siblings around.
+        siblings around. The clip includes the shadow allowance, rather
+        than cutting through the bezel's rounded corners. The board and its
+        original shadow both fit inside the available width.
 
         Inner: the BoardDisplay itself, transformed from its top-left so
         the visible content lines up with the middle box from x=0.
       */}
       <div ref={containerRef} className="flex w-full min-w-0 justify-center overflow-hidden">
         <div
+          data-slot="scaled-board-clip"
+          className="overflow-hidden"
           style={{
             width: scaledWidth ?? undefined,
             height: scaledHeight ?? undefined,
@@ -331,6 +330,8 @@ function ScaledBoardDisplayImpl({
               transform: `scale(${scale})`,
               transformOrigin: "top left",
               width: "fit-content",
+              boxSizing: "content-box",
+              padding: shadowSpace ? "40px 48px 56px" : 0,
             }}
           >
             <BoardDisplay {...props} />
