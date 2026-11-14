@@ -115,6 +115,11 @@ export const INVENTORY = [
       },
       { name: "Input", summary: "Single-line text input across the HTML input types, with a 44px touch size." },
       { name: "Label", summary: "Form label wired to its control by htmlFor." },
+      {
+        name: "NotificationRow",
+        summary:
+          "One alert, why it fires and its own switch; blocked or needs-HTTPS permission turns it off and says why.",
+      },
       { name: "SecretInput", summary: "Password input with a reveal toggle." },
       { name: "SegmentedControl", summary: "Pill group for a small set of mutually exclusive options." },
       { name: "Select", summary: "Listbox-backed dropdown with grouping and separators." },
@@ -369,6 +374,15 @@ export const INVENTORY = [
         name: "WeekCalendarInspector",
         summary: "The pane beside the grid: title, when and where, the conflict with its fix, the board, fields.",
       },
+        name: "AgendaRow",
+        summary:
+          "One agenda row — entry, now, gap or conflict — written in words: title, time · detail, a status word.",
+      },
+      {
+        name: "WeekStrip",
+        summary: "The day picker: touch-size SegmentedControl pills on one scrolling line.",
+      },
+      { name: "DayChip", summary: "One day in a WeekStrip — “Thu 5” — with a warning dot and words for a gap day." },
     ],
   },
   {
@@ -483,6 +497,20 @@ export const INVENTORY = [
     entries: [
       { name: "WizardShell", summary: "Overlay, card, header, progress and footer slots for a setup flow." },
       { name: "WizardProgress", summary: "Segmented step indicator with labels and aria-current." },
+    ],
+  },
+  {
+    id: "onboarding",
+    title: "Onboarding",
+    description:
+      "First-run and install content: the honest install offer, browser install steps and the privacy promise. Presentational only — when to show them (after a success, the snooze, the secure-origin check) stays with the consumer.",
+    entries: [
+      {
+        name: "InstallCard",
+        summary: "In-content install offer with Install and Not now; no Install button on an insecure origin.",
+      },
+      { name: "InstallSteps", summary: "Numbered browser steps for installing, e.g. Safari's Add to Home Screen." },
+      { name: "PrivacyNote", summary: 'The standing "your data stays on your network" promise, with a shield glyph.' },
     ],
   },
   {

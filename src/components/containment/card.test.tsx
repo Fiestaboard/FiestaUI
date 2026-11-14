@@ -2,7 +2,17 @@ import { render, screen } from "@testing-library/react";
 import { Info } from "lucide-react";
 import { describe, expect, it } from "vitest";
 
-import { CardTitle } from "./card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  cardGroundClassName,
+  CardHeader,
+  cardSurfaceClassName,
+  CardTitle,
+} from "./card";
 
 /*
  * CardTitle's icon slot (#274) exists to settle one accessibility question and
@@ -75,5 +85,30 @@ describe("CardTitle", () => {
     );
 
     expect(screen.getByRole("heading", { level: 2, name: "Section" })).toBeInTheDocument();
+  });
+});
+
+describe("Card parts and recipes", () => {
+  it("mounts every part with its data-slot", () => {
+    render(
+      <Card data-testid="card">
+        <CardHeader>
+          <CardTitle>Title</CardTitle>
+          <CardDescription>Description</CardDescription>
+          <CardAction>Action</CardAction>
+        </CardHeader>
+        <CardContent>Content</CardContent>
+        <CardFooter>Footer</CardFooter>
+      </Card>,
+    );
+    const card = screen.getByTestId("card");
+    for (const slot of ["card-header", "card-description", "card-action", "card-content", "card-footer"]) {
+      expect(card.querySelector(`[data-slot="${slot}"]`)).not.toBeNull();
+    }
+  });
+
+  it("the flat ground is the surface without its elevation", () => {
+    expect(cardSurfaceClassName).toBe(`${cardGroundClassName} shadow-card`);
+    expect(cardGroundClassName).not.toContain("shadow");
   });
 });

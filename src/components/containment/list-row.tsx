@@ -84,17 +84,37 @@ interface ListRowProps extends Omit<useRender.ComponentProps<"div">, "title"> {
   variant?: ListRowVariant;
   /** `touch` gives a 56px floor and 16px titles. Default `default` (48px floor). */
   size?: ListRowSize;
+  /**
+   * The row is the open item of a list-detail (slice 1.8e; 07e Settings
+   * `318:46000`, `320:6520`): an accent pill inset 4px inside the row, radius
+   * md, behind the content, and a semibold title. Sets `aria-current` (an
+   * explicit `aria-current` prop wins). The app decides which row is open;
+   * the kit never reads the route.
+   */
+  selected?: boolean;
+  /** Which kind of "current" a selected row is, as on NavListLink. Default `"page"`. */
+  current?: "page" | "step" | "location" | "date" | "time" | "true";
 }
 
 const rowBase = [
   "relative flex w-full items-center gap-3 text-left text-foreground",
   "transition-[background-color,border-color,box-shadow] duration-control",
-  // Only a link or button row reacts to hover. An open context menu shows the
-  // same fill (data-popup-open, never data-pressed).
-  "[&:is(a,button)]:cursor-pointer [&:is(a,button)]:hover:bg-accent data-[popup-open]:bg-accent",
   "focus-ring focus-visible:z-10",
   "[&_svg]:pointer-events-none [&_svg]:shrink-0",
 ];
+
+// Only a link or button row reacts to hover. An open context menu shows the
+// same fill (data-popup-open, never data-pressed).
+const rowInteractive = "[&:is(a,button)]:cursor-pointer [&:is(a,button)]:hover:bg-accent data-[popup-open]:bg-accent";
+
+// The open row of a list-detail (07e): the fill is a pseudo-element inset 4px
+// from the row's edges with the md radius, painted behind the content inside
+// the row's own stacking context. Inset, it never reaches an inset group's
+// rounded corners or its dividers, and a row fill on the element itself would
+// (the square that PR #2480's review caught). A selected row skips the
+// edge-to-edge hover fill for the same reason; it is already lit.
+const rowSelected =
+  "isolate [&:is(a,button)]:cursor-pointer before:pointer-events-none before:absolute before:inset-1 before:-z-10 before:rounded-md before:bg-accent";
 
 const variantClasses: Record<ListRowVariant, string> = {
   plain: "px-4",
@@ -145,6 +165,8 @@ function ListRow({
   className,
   render,
   ref,
+  selected = false,
+  current = "page",
   ...props
 }: ListRowProps) {
   const group = React.useContext(ListRowGroupContext);
@@ -161,7 +183,10 @@ function ListRow({
       ) : null}
       <span data-slot="list-row-body" className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-0.5">
         <span data-slot="list-row-text" className={cn("flex flex-col gap-0.5", textClasses[layout])}>
-          <span data-slot="list-row-title" className={cn("font-medium break-words", titleSize[resolvedSize])}>
+          <span
+            data-slot="list-row-title"
+            className={cn(selected ? "font-semibold" : "font-medium", "break-words", titleSize[resolvedSize])}
+          >
             {title}
           </span>
           {description != null && description !== false ? (
@@ -198,7 +223,15 @@ function ListRow({
       "data-layout": layout,
       "data-variant": resolvedVariant,
       "data-size": resolvedSize,
-      className: cn(rowBase, variantClasses[resolvedVariant], sizeClasses[resolvedSize], className),
+      "data-selected": selected ? "" : undefined,
+      "aria-current": selected ? current : undefined,
+      className: cn(
+        rowBase,
+        selected ? rowSelected : rowInteractive,
+        variantClasses[resolvedVariant],
+        sizeClasses[resolvedSize],
+        className,
+      ),
       children: content,
       ...props,
       // Last, so a wrapper that renders the row (a context-menu trigger
