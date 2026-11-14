@@ -55,11 +55,42 @@ import { ToggleCard, ToggleCardGroup } from "./toggle-card";
  *
  * SECRETS. The hub never returns a stored secret: it sends `"***"`. That
  * shows as an empty field reading "Saved — type to replace", with reveal
- * off. Typing replaces it; clearing the field puts `"***"` back, so the
- * saved key is kept.
+ * off. Clearing an abandoned replacement omits the field and keeps the saved
+ * key. onChange omits masked secrets recursively. Always serialize with
+ * schemaFormSubmission(schema, value), including save-before-edit. Custom
+ * widgets must honor wiring/disabled/required and must declare secrets in
+ * the schema; opaque widget-specific data needs its own safe serializer.
  * ------------------------------------------------------------------ */
 
 export const MASKED_SECRET = "***";
+
+/** Safe submission boundary, including untouched controlled values. Only schema-declared
+ * secrets reserve the mask; ordinary text containing "***" is preserved. Returns a copy.
+ * Hosts submit this result as an update: omitted secrets mean keep the stored value.
+ * Arrays with unchanged primitive secret elements are omitted as a whole: removing
+ * an element would shift positions, and undefined would serialize as null.
+ * Custom widgets must declare secret fields (including object/array children) in the schema.
+ */
+export function schemaFormSubmission(schema: JsonSchemaField, value: Record<string, unknown>): Record<string, unknown> {
+  const clean = (field: JsonSchemaField | undefined, item: unknown): unknown => {
+    if (!field) return item;
+    if (isSecretField(field) && item === MASKED_SECRET) return undefined;
+    if (Array.isArray(item)) {
+      const items = item.map((entry) => clean(field.items, entry));
+      return items.includes(undefined) ? undefined : items;
+    }
+    if (item !== null && typeof item === "object") {
+      return Object.fromEntries(
+        Object.entries(item).flatMap(([key, entry]) => {
+          const next = clean(field.properties?.[key], entry);
+          return next === undefined ? [] : [[key, next]];
+        }),
+      );
+    }
+    return item;
+  };
+  return clean(schema, value) as Record<string, unknown>;
+}
 
 export interface SchemaWidgetProps {
   /** Dotted path, e.g. `location.stop_id`. */
@@ -111,7 +142,10 @@ export const DEFAULT_SCHEMA_FORM_ROWS_LABELS: SchemaFormRowsLabels = {
 export type SchemaFormRowsProps = Omit<React.ComponentProps<"div">, "onChange"> & {
   /** The settings schema: an object with `properties`, optional `required` and `ui:sections`. */
   schema: JsonSchemaField;
+  /** Change this key (or remount) when loading another settings record or starting a fresh edit session. */
+  recordKey?: string | number;
   value: Record<string, unknown>;
+  /** Full updated settings, with unchanged masked schema secrets omitted recursively. */
   onChange: (next: Record<string, unknown>) => void;
   /** The board the settings are for: read by `@device_type` / `@device_model`. */
   facts?: SchemaBoardFacts | null;
@@ -145,7 +179,7 @@ function titleOf(key: string, field: JsonSchemaField) {
 }
 
 function domId(base: string, path: string) {
-  return `${base}-${path.replace(/[^A-Za-z0-9_-]/g, "-")}`;
+  return `${base}-${encodeURIComponent(path)}`;
 }
 
 /* ---------------------------------------------------------------- *
@@ -273,6 +307,17 @@ export function UnavailableSettingRow({
   );
 }
 
+function RequiredMark({ label }: { label: string }) {
+  return (
+    <>
+      <span aria-hidden="true" className="ml-0.5 text-destructive">
+        *
+      </span>{" "}
+      <span className="sr-only">{label}</span>
+    </>
+  );
+}
+
 function GroupRow({
   labelId,
   label,
@@ -294,14 +339,7 @@ function GroupRow({
     <div data-slot="schema-form-row" className="flex flex-col gap-1.5">
       <span id={labelId} className="text-sm leading-none font-medium">
         {label}
-        {required ? (
-          <>
-            <span aria-hidden="true" className="ml-0.5 text-destructive">
-              *
-            </span>{" "}
-            <span className="sr-only">{requiredLabel}</span>
-          </>
-        ) : null}
+        {required ? <RequiredMark label={requiredLabel} /> : null}
       </span>
       {children}
       {description ? (
@@ -323,6 +361,7 @@ function Row({
   name,
   path,
   field,
+  initialValue,
   value,
   onChange,
   required,
@@ -331,13 +370,16 @@ function Row({
   name: string;
   path: string;
   field: JsonSchemaField;
+  initialValue: unknown;
   value: unknown;
   onChange: (next: unknown) => void;
   required: boolean;
 }) {
   const { labels, disabled } = ctx;
+  const rowId = React.useId();
+  const wasSaved = isSecretField(field) && initialValue === MASKED_SECRET;
   const control: SchemaControl = resolveSchemaControl(field, Object.keys(ctx.widgets));
-  const id = domId(ctx.idBase, path);
+  const id = domId(ctx.idBase, rowId);
   const label = titleOf(name, field);
   const description = field.description;
   const error = ctx.errors[path];
@@ -370,7 +412,10 @@ function Row({
       const describedBy = error ? `${id}-error` : description ? `${id}-description` : undefined;
       return (
         <div data-slot="schema-form-row" data-control="custom" className="flex flex-col gap-1.5">
-          <Label htmlFor={id}>{label}</Label>
+          <Label htmlFor={id}>
+            {label}
+            {required ? <RequiredMark label={labels.required} /> : null}
+          </Label>
           <Widget
             path={path}
             field={field}
@@ -397,7 +442,7 @@ function Row({
       );
     }
     case "secret": {
-      const saved = value === MASKED_SECRET;
+      const saved = wasSaved && (value === MASKED_SECRET || value === undefined || value === "");
       return field_(
         <SecretInput
           containerClassName={CONTROL_WIDTH}
@@ -410,7 +455,11 @@ function Row({
           disabled={disabled}
           // A saved secret stays saved while the field is empty: "required" is the hub's job then.
           required={required && !saved}
-          onChange={(event) => onChange(event.target.value === "" && saved ? MASKED_SECRET : event.target.value)}
+          onChange={(event) => {
+            const next = event.target.value;
+            if (next === MASKED_SECRET) return;
+            onChange(next === "" && wasSaved ? undefined : next);
+          }}
         />,
       );
     }
@@ -512,6 +561,7 @@ function Row({
           <div className="flex min-w-0 flex-col gap-1.5">
             <Label id={labelId} htmlFor={id}>
               {label}
+              {required ? <RequiredMark label={labels.required} /> : null}
             </Label>
             {description ? (
               <Text id={`${id}-description`} size="xs" tone="muted">
@@ -593,6 +643,9 @@ function Row({
             schema={field}
             keys={Object.keys(field.properties ?? {})}
             value={record}
+            initialValue={
+              initialValue && typeof initialValue === "object" ? (initialValue as Record<string, unknown>) : {}
+            }
             onChange={(next) => onChange(next)}
             pathPrefix={`${path}.`}
           />
@@ -621,6 +674,7 @@ function Rows({
   ctx,
   schema,
   keys,
+  initialValue,
   value,
   onChange,
   pathPrefix,
@@ -628,6 +682,7 @@ function Rows({
   ctx: Ctx;
   schema: JsonSchemaField;
   keys: string[];
+  initialValue: Record<string, unknown>;
   value: Record<string, unknown>;
   onChange: (next: Record<string, unknown>) => void;
   pathPrefix: string;
@@ -654,6 +709,7 @@ function Rows({
             name={key}
             path={`${pathPrefix}${key}`}
             field={field}
+            initialValue={initialValue[key]}
             value={value[key]}
             required={required.has(key)}
             onChange={(next) => {
@@ -696,7 +752,7 @@ function Section({ section, children }: { section: SchemaSection; children: Reac
   );
 }
 
-function SchemaFormRows({
+function SchemaFormRowsSession({
   schema,
   value,
   onChange,
@@ -710,6 +766,7 @@ function SchemaFormRows({
   className,
   ...props
 }: SchemaFormRowsProps) {
+  const [initialValue] = React.useState(value);
   const ctx: Ctx = {
     facts,
     errors,
@@ -723,7 +780,15 @@ function SchemaFormRows({
   const sections = (schema["ui:sections"] ?? []).filter((s) => Array.isArray(s.fields));
   const inSection = new Set(sections.flatMap((s) => s.fields));
   const rows = (subset: string[]) => (
-    <Rows ctx={ctx} schema={schema} keys={subset} value={value} onChange={onChange} pathPrefix="" />
+    <Rows
+      ctx={ctx}
+      schema={schema}
+      keys={subset}
+      value={value}
+      initialValue={initialValue}
+      onChange={(next) => onChange(schemaFormSubmission(schema, next))}
+      pathPrefix=""
+    />
   );
 
   return (
@@ -740,6 +805,24 @@ function SchemaFormRows({
       })}
     </div>
   );
+}
+
+/** Saved-secret history lasts for one keyed editing session, including hidden/unmounted rows.
+ * Mount after loading the settings. Change recordKey (or remount) for another record,
+ * a reload after save, or a reset that should replace saved-secret history.
+ *
+ * @example
+ * const [value, setValue] = React.useState(loadedSettings);
+ * <form onSubmit={(event) => {
+ *   event.preventDefault();
+ *   saveSettings(schemaFormSubmission(schema, value));
+ * }}>
+ *   <SchemaFormRows recordKey={recordId} schema={schema} value={value} onChange={setValue} />
+ *   <button type="submit">Save</button>
+ * </form>
+ */
+function SchemaFormRows({ recordKey, ...props }: SchemaFormRowsProps) {
+  return <SchemaFormRowsSession key={recordKey} {...props} />;
 }
 
 export { SchemaFormRows };

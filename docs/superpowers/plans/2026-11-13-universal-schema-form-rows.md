@@ -33,3 +33,7 @@ Hub `origin/main` `91018934a`, the 86 registry manifests and the 4 output manife
 `visible-when.test.ts` runs every hub vector plus the board cases. `controls.test.ts` covers each mapping.
 `schema-form-rows.test.tsx` covers each control's name, description, error, value round trip, secrets, sections,
 nested objects, host widgets, explainer rows, omit and disabled.
+
+## Review follow-up (fix397 / #399)
+
+Merge current alpha. Retain initial saved-secret state for a keyed edit session, omit masked schema secrets from onChange, and export schemaFormSubmission for all saves including unchanged values. Reserve literal masks; recursively sanitize objects and arrays, omitting an array with omitted primitive elements to avoid nulls/index shifts. Test controlled submit, nested abandonment, unrelated edits, reset and pasted mask. Jev chose safe_updates, probability 0.93 (confidence 0.91), over sentinel-bearing editing callbacks (0.05). Use per-row IDs and consistent boolean/custom required labels. Keep custom widgets responsible for declared schema secrets and wiring.

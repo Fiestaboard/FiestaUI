@@ -4,7 +4,13 @@ import * as React from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { JsonSchemaField } from "../../lib/schema-form/controls";
-import { MASKED_SECRET, SchemaFormRows, type SchemaFormRowsProps, UnavailableSettingRow } from "./schema-form-rows";
+import {
+  MASKED_SECRET,
+  SchemaFormRows,
+  type SchemaFormRowsProps,
+  schemaFormSubmission,
+  UnavailableSettingRow,
+} from "./schema-form-rows";
 
 /** Muni Transit as 07d `324:44888` draws it, plus the other shipped shapes. */
 const MUNI: JsonSchemaField = {
@@ -91,6 +97,37 @@ describe("SchemaFormRows", () => {
     expect(last()).toEqual({ units: "metric", stop_id: "15192" });
   });
 
+  it("gives punctuation keys distinct label/control ids", () => {
+    setup({
+      schema: {
+        type: "object",
+        properties: {
+          "a.b": { type: "string", title: "Dot" },
+          "a-b": { type: "string", title: "Dash" },
+          a: { type: "object", title: "Group", properties: { b: { type: "string", title: "Nested" } } },
+        },
+      },
+    });
+    const inputs = ["Dot", "Dash", "Nested"].map((name) => screen.getByRole("textbox", { name }));
+    expect(new Set(inputs.map((input) => input.id)).size).toBe(3);
+  });
+
+  it("marks required boolean and custom labels consistently", () => {
+    setup({
+      schema: {
+        type: "object",
+        required: ["flag", "custom"],
+        properties: {
+          flag: { type: "boolean", title: "Flag" },
+          custom: { type: "string", title: "Custom", "ui:widget": "host" },
+        },
+      },
+      widgets: { host: (props) => <input id={props.id} required={props.required} disabled={props.disabled} /> },
+    });
+    expect(screen.getByRole("switch", { name: "Flag (required)" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Custom (required)" })).toBeRequired();
+  });
+
   describe("secrets", () => {
     it("shows a saved secret as empty, says so, and keeps it when cleared", async () => {
       const { user, last } = setup({ initial: { api_key: MASKED_SECRET } });
@@ -102,7 +139,10 @@ describe("SchemaFormRows", () => {
       await user.type(key, "k");
       expect(last()).toMatchObject({ api_key: "k" });
       await user.clear(key);
-      expect(last()).toMatchObject({ api_key: "" });
+      expect(last()).toEqual({});
+      expect(key).toHaveAttribute("placeholder", "Saved — type to replace");
+      expect(key).not.toBeRequired();
+      expect(screen.getByRole("button", { name: "Show" })).toBeDisabled();
     });
 
     it("clearing the field while still masked keeps the saved secret", async () => {
@@ -116,7 +156,58 @@ describe("SchemaFormRows", () => {
       onChange.mockClear();
       (key as HTMLInputElement).value = "x";
       fireEvent.change(key, { target: { value: "" } });
-      expect(onChange).toHaveBeenLastCalledWith({ api_key: MASKED_SECRET });
+      expect(onChange).toHaveBeenLastCalledWith({});
+    });
+
+    it("omits unchanged secrets on unrelated edits", async () => {
+      const { user, last } = setup({ initial: { api_key: MASKED_SECRET } });
+      await user.type(screen.getByRole("textbox", { name: /Stop/ }), "Kitchen");
+      expect(last()).toEqual({ stop_id: "Kitchen" });
+      expect(screen.getByLabelText(/511\.org API key/)).not.toBeRequired();
+    });
+
+    it("reserves a pasted mask without claiming an unset key was saved", async () => {
+      const { user, last } = setup();
+      const input = screen.getByLabelText(/511\.org API key/);
+      await user.click(input);
+      await user.paste(MASKED_SECRET);
+      expect(last()).toBeUndefined();
+      expect(input).toHaveValue("");
+      expect(input).toBeRequired();
+      expect(input).not.toHaveAttribute("placeholder", "Saved — type to replace");
+    });
+
+    it("resets saved state intentionally when the settings record key changes", async () => {
+      const { user, rerender } = setup({ initial: { api_key: MASKED_SECRET } });
+      await user.type(screen.getByLabelText(/511\.org API key/), "replacement");
+      rerender(<SchemaFormRows recordKey="another-record" schema={MUNI} value={{}} onChange={() => {}} />);
+      expect(screen.getByLabelText(/511\.org API key/)).toBeRequired();
+      expect(screen.getByRole("button", { name: "Show" })).toBeEnabled();
+    });
+
+    it("preserves nested saved state after replacing, clearing and editing a sibling", async () => {
+      const schema: JsonSchemaField = {
+        type: "object",
+        properties: {
+          auth: {
+            type: "object",
+            required: ["token"],
+            properties: {
+              token: { type: "string", title: "Token", secret: true },
+              name: { type: "string", title: "Name" },
+            },
+          },
+        },
+      };
+      const { user, last } = setup({ schema, initial: { auth: { token: MASKED_SECRET } } });
+      const token = screen.getByLabelText(/Token/);
+      await user.type(token, "replacement");
+      expect(last()).toEqual({ auth: { token: "replacement" } });
+      await user.clear(token);
+      await user.type(screen.getByRole("textbox", { name: "Name" }), "Kitchen");
+      expect(last()).toEqual({ auth: { name: "Kitchen" } });
+      expect(token).not.toBeRequired();
+      expect(token).toHaveAttribute("placeholder", "Saved — type to replace");
     });
 
     it("treats secret: true like the password widget, and an unset secret as a plain empty field", () => {
@@ -412,7 +503,7 @@ describe("SchemaFormRows", () => {
           widgets={{ "page-picker": PagePicker }}
         />,
       );
-      const button = screen.getByRole("button", { name: "Page" });
+      const button = screen.getByRole("button", { name: "Page (required)" });
       expect(button).toHaveAccessibleDescription("Shown on a trigger.");
       expect(PagePicker.mock.lastCall?.[0]).toMatchObject({ path: "trigger_page_id", required: true, invalid: false });
       await user.click(button);
@@ -574,5 +665,91 @@ describe("UnavailableSettingRow", () => {
     const row = screen.getByRole("group", { name: "Brightness" });
     expect(row).toHaveAccessibleDescription("Not adjustable — split-flap has no backlight");
     expect(within(row).queryByRole("button")).toBeNull();
+  });
+});
+
+describe("schemaFormSubmission", () => {
+  const schema: JsonSchemaField = {
+    type: "object",
+    properties: {
+      token: { type: "string", secret: true },
+      text: { type: "string" },
+      nested: { type: "object", properties: { password: { type: "string", "ui:widget": "password" } } },
+      accounts: {
+        type: "array",
+        items: { type: "object", properties: { key: { type: "string", secret: true }, name: { type: "string" } } },
+      },
+    },
+  };
+  it("safely serializes an unchanged save recursively without stripping ordinary text or mutating input", () => {
+    const value = {
+      token: MASKED_SECRET,
+      text: MASKED_SECRET,
+      nested: { password: MASKED_SECRET },
+      accounts: [{ key: MASKED_SECRET, name: "Kitchen" }],
+      extra: "kept",
+      empty: null,
+    };
+    expect(schemaFormSubmission(schema, value)).toEqual({
+      text: MASKED_SECRET,
+      nested: {},
+      accounts: [{ name: "Kitchen" }],
+      extra: "kept",
+      empty: null,
+    });
+    expect(value.token).toBe(MASKED_SECRET);
+    expect(value.accounts[0].key).toBe(MASKED_SECRET);
+  });
+  it("keeps genuine replacements, explicit empty secrets, primitive arrays and unknown settings", () => {
+    expect(
+      schemaFormSubmission(schema, {
+        token: "new-key",
+        nested: { password: "" },
+        accounts: [1, null],
+        other: { key: MASKED_SECRET },
+      }),
+    ).toEqual({ token: "new-key", nested: { password: "" }, accounts: [1, null], other: { key: MASKED_SECRET } });
+  });
+  it("omits arrays with unchanged primitive secret elements instead of sending null or shifting positions", () => {
+    const schema: JsonSchemaField = {
+      type: "object",
+      properties: {
+        keys: { type: "array", items: { type: "string", secret: true } },
+        name: { type: "string" },
+      },
+    };
+    expect(
+      JSON.stringify(schemaFormSubmission(schema, { keys: [MASKED_SECRET, "replacement"], name: "Kitchen" })),
+    ).toBe('{"name":"Kitchen"}');
+    expect(schemaFormSubmission(schema, { keys: ["replacement"] })).toEqual({ keys: ["replacement"] });
+  });
+
+  it("tests a controlled host's submit boundary for unchanged save, replace and abandon", async () => {
+    const submitted = vi.fn();
+    function Host() {
+      const [value, setValue] = React.useState<Record<string, unknown>>({ token: MASKED_SECRET, text: MASKED_SECRET });
+      return (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitted(schemaFormSubmission(schema, value));
+          }}
+        >
+          <SchemaFormRows schema={schema} value={value} onChange={setValue} />
+          <button type="submit">Save</button>
+        </form>
+      );
+    }
+    render(<Host />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(submitted).toHaveBeenLastCalledWith({ text: MASKED_SECRET });
+    const token = screen.getByLabelText("token");
+    await user.type(token, "new-key");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(submitted).toHaveBeenLastCalledWith({ token: "new-key", text: MASKED_SECRET });
+    await user.clear(token);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(submitted).toHaveBeenLastCalledWith({ text: MASKED_SECRET });
   });
 });
