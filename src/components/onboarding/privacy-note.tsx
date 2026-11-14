@@ -2,6 +2,7 @@ import { ShieldCheck } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
+import { cardGroundClassName } from "../containment/card";
 
 export interface PrivacyNoteProps extends Omit<React.ComponentProps<"div">, "title"> {
   /** The promise, in a few words ("Your data stays on your network"). */
@@ -24,7 +25,7 @@ function PrivacyNote({ title, children, className, ...props }: PrivacyNoteProps)
   return (
     <div
       data-slot="privacy-note"
-      className={cn("flex items-start gap-3 rounded-xl border bg-card p-4 text-card-foreground", className)}
+      className={cn(cardGroundClassName, "flex items-start gap-3 p-4", className)}
       {...props}
     >
       <ShieldCheck data-slot="privacy-note-icon" aria-hidden="true" className="size-5 shrink-0 text-success" />

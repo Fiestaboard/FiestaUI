@@ -50,6 +50,21 @@ describe("InstallSteps", () => {
     expect(document.querySelector("ol")).toHaveAttribute("start", "2");
   });
 
+  it("with `start`, the announced position agrees with the drawn number", () => {
+    render(<InstallSteps steps={STEPS.slice(1)} start={2} />);
+    const items = screen.getAllByRole("listitem");
+    expect(items.map((li) => li.getAttribute("aria-posinset"))).toEqual(["2", "3"]);
+    expect(items.map((li) => li.getAttribute("aria-setsize"))).toEqual(["3", "3"]);
+  });
+
+  it("from 1, leaves position to the list (no posinset)", () => {
+    render(<InstallSteps steps={STEPS} />);
+    for (const li of screen.getAllByRole("listitem")) {
+      expect(li).not.toHaveAttribute("aria-posinset");
+      expect(li).not.toHaveAttribute("aria-setsize");
+    }
+  });
+
   it("renders the trailing glyph aria-hidden, and omits the slot when there is none", () => {
     render(<InstallSteps steps={[STEPS[0], { text: "No glyph here." }]} />);
     const icons = document.querySelectorAll<HTMLElement>('[data-slot="numbered-step-icon"]');

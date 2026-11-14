@@ -56,7 +56,9 @@ export interface NumberedStepsProps extends Omit<React.ComponentProps<"ol">, "ch
 
 /**
  * The drawn number is `aria-hidden`; the list announces position ("1 of 3"),
- * so a screen reader does not hear the number twice. `role="list"` is
+ * so a screen reader does not hear the number twice. With `start`, each item
+ * carries `aria-posinset` / `aria-setsize` so the announced position matches
+ * the drawn number. `role="list"` is
  * explicit because Safari drops list semantics under `list-style: none`.
  */
 function NumberedSteps({ steps, appearance, start = 1, className, ...props }: NumberedStepsProps) {
@@ -71,7 +73,16 @@ function NumberedSteps({ steps, appearance, start = 1, className, ...props }: Nu
       {...props}
     >
       {steps.map((step, index) => (
-        <li key={step.id ?? index} data-slot="numbered-step" className={stepVariants({ appearance })}>
+        <li
+          key={step.id ?? index}
+          data-slot="numbered-step"
+          // With `start`, the drawn numbers run from `start` but a list's
+          // position is announced from 1. Position and set size make the
+          // two agree ("4 of 6"): the steps are read as the tail of a
+          // sequence that began at 1.
+          {...(start === 1 ? {} : { "aria-posinset": start + index, "aria-setsize": start - 1 + steps.length })}
+          className={stepVariants({ appearance })}
+        >
           <span data-slot="numbered-step-number" aria-hidden="true" className={markerVariants({ appearance })}>
             {start + index}
           </span>
