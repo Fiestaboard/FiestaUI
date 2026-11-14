@@ -374,6 +374,7 @@ export const INVENTORY = [
         name: "WeekCalendarInspector",
         summary: "The pane beside the grid: title, when and where, the conflict with its fix, the board, fields.",
       },
+      {
         name: "AgendaRow",
         summary:
           "One agenda row — entry, now, gap or conflict — written in words: title, time · detail, a status word.",
