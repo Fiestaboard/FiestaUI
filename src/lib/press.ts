@@ -1,0 +1,71 @@
+import type * as React from "react";
+
+/*
+ * The C21 pressed state (Figma page 08 `61:30024`): visual only. No haptics,
+ * no `navigator.vibrate` — the OWNER RULE keeps platform feedback out of
+ * FiestaUI.
+ *
+ * `:active` alone is not a dependable press on the phones this exists for:
+ * iOS Safari applies it only when a touch listener sits on the element or an
+ * ancestor, and hosts differ in whether one does. These handlers stamp
+ * `data-press` for as long as a primary pointer is down, and every
+ * component that uses them styles `data-[press]:` exactly like `active:`,
+ * so a mouse sees no change and touch gets the same feedback. The attribute
+ * is also a hook a host (or a story) can hold to show the state.
+ *
+ * WHY `data-press` AND NOT `data-pressed`. Base UI owns `data-pressed`, and
+ * it means two different things there, neither of them "a finger is down":
+ * Toggle stamps it for ON (`aria-pressed`), and the pressable popup triggers
+ * (Menu, Popover, Select, ContextMenu, NavigationMenu) stamp it for as long
+ * as their popup is OPEN. Styling `data-[pressed]:` on Button would paint
+ * every `<DropdownMenuTrigger render={<Button />}>` pressed while its menu is
+ * open, and removing that attribute on pointerup would fight React and Base
+ * UI for it. `data-press` is a name no Base UI part uses, so this module is
+ * its only writer.
+ *
+ * The attribute is written straight to the DOM rather than through React
+ * state: a press is a few hundred milliseconds of purely visual state, and
+ * re-rendering the control (and its children) twice per tap buys nothing.
+ */
+
+type PressEventHandlers<T extends HTMLElement> = {
+  onPointerDown?: React.PointerEventHandler<T>;
+  onPointerUp?: React.PointerEventHandler<T>;
+  onPointerCancel?: React.PointerEventHandler<T>;
+  onPointerLeave?: React.PointerEventHandler<T>;
+};
+
+function isInert(element: HTMLElement): boolean {
+  return (
+    element.hasAttribute("disabled") ||
+    element.getAttribute("aria-disabled") === "true" ||
+    element.hasAttribute("data-disabled")
+  );
+}
+
+/**
+ * Compose the caller's pointer handlers with the `data-press` bookkeeping.
+ * The caller's handler runs first; `preventDefault()` in its pointerdown
+ * skips the press.
+ */
+export function pressStateHandlers<T extends HTMLElement>(
+  handlers: PressEventHandlers<T> = {},
+): Required<PressEventHandlers<T>> {
+  const release =
+    (handler: React.PointerEventHandler<T> | undefined): React.PointerEventHandler<T> =>
+    (event) => {
+      handler?.(event);
+      event.currentTarget.removeAttribute("data-press");
+    };
+
+  return {
+    onPointerDown: (event) => {
+      handlers.onPointerDown?.(event);
+      if (event.defaultPrevented || event.button !== 0 || isInert(event.currentTarget)) return;
+      event.currentTarget.setAttribute("data-press", "");
+    },
+    onPointerUp: release(handlers.onPointerUp),
+    onPointerCancel: release(handlers.onPointerCancel),
+    onPointerLeave: release(handlers.onPointerLeave),
+  };
+}
