@@ -8,6 +8,11 @@ import { describe, expect, it } from "vitest";
 import { INVENTORY_ENTRIES, INVENTORY_SECTIONS } from "./component-inventory";
 
 describe("component inventory", () => {
+  it("gives every section a unique navigation anchor", () => {
+    const ids = INVENTORY_SECTIONS.map((section) => section.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it("lists every component once, each with a summary", () => {
     const names = INVENTORY_ENTRIES.map((entry) => entry.name);
 

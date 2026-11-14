@@ -421,3 +421,4 @@ export * from "./components/ai/suggestion";
 export * from "./components/ai/task";
 export * from "./components/ai/tool";
 export * from "./components/board/preview-slot";
+export * from "./components/onboarding/hub-discovery-row";
