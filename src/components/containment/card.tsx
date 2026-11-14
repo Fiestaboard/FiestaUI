@@ -26,6 +26,16 @@ import { cn } from "../../lib/utils";
  */
 const cardSurfaceClassName = "bg-card text-card-foreground rounded-xl border shadow-card";
 
+/**
+ * The FLAT card ground: {@link cardSurfaceClassName} without the elevation.
+ * Ground, ink, radius and boundary only, for a panel that sits IN a surface
+ * rather than on the page (05 Setup / Privacy note and Recovery steps, the
+ * 07e pairing-QR panel). One source, so "card, border, no shadow" cannot
+ * drift between those hosts. A literal (not derived from the surface string)
+ * so the Tailwind v4 scanner sees every class.
+ */
+const cardGroundClassName = "bg-card text-card-foreground rounded-xl border";
+
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -161,4 +171,14 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-export { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, cardSurfaceClassName, CardTitle };
+export {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  cardGroundClassName,
+  CardHeader,
+  cardSurfaceClassName,
+  CardTitle,
+};
