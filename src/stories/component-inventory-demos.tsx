@@ -73,6 +73,7 @@ import { BoardViewport } from "../components/board/board-viewport";
 import { CharacterGlyph } from "../components/board/character-glyph";
 import { CharacterSetSpecimen } from "../components/board/character-set-specimen";
 import { DisplayPreview } from "../components/board/display-preview";
+import { DisplayTypeChip } from "../components/board/display-type-chip";
 import { LedMatrixDisplay } from "../components/board/led-matrix-display";
 import { LedTransitionPicker } from "../components/board/led-transition-picker";
 import { PreviewSlot } from "../components/board/preview-slot";
@@ -1829,6 +1830,14 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   BoardTeaser: () => <BoardTeaser teaser="AQI 42 GOOD" size="md" />,
   BoardSizeIndicator: () => (
     <BoardSizeIndicator deviceType="note_array" notesWide={2} notesTall={2} layoutLabel="2×2 grid" />
+  ),
+  DisplayTypeChip: () => (
+    <div className="flex flex-wrap gap-1.5">
+      <DisplayTypeChip type="flagship" />
+      <DisplayTypeChip type="pixoo" />
+      <DisplayTypeChip type="tc001" />
+      <DisplayTypeChip type="panel" />
+    </div>
   ),
   CharacterGlyph: () => (
     <div className="flex items-center gap-2">
