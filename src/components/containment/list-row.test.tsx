@@ -172,6 +172,78 @@ describe("ListRow", () => {
   });
 });
 
+describe("ListRow selected (slice 1.8e, 07e list-detail)", () => {
+  it("is not selected by default: no data-selected, no aria-current", () => {
+    render(<ListRow title="Network" />);
+    expect(row()).not.toHaveAttribute("data-selected");
+    expect(row()).not.toHaveAttribute("aria-current");
+  });
+
+  it("marks the row as the current page", () => {
+    render(<ListRow title="Network" selected />);
+    expect(row()).toHaveAttribute("data-selected", "");
+    expect(row()).toHaveAttribute("aria-current", "page");
+  });
+
+  it("takes another kind of current, as NavListLink does", () => {
+    render(<ListRow title="Network" selected current="location" />);
+    expect(row()).toHaveAttribute("aria-current", "location");
+  });
+
+  it("lets an explicit aria-current win", () => {
+    render(<ListRow title="Network" selected aria-current="step" />);
+    expect(row()).toHaveAttribute("aria-current", "step");
+  });
+
+  it("draws the 07e inset pill: an accent fill 4px inside the row, radius md, behind the content", () => {
+    render(<ListRow title="Network" selected />);
+    const cls = row().className;
+    // The fill is a pseudo-element inset from the row's edges, so it never
+    // reaches the group's rounded corners or its dividers.
+    expect(cls).toContain("isolate");
+    expect(cls).toContain("before:inset-1");
+    expect(cls).toContain("before:rounded-md");
+    expect(cls).toContain("before:bg-accent");
+    expect(cls).toContain("before:-z-10");
+    // The row itself paints no fill of its own.
+    expect(cls).not.toMatch(/(^|\s)bg-accent(\s|$)/);
+  });
+
+  it("does not take the edge-to-edge hover fill while selected", () => {
+    // eslint-disable-next-line jsx-a11y/anchor-has-content -- ListRow supplies the content
+    render(<ListRow title="Network" selected render={<a href="/settings/network" />} />);
+    expect(row().className).not.toContain("[&:is(a,button)]:hover:bg-accent");
+  });
+
+  it("sets the selected title in semibold (07e Text/sm/semibold)", () => {
+    render(<ListRow title="Network" selected />);
+    expect(slot("title")).toHaveClass("font-semibold");
+    expect(slot("title")).not.toHaveClass("font-medium");
+  });
+
+  it("an unselected title stays medium", () => {
+    render(<ListRow title="Network" />);
+    expect(slot("title")).toHaveClass("font-medium");
+  });
+
+  it("a selected link row inside a group is the group's current item", () => {
+    render(
+      <ListRowGroup aria-label="Hub">
+        <li>
+          {/* eslint-disable-next-line jsx-a11y/anchor-has-content -- ListRow supplies the content */}
+          <ListRow render={<a href="/settings/network" />} title="Network" selected />
+        </li>
+        <li>
+          {/* eslint-disable-next-line jsx-a11y/anchor-has-content -- ListRow supplies the content */}
+          <ListRow render={<a href="/settings/system" />} title="System" />
+        </li>
+      </ListRowGroup>,
+    );
+    expect(screen.getByRole("link", { name: "Network" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "System" })).not.toHaveAttribute("aria-current");
+  });
+});
+
 describe("ListRowGroup", () => {
   it("is a role=list whose rows are list items", () => {
     render(
