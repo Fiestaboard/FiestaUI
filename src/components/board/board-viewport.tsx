@@ -49,6 +49,7 @@ import { resolveDimensions } from "../../lib/board-dimensions";
 import { cn } from "../../lib/utils";
 import { BoardDisplay, type BoardDisplayProps } from "./board-display";
 import { type BoardPreviewMode, type BoardPreviewModeOptions, useBoardPreviewMode } from "./board-preview-mode";
+import { BoardPreviewModeToggle } from "./board-preview-mode-toggle";
 import {
   type BoardViewportPaging,
   currentPage,
@@ -115,6 +116,13 @@ export interface BoardViewportProps extends Omit<BoardDisplayProps, "bezel">, Bo
    * `"dot"` is mobile 02's 8 px dot.
    */
   indicator?: "pill" | "dot";
+  /**
+   * Show the Fit / Actual size pills while the board overflows. Default
+   * `true`. Pass `false` when the host renders a `BoardPreviewModeToggle`
+   * itself (e.g. in `EditorPreview`'s `headerAction`) and controls `mode`;
+   * F still toggles, through `onModeChange`.
+   */
+  showModeToggle?: boolean;
   /** Class for the viewport's root. (`className` goes to the board, as on BoardDisplay.) */
   rootClassName?: string;
 }
@@ -194,43 +202,6 @@ function sameView(a: View, b: View) {
   );
 }
 
-function PreviewSizeToggle({
-  mode,
-  onChange,
-  labels,
-}: {
-  mode: BoardPreviewMode;
-  onChange: (mode: BoardPreviewMode) => void;
-  labels: Required<BoardViewportLabels>;
-}) {
-  const option = (value: BoardPreviewMode, label: string) => (
-    // The button is the 44 px hit target (02 S-1); the pill inside is the visual.
-    <button
-      type="button"
-      aria-pressed={mode === value}
-      onClick={() => onChange(value)}
-      className="group/size inline-flex h-11 min-w-11 items-center justify-center focus-visible:outline-none"
-    >
-      <span
-        className={cn(
-          "rounded-full border px-2.5 py-1 text-[11px] leading-none transition-colors group-focus-visible/size:ring-2 group-focus-visible/size:ring-ring",
-          mode === value
-            ? "border-primary bg-primary/10 text-foreground"
-            : "border-transparent text-muted-foreground group-hover/size:text-foreground",
-        )}
-      >
-        {label}
-      </span>
-    </button>
-  );
-  return (
-    <div role="group" aria-label={labels.previewSize} className="flex shrink-0 items-center">
-      {option("fit", labels.fit)}
-      {option("actual", labels.actual)}
-    </div>
-  );
-}
-
 export function BoardViewport({
   title,
   hint,
@@ -238,6 +209,7 @@ export function BoardViewport({
   labels: labelOverrides,
   rootClassName,
   indicator = "pill",
+  showModeToggle = true,
   mode: modeProp,
   onModeChange,
   defaultMode = "actual",
@@ -249,7 +221,7 @@ export function BoardViewport({
   const reducedMotion = useReducedMotion();
   const indicatorId = useId();
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const resetScrollRef = useRef(false);
+  const prevModeRef = useRef(mode);
 
   const deviceType = boardProps.deviceType ?? "flagship";
   const notesWide = boardProps.notesWide ?? 1;
@@ -333,11 +305,13 @@ export function BoardViewport({
     };
   }, [measure]);
 
-  // After the user switches to Actual size, start from the board's left edge.
+  // After a switch to Actual size, start from the board's left edge. Keyed on
+  // the mode itself, not on who changed it, so a host's header toggle (a
+  // controlled `mode`) lands where the pills and F do (slice 1.5d).
   useEffect(() => {
-    if (!resetScrollRef.current) return;
-    resetScrollRef.current = false;
-    scrollTo(0, "auto");
+    const previous = prevModeRef.current;
+    prevModeRef.current = mode;
+    if (previous === "fit" && mode === "actual") scrollTo(0, "auto");
   }, [mode]);
 
   const viewportWidth = geometry.clientWidth - 2 * BOARD_VIEWPORT_PADDING;
@@ -358,16 +332,11 @@ export function BoardViewport({
     else scroller.scrollLeft = left;
   }
 
-  const changeMode = (next: BoardPreviewMode) => {
-    if (next === "actual" && mode !== "actual") resetScrollRef.current = true;
-    setMode(next);
-  };
-
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
     if (event.key === "f" || event.key === "F") {
       event.preventDefault();
-      changeMode(mode === "fit" ? "actual" : "fit");
+      setMode(mode === "fit" ? "actual" : "fit");
       return;
     }
     if (!scrolling) return;
@@ -451,10 +420,19 @@ export function BoardViewport({
       data-overview={overview}
       className={cn("flex w-full min-w-0 flex-col gap-2.5", rootClassName)}
     >
-      {(title || overflowing) && (
+      {(title || (overflowing && showModeToggle)) && (
         <div className="flex min-h-11 items-center justify-between gap-3">
           <div className="min-w-0 font-mono text-xs tracking-wide text-muted-foreground uppercase">{title}</div>
-          {overflowing && <PreviewSizeToggle mode={mode} onChange={changeMode} labels={labels} />}
+          {overflowing && showModeToggle && (
+            // The shared toggle (1.5d) at the touch size: 44 px targets on any
+            // pointer around the 22 px pills (02 S-1), in a 44 px row.
+            <BoardPreviewModeToggle
+              size="touch"
+              mode={mode}
+              onModeChange={setMode}
+              labels={{ previewSize: labels.previewSize, fit: labels.fit, actual: labels.actual }}
+            />
+          )}
         </div>
       )}
       <div

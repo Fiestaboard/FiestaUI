@@ -291,6 +291,10 @@ export const INVENTORY = [
           "A board wider than its slot scrolls in its bezel — edge fade, snap per Note, “Note 1 of 3”, Fit overview.",
       },
       {
+        name: "BoardPreviewModeToggle",
+        summary: "The Fit / Actual size pills — one source for BoardViewport, ScaledBoardDisplay and a preview header.",
+      },
+      {
         name: "PreviewSlot",
         summary: "Equal thumbnail space for differently shaped previews — shrinks to fit, never crops or enlarges.",
       },

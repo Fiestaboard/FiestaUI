@@ -53,6 +53,30 @@ describe("ScaledBoardDisplay: Fit / Actual size toggle", () => {
     expect(screen.getByRole("button", { name: "Real" })).toBeInTheDocument();
   });
 
+  it("renders the shared BoardPreviewModeToggle (one source, slice 1.5d)", () => {
+    render(<ScaledBoardDisplay {...NOTE_ARRAY} />);
+    const group = screen.getByRole("group", { name: "Preview size" });
+    expect(group).toHaveAttribute("data-slot", "board-preview-mode-toggle");
+    expect(group).toHaveAttribute("data-size", "default");
+    expect(fit()).toHaveAttribute("data-slot", "board-preview-mode-option");
+    expect(fit()).toHaveClass("h-5.5", "coarse:before:min-h-touch");
+  });
+
+  it("showModeToggle={false} hides the pills; a controlled mode still applies (header toggle, 1.5d)", () => {
+    const { rerender } = render(<ScaledBoardDisplay {...NOTE_ARRAY} showModeToggle={false} mode="actual" />);
+    expect(screen.queryByRole("group", { name: "Preview size" })).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByTestId("actual-size-scroll")).toBeInTheDocument();
+    rerender(<ScaledBoardDisplay {...NOTE_ARRAY} showModeToggle={false} mode="fit" />);
+    expect(screen.queryByTestId("actual-size-scroll")).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("does not pass showModeToggle onto the board", () => {
+    render(<ScaledBoardDisplay {...NOTE_ARRAY} showModeToggle={false} />);
+    expect(screen.getByRole("img")).not.toHaveAttribute("showModeToggle");
+  });
+
   it("keeps a flagship fitted even when another board left actual in storage", () => {
     window.sessionStorage.setItem(BOARD_PREVIEW_MODE_STORAGE_KEY, "actual");
     render(<ScaledBoardDisplay deviceType="flagship" message="HI" />);
@@ -136,7 +160,7 @@ describe("ScaledBoardDisplay: layout wrapper (C8)", () => {
 });
 
 describe("ScaledBoardDisplay: fit measurement", () => {
-  function stubLayout({ slot, board }: { slot: number; board: number }) {
+  function stubLayout({ slot, board, radius }: { slot: number; board: number; radius?: string }) {
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
       return this.dataset.testSlot === "true" ? slot : 0;
     });
@@ -157,6 +181,9 @@ describe("ScaledBoardDisplay: fit measurement", () => {
       const style = real(el);
       if ((el as HTMLElement).dataset?.testSlot === "true") {
         return { ...style, overflowX: "hidden", paddingLeft: "10px", paddingRight: "10px" } as CSSStyleDeclaration;
+      }
+      if (radius !== undefined && el.getAttribute("data-slot") === "board-display") {
+        return { ...style, borderTopLeftRadius: radius } as CSSStyleDeclaration;
       }
       return style;
     });
@@ -226,6 +253,43 @@ describe("ScaledBoardDisplay: fit measurement", () => {
     expect(disconnect).toHaveBeenCalled();
     expect(cancel).toHaveBeenCalledWith(7);
     vi.unstubAllGlobals();
+  });
+
+  it("clips the scaled board at its own curved corner (radius × scale), so no shadow notches show (1.5d, condition 5)", () => {
+    stubLayout({ slot: 420, board: 800, radius: "12px" });
+    render(
+      <div data-test-slot="true">
+        <ScaledBoardDisplay message="HI" />
+      </div>,
+    );
+    const scaled = screen.getByRole("img").parentElement?.parentElement as HTMLElement;
+    const clip = scaled.parentElement as HTMLElement;
+    expect(clip).toHaveAttribute("data-slot", "scaled-board-clip");
+    expect(clip).toHaveClass("overflow-hidden");
+    // 12px × scale 0.5
+    expect(clip.style.borderRadius).toBe("6px");
+  });
+
+  it("clips square for a board drawn without its bezel", () => {
+    stubLayout({ slot: 420, board: 800, radius: "12px" });
+    render(
+      <div data-test-slot="true">
+        <ScaledBoardDisplay message="HI" bezel={false} />
+      </div>,
+    );
+    const clip = document.querySelector("[data-slot=scaled-board-clip]") as HTMLElement;
+    expect(clip.style.borderRadius).toBe("");
+  });
+
+  it("treats an unreadable radius as square", () => {
+    stubLayout({ slot: 420, board: 800, radius: "" });
+    render(
+      <div data-test-slot="true">
+        <ScaledBoardDisplay message="HI" />
+      </div>,
+    );
+    const clip = document.querySelector("[data-slot=scaled-board-clip]") as HTMLElement;
+    expect(clip.style.borderRadius).toBe("");
   });
 
   it("falls back to its own container when no ancestor caps the width", () => {
