@@ -455,6 +455,18 @@ function ScheduleEntryForm({
   const [inner, setInner] = React.useState(defaultValue);
   const value = valueProp ?? inner;
   const [errors, setErrors] = React.useState<ScheduleEntryErrors>({});
+  const pendingErrorFocus = React.useRef<HTMLFormElement | null>(null);
+  // Wait for Field errors and any hidden fallback repair inputs to commit.
+  React.useLayoutEffect(() => {
+    const form = pendingErrorFocus.current;
+    if (!form) return;
+    pendingErrorFocus.current = null;
+    form
+      .querySelector<HTMLElement>(
+        'input[aria-invalid="true"]:not(:disabled), button[aria-invalid="true"]:not(:disabled), [data-slot="schedule-entry-custom-days"][data-invalid="true"] button:not(:disabled)',
+      )
+      ?.focus();
+  }, [errors]);
   const [repairTimes, setRepairTimes] = React.useState({ start: false, end: false });
   const [annualRange, setAnnualRange] = useDateRange(value.annual_end_date);
   const [onceRange, setOnceRange] = useDateRange(value.one_off_end_date);
@@ -491,6 +503,7 @@ function ScheduleEntryForm({
     event.preventDefault();
     if (busy) return;
     const found = validateScheduleEntry(value);
+    pendingErrorFocus.current = Object.keys(found).length ? event.currentTarget : null;
     setErrors(found);
     setRepairTimes({
       start: Boolean(found.start_time) && value.start_type !== "fixed",
@@ -543,11 +556,13 @@ function ScheduleEntryForm({
         </SelectTrigger>
       </Field>
       <SelectContent>
-        {SUN_OFFSETS.map((minutes) => (
-          <SelectItem key={minutes} value={String(minutes)}>
-            {labels.sunOffset(minutes, type)}
-          </SelectItem>
-        ))}
+        {(SUN_OFFSETS.includes(offset) ? SUN_OFFSETS : [...SUN_OFFSETS, offset].sort((a, b) => a - b)).map(
+          (minutes) => (
+            <SelectItem key={minutes} value={String(minutes)}>
+              {labels.sunOffset(minutes, type)}
+            </SelectItem>
+          ),
+        )}
       </SelectContent>
     </Select>
   );
@@ -801,6 +816,7 @@ function ScheduleEntryForm({
                 <div
                   role="group"
                   aria-label={labels.customDays}
+                  data-invalid={errors.custom_days ? true : undefined}
                   aria-describedby={errors.custom_days ? ids.customError : undefined}
                   data-slot="schedule-entry-custom-days"
                   className="grid grid-cols-7 gap-1"

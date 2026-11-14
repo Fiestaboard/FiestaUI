@@ -132,6 +132,7 @@ export const Errors: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Save" }));
+    await expect(canvas.getByRole("combobox", { name: /Page or Collection/ })).toHaveFocus();
     await expect(canvas.getByText("Pick a page or collection.")).toBeInTheDocument();
     await expect(canvas.getByText("Ends when it starts. Pick another end time.")).toBeInTheDocument();
     await expect(canvas.getByText("Pick at least one day.")).toBeInTheDocument();
@@ -158,7 +159,20 @@ export const SunFallbackErrors: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Save" }));
+    await expect(canvas.getByLabelText("Start fallback time")).toHaveFocus();
     await expect(canvas.getByLabelText("Start fallback time")).toHaveAttribute("aria-invalid", "true");
     await expect(canvas.getByLabelText("End fallback time")).toHaveAttribute("aria-invalid", "true");
+  },
+};
+
+/** Existing schedules may store any integer minute offset, beyond the preset grid. */
+export const StoredCustomOffsets: Story = {
+  args: {
+    defaultValue: { ...weekend, start_type: "sunset", start_sun_offset: 7, end_type: "sunrise", end_sun_offset: 240 },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("combobox", { name: "Offset from sunset" })).toHaveTextContent("7 min after sunset");
+    await expect(canvas.getByRole("combobox", { name: "Offset from sunrise" })).toHaveTextContent("4 h after sunrise");
   },
 };

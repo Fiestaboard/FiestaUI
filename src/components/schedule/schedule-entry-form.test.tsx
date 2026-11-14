@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -165,6 +166,107 @@ describe("formatSunOffset", () => {
 });
 
 describe("ScheduleEntryForm", () => {
+  it.each([
+    [7, 240],
+    [-240, -7],
+  ])("displays and round-trips stored start %i and end %i offsets", (start, end) => {
+    const { onSubmit } = renderForm({
+      defaultValue: entry({ start_type: "sunset", start_sun_offset: start, end_type: "sunrise", end_sun_offset: end }),
+    });
+    expect(screen.getByRole("combobox", { name: "Offset from sunset" })).toHaveTextContent(
+      formatSunOffset(start, "sunset"),
+    );
+    expect(screen.getByRole("combobox", { name: "Offset from sunrise" })).toHaveTextContent(
+      formatSunOffset(end, "sunrise"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ start_sun_offset: start, end_sun_offset: end }));
+  });
+
+  it("labels custom offsets through the host's localized formatter and follows controlled replacement", () => {
+    const labels = { sunOffset: (minutes: number, type: "sunrise" | "sunset") => `${type}: ${minutes} minutes` };
+    const { rerender } = render(
+      <ScheduleEntryForm
+        targets={TARGETS}
+        value={entry({ start_type: "sunset", start_sun_offset: 7 })}
+        labels={labels}
+        onSubmit={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("combobox", { name: "Offset from sunset" })).toHaveTextContent("sunset: 7 minutes");
+    rerender(
+      <ScheduleEntryForm
+        targets={TARGETS}
+        value={entry({ start_type: "sunset", start_sun_offset: 241 })}
+        labels={labels}
+        onSubmit={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("combobox", { name: "Offset from sunset" })).toHaveTextContent("sunset: 241 minutes");
+  });
+
+  it("selects different start and end offsets from stored custom values", async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = renderForm({
+      defaultValue: entry({ start_type: "sunset", start_sun_offset: 7, end_type: "sunrise", end_sun_offset: 240 }),
+    });
+    await user.click(screen.getByRole("combobox", { name: "Offset from sunset" }));
+    await user.click(await screen.findByRole("option", { name: "30 min after sunset" }));
+    await user.click(screen.getByRole("combobox", { name: "Offset from sunrise" }));
+    await user.click(await screen.findByRole("option", { name: "15 min before sunrise" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ start_sun_offset: 30, end_sun_offset: -15 }));
+  });
+
+  it("focuses the first editable error after keyboard Save with multiple errors", async () => {
+    const user = userEvent.setup();
+    renderForm({ defaultValue: entry({ page_id: "", start_time: "", day_pattern: "custom", custom_days: [] }) });
+    const save = screen.getByRole("button", { name: "Save" });
+    save.focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("combobox", { name: /Page or Collection/ })).toHaveFocus();
+    // Submitting again with an existing error set must hand focus back too.
+    save.focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("combobox", { name: /Page or Collection/ })).toHaveFocus();
+  });
+
+  it("focuses custom days and associates the group's error description", async () => {
+    const user = userEvent.setup();
+    renderForm({ defaultValue: entry({ day_pattern: "custom", custom_days: [] }) });
+    screen.getByRole("button", { name: "Save" }).focus();
+    await user.keyboard("{Enter}");
+    const group = screen.getByRole("group", { name: "Custom days" });
+    expect(group).toHaveAccessibleDescription("Pick at least one day.");
+    expect(within(group).getByRole("button", { name: "Mon" })).toHaveFocus();
+  });
+
+  it.each(["start", "end"] as const)("focuses a newly revealed %s sun fallback after keyboard Save", async (which) => {
+    const user = userEvent.setup();
+    renderForm({
+      defaultValue: entry(
+        which === "start" ? { start_type: "sunset", start_time: "" } : { end_type: "sunrise", end_time: "" },
+      ),
+    });
+    screen.getByRole("button", { name: "Save" }).focus();
+    await user.keyboard("{Enter}");
+    const input = screen.getByLabelText(which === "start" ? "Start fallback time" : "End fallback time");
+    expect(input).toHaveFocus();
+    expect(input).toHaveAccessibleDescription("Enter a time.");
+  });
+
+  it("clamps both yearly days to leap February when changing month", async () => {
+    const user = userEvent.setup();
+    const { onValueChange } = renderForm({
+      defaultValue: entry({ recurrence_type: "annual_date", annual_date: "01-31", annual_end_date: "01-31" }),
+    });
+    for (const name of ["Month", "Last month"]) {
+      await user.click(screen.getByRole("combobox", { name }));
+      await user.click(await screen.findByRole("option", { name: "February" }));
+    }
+    expect(lastValue(onValueChange)).toMatchObject({ annual_date: "02-29", annual_end_date: "02-29" });
+  });
+
   it("lays out the hub's fields as labelled touch controls", () => {
     renderForm();
     expect(screen.getByRole("combobox", { name: /Page or Collection/ }).dataset.size).toBe("touch");
@@ -174,6 +276,9 @@ describe("ScheduleEntryForm", () => {
     }
     expect(screen.getByLabelText("Start time")).toHaveProperty("type", "time");
     expect(screen.getByLabelText("End time")).toHaveProperty("value", "13:00");
+    expect(screen.getByRole("switch", { name: "Entry is on" })).toHaveAccessibleDescription(
+      "Off keeps the entry but skips it",
+    );
     expect(screen.getByRole("switch", { name: "Entry is on" }).getAttribute("aria-checked")).toBe("true");
     expect(screen.getByRole("button", { name: "Save" }).dataset.size).toBe("touch");
     expect(screen.queryByRole("button", { name: "Delete entry…" })).toBeNull();
@@ -300,13 +405,18 @@ describe("ScheduleEntryForm", () => {
     expect(lastValue(onValueChange).enabled).toBe(false);
   });
 
-  it("says which page is required, and clears the error once one is picked", () => {
+  it("says which page is required, and clears the error once one is picked", async () => {
+    const user = userEvent.setup();
     const { onSubmit } = renderForm({ defaultValue: { ...DEFAULT_SCHEDULE_ENTRY } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(onSubmit).not.toHaveBeenCalled();
     const trigger = screen.getByRole("combobox", { name: /Page or Collection/ });
     expect(trigger.getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByText("Pick a page or collection.")).toBeTruthy();
+    await user.click(trigger);
+    await user.click(await screen.findByRole("option", { name: "Weekend brunch" }));
+    expect(trigger).not.toHaveAttribute("aria-invalid", "true");
+    expect(screen.queryByText("Pick a page or collection.")).toBeNull();
   });
 
   it("flags a zero-length range on the end time", () => {
