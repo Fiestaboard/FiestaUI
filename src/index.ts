@@ -48,6 +48,7 @@ export * from "./components/containment/tabs";
 export { default as FadeContent } from "./components/effects/react-bits/fade-content";
 export * from "./components/feedback/skeleton";
 export * from "./components/feedback/spinner";
+export * from "./components/feedback/status-banner";
 export * from "./components/feedback/status-dot";
 export * from "./components/feedback/toaster";
 export * from "./components/forms/select";
