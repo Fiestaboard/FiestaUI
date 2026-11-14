@@ -81,6 +81,7 @@ function NotificationRow({
 }: NotificationRowProps) {
   const titleId = React.useId();
   const reasonId = React.useId();
+  const [preference, setPreference] = React.useState(defaultChecked ?? false);
   const words = { ...DEFAULT_NOTIFICATION_ROW_LABELS, ...labels };
   const blocked = permission === "denied" || permission === "unavailable";
   const suffix = permission === "denied" ? words.denied : permission === "unavailable" ? words.unavailable : null;
@@ -108,9 +109,11 @@ function NotificationRow({
           aria-describedby={hasDescription ? reasonId : undefined}
           // A blocked alert cannot fire, so the switch shows off whatever the
           // stored preference is; the preference comes back with permission.
-          checked={blocked ? false : checked}
-          defaultChecked={blocked ? undefined : defaultChecked}
-          onCheckedChange={(next) => onCheckedChange?.(next)}
+          checked={blocked ? false : (checked ?? preference)}
+          onCheckedChange={(next) => {
+            if (checked === undefined) setPreference(next);
+            onCheckedChange?.(next);
+          }}
           disabled={blocked || disabled}
         />
       }
