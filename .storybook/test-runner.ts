@@ -2,6 +2,7 @@ import type { TestRunnerConfig } from "@storybook/test-runner";
 import { checkA11y, configureAxe, injectAxe } from "axe-playwright";
 
 import { checkCanvasEditing } from "./canvas-editor-regression";
+import { checkEditorPreviewNeverCollapses } from "./editor-preview-regression";
 import { checkSpinnerMotion } from "./spinner-regression";
 
 /**
@@ -103,6 +104,7 @@ const config: TestRunnerConfig = {
 
     await checkCanvasEditing(page, context.id);
     await checkSpinnerMotion(page, context.id);
+    await checkEditorPreviewNeverCollapses(page, context.id);
 
     await configureAxe(page, {
       rules: [

@@ -324,6 +324,7 @@ export * from "./components/plugin/scaled-board-teaser";
 // FormulaNodeView reaches it through a `lazy()` dynamic import, so it lands in a
 // separate async chunk rather than the barrel's graph — keep it that way.
 export * from "./components/editor/constants";
+export * from "./components/editor/editor-preview";
 export * from "./components/editor/template-editor";
 export * from "./components/editor/template-editor-toolbar";
 export * from "./components/editor/toolbar-dropdown";
