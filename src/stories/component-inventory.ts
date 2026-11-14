@@ -90,6 +90,10 @@ export const INVENTORY = [
       },
       { name: "Checkbox", summary: "Native checkbox styled to the system." },
       {
+        name: "ChoiceCard",
+        summary: "Pick by what it looks like — an actual-size board crop, title and meta; radio or checkbox group.",
+      },
+      {
         name: "Combobox",
         summary: "Filterable option list — a text field over an aria-activedescendant listbox.",
       },
@@ -190,6 +194,10 @@ export const INVENTORY = [
         summary: "One record in a list: leading, title, description, meta and trailing slots; stacks for large text.",
       },
       { name: "MediaFrame", summary: "Framed figure for screenshots and media, with a caption/toolbar bar slot." },
+      {
+        name: "PagePreviewCard",
+        summary: "A page shown as the board it draws — Tile-sm board, name, last shown; button or link.",
+      },
       { name: "ScrollArea", summary: "Overflow container with a styled scrollbar." },
       {
         name: "SortableList",
@@ -339,7 +347,10 @@ export const INVENTORY = [
     title: "Plugin directory",
     description: "How a plugin is advertised — on a card in the directory, and on its detail page.",
     entries: [
-      { name: "PluginCard", summary: "Directory card: name, author, category and an optional board teaser." },
+      {
+        name: "PluginCard",
+        summary: "Directory card with a board teaser, or a compact list row with install states.",
+      },
       { name: "PluginCategoryBadge", summary: "Category pill, one colour per category." },
       { name: "BoardShowcase", summary: "Tabbed board previews for a plugin's detail page." },
       { name: "ScaledBoardTeaser", summary: "Teaser strip that scales to its container." },
