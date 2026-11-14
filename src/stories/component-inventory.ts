@@ -150,6 +150,10 @@ export const INVENTORY = [
       },
       { name: "Skeleton", summary: "Loading placeholder block." },
       { name: "Spinner", summary: "Indeterminate progress at three sizes, with an accessible label." },
+      {
+        name: "StatusBanner",
+        summary: "Persistent page-level state (paused, Silence Schedule, offline, out of sync…) with an action slot.",
+      },
       { name: "StatusDot", summary: "Five status colours, three sizes, optional glow and pulse." },
       {
         name: "Toaster",
