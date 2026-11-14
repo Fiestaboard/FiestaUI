@@ -459,6 +459,12 @@ export const INVENTORY = [
     ],
   },
   {
+    id: "onboarding",
+    title: "Onboarding",
+    description: "Presentational setup patterns. Discovery, permissions and navigation belong to the host.",
+    entries: [{ name: "HubDiscoveryRow", summary: "A selectable hub record on ListRow, inside an inset list group." }],
+  },
+  {
     id: "wizard",
     title: "Setup wizard",
     description:

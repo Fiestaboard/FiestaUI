@@ -196,6 +196,7 @@ import { Box } from "../components/layout/box";
 import { Flex } from "../components/layout/flex";
 import { Grid } from "../components/layout/grid";
 import { Stack } from "../components/layout/stack";
+import { HubDiscoveryRow } from "../components/onboarding/hub-discovery-row";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -533,6 +534,11 @@ function TemplateEditorDemo() {
  * ------------------------------------------------------------------ */
 
 export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
+  HubDiscoveryRow: () => (
+    <ListRowGroup aria-label="Discovered hubs" className="w-full max-w-md">
+      <HubDiscoveryRow name="FiestaPi" address="fiestapi.local:4420" onSelect={() => {}} />
+    </ListRowGroup>
+  ),
   /* ---- Layout ---- */
   Box: () => (
     <Box className="relative h-24 w-48 rounded-md border border-border">
