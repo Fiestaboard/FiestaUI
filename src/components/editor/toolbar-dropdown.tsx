@@ -7,9 +7,10 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 
 import { cn } from "../../lib/utils";
 import { Box } from "../layout/box";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../overlays/sheet";
+import { Sheet, SheetContent, type SheetDetent, SheetHeader, SheetTitle } from "../overlays/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
 import { Text } from "../typography/text";
+import { EditorTool } from "./editor-tool";
 
 // `z-[var(--z-popover)]` is the app's literal `z-50` expressed as the token
 // that already means 50 for dropdown popovers, so this panel moves with the
@@ -78,6 +79,20 @@ export interface ToolbarDropdownProps {
   labels?: Partial<ToolbarDropdownLabels>;
   /** How the panel is presented. Default: `"popover"`. */
   presentation?: ToolbarDropdownPresentation;
+  /**
+   * `touch` renders the trigger as a labelled 52 px {@link EditorTool}
+   * (slice 1.6b, Figma 07 `315:99828`): the label is visible, so there is no
+   * tooltip, and the tool fills `accent` while its panel is open. Pair it
+   * with `presentation="sheet"`. Default: `"default"`, today's icon button.
+   */
+  size?: "default" | "touch";
+  /**
+   * Sheet presentation only: the 1.3 bottom-sheet detents (viewport
+   * fractions, `"half"`, `"full"`). A long picker (Variables) opens at
+   * `defaultDetent` and drags to the next. Unset: the sheet fits its content.
+   */
+  detents?: readonly SheetDetent[];
+  defaultDetent?: SheetDetent;
   "data-testid"?: string;
 }
 
@@ -91,6 +106,9 @@ export function ToolbarDropdown({
   disabled = false,
   labels,
   presentation = "popover",
+  size = "default",
+  detents,
+  defaultDetent,
   "data-testid": dataTestId,
 }: ToolbarDropdownProps) {
   const l = { ...DEFAULT_TOOLBAR_DROPDOWN_LABELS, ...labels };
@@ -194,50 +212,67 @@ export function ToolbarDropdown({
 
   const content = typeof children === "function" ? children(handleClose) : children;
 
+  const toggle = () => {
+    if (disabled) return;
+    setIsOpen(!isOpen);
+  };
+
   return (
     <TooltipProvider>
-      <Box ref={dropdownRef} className="relative">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              ref={triggerRef}
-              type="button"
-              disabled={disabled}
-              data-testid={dataTestId}
-              onClick={() => {
-                if (disabled) return;
-                setIsOpen(!isOpen);
-              }}
-              className={cn(
-                "flex items-center justify-center p-1.5 rounded-md",
-                "hover:bg-muted/50 transition-colors",
-                "border border-transparent",
-                isOpen && "bg-muted/70 border-border",
-                disabled && "opacity-60 cursor-not-allowed",
-                className,
-              )}
-              aria-expanded={isOpen}
-              aria-haspopup={asSheet ? "dialog" : "true"}
-              aria-label={label || l.menu}
-            >
-              {icon && (
-                <Text as="span" className="w-4 h-4">
-                  {icon}
-                </Text>
-              )}
-              {label && (
-                <Text as="span" className="sr-only">
-                  {label}
-                </Text>
-              )}
-            </button>
-          </TooltipTrigger>
-          {label && (
-            <TooltipContent>
-              <Text>{label}</Text>
-            </TooltipContent>
-          )}
-        </Tooltip>
+      <Box ref={dropdownRef} className={cn("relative", size === "touch" && "flex min-w-fit flex-1")}>
+        {size === "touch" ? (
+          <EditorTool
+            ref={triggerRef}
+            icon={icon}
+            label={label || l.menu}
+            active={isOpen}
+            disabled={disabled}
+            data-testid={dataTestId}
+            onClick={toggle}
+            aria-expanded={isOpen}
+            aria-haspopup={asSheet ? "dialog" : "true"}
+            className={className}
+          />
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                ref={triggerRef}
+                type="button"
+                disabled={disabled}
+                data-testid={dataTestId}
+                onClick={toggle}
+                className={cn(
+                  "flex items-center justify-center p-1.5 rounded-md",
+                  "hover:bg-muted/50 transition-colors",
+                  "border border-transparent",
+                  isOpen && "bg-muted/70 border-border",
+                  disabled && "opacity-60 cursor-not-allowed",
+                  className,
+                )}
+                aria-expanded={isOpen}
+                aria-haspopup={asSheet ? "dialog" : "true"}
+                aria-label={label || l.menu}
+              >
+                {icon && (
+                  <Text as="span" className="w-4 h-4">
+                    {icon}
+                  </Text>
+                )}
+                {label && (
+                  <Text as="span" className="sr-only">
+                    {label}
+                  </Text>
+                )}
+              </button>
+            </TooltipTrigger>
+            {label && (
+              <TooltipContent>
+                <Text>{label}</Text>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        )}
 
         {asSheet && (
           <Sheet
@@ -256,7 +291,15 @@ export function ToolbarDropdown({
               closeFromSheet();
             }}
           >
-            <SheetContent side="bottom" grabber scrim={false} finalFocus={triggerRef} labels={{ close: l.close }}>
+            <SheetContent
+              side="bottom"
+              grabber
+              scrim={false}
+              finalFocus={triggerRef}
+              labels={{ close: l.close }}
+              detents={detents}
+              defaultDetent={defaultDetent}
+            >
               <SheetHeader className="min-h-12 justify-center pr-12 text-left sm:text-left">
                 <SheetTitle className="text-lg">{label || l.menu}</SheetTitle>
               </SheetHeader>

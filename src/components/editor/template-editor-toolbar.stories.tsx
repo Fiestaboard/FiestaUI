@@ -1,5 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import type { ComponentProps } from "react";
+import { userEvent, within } from "storybook/test";
 
+import { ScaledBoardDisplay } from "../board/scaled-board-display";
+import { Button } from "../forms/button";
+import { Switch } from "../forms/switch";
+import { EditorPreview } from "./editor-preview";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "./template-editor-toolbar";
 
 /**
@@ -143,4 +149,134 @@ export const Localized: Story = {
       alignRight: "Rechtsbündig",
     },
   },
+};
+
+/* ------------------------------------------------------------------ *
+ * size="touch" — slice 1.6b (C5, WEB-04, C6). Figma 07 `315:99828`
+ * "Web / Editor toolbar · touch"; the sheets are 07c `306:36342`
+ * (Formatting) and 07 `57:65460` (Colors).
+ *
+ * Each story is the 07c phone composition: the docked live preview (1.6a),
+ * the template, and the 60 px bar under it. The page is `position: fixed`,
+ * so VRT captures the viewport and the portalled sheet is in the shot
+ * (the 1.3 convention). Sheets open in `play`.
+ * ------------------------------------------------------------------ */
+
+const PHONE_MESSAGE = "GOOD MORNING\n72° {red}\nNICE OUT\nN JUDAH 4 MIN\nHAVE A GREAT DAY";
+const TEMPLATE_LINES = ["GOOD MORNING", "{{weather.temp}}°{red}", "NICE OUT", "N JUDAH {{muni.n_judah.next}}"];
+
+function TouchEditor(props: Partial<ComponentProps<typeof TemplateEditorToolbar>>) {
+  return (
+    <div className="fixed inset-0 flex justify-center bg-background text-foreground">
+      <div className="flex w-full max-w-[390px] flex-col">
+        <EditorPreview variant="docked" boardName="Kitchen board">
+          <ScaledBoardDisplay message={PHONE_MESSAGE} size="sm" animationsEnabled={false} />
+        </EditorPreview>
+        <ol className="flex-1 space-y-2 px-4 py-3 font-mono text-sm">
+          {TEMPLATE_LINES.map((line, i) => (
+            <li key={line} className="flex gap-3">
+              <span className="w-4 text-right text-muted-foreground">{i + 1}</span>
+              {line}
+            </li>
+          ))}
+        </ol>
+        <TemplateEditorToolbar editor={null} templateVariables={TEMPLATE_VARIABLES} size="touch" {...props} />
+      </div>
+    </div>
+  );
+}
+
+const openTool =
+  (name: string): Story["play"] =>
+  async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name }));
+  };
+
+/** 07 `53:100602`: the split-flap tool set — Variables · Colors · Formatting · Formula │ Undo · Redo · More. */
+export const Touch: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => <TouchEditor />,
+};
+
+/** 07 `315:99783`: the LED tool set (CANON) — Variables · Text color · Icon · Size · Formula · More. */
+export const TouchLed: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => (
+    <TouchEditor
+      charset="led_5x7"
+      renderSizePicker={({ close }) => (
+        <Button variant="outline" size="touch" onClick={close}>
+          Large (5×7)
+        </Button>
+      )}
+    />
+  ),
+};
+
+/** Nothing to insert yet: the tools disable but the bar keeps its shape (the owner's "visible toolbar"). */
+export const TouchNoVariables: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => <TouchEditor templateVariables={undefined} />,
+};
+
+/** 07 `57:65460`: Colors in a bottom sheet — 48 px swatches; the sheet stays open for several tiles. */
+export const TouchColorsSheet: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => <TouchEditor />,
+  play: openTool("Colors"),
+};
+
+/** 07c `306:36342`: Formatting — the snippets plus line alignment at 44 px; the tool fills accent. */
+export const TouchFormattingSheet: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => <TouchEditor currentAlignment="left" onAlignmentChange={() => {}} />,
+  play: openTool("Formatting"),
+};
+
+/** More: the clipboard, Draw on board, sync, wrap, and the host's rows (2.5 adds the mirror switch). */
+export const TouchMoreSheet: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => (
+    <TouchEditor
+      onDrawModeToggle={() => {}}
+      onWrapToggle={() => {}}
+      onSyncFromBoard={() => {}}
+      moreContent={
+        <div className="flex min-h-12 items-center gap-3">
+          <span id="mirror-label" className="min-w-0 flex-1 text-base">
+            Mirror to board while editing
+          </span>
+          <Switch size="touch" aria-labelledby="mirror-label" />
+        </div>
+      }
+    />
+  ),
+  play: openTool("More"),
+};
+
+/** LED Icon: the set's icons only. */
+export const TouchLedIconSheet: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => <TouchEditor charset="led_5x7" />,
+  play: openTool("Icon"),
+};
+
+/** Draw mode on touch (Jev brush_sheet 0.95): Brush · Undo · Redo · Done. */
+export const TouchDrawMode: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => (
+    <TouchEditor
+      drawMode
+      drawBrush={{ kind: "color", color: "blue" }}
+      onDrawModeToggle={() => {}}
+      onDrawBrushChange={() => {}}
+    />
+  ),
+};
+
+/** The Brush sheet: 48 px colour swatches, the eraser, and 44 px stamp cells. */
+export const TouchBrushSheet: Story = {
+  parameters: { layout: "fullscreen" },
+  render: TouchDrawMode.render,
+  play: openTool("Brush"),
 };

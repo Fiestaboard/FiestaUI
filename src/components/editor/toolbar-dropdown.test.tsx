@@ -306,3 +306,37 @@ describe("ToolbarDropdown · presentation=auto", () => {
     }
   });
 });
+
+describe("ToolbarDropdown · size=touch (slice 1.6b)", () => {
+  it("renders a labelled 52 px tool, no tooltip, accent while open", async () => {
+    const user = userEvent.setup();
+    const { trigger } = setup({ size: "touch", presentation: "sheet" });
+    expect(trigger).toHaveAttribute("data-slot", "editor-tool");
+    expect(trigger).toHaveTextContent("Colors");
+    expect(trigger.className).toMatch(/\bh-toolbar-touch\b/);
+    expect(trigger).not.toHaveAttribute("data-active");
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute("data-active");
+    expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+    expect(sheet()).toBeInTheDocument();
+  });
+
+  it("forwards the 1.3 detents to the sheet", async () => {
+    const user = userEvent.setup();
+    const { trigger } = setup({
+      size: "touch",
+      presentation: "sheet",
+      detents: ["half", "full"],
+      defaultDetent: "full",
+    });
+    await user.click(trigger);
+    expect(sheet()).toHaveAttribute("data-detent", "1");
+  });
+
+  it("falls back to labels.menu and stays disabled", () => {
+    setup({ size: "touch", label: "", labels: { menu: "Menü" }, disabled: true });
+    const trigger = screen.getByTestId("colors");
+    expect(trigger).toHaveAccessibleName("Menü");
+    expect(trigger).toBeDisabled();
+  });
+});

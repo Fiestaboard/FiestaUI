@@ -94,9 +94,16 @@ export interface DrawCharPickerContentProps {
    */
   charset?: CharacterSetId | CharacterSet;
   labels?: Partial<DrawCharPickerLabels>;
+  /**
+   * `touch` (slice 1.6b): 44 px stamp cells (`--touch-target`) in six columns
+   * that fill the sheet, instead of the popover's 28 px cells in eight. The
+   * arrow keys follow the column count. Default: `"default"`, today's grid.
+   */
+  size?: "default" | "touch";
 }
 
 const GRID_COLS = 8;
+const TOUCH_GRID_COLS = 6;
 
 export function DrawCharPickerContent({
   current,
@@ -105,7 +112,16 @@ export function DrawCharPickerContent({
   code62Glyph,
   charset,
   labels,
+  size = "default",
 }: DrawCharPickerContentProps) {
+  const touch = size === "touch";
+  const cols = touch ? TOUCH_GRID_COLS : GRID_COLS;
+  const cellClass = touch
+    ? "flex size-11 items-center justify-center rounded-md border font-mono text-base transition-shadow"
+    : "flex h-7 w-7 items-center justify-center rounded-md border font-mono text-sm transition-shadow";
+  const headingClass = touch
+    ? "col-span-full mt-1 text-xs font-medium text-muted-foreground"
+    : "col-span-8 mt-1 text-xs font-medium text-muted-foreground";
   const l = { ...DEFAULT_DRAW_CHAR_PICKER_LABELS, ...labels };
   // Note only, matching lib/board-characters: a note_array is Note hardware,
   // but the renderer does not substitute for it, and the picker must not
@@ -168,11 +184,11 @@ export function DrawCharPickerContent({
         break;
       case "ArrowDown":
         event.preventDefault();
-        moveFocus(index + GRID_COLS);
+        moveFocus(index + cols);
         break;
       case "ArrowUp":
         event.preventDefault();
-        moveFocus(index - GRID_COLS);
+        moveFocus(index - cols);
         break;
       case "Home":
         event.preventDefault();
@@ -191,13 +207,14 @@ export function DrawCharPickerContent({
     // shrink-fits to ~36px and the grid-cols-8 tracks (minmax(0,1fr))
     // collapse until the glyph buttons overlap.
     <Box
-      className="w-64 p-2"
+      className={touch ? "w-full" : "w-64 p-2"}
       data-testid="draw-char-picker"
+      data-size={touch ? "touch" : undefined}
       data-charset={set?.id}
       role="group"
       aria-label={l.characters}
     >
-      <Grid cols="8" gap="1">
+      <Grid cols={touch ? "6" : "8"} gap={touch ? "2" : "1"}>
         {chars.map((char, index) => {
           // Code 62 is the one character whose drawn glyph depends on the
           // device; every other stamp draws as itself.
@@ -211,10 +228,7 @@ export function DrawCharPickerContent({
           return (
             <Fragment key={char}>
               {isLower && index === upperCount && (
-                <span
-                  className="col-span-8 mt-1 text-xs font-medium text-muted-foreground"
-                  data-slot="draw-char-picker-lowercase-heading"
-                >
+                <span className={headingClass} data-slot="draw-char-picker-lowercase-heading">
                   {l.lowercase}
                 </span>
               )}
@@ -232,7 +246,7 @@ export function DrawCharPickerContent({
                 onFocus={() => setFocusedIndex(index)}
                 onKeyDown={(event) => handleKeyDown(event, index)}
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-md border font-mono text-sm transition-shadow",
+                  cellClass,
                   selectedChar === char ? "ring-2 ring-primary ring-offset-1" : "hover:bg-muted/50",
                 )}
               >
@@ -247,10 +261,7 @@ export function DrawCharPickerContent({
           return (
             <Fragment key={icon}>
               {i === 0 && (
-                <span
-                  className="col-span-8 mt-1 text-xs font-medium text-muted-foreground"
-                  data-slot="draw-char-picker-icons-heading"
-                >
+                <span className={headingClass} data-slot="draw-char-picker-icons-heading">
                   {l.icons}
                 </span>
               )}
@@ -267,7 +278,7 @@ export function DrawCharPickerContent({
                 onFocus={() => setFocusedIndex(index)}
                 onKeyDown={(event) => handleKeyDown(event, index)}
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-md border font-mono text-sm transition-shadow",
+                  cellClass,
                   selectedIcon === icon ? "ring-2 ring-primary ring-offset-1" : "hover:bg-muted/50",
                 )}
               >

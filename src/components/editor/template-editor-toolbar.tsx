@@ -44,6 +44,7 @@ import { useDepsChanged } from "../../lib/use-deps-changed";
 import { cn } from "../../lib/utils";
 import { CharacterGlyph } from "../board/character-glyph";
 import { Skeleton } from "../feedback/skeleton";
+import { Button } from "../forms/button";
 import { Box } from "../layout/box";
 import { Flex } from "../layout/flex";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
@@ -53,7 +54,10 @@ import type { DeviceType } from "./constants";
 import { DrawCharPickerContent, type DrawCharPickerLabels } from "./draw-char-picker-content";
 import { FormattingPickerContent, type FormattingPickerLabels } from "./formatting-picker-content";
 import type { LineAlignment } from "./template-editor";
-import { ToolbarDropdown } from "./toolbar-dropdown";
+import { type EditorToolbarCapabilities, TouchToolbar } from "./template-editor-toolbar-touch";
+
+export type { EditorToolbarCapabilities };
+import { ToolbarDropdown, type ToolbarDropdownPresentation } from "./toolbar-dropdown";
 import type { DrawBrush } from "./utils/draw-mode";
 import { insertTemplateContent } from "./utils/insertion";
 import { COLOR_SPAN_MARK } from "./utils/serialization";
@@ -169,6 +173,35 @@ export interface TemplateEditorToolbarLabels {
   /** Accessible name for the sync-from-board button. */
   syncFromBoard: string;
   syncFromBoardTooltip: string;
+  // ── size="touch" (slice 1.6b). Visible tool labels: on a touch bar the
+  // label is the name, so these are short words, not tooltips.
+  /** The touch bar's accessible name. */
+  tools: string;
+  formula: string;
+  more: string;
+  /** LED tool: colour spans (CANON "Text color"). */
+  textColor: string;
+  /** LED tool: icons. */
+  icon: string;
+  /** LED tool: the text face, a host sheet. */
+  size: string;
+  /** Draw mode: the brush sheet (colours, eraser, stamps). */
+  brush: string;
+  /** Draw mode: leave draw mode. */
+  drawDone: string;
+  /** The line-alignment control in the Formatting sheet. */
+  align: string;
+  alignLeftShort: string;
+  alignCenterShort: string;
+  alignRightShort: string;
+  /** The More sheet's wrap switch. */
+  wrapLine: string;
+  /** The More sheet's cut / copy / paste group. */
+  clipboard: string;
+  /** Under the Colors sheet (07 `57:65460`). */
+  colorsHint: string;
+  /** Under the Formatting sheet (07c `306:36342`). */
+  formattingHint: string;
 }
 
 export const DEFAULT_TEMPLATE_EDITOR_TOOLBAR_LABELS: TemplateEditorToolbarLabels = {
@@ -211,6 +244,24 @@ export const DEFAULT_TEMPLATE_EDITOR_TOOLBAR_LABELS: TemplateEditorToolbarLabels
   alignRight: "Align right",
   syncFromBoard: "Sync from current board display",
   syncFromBoardTooltip: "Populate template from what's currently displayed on the board",
+  tools: "Editor tools",
+  formula: "Formula",
+  more: "More",
+  textColor: "Text color",
+  icon: "Icon",
+  size: "Size",
+  brush: "Brush",
+  drawDone: "Done",
+  align: "Align",
+  alignLeftShort: "Left",
+  alignCenterShort: "Center",
+  alignRightShort: "Right",
+  wrapLine: "Wrap this line",
+  clipboard: "Clipboard",
+  colorsHint:
+    "Tap a color to insert a tile at the cursor. The sheet stays open so you can add several; swipe down, tap ✕ or press Esc to close.",
+  formattingHint:
+    "Fill space pushes the rest of the line to the right edge; Wrap lets a long value continue on the next line. Applies at the cursor.",
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -304,6 +355,45 @@ export interface TemplateEditorToolbarProps {
    * toolbar's (#265).
    */
   drawCharPickerLabels?: Partial<DrawCharPickerLabels>;
+  /**
+   * `touch` (slice 1.6b, Figma 07 `315:99828`, WEB-04): a 60 px bar of
+   * labelled 52 px tools whose pickers are bottom sheets. Split-flap:
+   * Variables · Colors · Formatting · Formula │ Undo · Redo · More. LED:
+   * Variables · Text color · Icon · Size · Formula · More. The bar keeps its
+   * tools when nothing is available (they disable), so the owner's "visible
+   * toolbar" never reflows. Default: `"default"`, today's desktop row.
+   */
+  size?: "default" | "touch";
+  /**
+   * The tool set (08 C5). Unset: derived from `charset` — a set with an LED
+   * face or colour spans is `"led-text"`, anything else `"split-flap"`.
+   */
+  capabilities?: EditorToolbarCapabilities;
+  /**
+   * How the default-size toolbar presents its pickers (1.3). Default
+   * `"popover"`. A touch toolbar always uses sheets.
+   */
+  pickerPresentation?: ToolbarDropdownPresentation;
+  /**
+   * Touch only: rows the host appends to the More sheet — 2.5's "Mirror to
+   * board while editing" switch, an LED board's Effects.
+   */
+  moreContent?: ReactNode;
+  /**
+   * Touch, LED only: the Size sheet's body. The LED face is a display setting
+   * the host owns; without this the Size tool is disabled.
+   */
+  renderSizePicker?: (ctx: { close: () => void }) => ReactNode;
+  /**
+   * Touch only: render the bar into this element (a portal), so a host can
+   * dock it above the soft keyboard while the editor keeps feeding it state.
+   */
+  container?: Element | null;
+}
+
+/** LED when the set draws with an LED face or paints colour spans. */
+function deriveCapabilities(set: CharacterSet | null): EditorToolbarCapabilities {
+  return set && (set.font !== undefined || set.colorSpans) ? "led-text" : "split-flap";
 }
 
 function TemplateEditorToolbarImpl({
@@ -335,6 +425,12 @@ function TemplateEditorToolbarImpl({
   colorPickerLabels,
   formattingPickerLabels,
   drawCharPickerLabels,
+  size = "default",
+  capabilities,
+  pickerPresentation = "popover",
+  moreContent,
+  renderSizePicker,
+  container,
 }: TemplateEditorToolbarProps) {
   const l = { ...DEFAULT_TEMPLATE_EDITOR_TOOLBAR_LABELS, ...labels };
   const drawColorLabel = (name: BoardColorName) =>
@@ -369,6 +465,53 @@ function TemplateEditorToolbarImpl({
   };
   const handleIcon = (icon: BoardIconName) => {
     if (editor) insertTemplateContent(editor, `{{icon:${icon}}}`, { extendedMarkup: true });
+  };
+
+  // Insertion stays the toolbar's: whichever body renders, a pick lands at
+  // the caret and then dismisses the dropdown (or sheet).
+  const renderVariableBody = (close: () => void) => {
+    const onInsert = (variable: string) => {
+      handleInsert(variable);
+      close();
+    };
+    return (
+      <Suspense
+        fallback={
+          <Box className="p-3 min-w-[300px]">
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-3/4 mb-2" />
+            <Skeleton className="h-4 w-1/2" />
+          </Box>
+        }
+      >
+        {renderVariablePicker ? (
+          renderVariablePicker({ onInsert })
+        ) : (
+          <VariablePickerContent
+            templateVariables={templateVariables}
+            isLoadingVariables={isLoadingVariables}
+            pluginManifests={pluginManifests}
+            isLoadingManifests={isLoadingManifests}
+            pluginDisplayData={pluginDisplayData}
+            resolveIcon={resolveIcon}
+            labels={variablePickerLabels}
+            onInsert={onInsert}
+          />
+        )}
+      </Suspense>
+    );
+  };
+
+  // Formulas: insert an empty formula node; the pill's panel auto-opens.
+  const insertFormula = () => {
+    editor
+      ?.chain()
+      .focus()
+      .insertContent({
+        type: "formula",
+        attrs: { expression: "", autoOpen: true },
+      })
+      .run();
   };
 
   const handleAlignmentClick = (alignment: LineAlignment) => {
@@ -541,6 +684,87 @@ function TemplateEditorToolbarImpl({
     }
   }, [editor]);
 
+  // Called, not rendered as `<Slot />`: an inline arrow from the host would be
+  // a new component type every render, remounting the dialog (and losing its
+  // state) on each keystroke in the editor. Calling it keeps the returned
+  // element tree stable. `handleEntitySelect` touches a ref, but only when the
+  // host invokes it from its own event handler — never during this render,
+  // which is what the rule is guarding against.
+  const entityPicker = hasEntityPicker
+    ? // eslint-disable-next-line react-hooks/refs -- the ref is read inside the callback, not during render
+      entityPickerSlot?.({
+        open: entityPickerOpen,
+        onClose: () => setEntityPickerOpen(false),
+        onSelect: handleEntitySelect,
+      })
+    : null;
+
+  if (size === "touch") {
+    return (
+      <>
+        <TouchToolbar
+          l={l}
+          capabilities={capabilities ?? deriveCapabilities(set)}
+          className={className}
+          container={container}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          hasSelection={hasSelection}
+          hasClipboardContent={hasClipboardContent}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onCut={handleCut}
+          onCopy={handleCopy}
+          onPaste={handlePaste}
+          onInsert={handleInsert}
+          onInsertFormula={insertFormula}
+          onTextColor={handleTextColor}
+          onBlockColor={handleBlockColor}
+          onIcon={handleIcon}
+          renderVariables={renderVariableBody}
+          hasVariables={Boolean(hasVariables)}
+          hasColors={Boolean(hasColors)}
+          formatting={templateVariables?.formatting}
+          set={set}
+          setIcons={setIcons}
+          drawColors={drawColors}
+          deviceType={deviceType}
+          code62Glyph={code62Glyph}
+          currentAlignment={currentAlignment}
+          onAlignmentChange={onAlignmentChange}
+          currentWrapEnabled={currentWrapEnabled}
+          onWrapToggle={onWrapToggle}
+          onSyncFromBoard={onSyncFromBoard}
+          syncFromBoardPending={syncFromBoardPending}
+          drawMode={drawMode}
+          onDrawModeToggle={onDrawModeToggle}
+          brush={effectiveBrush}
+          onDrawBrushChange={onDrawBrushChange}
+          entityButton={
+            hasEntityPicker ? (
+              <Button
+                variant="outline"
+                size="touch"
+                className="justify-start"
+                data-testid="home-assistant-entity-button"
+                onClick={() => setEntityPickerOpen(true)}
+              >
+                <House />
+                {l.homeAssistantEntities}
+              </Button>
+            ) : undefined
+          }
+          moreContent={moreContent}
+          renderSizePicker={renderSizePicker}
+          colorPickerLabels={colorPickerLabels}
+          formattingPickerLabels={formattingPickerLabels}
+          drawCharPickerLabels={drawCharPickerLabels}
+        />
+        {entityPicker}
+      </>
+    );
+  }
+
   return (
     // `skipDelayDuration={0}` prevents tooltip-flash when clicking
     // adjacent buttons (e.g. the editor card's AI toggle) shifts the
@@ -688,6 +912,7 @@ function TemplateEditorToolbarImpl({
             <ToolbarDropdown
               label={l.drawCharacter}
               data-testid="draw-char-dropdown"
+              presentation={pickerPresentation}
               className={cn(
                 (effectiveBrush.kind === "char" || effectiveBrush.kind === "icon") && "ring-2 ring-primary",
               )}
@@ -802,41 +1027,12 @@ function TemplateEditorToolbarImpl({
 
             {/* Variables Dropdown */}
             {hasVariables ? (
-              <ToolbarDropdown label={l.variables} icon={<Code2 className="w-4 h-4" />}>
-                {(close) => {
-                  // Insertion stays the toolbar's: whichever body renders, a
-                  // pick lands at the caret and then dismisses the dropdown.
-                  const onInsert = (variable: string) => {
-                    handleInsert(variable);
-                    close();
-                  };
-                  return (
-                    <Suspense
-                      fallback={
-                        <Box className="p-3 min-w-[300px]">
-                          <Skeleton className="h-4 w-full mb-2" />
-                          <Skeleton className="h-4 w-3/4 mb-2" />
-                          <Skeleton className="h-4 w-1/2" />
-                        </Box>
-                      }
-                    >
-                      {renderVariablePicker ? (
-                        renderVariablePicker({ onInsert })
-                      ) : (
-                        <VariablePickerContent
-                          templateVariables={templateVariables}
-                          isLoadingVariables={isLoadingVariables}
-                          pluginManifests={pluginManifests}
-                          isLoadingManifests={isLoadingManifests}
-                          pluginDisplayData={pluginDisplayData}
-                          resolveIcon={resolveIcon}
-                          labels={variablePickerLabels}
-                          onInsert={onInsert}
-                        />
-                      )}
-                    </Suspense>
-                  );
-                }}
+              <ToolbarDropdown
+                label={l.variables}
+                icon={<Code2 className="w-4 h-4" />}
+                presentation={pickerPresentation}
+              >
+                {renderVariableBody}
               </ToolbarDropdown>
             ) : (
               <Tooltip>
@@ -887,25 +1083,17 @@ function TemplateEditorToolbarImpl({
                   </TooltipContent>
                 </Tooltip>
 
-                {/* Called, not rendered as `<Slot />`: an inline arrow from the
-                    host would be a new component type every render, remounting
-                    the dialog (and losing its state) on each keystroke in the
-                    editor. Calling it keeps the returned element tree stable.
-                    `handleEntitySelect` touches a ref, but only when the host
-                    invokes it from its own event handler — never during this
-                    render, which is what the rule is guarding against. */}
-                {/* eslint-disable-next-line react-hooks/refs -- the ref is read inside the callback, not during render */}
-                {entityPickerSlot?.({
-                  open: entityPickerOpen,
-                  onClose: () => setEntityPickerOpen(false),
-                  onSelect: handleEntitySelect,
-                })}
+                {entityPicker}
               </>
             )}
 
             {/* Colors Dropdown */}
             {(hasColors || hasSetMarkup) && (
-              <ToolbarDropdown label={l.colors} icon={<Palette className="w-4 h-4" />}>
+              <ToolbarDropdown
+                label={l.colors}
+                icon={<Palette className="w-4 h-4" />}
+                presentation={pickerPresentation}
+              >
                 {(close) => (
                   <ColorPickerContent
                     onInsert={(color: string) => {
@@ -947,7 +1135,11 @@ function TemplateEditorToolbarImpl({
 
             {/* Formatting Dropdown */}
             {hasFormatting && (
-              <ToolbarDropdown label={l.formatting} icon={<Type className="w-4 h-4" />}>
+              <ToolbarDropdown
+                label={l.formatting}
+                icon={<Type className="w-4 h-4" />}
+                presentation={pickerPresentation}
+              >
                 {(close) => (
                   <FormattingPickerContent
                     formatting={templateVariables?.formatting}
@@ -966,16 +1158,7 @@ function TemplateEditorToolbarImpl({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => {
-                    editor
-                      ?.chain()
-                      .focus()
-                      .insertContent({
-                        type: "formula",
-                        attrs: { expression: "", autoOpen: true },
-                      })
-                      .run();
-                  }}
+                  onClick={insertFormula}
                   className={cn(
                     "flex items-center gap-1 px-2 py-1.5 rounded-md text-sm font-medium",
                     "hover:bg-muted/50 transition-colors",
