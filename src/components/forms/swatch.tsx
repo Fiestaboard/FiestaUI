@@ -4,6 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { Check } from "lucide-react";
 import * as React from "react";
 
+import { pressStateHandlers } from "../../lib/press";
 import { cn } from "../../lib/utils";
 import {
   SelectableItemRoot,
@@ -156,9 +157,19 @@ const swatchVariants = cva(
     variants: {
       size: {
         // Target sizes, all ≥ 24×24 (WCAG 2.2 SC 2.5.8): fill + 2 × 4px.
-        sm: "size-7",
-        md: "size-8",
-        lg: "size-10",
+        //
+        // `coarse:` is the W2 touch layer: under an opted-in `.fui-coarse`
+        // on a coarse pointer the transparent gutter grows to a 44px target
+        // and the fill stays put, centred.
+        sm: "size-7 coarse:min-h-touch coarse:min-w-touch",
+        md: "size-8 coarse:min-h-touch coarse:min-w-touch",
+        lg: "size-10 coarse:min-h-touch coarse:min-w-touch",
+        // Slice 1.2: a 44px target (--touch-target) around a 32px fill. The
+        // gutter is 6px, so the ring and its offset still draw inside it.
+        // The C21 press scales the target to 0.97 (motion-safe), on
+        // `:active` and on the `data-press` hook.
+        touch:
+          "size-touch p-1.5 transition-[box-shadow,opacity,scale] motion-safe:active:scale-[0.97] motion-safe:data-[press]:scale-[0.97]",
       },
     },
     defaultVariants: {
@@ -186,6 +197,7 @@ const swatchFillVariants = cva(
         sm: "size-5",
         md: "size-6",
         lg: "size-8",
+        touch: "size-8",
       },
     },
     defaultVariants: {
@@ -207,6 +219,7 @@ const swatchGlyphVariants = cva("select-none leading-none", {
       sm: "text-xs",
       md: "text-sm",
       lg: "text-base",
+      touch: "text-base",
     },
   },
   defaultVariants: {
@@ -229,6 +242,7 @@ const swatchIndicatorVariants = cva(
         sm: "size-3 [&_svg]:size-2",
         md: "size-3.5 [&_svg]:size-2.5",
         lg: "size-4 [&_svg]:size-3",
+        touch: "size-4 [&_svg]:size-3",
       },
     },
     defaultVariants: {
@@ -342,13 +356,27 @@ export type SwatchProps = SwatchBaseProps &
  * (`aria-checked`, roving tabindex, arrow keys). On its own with `pressed`
  * it is an `aria-pressed` toggle button.
  *
- * Fill diameters are 20 / 24 / 32px at `sm` / `md` / `lg`; the button around
- * them is 28 / 32 / 40px, so every target clears WCAG 2.2 SC 2.5.8's 24×24
+ * Fill diameters are 20 / 24 / 32 / 32px at `sm` / `md` / `lg` / `touch`; the
+ * button around them is 28 / 32 / 40 / 44px, so every target clears WCAG 2.2 SC 2.5.8's 24×24
  * minimum. Selection shows as a `--foreground` ring outside the fill plus a
  * `--primary` check disc over it — never as a change to the fill, which is
  * the thing being picked.
  */
-function Swatch({ className, size, value, color, label, pressed, onPressedChange, children, ...props }: SwatchProps) {
+function Swatch({
+  className,
+  size,
+  value,
+  color,
+  label,
+  pressed,
+  onPressedChange,
+  children,
+  onPointerDown,
+  onPointerUp,
+  onPointerCancel,
+  onPointerLeave,
+  ...props
+}: SwatchProps) {
   const group = React.useContext(SwatchGroupContext);
   const resolvedSize = size ?? group?.size ?? "md";
   const hasGlyph = children !== undefined && children !== null && children !== false;
@@ -364,6 +392,8 @@ function Swatch({ className, size, value, color, label, pressed, onPressedChange
       data-size={resolvedSize}
       className={cn(swatchVariants({ size: resolvedSize }), className)}
       {...props}
+      // C21: `data-press` while a pointer is down (lib/press.ts).
+      {...pressStateHandlers({ onPointerDown, onPointerUp, onPointerCancel, onPointerLeave })}
     >
       <span
         data-slot="swatch-fill"
