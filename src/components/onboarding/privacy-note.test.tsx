@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { cardGroundClassName } from "../containment/card";
 import { PrivacyNote } from "./privacy-note";
 
 /*
@@ -38,6 +39,8 @@ describe("PrivacyNote", () => {
     const icon = note().querySelector<HTMLElement>('[data-slot="privacy-note-icon"]');
     expect(icon).toHaveAttribute("aria-hidden", "true");
     expect(icon?.tagName.toLowerCase()).toBe("svg");
+    // The one colour the note owns: 05's hue green (--success = --hue-green).
+    expect(icon).toHaveClass("text-success");
   });
 
   it("omits the title row when no title is given", () => {
@@ -56,5 +59,6 @@ describe("PrivacyNote", () => {
     expect(note().className).toContain("mt-4");
     expect(note().className).toContain("bg-card");
     expect(note().className).not.toContain("shadow-card");
+    for (const c of cardGroundClassName.split(" ")) expect(note()).toHaveClass(c);
   });
 });

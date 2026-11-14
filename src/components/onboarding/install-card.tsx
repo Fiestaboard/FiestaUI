@@ -61,6 +61,10 @@ export interface InstallCardProps extends Omit<React.ComponentProps<"section">, 
  * with an offer is the pushiness the 07 notes rule out. Where focus goes
  * after Install or Not now removes the card is the host's call (the next
  * thing on the page, usually).
+ *
+ * `state` is the origin's fact, decided before the card mounts: do not flip
+ * a mounted card from `available` to `needs-https`, because the focused
+ * Install button would unmount and focus would drop to the page.
  */
 function InstallCard({
   title,
