@@ -238,7 +238,7 @@ describe("TemplateEditorToolbar (default size) · draw mode", () => {
       <TemplateEditorToolbar editor={null} drawMode drawBrush={{ kind: "char", char: "Q" }} />,
     );
     expect(screen.getByTestId("draw-char-dropdown")).toHaveTextContent("Q");
-    expect(screen.getByTestId("draw-char-dropdown").className).toMatch(/ring-primary/);
+    expect(screen.getByTestId("draw-char-dropdown").className).toMatch(/\bring-2\b/);
     rerender(
       <TemplateEditorToolbar editor={null} drawMode charset="led_5x7" drawBrush={{ kind: "icon", icon: "sun" }} />,
     );
