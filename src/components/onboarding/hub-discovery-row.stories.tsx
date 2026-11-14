@@ -65,7 +65,11 @@ export const Disabled: Story = {
   play: async ({ canvasElement, args }) => {
     const button = within(canvasElement).getByRole("button");
     expect(button).toBeDisabled();
-    await userEvent.click(button);
+    // Native click is suppressed by disabled. userEvent's pointer guard
+    // deliberately throws on the disabled pointer-events:none recipe.
+    button.click();
+    await userEvent.tab();
+    expect(button).not.toHaveFocus();
     expect(args.onSelect).not.toHaveBeenCalled();
   },
 };
@@ -98,6 +102,7 @@ export const Touch: Story = {
 /** A rem-sized text column allows the meta to move below at large text sizes. */
 export const LargeText: Story = {
   ...LongNames,
+  parameters: { layout: "fullscreen" },
   decorators: [
     function LargeTextDecorator(Story) {
       useEffect(() => {
@@ -108,7 +113,11 @@ export const LargeText: Story = {
           root.style.fontSize = before;
         };
       }, []);
-      return <Story />;
+      return (
+        <main style={{ padding: 16 }}>
+          <Story />
+        </main>
+      );
     },
   ],
 };

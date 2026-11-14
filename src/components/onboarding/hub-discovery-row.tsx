@@ -56,11 +56,17 @@ function HubDiscoveryRow({
         title={<span id={`${id}-name`}>{name}</span>}
         description={<span id={`${id}-address`}>{address}</span>}
         leading={<IconTile size="sm">{icon}</IconTile>}
-        meta={hasMeta ? <span id={`${id}-meta`}>{meta}</span> : undefined}
+        meta={
+          hasMeta ? (
+            <span id={`${id}-meta`} className="break-words">
+              {meta}
+            </span>
+          ) : undefined
+        }
         trailing={<ChevronRight aria-hidden="true" className="size-4" />}
         size={size}
         layout={layout}
-        className="rounded-[inherit] disabled:pointer-events-none disabled:opacity-50"
+        className="rounded-[inherit] disabled:pointer-events-none disabled:opacity-50 [&_[data-slot=list-row-meta]]:max-w-full"
       />
     </li>
   );
