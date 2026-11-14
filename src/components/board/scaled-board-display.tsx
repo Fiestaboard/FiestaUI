@@ -123,7 +123,10 @@ function ScaledBoardDisplayImpl({
   const [scale, setScale] = useState(1);
   const [scaledWidth, setScaledWidth] = useState<number | null>(null);
   const [scaledHeight, setScaledHeight] = useState<number | null>(null);
-  const [clipRadius, setClipRadius] = useState(0);
+  // BoardDisplay's largest outer shadow is 0 8px 32px. A 48px blur
+  // allowance (1.5 × blur radius), offset vertically by 8px, contains its
+  // visible extent. Reserve it in natural coordinates, then scale together.
+  const shadowSpace = props.bezel === false ? 0 : 96;
 
   // The toggle only exists for note arrays; flagship/note/panel always fit.
   // (`gridRows` / `gridCols` reach the board through the `props` spread.)
@@ -196,18 +199,10 @@ function ScaledBoardDisplayImpl({
       const bw = inner ? inner.offsetWidth : board.offsetWidth;
       const bh = inner ? inner.offsetHeight : board.offsetHeight;
       if (!bw || !cw) return;
-      const next = Math.min(1, cw / bw);
+      const next = Math.min(1, cw / (bw + shadowSpace));
       setScale((prev) => (Math.abs(prev - next) > 0.001 ? next : prev));
-      setScaledWidth(bw * next);
-      setScaledHeight(bh * next);
-      // The clip box below is exactly the scaled board, so it clips at the
-      // bezel's own rounded corner (scaled with it). Clipping at the square
-      // bounding box left the drop shadow showing only in the four corner
-      // notches: grey tabs in light, a lighter square frame in dark (1.5d,
-      // condition 5). A board without its bezel is square: radius 0.
-      const bezel = board.querySelector<HTMLElement>("[data-slot=board-display]:not([data-bezel=false])");
-      const radius = bezel ? parseFloat(getComputedStyle(bezel).borderTopLeftRadius) : 0;
-      setClipRadius(Number.isFinite(radius) && radius > 0 ? radius * next : 0);
+      setScaledWidth((bw + shadowSpace) * next);
+      setScaledHeight((bh + shadowSpace) * next);
     };
     // Coalesce ResizeObserver callbacks via rAF — the resize handle
     // can fire dozens of events per second while the user drags, and
@@ -239,6 +234,7 @@ function ScaledBoardDisplayImpl({
     // scale is computed from; without them (`bezel={false}`) the board is
     // its grid, and the measurement is of the grid alone.
     props.bezel,
+    shadowSpace,
     mode,
   ]);
 
@@ -312,9 +308,9 @@ function ScaledBoardDisplayImpl({
         This keeps surrounding layout (e.g. preview margin, the live-output
         toggle below) honest — without it, the BoardDisplay's natural
         779px-wide layout box would still take that much room and push
-        siblings around. It is also the clip: rounded to the bezel's scaled
-        radius, so the board's corners are clean (the outer drop shadow of
-        a fit-scaled board is not drawn; its inset highlights are).
+        siblings around. The clip includes the shadow allowance, rather
+        than cutting through the bezel's rounded corners. The board and its
+        original shadow both fit inside the available width.
 
         Inner: the BoardDisplay itself, transformed from its top-left so
         the visible content lines up with the middle box from x=0.
@@ -326,7 +322,6 @@ function ScaledBoardDisplayImpl({
           style={{
             width: scaledWidth ?? undefined,
             height: scaledHeight ?? undefined,
-            borderRadius: clipRadius ? `${clipRadius}px` : undefined,
           }}
         >
           <div
@@ -335,6 +330,8 @@ function ScaledBoardDisplayImpl({
               transform: `scale(${scale})`,
               transformOrigin: "top left",
               width: "fit-content",
+              boxSizing: "content-box",
+              padding: shadowSpace ? "40px 48px 56px" : 0,
             }}
           >
             <BoardDisplay {...props} />

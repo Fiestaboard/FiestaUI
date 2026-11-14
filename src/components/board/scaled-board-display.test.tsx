@@ -160,7 +160,7 @@ describe("ScaledBoardDisplay: layout wrapper (C8)", () => {
 });
 
 describe("ScaledBoardDisplay: fit measurement", () => {
-  function stubLayout({ slot, board, radius }: { slot: number; board: number; radius?: string }) {
+  function stubLayout({ slot, board }: { slot: number; board: number }) {
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
       return this.dataset.testSlot === "true" ? slot : 0;
     });
@@ -182,9 +182,6 @@ describe("ScaledBoardDisplay: fit measurement", () => {
       if ((el as HTMLElement).dataset?.testSlot === "true") {
         return { ...style, overflowX: "hidden", paddingLeft: "10px", paddingRight: "10px" } as CSSStyleDeclaration;
       }
-      if (radius !== undefined && el.getAttribute("data-slot") === "board-display") {
-        return { ...style, borderTopLeftRadius: radius } as CSSStyleDeclaration;
-      }
       return style;
     });
   }
@@ -197,10 +194,10 @@ describe("ScaledBoardDisplay: fit measurement", () => {
       </div>,
     );
     const scaled = screen.getByRole("img").parentElement?.parentElement as HTMLElement;
-    // (420 - 20) / 800
-    expect(scaled.style.transform).toBe("scale(0.5)");
+    // Reserve the shadow within the same 400px content box.
+    expect(scaled.style.transform).toBe(`scale(${400 / 896})`);
     expect((scaled.parentElement as HTMLElement).style.width).toBe("400px");
-    expect((scaled.parentElement as HTMLElement).style.height).toBe("50px");
+    expect((scaled.parentElement as HTMLElement).style.height).toBe(`${196 * (400 / 896)}px`);
   });
 
   it("never scales up", () => {
@@ -247,7 +244,7 @@ describe("ScaledBoardDisplay: fit measurement", () => {
     });
     act(() => queued?.(0));
     const scaled = screen.getByRole("img").parentElement?.parentElement as HTMLElement;
-    expect(scaled.style.transform).toBe("scale(0.5)");
+    expect(scaled.style.transform).toBe(`scale(${400 / 896})`);
     act(() => callbacks[0]([], {} as ResizeObserver));
     unmount();
     expect(disconnect).toHaveBeenCalled();
@@ -255,8 +252,8 @@ describe("ScaledBoardDisplay: fit measurement", () => {
     vi.unstubAllGlobals();
   });
 
-  it("clips the scaled board at its own curved corner (radius × scale), so no shadow notches show (1.5d, condition 5)", () => {
-    stubLayout({ slot: 420, board: 800, radius: "12px" });
+  it("reserves the full bezel shadow within the fit slot without clipping at the board corners", () => {
+    stubLayout({ slot: 420, board: 800 });
     render(
       <div data-test-slot="true">
         <ScaledBoardDisplay message="HI" />
@@ -266,30 +263,29 @@ describe("ScaledBoardDisplay: fit measurement", () => {
     const clip = scaled.parentElement as HTMLElement;
     expect(clip).toHaveAttribute("data-slot", "scaled-board-clip");
     expect(clip).toHaveClass("overflow-hidden");
-    // 12px × scale 0.5
-    expect(clip.style.borderRadius).toBe("6px");
+    expect(scaled.style.padding).toBe("40px 48px 56px");
+    expect(scaled.style.boxSizing).toBe("content-box");
+    expect(clip.style.width).toBe("400px");
+    expect(clip.style.height).toBe(`${196 * (400 / 896)}px`);
   });
 
-  it("clips square for a board drawn without its bezel", () => {
-    stubLayout({ slot: 420, board: 800, radius: "12px" });
-    render(
-      <div data-test-slot="true">
-        <ScaledBoardDisplay message="HI" bezel={false} />
-      </div>,
-    );
-    const clip = document.querySelector("[data-slot=scaled-board-clip]") as HTMLElement;
-    expect(clip.style.borderRadius).toBe("");
-  });
-
-  it("treats an unreadable radius as square", () => {
-    stubLayout({ slot: 420, board: 800, radius: "" });
-    render(
+  it("uses the full slot without shadow space when the bezel is disabled, including after a prop change", () => {
+    stubLayout({ slot: 420, board: 800 });
+    const { rerender } = render(
       <div data-test-slot="true">
         <ScaledBoardDisplay message="HI" />
       </div>,
     );
-    const clip = document.querySelector("[data-slot=scaled-board-clip]") as HTMLElement;
-    expect(clip.style.borderRadius).toBe("");
+    rerender(
+      <div data-test-slot="true">
+        <ScaledBoardDisplay message="HI" bezel={false} />
+      </div>,
+    );
+    const scaled = screen.getByRole("img").parentElement?.parentElement as HTMLElement;
+    expect(scaled.style.padding).toBe("0px");
+    expect(scaled.style.transform).toBe("scale(0.5)");
+    expect((scaled.parentElement as HTMLElement).style.width).toBe("400px");
+    expect((scaled.parentElement as HTMLElement).style.height).toBe("50px");
   });
 
   it("falls back to its own container when no ancestor caps the width", () => {

@@ -70,16 +70,25 @@ describe("BoardPreviewModeToggle", () => {
 
   it('size="default" grows the target to 44 px only under coarse: (the pill does not move)', () => {
     render(<BoardPreviewModeToggle mode="fit" onModeChange={() => {}} />);
-    expect(fit()).toHaveClass(...classes(COARSE_HIT_AREA));
+    expect(fit()).toHaveClass(
+      ...classes(COARSE_HIT_AREA).filter((c) => !c.includes("left-1/2") && !c.includes("translate-x")),
+    );
     expect(fit()).not.toHaveClass("before:min-h-touch");
     expect(fit()).not.toHaveClass("h-11");
+    expect(fit()).toHaveClass("coarse:before:right-0", "coarse:before:left-auto", "coarse:before:translate-x-0");
+    expect(actual()).toHaveClass("coarse:before:left-0", "coarse:before:translate-x-0");
   });
 
   it('size="touch" always has the 44 px target and the C21 press', () => {
     render(<BoardPreviewModeToggle mode="fit" onModeChange={() => {}} size="touch" />);
     expect(screen.getByRole("group")).toHaveAttribute("data-size", "touch");
-    expect(fit()).toHaveClass(...classes(TOUCH_HIT_AREA), ...classes(TOUCH_PRESS_SCALE));
+    expect(fit()).toHaveClass(
+      ...classes(TOUCH_HIT_AREA).filter((c) => !c.includes("left-1/2") && !c.includes("translate-x")),
+      ...classes(TOUCH_PRESS_SCALE),
+    );
     expect(fit()).not.toHaveClass("coarse:before:min-h-touch");
+    expect(fit()).toHaveClass("before:right-0", "before:left-auto", "before:translate-x-0");
+    expect(actual()).toHaveClass("before:left-0", "before:translate-x-0");
   });
 
   it("shows a focus ring on keyboard focus", () => {
