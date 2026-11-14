@@ -300,3 +300,15 @@ export const GlyphOverColour = () => (
     </Swatch>
   </SwatchGroup>
 );
+
+/**
+ * `size="touch"` (slice 1.2): a 44px target around a 32px fill — the same
+ * fill as `lg` with a 6px gutter, so the target meets Apple's 44pt.
+ */
+export const Touch = () => (
+  <SwatchGroup aria-label="Board hue (touch)" size="touch" defaultValue="green">
+    {boardHues.map((swatch) => (
+      <Swatch key={swatch.value} {...swatch} />
+    ))}
+  </SwatchGroup>
+);

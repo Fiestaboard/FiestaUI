@@ -203,3 +203,16 @@ export const LoginForm: Story = {
   ),
   args: {},
 };
+
+/**
+ * `size="touch"`: 44px tall (--control-h-touch) with 16px text, which also
+ * keeps iOS Safari from zooming the page on focus. A numeric `size` still
+ * means HTML's character width.
+ */
+export const Touch = () => (
+  <div className="flex w-full sm:w-[360px] flex-col gap-3">
+    <Input aria-label="Default" placeholder="Default · 36px" />
+    <Input size="touch" aria-label="Page name" placeholder="Touch · 44px" />
+    <Input size="touch" aria-label="Page name, filled" defaultValue="Morning weather" />
+  </div>
+);
