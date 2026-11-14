@@ -46,6 +46,7 @@ import {
   Trash2,
   TrendingUp,
   TriangleAlert,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -69,9 +70,11 @@ import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
 import { BoardSizeIndicator } from "../components/board/board-size-indicator";
 import { BoardTeaser } from "../components/board/board-teaser";
+import { BoardViewport } from "../components/board/board-viewport";
 import { CharacterGlyph } from "../components/board/character-glyph";
 import { CharacterSetSpecimen } from "../components/board/character-set-specimen";
 import { DisplayPreview } from "../components/board/display-preview";
+import { DisplayTypeChip } from "../components/board/display-type-chip";
 import { LedMatrixDisplay } from "../components/board/led-matrix-display";
 import { LedTransitionPicker } from "../components/board/led-transition-picker";
 import { PreviewSlot } from "../components/board/preview-slot";
@@ -125,14 +128,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { IconTile } from "../components/containment/icon-tile";
 import { JsonTree } from "../components/containment/json-tree";
+import { ListRow, ListRowGroup } from "../components/containment/list-row";
 import { MediaFrame, MediaFrameBar, MediaFrameMedia } from "../components/containment/media-frame";
+import { PagePreviewCard } from "../components/containment/page-preview-card";
 import { ScrollArea } from "../components/containment/scroll-area";
+import {
+  arrayMove,
+  SortableList,
+  SortableListHandle,
+  SortableListMoveButtons,
+} from "../components/containment/sortable-list";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/containment/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containment/tabs";
 import { BarList } from "../components/data/bar-list";
 import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
+import { EditorPreview } from "../components/editor/editor-preview";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
 import { TemplateEditor } from "../components/editor/template-editor";
@@ -143,8 +155,10 @@ import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
 import { Chip } from "../components/feedback/chip";
+import { Countdown } from "../components/feedback/countdown";
 import { EmptyState } from "../components/feedback/empty-state";
 import { Note } from "../components/feedback/note";
+import { NowShowingCard } from "../components/feedback/now-showing-card";
 import { Skeleton } from "../components/feedback/skeleton";
 import { Spinner } from "../components/feedback/spinner";
 import { StatusBanner, StatusBannerAction } from "../components/feedback/status-banner";
@@ -152,9 +166,11 @@ import { StatusDot } from "../components/feedback/status-dot";
 import { toast, Toaster } from "../components/feedback/toaster";
 import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
+import { ChoiceCard, ChoiceCardGroup, ChoiceCardPreview } from "../components/forms/choice-card";
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
 import { CopyableCode } from "../components/forms/copyable-code";
+import { buildDurationOptions, DurationChipGroup, OutcomeLine } from "../components/forms/duration-chip-group";
 import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
@@ -228,6 +244,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../components/overlays/sheet";
+import { ShortcutListPopover } from "../components/overlays/shortcut-list";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../components/overlays/tooltip";
 import { BoardShowcase } from "../components/plugin/board-showcase";
 import { PluginCard } from "../components/plugin/plugin-card";
@@ -349,6 +366,17 @@ const SeeItsOwnStory = ({ storyPath, why }: { storyPath: string; why: string }) 
  * Controlled components need an owner
  * ------------------------------------------------------------------ */
 
+function CountdownDemo() {
+  // Pinned at mount, half a second inside the minute, so the inventory
+  // screenshot reads "2h 42m left" however long the shoot takes to reach it.
+  const [endsAt] = useState(() => Date.now() + (2 * 60 + 42) * 60_000 - 500);
+  return (
+    <div className="w-full max-w-sm">
+      <Countdown endsAt={endsAt} startedAt={endsAt - 4 * 60 * 60_000} untilLabel="until 9:00 PM" />
+    </div>
+  );
+}
+
 function TimePickerDemo() {
   const [value, setValue] = useState("20:00");
   return (
@@ -416,6 +444,38 @@ function SliderDemo() {
           the component's WithLabel story. */}
       <Slider id="inv-slider" aria-label="Brightness" value={value} onValueChange={setValue} max={100} step={1} />
     </Stack>
+  );
+}
+
+const COLLECTION_PAGES = [
+  { id: "market", name: "Market open", meta: "10 min" },
+  { id: "commute", name: "Morning commute", meta: "15 min" },
+  { id: "weather", name: "Weather + surf", meta: "10 min" },
+];
+
+function SortableListDemo() {
+  const [pages, setPages] = useState(COLLECTION_PAGES);
+  return (
+    <div className="w-full max-w-md">
+      <SortableList
+        aria-label="Pages in Weekday mornings"
+        items={pages}
+        getKey={(page) => page.id}
+        getLabel={(page) => page.name}
+        onMove={(from, to) => setPages((prev) => arrayMove(prev, from, to))}
+        renderItem={(page) => (
+          <ListRow
+            variant="card"
+            className="pl-1"
+            leading={<SortableListHandle />}
+            title={page.name}
+            description="Kitchen board · Flagship"
+            meta={page.meta}
+            trailing={<SortableListMoveButtons />}
+          />
+        )}
+      />
+    </div>
   );
 }
 
@@ -666,6 +726,15 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </Flex>
     </Stack>
   ),
+  DurationChipGroup: () => (
+    <DurationChipGroup
+      aria-label="How long should Taco Tuesday stay up?"
+      options={buildDurationOptions({ nextChange: "Until 9:00 PM" })}
+      defaultValue="next-change"
+      layout="row"
+      outcome="Holds until 9:00 PM, then Schedule resumes with Good night."
+    />
+  ),
   Field: () => (
     <Stack gap="4" className="w-full max-w-[320px]">
       {/* Ids are explicit and `inv-` prefixed like every other demo on this
@@ -792,6 +861,22 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         <Bold /> Disabled
       </Toggle>
     </Flex>
+  ),
+  ChoiceCard: () => (
+    <ChoiceCardGroup aria-label="Display type" defaultValue="flagship" className="w-full max-w-[370px]">
+      <ChoiceCard
+        value="flagship"
+        media={
+          <ChoiceCardPreview offsetX={-72} offsetY={-40}>
+            <StaticBoardDisplay size="sm" deviceType="flagship" message={"\n   GOOD MORNING\n   72° SUNNY  HI 78"} />
+          </ChoiceCardPreview>
+        }
+        title="Vestaboard Flagship"
+        description="Split-flap · 22 × 6 characters"
+        meta="Local API · Cloud API"
+      />
+      <ChoiceCard value="panel" title="FiestaPanel TV" description="Any TV or browser, sized to fit" meta="TV app" />
+    </ChoiceCardGroup>
   ),
   ToggleCard: () => (
     <ToggleCardGroup aria-label="Board type" defaultValue="flagship" columns="2" className="w-full max-w-lg">
@@ -991,6 +1076,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </Chip>
     </Flex>
   ),
+  Countdown: () => <CountdownDemo />,
+  NowShowingCard: () => (
+    <NowShowingCard
+      variant="compact"
+      className="w-full max-w-[370px]"
+      display="Kitchen board"
+      mode="schedule"
+      title="Morning commute"
+      description="Until 9:00 AM · then Market open"
+      board={<ScaledBoardDisplay message={BOARD_MESSAGE} size="sm" isStatic />}
+    />
+  ),
+  OutcomeLine: () => <OutcomeLine>Holds until 9:00 PM, then Schedule resumes. Next: Good night.</OutcomeLine>,
   Note: () => (
     <Stack gap="3" className="w-full max-w-lg">
       <Note icon={<Info />}>Transitions are only applied when sending through the local API.</Note>
@@ -1171,6 +1269,32 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <JsonTree data={JSON_SAMPLE} path="response" defaultExpandedDepth={1} />
     </Frame>
   ),
+  ListRow: () => (
+    <ListRowGroup aria-label="Settings" className="w-full max-w-md">
+      <ListRow
+        leading={
+          <IconTile size="sm">
+            <Calendar />
+          </IconTile>
+        }
+        title="Schedule Mode"
+        description="Pages change on their own"
+        meta="On"
+        trailing={<ChevronRight />}
+      />
+      <ListRow
+        leading={
+          <IconTile size="sm">
+            <Monitor />
+          </IconTile>
+        }
+        title="FiestaPi"
+        description="fiestapi.local:4420"
+        trailing={<ChevronRight />}
+      />
+    </ListRowGroup>
+  ),
+  SortableList: () => <SortableListDemo />,
   MediaFrame: () => (
     <MediaFrame className="w-full max-w-md">
       <MediaFrameMedia>
@@ -1178,6 +1302,15 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </MediaFrameMedia>
       <MediaFrameBar>The kitchen board running the morning briefing page.</MediaFrameBar>
     </MediaFrame>
+  ),
+  PagePreviewCard: () => (
+    <div className="w-full max-w-[371px]">
+      <PagePreviewCard
+        title="Dinner note"
+        description="Last shown yesterday, 6:30 PM"
+        board={<StaticBoardDisplay size="sm" deviceType="flagship" message={"\n    DINNER AT 7\n     TACO NIGHT"} />}
+      />
+    </div>
   ),
   ScrollArea: () => (
     <ScrollArea className="h-40 w-48 rounded-md border border-border">
@@ -1345,6 +1478,24 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </Stack>
       </PopoverContent>
     </Popover>
+  ),
+  ShortcutList: () => (
+    <ShortcutListPopover
+      trigger={
+        <Button variant="secondary">
+          <Zap aria-hidden /> Shortcuts
+        </Button>
+      }
+      groups={[
+        {
+          items: [
+            { label: "Save", keys: ["Mod", "S"] },
+            { label: "Show now", keys: ["Mod", "Enter"] },
+            { label: "Close a picker", keys: ["Esc"] },
+          ],
+        },
+      ]}
+    />
   ),
   DropdownMenu: () => (
     <DropdownMenu>
@@ -1674,6 +1825,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <ScaledBoardDisplay message={BOARD_MESSAGE} size="md" />
     </div>
   ),
+  BoardViewport: () => (
+    <div className="w-full max-w-[320px]">
+      <BoardViewport
+        deviceType="note_array"
+        notesWide={3}
+        message="LOBBY  COFFEE $3   WIFI FIESTA"
+        size="sm"
+        title="Note array 3×1 · 45×3"
+        hint="swipe"
+        persist={false}
+      />
+    </div>
+  ),
   PreviewSlot: () => (
     <PreviewSlot className="w-full max-w-[320px]">
       <StaticBoardDisplay message={BOARD_MESSAGE} size="sm" />
@@ -1687,6 +1851,14 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   BoardTeaser: () => <BoardTeaser teaser="AQI 42 GOOD" size="md" />,
   BoardSizeIndicator: () => (
     <BoardSizeIndicator deviceType="note_array" notesWide={2} notesTall={2} layoutLabel="2×2 grid" />
+  ),
+  DisplayTypeChip: () => (
+    <div className="flex flex-wrap gap-1.5">
+      <DisplayTypeChip type="flagship" />
+      <DisplayTypeChip type="pixoo" />
+      <DisplayTypeChip type="tc001" />
+      <DisplayTypeChip type="panel" />
+    </div>
   ),
   CharacterGlyph: () => (
     <div className="flex items-center gap-2">
@@ -1780,6 +1952,16 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
 
   /* ---- Template editor ---- */
   TemplateEditor: TemplateEditorDemo,
+  EditorPreview: () => (
+    <EditorPreview
+      className="static w-full max-w-md"
+      boardName="Kitchen board"
+      details="Flagship 22 × 6"
+      statusLine="Off by default every time the editor opens."
+    >
+      <ScaledBoardDisplay message={BOARD_MESSAGE} size="sm" />
+    </EditorPreview>
+  ),
   TemplateEditorToolbar: () => (
     <Frame className="max-w-2xl">
       <TemplateEditorToolbar editor={null} templateVariables={TEMPLATE_VARIABLES} />
