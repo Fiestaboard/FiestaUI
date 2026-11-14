@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { expect, waitFor } from "storybook/test";
 
 import type { BoardPreviewMode } from "./board-preview-mode";
 import { BoardPreviewModeToggle } from "./board-preview-mode-toggle";
@@ -47,6 +48,24 @@ export const FitActive: Story = { args: { mode: "fit" } };
  * opted-in `coarse:` layer (#385).
  */
 export const TouchTargets: Story = {
+  play: async ({ canvasElement }) => {
+    // Check actual hit testing, not just the presence of min-size classes.
+    for (const button of canvasElement.querySelectorAll<HTMLButtonElement>("button")) {
+      const rect = button.getBoundingClientRect();
+      const target = getComputedStyle(button, "::before");
+      const width = parseFloat(target.width);
+      const height = parseFloat(target.height);
+      expect(width).toBeGreaterThanOrEqual(44);
+      expect(height).toBeGreaterThanOrEqual(44);
+      const left = button.dataset.value === "fit" ? rect.right - width : rect.left;
+      const top = rect.top + (rect.height - height) / 2;
+      for (const x of [left + 0.5, left + width - 0.5]) {
+        for (const y of [top + 0.5, top + height - 0.5]) {
+          expect(canvasElement.ownerDocument.elementFromPoint(x, y)).toBe(button);
+        }
+      }
+    }
+  },
   args: { size: "touch" },
   render: function TouchStory(args) {
     const [mode, setMode] = useState<BoardPreviewMode>(args.mode);
@@ -102,6 +121,21 @@ export const WithBoardViewport: Story = {
 
 /** The same with ScaledBoardDisplay, whose own pills are hidden. */
 export const WithScaledBoardDisplay: Story = {
+  play: async ({ canvasElement }) => {
+    await waitFor(() => {
+      const board = canvasElement.querySelector<HTMLElement>("[data-slot=board-display]")!;
+      const clip = canvasElement.querySelector<HTMLElement>("[data-slot=scaled-board-clip]")!;
+      const boardRect = board.getBoundingClientRect();
+      const clipRect = clip.getBoundingClientRect();
+      expect(getComputedStyle(board).boxShadow).not.toBe("none");
+      // The clip must include shadow space on every edge, not hug the bezel.
+      expect(boardRect.left - clipRect.left).toBeGreaterThan(5);
+      expect(clipRect.right - boardRect.right).toBeGreaterThan(5);
+      expect(boardRect.top - clipRect.top).toBeGreaterThan(5);
+      expect(clipRect.bottom - boardRect.bottom).toBeGreaterThan(5);
+      expect(clipRect.width).toBeLessThanOrEqual(clip.parentElement!.clientWidth + 1);
+    });
+  },
   render: function ScaledStory() {
     const [mode, setMode] = useState<BoardPreviewMode>("fit");
     return (
