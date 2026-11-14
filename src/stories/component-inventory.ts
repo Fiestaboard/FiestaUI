@@ -111,6 +111,11 @@ export const INVENTORY = [
       },
       { name: "Input", summary: "Single-line text input across the HTML input types, with a 44px touch size." },
       { name: "Label", summary: "Form label wired to its control by htmlFor." },
+      {
+        name: "NotificationRow",
+        summary:
+          "One alert, why it fires and its own switch; blocked or needs-HTTPS permission turns it off and says why.",
+      },
       { name: "SecretInput", summary: "Password input with a reveal toggle." },
       { name: "SegmentedControl", summary: "Pill group for a small set of mutually exclusive options." },
       { name: "Select", summary: "Listbox-backed dropdown with grouping and separators." },
@@ -326,6 +331,24 @@ export const INVENTORY = [
         summary:
           "An OLED television around a board renderer — FiestaPanel's housing, sized by diagonal and aspect, dimmable, with an offline state. A split-flap board on it is bare flaps on the black.",
       },
+    ],
+  },
+  {
+    id: "schedule",
+    title: "Schedule",
+    description:
+      "When pages show. The week grid and the pane that explains the entry picked on it; times are minutes after midnight, and the hub's rules stay with the host.",
+    entries: [
+      {
+        name: "AgendaRow",
+        summary:
+          "One agenda row — entry, now, gap or conflict — written in words: title, time · detail, a status word.",
+      },
+      {
+        name: "WeekStrip",
+        summary: "The day picker: touch-size SegmentedControl pills on one scrolling line.",
+      },
+      { name: "DayChip", summary: "One day in a WeekStrip — “Thu 5” — with a warning dot and words for a gap day." },
     ],
   },
   {

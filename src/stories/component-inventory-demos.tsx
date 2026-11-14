@@ -169,6 +169,7 @@ import { CopyableCode } from "../components/forms/copyable-code";
 import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
+import { NotificationRow } from "../components/forms/notification-row";
 import { SecretInput } from "../components/forms/secret-input";
 import {
   Select,
@@ -243,6 +244,8 @@ import { BoardShowcase } from "../components/plugin/board-showcase";
 import { PluginCard } from "../components/plugin/plugin-card";
 import { PluginCategoryBadge } from "../components/plugin/plugin-category-badge";
 import { ScaledBoardTeaser } from "../components/plugin/scaled-board-teaser";
+import { AgendaRow } from "../components/schedule/agenda-row";
+import { DayChip, WeekStrip } from "../components/schedule/day-chip";
 import { Code } from "../components/typography/code";
 import { Heading } from "../components/typography/heading";
 import { Kbd } from "../components/typography/kbd";
@@ -750,6 +753,12 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <Label htmlFor="inv-label-target">Board name</Label>
       <Input id="inv-label-target" defaultValue="Living room" />
     </Stack>
+  ),
+  NotificationRow: () => (
+    <ListRowGroup aria-label="Notifications" className="w-full max-w-md">
+      <NotificationRow title="A display goes offline" reason="Kitchen board, Desk Pixoo" defaultChecked />
+      <NotificationRow title="Update available" reason="FiestaBoard and plugin updates" permission="denied" />
+    </ListRowGroup>
   ),
   SecretInput: () => (
     <Stack gap="1.5" className="w-full max-w-xs">
@@ -1333,6 +1342,35 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Tabs>
   ),
 
+  /* ---- Schedule ---- */
+  AgendaRow: () => (
+    <ListRowGroup aria-label="Sunday" className="w-full max-w-md">
+      <AgendaRow kind="now" title="Weekend brunch" time="9:00 AM – 1:00 PM" detail="Page" />
+      <AgendaRow kind="gap" title="Good morning, Maya" time="1:00 PM – 9:00 PM" detail="Default page" />
+      <AgendaRow kind="conflict" title="Happy birthday Sam" time="11:00 AM – 2:00 PM" detail="Page" />
+    </ListRowGroup>
+  ),
+  WeekStrip: () => (
+    <div className="w-full max-w-md">
+      <WeekStrip aria-label="Day" defaultValue="sun">
+        <DayChip value="thu">Thu 5</DayChip>
+        <DayChip value="fri" hasGap>
+          Fri 6
+        </DayChip>
+        <DayChip value="sat">Sat 7</DayChip>
+        <DayChip value="sun">Sun 8</DayChip>
+        <DayChip value="mon">Mon 9</DayChip>
+      </WeekStrip>
+    </div>
+  ),
+  DayChip: () => (
+    <WeekStrip aria-label="Day chip states" defaultValue="sun">
+      <DayChip value="sun">Sun 8</DayChip>
+      <DayChip value="mon" hasGap>
+        Mon 9
+      </DayChip>
+    </WeekStrip>
+  ),
   /* ---- Data ---- */
   BarList: () => (
     <BarList
