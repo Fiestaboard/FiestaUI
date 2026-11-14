@@ -59,6 +59,20 @@
  * ============================================================ */
 @custom-variant dark (&:is(.dark *, [data-theme="dark"] *));
 
+/* The W2 touch layer (slice 1.2): `coarse:` applies on a coarse pointer
+ * (a phone, a tablet) INSIDE an opted-in `.fui-coarse` ancestor, so a host
+ * puts `fui-coarse` on <html> and the default-sized controls gain a 44px
+ * floor (--touch-target). Opt-in, because a coarse pointer on a desktop app
+ * shell (a touchscreen laptop) should not reflow every toolbar uninvited.
+ * `:where()` keeps the selector at the utility's own specificity. */
+@custom-variant coarse {
+  @media (pointer: coarse) {
+    &:where(.fui-coarse *, .fui-coarse) {
+      @slot;
+    }
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -1059,8 +1073,8 @@
    *
    * Fixed px, not rem: a hit area is a property of the finger, not of the
    * text size. Tailwind: `min-h-touch`, `size-touch`, `h-control-touch`,
-   * `h-toolbar-touch` (see @theme above). Additive: nothing in the package
-   * reads them yet; the touch sizes arrive with the components that use them.
+   * `h-toolbar-touch` (see @theme above). Read by the `size="touch"` axis
+   * (slice 1.2) and the `coarse:` variant at the top of this file.
    * ============================================================ */
   --touch-target: 44px;
   --control-h-touch: 44px;
@@ -2057,6 +2071,43 @@ html[data-board-switch="backward"]::view-transition-new(board-page) {
 .focus-ring:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring-shadow);
+}
+
+/* ============================================================
+ * SELECTED RING — the one "this card is the choice" outline (slice 1.8c).
+ *
+ * ChoiceCard and PagePreviewCard draw selection as ring + tint + mark (never
+ * colour alone). The ring is the card's 1px border in --primary plus one
+ * INSET pixel: 2px, with no change of size. Inset is also what lets it
+ * compose with focus: the selected pixel sits inside the border box and the
+ * focus stack outside it, so neither covers the other. (Kept in this class
+ * rather than a :root token — it has no consumer outside these two rules.)
+ *
+ * Keyed on the state the component already stamps (`data-checked` from Base
+ * UI's Radio/Checkbox, `data-selected` from PagePreviewCard), so a call site
+ * only adds the class. It must out-rank `.focus-ring:focus-visible`, which
+ * sets box-shadow outright: under keyboard focus the selected card keeps its
+ * inset pixel AND gets the outset focus stack — the two never overlap.
+ * ============================================================ */
+.selected-ring:is([data-checked], [data-selected]) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.selected-ring:is([data-checked], [data-selected]):focus-visible {
+  outline: none;
+  box-shadow:
+    var(--focus-ring-shadow),
+    inset 0 0 0 1px var(--primary);
+}
+/* Forced colours drop every box-shadow, which would leave a selected card with
+   the same 1px system border as an unselected one. An outline survives and
+   is recoloured by the browser, so the selection keeps a 2px ring there. */
+@media (forced-colors: active) {
+  .selected-ring:is([data-checked], [data-selected]),
+  .selected-ring:is([data-checked], [data-selected]):focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
 }
 
 /* ============================================================

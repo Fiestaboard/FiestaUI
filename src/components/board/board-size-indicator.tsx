@@ -16,11 +16,18 @@
 import { type DeviceType, resolveDimensions } from "../../lib/board-dimensions";
 import { cn } from "../../lib/utils";
 
+/**
+ * Which axis reads first. `rows×cols` (the default) is the note-array
+ * convention; `cols×rows` is how the redesign names hardware ("45×3", C8 /
+ * CANON addendum).
+ */
+export type BoardSizeFormat = "rows×cols" | "cols×rows";
+
 export interface BoardSizeIndicatorLabels {
-  /** Accessible name. Default: (rows, cols) => `${rows} rows by ${cols} columns` */
-  dimensions?: (rows: number, cols: number) => string;
-  /** Accessible name when a layout name is shown alongside. Default: `${rows} rows by ${cols} columns, ${layout}` */
-  dimensionsWithLayout?: (rows: number, cols: number, layout: string) => string;
+  /** Accessible name. Default: `${rows} rows by ${cols} columns`, or columns first for `cols×rows`. */
+  dimensions?: (rows: number, cols: number, format: BoardSizeFormat) => string;
+  /** Accessible name when a layout name is shown alongside. Default: the above plus `, ${layout}`. */
+  dimensionsWithLayout?: (rows: number, cols: number, layout: string, format: BoardSizeFormat) => string;
 }
 
 export interface BoardSizeIndicatorProps {
@@ -37,6 +44,8 @@ export interface BoardSizeIndicatorProps {
    * the bare `rows × cols` form.
    */
   layoutLabel?: string;
+  /** Axis order. Default `"rows×cols"` ("6 × 22"); `"cols×rows"` reads "22 × 6". */
+  format?: BoardSizeFormat;
   labels?: BoardSizeIndicatorLabels;
   className?: string;
 }
@@ -44,9 +53,14 @@ export interface BoardSizeIndicatorProps {
 /** "1 row" / "8 rows": a 1 × 8 LED board must not read "1 rows". */
 const axis = (n: number, singular: string) => `${n} ${singular}${n === 1 ? "" : "s"}`;
 
+const spoken = (rows: number, cols: number, format: BoardSizeFormat = "rows×cols") =>
+  format === "cols×rows"
+    ? `${axis(cols, "column")} by ${axis(rows, "row")}`
+    : `${axis(rows, "row")} by ${axis(cols, "column")}`;
+
 export const defaultBoardSizeIndicatorLabels: Required<BoardSizeIndicatorLabels> = {
-  dimensions: (rows, cols) => `${axis(rows, "row")} by ${axis(cols, "column")}`,
-  dimensionsWithLayout: (rows, cols, layout) => `${axis(rows, "row")} by ${axis(cols, "column")}, ${layout}`,
+  dimensions: (rows, cols, format) => spoken(rows, cols, format),
+  dimensionsWithLayout: (rows, cols, layout, format) => `${spoken(rows, cols, format)}, ${layout}`,
 };
 
 export function BoardSizeIndicator({
@@ -56,13 +70,15 @@ export function BoardSizeIndicator({
   gridRows,
   gridCols,
   layoutLabel,
+  format = "rows×cols",
   labels,
   className,
 }: BoardSizeIndicatorProps) {
   const { rows, cols } = resolveDimensions(deviceType, notesWide, notesTall, gridRows, gridCols);
   const l = { ...defaultBoardSizeIndicatorLabels, ...labels };
   const layout = layoutLabel?.trim() || undefined;
-  const ariaLabel = layout ? l.dimensionsWithLayout(rows, cols, layout) : l.dimensions(rows, cols);
+  const ariaLabel = layout ? l.dimensionsWithLayout(rows, cols, layout, format) : l.dimensions(rows, cols, format);
+  const dims = format === "cols×rows" ? `${cols} × ${rows}` : `${rows} × ${cols}`;
 
   return (
     <span
@@ -71,9 +87,10 @@ export function BoardSizeIndicator({
       data-slot="board-size-indicator"
       data-rows={rows}
       data-cols={cols}
+      {...(format === "rows×cols" ? {} : { "data-format": format })}
       className={cn("inline-flex items-center font-mono text-xs text-muted-foreground tabular-nums", className)}
     >
-      <span aria-hidden="true">{layout ? `${rows} × ${cols} · ${layout}` : `${rows} × ${cols}`}</span>
+      <span aria-hidden="true">{layout ? `${dims} · ${layout}` : dims}</span>
     </span>
   );
 }
