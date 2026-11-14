@@ -25,12 +25,14 @@ import {
   Bell,
   Bold,
   Calendar,
+  Check,
   CheckCircle2,
   ChevronRight,
   ChevronsUpDown,
   Clock,
   Cloud,
   Copy,
+  Ellipsis,
   ExternalLink,
   Inbox,
   Info,
@@ -196,6 +198,9 @@ import { Box } from "../components/layout/box";
 import { Flex } from "../components/layout/flex";
 import { Grid } from "../components/layout/grid";
 import { Stack } from "../components/layout/stack";
+import { InstallCard } from "../components/onboarding/install-card";
+import { InstallSteps } from "../components/onboarding/install-steps";
+import { PrivacyNote } from "../components/onboarding/privacy-note";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -2022,6 +2027,32 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     <div className="w-full max-w-sm">
       <WizardProgress steps={["Connect", "Customize", "Finish"]} current={2} label="Setup progress" />
     </div>
+  ),
+  InstallCard: () => (
+    <InstallCard
+      className="w-full max-w-sm"
+      title="Add FiestaBoard Control to this phone?"
+      onInstall={() => {}}
+      onDismiss={() => {}}
+    >
+      Installed, it opens straight to Home. It still talks only to your hub; there is no FiestaBoard account or cloud.
+    </InstallCard>
+  ),
+  InstallSteps: () => (
+    <InstallSteps
+      className="w-full max-w-sm"
+      aria-label="Add to Home Screen"
+      steps={[
+        { text: "Tap ⋯ in Safari’s address bar, then Share.", icon: <Ellipsis /> },
+        { text: "Scroll down and tap Add to Home Screen.", icon: <Plus /> },
+        { text: "Leave Open as Web App on, then tap Add.", icon: <Check /> },
+      ]}
+    />
+  ),
+  PrivacyNote: () => (
+    <PrivacyNote className="w-full max-w-sm" title="Your data stays on your network">
+      This app talks straight to your FiestaBoard hub over Wi‑Fi. There is no FiestaBoard cloud account.
+    </PrivacyNote>
   ),
   FadeContent: () => (
     <FadeContent>
