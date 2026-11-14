@@ -1,5 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { Calendar, ChevronRight, Clock, Copy, MoreHorizontal, Pencil, Server, Trash2 } from "lucide-react";
+import {
+  Bot,
+  Calendar,
+  ChevronRight,
+  Clock,
+  Copy,
+  Globe,
+  MoreHorizontal,
+  Pencil,
+  Server,
+  Trash2,
+  Wifi,
+} from "lucide-react";
 import { useEffect } from "react";
 
 import { Button } from "../forms/button";
@@ -89,6 +101,40 @@ export const InsetGroup: Story = {
       />
       <ListRow title="Firmware" meta="8.17.0" />
     </ListRowGroup>
+  ),
+};
+
+/**
+ * `selected`: the open row of a list-detail (07e Settings `318:46000`). The
+ * accent pill sits 4px inside the row, so it never paints over the group's
+ * rounded corners: first, middle and last rows shown in turn.
+ */
+export const Selected: Story = {
+  args: { title: "" },
+  render: () => (
+    <div className="flex w-full flex-col gap-4 sm:w-[380px]">
+      {(["Network", "AI provider", "Language & time"] as const).map((open) => (
+        <ListRowGroup key={open} aria-label={`Hub, ${open} open`}>
+          {[
+            { title: "Network", meta: "Wi-Fi · Home 5G", icon: <Wifi /> },
+            { title: "AI provider", meta: "Ollama on hub", icon: <Bot /> },
+            { title: "Language & time", meta: "English · Pacific", icon: <Globe /> },
+          ].map((item) => (
+            <li key={item.title}>
+              <ListRow
+                // eslint-disable-next-line jsx-a11y/anchor-has-content -- ListRow supplies the content
+                render={<a href={`#${item.title}`} />}
+                leading={item.icon}
+                title={item.title}
+                meta={item.meta}
+                trailing={<ChevronRight />}
+                selected={item.title === open}
+              />
+            </li>
+          ))}
+        </ListRowGroup>
+      ))}
+    </div>
   ),
 };
 
