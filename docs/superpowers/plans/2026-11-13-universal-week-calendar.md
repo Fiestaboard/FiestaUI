@@ -58,3 +58,7 @@ earlier ones, as 07d draws Happy birthday Sam over Weekend brunch.
 
 Week (07d), Conflict selected, Selected, Now line, Off and silence, Drag to create (play), Narrow (mobile), Empty, and
 the inspector alone and beside the grid. Each story is shot light/dark × desktop/mobile by VRT.
+
+## Review follow-up (fix397)
+
+Merge current alpha; replace inspector story stand-ins with ListRowGroup/ListRow. Reproduce and fix final-release coordinate and unrelated-pointer cancellation; cover lost capture. Run focused and full checks and retain the VRT review hold.

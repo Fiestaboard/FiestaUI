@@ -278,6 +278,31 @@ describe("WeekCalendar", () => {
       expect(container.querySelector('[data-slot="week-calendar-draft"]')).toBeNull();
     });
 
+    it("commits the release coordinate without requiring a final move", () => {
+      const onCreate = vi.fn();
+      setup({ onCreate });
+      const column = dayColumn("Tuesday, November 10");
+      layOut(column, 612);
+      fireEvent.pointerDown(column, { pointerType: "mouse", button: 0, clientY: 202, pointerId: 1 });
+      fireEvent.pointerUp(column, { pointerType: "mouse", clientY: 245, pointerId: 1 });
+      expect(onCreate).toHaveBeenCalledWith({ day: 1, start: 540, end: 630 });
+    });
+
+    it("ignores another pointer's cancellation and cleans up lost capture", () => {
+      const onCreate = vi.fn();
+      const { container } = setup({ onCreate });
+      const column = dayColumn("Tuesday, November 10");
+      layOut(column, 612);
+      fireEvent.pointerDown(column, { pointerType: "pen", button: 0, clientY: 202, pointerId: 1 });
+      fireEvent.pointerCancel(column, { pointerId: 2 });
+      fireEvent.lostPointerCapture(column, { pointerId: 2 });
+      expect(container.querySelector('[data-slot="week-calendar-draft"]')).not.toBeNull();
+      fireEvent.lostPointerCapture(column, { pointerId: 1 });
+      expect(container.querySelector('[data-slot="week-calendar-draft"]')).toBeNull();
+      fireEvent.pointerUp(column, { pointerId: 1, clientY: 245 });
+      expect(onCreate).not.toHaveBeenCalled();
+    });
+
     it("dragging upwards keeps the range ordered", () => {
       const onCreate = vi.fn();
       setup({ onCreate });

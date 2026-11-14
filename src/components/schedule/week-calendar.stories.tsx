@@ -4,6 +4,7 @@ import * as React from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 
 import { StaticBoardDisplay } from "../board/static-board-display";
+import { ListRow, ListRowGroup } from "../containment/list-row";
 import { Button } from "../forms/button";
 import { WeekCalendar, type WeekCalendarDay, type WeekCalendarEntry } from "./week-calendar";
 import { WeekCalendarInspector } from "./week-calendar-inspector";
@@ -61,23 +62,6 @@ const WEEK: WeekCalendarEntry[] = [
 const RAINBOW = "{63}{64}{65}{66}{67}{68}".repeat(4).slice(0, 22 * 4);
 const BIRTHDAY = `\n\n   HAPPY BIRTHDAY\n        SAM!\n\n${RAINBOW}`;
 
-/**
- * Stand-in for the inspector's Page / Display / Repeat rows (07d `322:14772`) until ListRow (#389)
- * is on `alpha`; hosts compose `ListRowGroup` + `ListRow` with a chevron. TODO(#389): swap.
- */
-function FieldRow({ label, value }: { label: string; value: string }) {
-  return (
-    <button
-      type="button"
-      className="focus-ring flex min-h-11 w-full items-center gap-3 rounded-md py-2 pr-2.5 pl-3.5 text-left text-sm hover:bg-accent"
-    >
-      <span className="min-w-0 flex-1 font-semibold">{label}</span>
-      <span className="text-muted-foreground">{value}</span>
-      <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
-    </button>
-  );
-}
-
 function BirthdayInspector({ className }: { className?: string }) {
   return (
     <WeekCalendarInspector
@@ -101,9 +85,32 @@ function BirthdayInspector({ className }: { className?: string }) {
         </Button>
       }
     >
-      <FieldRow label="Page" value="Happy birthday Sam" />
-      <FieldRow label="Display" value="Kitchen board" />
-      <FieldRow label="Repeat" value="Once · Sat Nov 14" />
+      <ListRowGroup aria-label="Entry settings" variant="plain">
+        <li>
+          <ListRow
+            render={<button type="button" />}
+            title="Page"
+            meta="Happy birthday Sam"
+            trailing={<ChevronRight aria-hidden="true" />}
+          />
+        </li>
+        <li>
+          <ListRow
+            render={<button type="button" />}
+            title="Display"
+            meta="Kitchen board"
+            trailing={<ChevronRight aria-hidden="true" />}
+          />
+        </li>
+        <li>
+          <ListRow
+            render={<button type="button" />}
+            title="Repeat"
+            meta="Once · Sat Nov 14"
+            trailing={<ChevronRight aria-hidden="true" />}
+          />
+        </li>
+      </ListRowGroup>
     </WeekCalendarInspector>
   );
 }
@@ -298,9 +305,32 @@ export const InspectorNoConflict: Story = {
           </Button>
         }
       >
-        <FieldRow label="Page" value="Market open" />
-        <FieldRow label="Display" value="Kitchen board" />
-        <FieldRow label="Repeat" value="Mon–Fri" />
+        <ListRowGroup aria-label="Entry settings" variant="plain">
+          <li>
+            <ListRow
+              render={<button type="button" />}
+              title="Page"
+              meta="Market open"
+              trailing={<ChevronRight aria-hidden="true" />}
+            />
+          </li>
+          <li>
+            <ListRow
+              render={<button type="button" />}
+              title="Display"
+              meta="Kitchen board"
+              trailing={<ChevronRight aria-hidden="true" />}
+            />
+          </li>
+          <li>
+            <ListRow
+              render={<button type="button" />}
+              title="Repeat"
+              meta="Mon–Fri"
+              trailing={<ChevronRight aria-hidden="true" />}
+            />
+          </li>
+        </ListRowGroup>
       </WeekCalendarInspector>
     </div>
   ),

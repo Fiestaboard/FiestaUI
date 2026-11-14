@@ -328,9 +328,14 @@ function WeekCalendar({
         const current = draftRef.current;
         if (!current || current.pointerId !== event.pointerId) return;
         setDraft(null);
-        onCreate(rangeOf(current));
+        onCreate(rangeOf({ ...current, current: minuteAt(event.currentTarget, event.clientY) }));
       },
-      onPointerCancel: () => setDraft(null),
+      onPointerCancel: (event: React.PointerEvent<HTMLDivElement>) => {
+        if (draftRef.current?.pointerId === event.pointerId) setDraft(null);
+      },
+      onLostPointerCapture: (event: React.PointerEvent<HTMLDivElement>) => {
+        if (draftRef.current?.pointerId === event.pointerId) setDraft(null);
+      },
     };
   };
 
