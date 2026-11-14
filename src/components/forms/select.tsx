@@ -101,14 +101,26 @@ function SelectValue({
   );
 }
 
-function SelectTrigger({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
+type SelectTriggerProps = React.ComponentProps<typeof SelectPrimitive.Trigger> & {
+  /**
+   * `"touch"` is the 44px touch size (slice 1.2, --control-h-touch) with 16px
+   * text, matching `Input size="touch"` so a form row lines up. @default "default"
+   */
+  size?: "default" | "touch";
+};
+
+function SelectTrigger({ className, children, size = "default", ...props }: SelectTriggerProps) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
+      data-size={size}
       className={cn(
         // transition + hover added so the trigger eases and reacts to the
         // pointer exactly like Input and Textarea do (issue #165).
         "flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm transition-[color,background-color,border-color,box-shadow] duration-control placeholder:text-muted-foreground hover:border-ring/60 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 disabled:cursor-not-allowed disabled:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 [&>span]:line-clamp-1",
+        // W2: a 44px floor under the opted-in coarse-pointer layer.
+        "coarse:min-h-touch",
+        size === "touch" && "h-control-touch px-3.5 text-base",
         className,
       )}
       {...props}

@@ -69,6 +69,7 @@ import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
 import { BoardSizeIndicator } from "../components/board/board-size-indicator";
 import { BoardTeaser } from "../components/board/board-teaser";
+import { BoardViewport } from "../components/board/board-viewport";
 import { CharacterGlyph } from "../components/board/character-glyph";
 import { CharacterSetSpecimen } from "../components/board/character-set-specimen";
 import { DisplayPreview } from "../components/board/display-preview";
@@ -125,14 +126,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { IconTile } from "../components/containment/icon-tile";
 import { JsonTree } from "../components/containment/json-tree";
+import { ListRow, ListRowGroup } from "../components/containment/list-row";
 import { MediaFrame, MediaFrameBar, MediaFrameMedia } from "../components/containment/media-frame";
+import { PagePreviewCard } from "../components/containment/page-preview-card";
 import { ScrollArea } from "../components/containment/scroll-area";
+import {
+  arrayMove,
+  SortableList,
+  SortableListHandle,
+  SortableListMoveButtons,
+} from "../components/containment/sortable-list";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/containment/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containment/tabs";
 import { BarList } from "../components/data/bar-list";
 import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
+import { EditorPreview } from "../components/editor/editor-preview";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
 import { TemplateEditor } from "../components/editor/template-editor";
@@ -154,6 +164,7 @@ import { StatusDot } from "../components/feedback/status-dot";
 import { toast, Toaster } from "../components/feedback/toaster";
 import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
+import { ChoiceCard, ChoiceCardGroup, ChoiceCardPreview } from "../components/forms/choice-card";
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
 import { CopyableCode } from "../components/forms/copyable-code";
@@ -429,6 +440,38 @@ function SliderDemo() {
           the component's WithLabel story. */}
       <Slider id="inv-slider" aria-label="Brightness" value={value} onValueChange={setValue} max={100} step={1} />
     </Stack>
+  );
+}
+
+const COLLECTION_PAGES = [
+  { id: "market", name: "Market open", meta: "10 min" },
+  { id: "commute", name: "Morning commute", meta: "15 min" },
+  { id: "weather", name: "Weather + surf", meta: "10 min" },
+];
+
+function SortableListDemo() {
+  const [pages, setPages] = useState(COLLECTION_PAGES);
+  return (
+    <div className="w-full max-w-md">
+      <SortableList
+        aria-label="Pages in Weekday mornings"
+        items={pages}
+        getKey={(page) => page.id}
+        getLabel={(page) => page.name}
+        onMove={(from, to) => setPages((prev) => arrayMove(prev, from, to))}
+        renderItem={(page) => (
+          <ListRow
+            variant="card"
+            className="pl-1"
+            leading={<SortableListHandle />}
+            title={page.name}
+            description="Kitchen board · Flagship"
+            meta={page.meta}
+            trailing={<SortableListMoveButtons />}
+          />
+        )}
+      />
+    </div>
   );
 }
 
@@ -814,6 +857,22 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         <Bold /> Disabled
       </Toggle>
     </Flex>
+  ),
+  ChoiceCard: () => (
+    <ChoiceCardGroup aria-label="Display type" defaultValue="flagship" className="w-full max-w-[370px]">
+      <ChoiceCard
+        value="flagship"
+        media={
+          <ChoiceCardPreview offsetX={-72} offsetY={-40}>
+            <StaticBoardDisplay size="sm" deviceType="flagship" message={"\n   GOOD MORNING\n   72° SUNNY  HI 78"} />
+          </ChoiceCardPreview>
+        }
+        title="Vestaboard Flagship"
+        description="Split-flap · 22 × 6 characters"
+        meta="Local API · Cloud API"
+      />
+      <ChoiceCard value="panel" title="FiestaPanel TV" description="Any TV or browser, sized to fit" meta="TV app" />
+    </ChoiceCardGroup>
   ),
   ToggleCard: () => (
     <ToggleCardGroup aria-label="Board type" defaultValue="flagship" columns="2" className="w-full max-w-lg">
@@ -1206,6 +1265,32 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <JsonTree data={JSON_SAMPLE} path="response" defaultExpandedDepth={1} />
     </Frame>
   ),
+  ListRow: () => (
+    <ListRowGroup aria-label="Settings" className="w-full max-w-md">
+      <ListRow
+        leading={
+          <IconTile size="sm">
+            <Calendar />
+          </IconTile>
+        }
+        title="Schedule Mode"
+        description="Pages change on their own"
+        meta="On"
+        trailing={<ChevronRight />}
+      />
+      <ListRow
+        leading={
+          <IconTile size="sm">
+            <Monitor />
+          </IconTile>
+        }
+        title="FiestaPi"
+        description="fiestapi.local:4420"
+        trailing={<ChevronRight />}
+      />
+    </ListRowGroup>
+  ),
+  SortableList: () => <SortableListDemo />,
   MediaFrame: () => (
     <MediaFrame className="w-full max-w-md">
       <MediaFrameMedia>
@@ -1213,6 +1298,15 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </MediaFrameMedia>
       <MediaFrameBar>The kitchen board running the morning briefing page.</MediaFrameBar>
     </MediaFrame>
+  ),
+  PagePreviewCard: () => (
+    <div className="w-full max-w-[371px]">
+      <PagePreviewCard
+        title="Dinner note"
+        description="Last shown yesterday, 6:30 PM"
+        board={<StaticBoardDisplay size="sm" deviceType="flagship" message={"\n    DINNER AT 7\n     TACO NIGHT"} />}
+      />
+    </div>
   ),
   ScrollArea: () => (
     <ScrollArea className="h-40 w-48 rounded-md border border-border">
@@ -1709,6 +1803,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <ScaledBoardDisplay message={BOARD_MESSAGE} size="md" />
     </div>
   ),
+  BoardViewport: () => (
+    <div className="w-full max-w-[320px]">
+      <BoardViewport
+        deviceType="note_array"
+        notesWide={3}
+        message="LOBBY  COFFEE $3   WIFI FIESTA"
+        size="sm"
+        title="Note array 3×1 · 45×3"
+        hint="swipe"
+        persist={false}
+      />
+    </div>
+  ),
   PreviewSlot: () => (
     <PreviewSlot className="w-full max-w-[320px]">
       <StaticBoardDisplay message={BOARD_MESSAGE} size="sm" />
@@ -1815,6 +1922,16 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
 
   /* ---- Template editor ---- */
   TemplateEditor: TemplateEditorDemo,
+  EditorPreview: () => (
+    <EditorPreview
+      className="static w-full max-w-md"
+      boardName="Kitchen board"
+      details="Flagship 22 × 6"
+      statusLine="Off by default every time the editor opens."
+    >
+      <ScaledBoardDisplay message={BOARD_MESSAGE} size="sm" />
+    </EditorPreview>
+  ),
   TemplateEditorToolbar: () => (
     <Frame className="max-w-2xl">
       <TemplateEditorToolbar editor={null} templateVariables={TEMPLATE_VARIABLES} />

@@ -75,6 +75,10 @@ before(async () => {
     format: "esm",
     platform: "browser",
     jsx: "automatic",
+    // The compact PluginCard's install action is a Button, which imports
+    // Spinner's embedded loading artwork — the same loader cn-equivalence and
+    // component-inventory-coverage already give it.
+    loader: { ".png": "dataurl", ".webp": "dataurl" },
     define: { "process.env.NODE_ENV": '"development"' },
     logLevel: "silent",
   });
