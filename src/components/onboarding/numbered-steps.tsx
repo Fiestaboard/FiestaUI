@@ -22,12 +22,25 @@ export interface NumberedStep {
   icon?: React.ReactNode;
 }
 
-const stepVariants = cva("flex gap-3 text-sm text-foreground", {
+const stepVariants = cva("flex text-sm text-foreground", {
   variants: {
     appearance: {
       // 07 `58:35303`: a muted panel per step, the copy medium and centred
       // on the disc.
-      panel: "items-center rounded-xl bg-muted p-3 font-medium",
+      panel: "items-center gap-3 rounded-xl bg-muted p-3 font-medium",
+      // 07e Connect a phone steps (`323:16784`), the web goalpost: plain
+      // rows, regular copy top-aligned with the disc, 10 px from it.
+      // RecoverySteps uses it too (05's native drawing differs; DD-W28).
+      plain: "items-start gap-2.5",
+    },
+  },
+});
+
+const listVariants = cva("flex flex-col", {
+  variants: {
+    appearance: {
+      panel: "gap-3",
+      plain: "gap-2.5",
     },
   },
 });
@@ -37,11 +50,14 @@ const markerVariants = cva("flex shrink-0 items-center justify-center rounded-fu
     appearance: {
       // 28 px foreground disc, 14 semibold in background ink.
       panel: "size-7 bg-foreground font-semibold text-background",
+      // 22 px accent disc, Archivo (Text/xs/medium) 12 medium (07e
+      // `323:16786`). 05 draws 24 px muted Spline Sans Mono; DD-W28.
+      plain: "size-5.5 bg-accent text-xs font-medium",
     },
   },
 });
 
-export type NumberedStepsAppearance = "panel";
+export type NumberedStepsAppearance = "panel" | "plain";
 
 export interface NumberedStepsProps extends Omit<React.ComponentProps<"ol">, "children"> {
   steps: readonly NumberedStep[];
@@ -63,7 +79,7 @@ function NumberedSteps({ steps, appearance, start = 1, className, ...props }: Nu
       data-appearance={appearance}
       role="list"
       start={start === 1 ? undefined : start}
-      className={cn("flex flex-col gap-3", className)}
+      className={cn(listVariants({ appearance }), className)}
       {...props}
     >
       {steps.map((step, index) => (

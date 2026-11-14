@@ -21,8 +21,8 @@ describe("component inventory (onboarding)", () => {
     expect(container).toBeInstanceOf(HTMLElement);
   });
 
-  it("lists the onboarding section with its three entries", () => {
-    for (const name of ["InstallCard", "InstallSteps", "PrivacyNote"] as const) {
+  it("lists the onboarding section with its entries", () => {
+    for (const name of ["ConnectPhoneCard", "InstallCard", "InstallSteps", "PrivacyNote", "RecoverySteps"] as const) {
       expect(INVENTORY_ENTRIES.some((e) => e.name === name)).toBe(true);
       const Demo = DEMOS[name];
       const { unmount } = render(<Demo />);
