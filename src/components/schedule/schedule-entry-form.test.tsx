@@ -51,6 +51,13 @@ describe("validateScheduleEntry (hub validate_config parity)", () => {
     expect(validateScheduleEntry(entry())).toEqual({});
   });
 
+  it("rejects year zero and uses the entered year for leap dates", () => {
+    expect(validateScheduleEntry(entry({ recurrence_type: "one_off_date", one_off_date: "0000-01-01" }))).toEqual({
+      one_off_date: "format",
+    });
+    expect(validateScheduleEntry(entry({ recurrence_type: "one_off_date", one_off_date: "0096-02-29" }))).toEqual({});
+  });
+
   it("requires a page or collection", () => {
     expect(validateScheduleEntry(entry({ page_id: "" }))).toEqual({ page_id: "required" });
   });
@@ -284,6 +291,7 @@ describe("ScheduleEntryForm", () => {
     expect(screen.getByText("The last day is before the first.")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Last day"), { target: { value: "" } });
     expect(lastValue(onValueChange).one_off_end_date).toBeNull();
+    expect(screen.getByLabelText("Last day")).toHaveValue("");
   });
 
   it("turns the entry off without deleting it", () => {
@@ -306,6 +314,32 @@ describe("ScheduleEntryForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(screen.getByLabelText("End time").getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByText("Ends when it starts. Pick another end time.")).toBeTruthy();
+  });
+
+  it("reveals an invalid start fallback after switching to sunset and lets it be repaired", () => {
+    const { onSubmit } = renderForm();
+    fireEvent.change(screen.getByLabelText("Start time"), { target: { value: "" } });
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Starts" })).getByRole("radio", { name: "Sunset" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    const fallback = screen.getByLabelText("Start fallback time");
+    expect(fallback).toHaveAttribute("aria-invalid", "true");
+    fireEvent.change(fallback, { target: { value: "17:00" } });
+    expect(screen.getByLabelText("Start fallback time")).toHaveValue("17:00");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ start_type: "sunset", start_time: "17:00" }));
+  });
+
+  it("reveals a zero-length sun end fallback without silently changing the stored time", () => {
+    const { onSubmit } = renderForm({ defaultValue: entry({ end_type: "sunrise", end_time: "09:00" }) });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    const fallback = screen.getByLabelText("End fallback time");
+    expect(fallback).toHaveValue("09:00");
+    expect(fallback).toHaveAttribute("aria-invalid", "true");
+    fireEvent.change(fallback, { target: { value: "10:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ end_type: "sunrise", end_time: "10:00" }));
   });
 
   it("is read-only on the target when it comes from Shows on, and shows the summary and delete", () => {
@@ -339,6 +373,41 @@ describe("ScheduleEntryForm", () => {
       />,
     );
     expect(screen.getByLabelText("Start time")).toHaveProperty("value", "10:00");
+  });
+
+  it("shows ranges when a controlled entry is replaced by a multi-day entry", () => {
+    const { rerender } = render(<ScheduleEntryForm targets={TARGETS} value={entry()} onSubmit={vi.fn()} />);
+    rerender(
+      <ScheduleEntryForm
+        targets={TARGETS}
+        value={entry({ recurrence_type: "annual_date", annual_date: "12-24", annual_end_date: "12-26" })}
+        onSubmit={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("switch", { name: "Lasts more than one day" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("combobox", { name: "Last day" })).toHaveTextContent("26");
+    rerender(
+      <ScheduleEntryForm
+        targets={TARGETS}
+        value={entry({ recurrence_type: "one_off_date", one_off_date: "2026-11-07", one_off_end_date: "2026-11-09" })}
+        onSubmit={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("Last day")).toHaveValue("2026-11-09");
+    rerender(
+      <ScheduleEntryForm
+        targets={TARGETS}
+        value={entry({ recurrence_type: "one_off_date", one_off_date: "2026-11-07" })}
+        onSubmit={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText("Last day")).toBeNull();
+  });
+
+  it("blocks keyboard form submission while saving", () => {
+    const { onSubmit } = renderForm({ busy: true });
+    fireEvent.submit(screen.getByRole("button", { name: "Saving…" }).closest("form")!);
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it("shows Save busy while saving and does not submit twice", () => {

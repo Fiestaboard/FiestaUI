@@ -142,3 +142,23 @@ export const Errors: Story = {
 export const DefaultSize: Story = {
   args: { size: "default", defaultValue: weekend, onDelete: noop },
 };
+
+/** Invalid stored fallbacks stay repairable while the schedule keeps its sun modes. */
+export const SunFallbackErrors: Story = {
+  args: {
+    defaultValue: {
+      ...DEFAULT_SCHEDULE_ENTRY,
+      page_id: "page-happy-hour",
+      start_type: "sunset",
+      start_time: "",
+      end_type: "sunrise",
+      end_time: "",
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Save" }));
+    await expect(canvas.getByLabelText("Start fallback time")).toHaveAttribute("aria-invalid", "true");
+    await expect(canvas.getByLabelText("End fallback time")).toHaveAttribute("aria-invalid", "true");
+  },
+};

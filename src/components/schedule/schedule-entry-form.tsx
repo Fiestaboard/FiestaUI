@@ -132,8 +132,11 @@ const MMDD_PATTERN = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const ISO_DATE_PATTERN = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 function realDate(year: number, month: number, day: number): boolean {
-  const d = new Date(Date.UTC(year, month - 1, day));
-  return d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
+  if (year < 1) return false;
+  const d = new Date(0);
+  // Date.UTC treats years 0–99 as 1900–1999; calendar validation must not.
+  d.setUTCFullYear(year, month - 1, day);
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
 }
 
 /** The hub checks MM-DD against leap year 2024, so 02-29 is allowed. */
@@ -228,6 +231,9 @@ interface ScheduleEntryFormLabels {
   openEndedHint: string;
   startTime: string;
   endTime: string;
+  startFallbackTime: string;
+  endFallbackTime: string;
+  fallbackHint: string;
   /** Name of the offset select: "Offset from sunset". */
   offset: (type: "sunrise" | "sunset") => string;
   sunOffset: (minutes: number, type: "sunrise" | "sunset") => string;
@@ -283,6 +289,9 @@ const DEFAULT_SCHEDULE_ENTRY_FORM_LABELS: ScheduleEntryFormLabels = {
   openEndedHint: "Runs until midnight.",
   startTime: "Start time",
   endTime: "End time",
+  startFallbackTime: "Start fallback time",
+  endFallbackTime: "End fallback time",
+  fallbackHint: "Used if sunrise or sunset cannot be calculated.",
   offset: (type) => `Offset from ${type}`,
   sunOffset: formatSunOffset,
   resolvedTime: (time) => `Today: ${time}`,
@@ -406,6 +415,16 @@ function SectionLabel({ id, children }: { id: string; children: React.ReactNode 
   );
 }
 
+/** Keep a blank range open while editing, and follow replaced controlled dates. */
+function useDateRange(endDate: string | null) {
+  const [state, setState] = React.useState({ endDate, open: endDate !== null });
+  if (state.endDate !== endDate) setState({ endDate, open: endDate !== null });
+  return [
+    state.endDate === endDate ? state.open : endDate !== null,
+    (open: boolean, nextEndDate = endDate) => setState({ endDate: nextEndDate, open }),
+  ] as const;
+}
+
 function ScheduleEntryForm({
   targets,
   value: valueProp,
@@ -436,8 +455,9 @@ function ScheduleEntryForm({
   const [inner, setInner] = React.useState(defaultValue);
   const value = valueProp ?? inner;
   const [errors, setErrors] = React.useState<ScheduleEntryErrors>({});
-  const [annualRange, setAnnualRange] = React.useState(value.annual_end_date != null);
-  const [onceRange, setOnceRange] = React.useState(value.one_off_end_date != null);
+  const [repairTimes, setRepairTimes] = React.useState({ start: false, end: false });
+  const [annualRange, setAnnualRange] = useDateRange(value.annual_end_date);
+  const [onceRange, setOnceRange] = useDateRange(value.one_off_end_date);
 
   const id = React.useId();
   const ids = {
@@ -469,8 +489,13 @@ function ScheduleEntryForm({
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     const found = validateScheduleEntry(value);
     setErrors(found);
+    setRepairTimes({
+      start: Boolean(found.start_time) && value.start_type !== "fixed",
+      end: Boolean(found.end_time) && value.end_type !== "fixed",
+    });
     if (Object.keys(found).length === 0) onSubmit(normalizeScheduleEntry(value));
   }
 
@@ -661,7 +686,24 @@ function ScheduleEntryForm({
             />
           </Field>
         ) : (
-          sunSelect("start", value.start_type, value.start_sun_offset, resolvedStartTime)
+          <>
+            {sunSelect("start", value.start_type, value.start_sun_offset, resolvedStartTime)}
+            {repairTimes.start ? (
+              <Field
+                label={labels.startFallbackTime}
+                description={labels.fallbackHint}
+                error={errors.start_time ? labels.errors.start_time : undefined}
+              >
+                <Input
+                  type="time"
+                  step={60}
+                  size={controlSize}
+                  value={value.start_time}
+                  onChange={(event) => update({ start_time: event.target.value })}
+                />
+              </Field>
+            ) : null}
+          </>
         )}
       </div>
 
@@ -699,7 +741,26 @@ function ScheduleEntryForm({
             />
           </Field>
         ) : (
-          sunSelect("end", endMode, value.end_sun_offset, resolvedEndTime)
+          <>
+            {sunSelect("end", endMode, value.end_sun_offset, resolvedEndTime)}
+            {repairTimes.end ? (
+              <Field
+                label={labels.endFallbackTime}
+                description={labels.fallbackHint}
+                error={
+                  errors.end_time === "same" ? labels.errors.same : errors.end_time ? labels.errors.end_time : undefined
+                }
+              >
+                <Input
+                  type="time"
+                  step={60}
+                  size={controlSize}
+                  value={value.end_time ?? ""}
+                  onChange={(event) => update({ end_time: event.target.value })}
+                />
+              </Field>
+            ) : null}
+          </>
         )}
       </div>
 
@@ -802,7 +863,11 @@ function ScheduleEntryForm({
                   size={controlSize}
                   min={value.one_off_date ?? undefined}
                   value={value.one_off_end_date ?? ""}
-                  onChange={(event) => update({ one_off_end_date: event.target.value || null })}
+                  onChange={(event) => {
+                    const endDate = event.target.value || null;
+                    setOnceRange(true, endDate);
+                    update({ one_off_end_date: endDate });
+                  }}
                 />
               </Field>
             ) : null}

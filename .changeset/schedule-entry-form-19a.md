@@ -19,3 +19,5 @@ New `ScheduleEntryForm` adds or edits one Schedule entry (slice 1.9a, C27). It u
   - Entry is on.
   - A host consequence line, Save (busy state) and Delete entry….
 - Times and dates use the system pickers (native `time` and `date` inputs). Every word can be overridden through `labels`.
+
+- Sun-time validation reveals editable fallback-time fields when stored values are invalid, without silently changing the hub's fallback schedule. Controlled date ranges follow replaced entries, busy form submission is guarded, and one-off dates reject year zero.

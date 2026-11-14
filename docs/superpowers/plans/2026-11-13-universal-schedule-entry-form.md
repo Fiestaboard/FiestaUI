@@ -30,3 +30,19 @@
 1. `schedule-entry-form.test.tsx`: validation parity, normalization, each control path. Write it red first.
 2. Write the component, stories (every recurrence, sun, open-ended, errors with `play`, default size), inventory, export and changeset.
 3. Run the local checks, then write the DD-W row, status and shots, and open the PR.
+
+## Handoff follow-up (Codex, 2026-11-13)
+
+The existing implementation and design decisions remain the plan. Review found three functional gaps, each reproduced before fixing:
+
+- Replacing a controlled entry with a multi-day entry must reveal the stored last date. Range visibility now follows replaced end dates while keeping an intentionally blank end input editable.
+- Busy Save must reject form submission from the keyboard as well as button clicks.
+- ISO dates must reject year zero, as Python does, and validate years 1–99 without JavaScript's 1900 offset.
+
+The new regression cases failed 3/30 before the fixes, then 30/30 passed. An additional assertion caught the empty-last-date input closing during the range fix; it failed once, then the complete focused file passed 30/30 after correction. The parent agent reviewed the follow-up diff. No new visual delta is needed because the story defaults and drawing are unchanged.
+
+Jev failure classification separated the three functional assertions (p 0.98, 0.98, 0.99) from concurrent-worker timeouts (p 0.95). A serial focused run confirmed that distinction. Full final verification is recorded in the program status file.
+
+### Sun fallback repair
+
+A further review found that clearing a fixed time and then selecting a sun mode left a blocking validation error on an invisible field. The hub uses these stored HH:MM values as fallbacks when location is absent or sun resolution fails, so silently filling them would change scheduling semantics. Jev chose `repair_field_on_error` (p=1.0): after Save fails, reveal a labelled fallback-time input with the error and an explanatory hint; keep it editable until valid Save. Normal valid sun-mode stories remain unchanged. Two regression cases failed before implementation and cover clearing a start fallback and a zero-length end fallback. `SunFallbackErrors` play-tests both errors. Design delta: DD-W71.
