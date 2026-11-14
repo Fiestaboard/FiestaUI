@@ -39,7 +39,7 @@ pickers in bottom sheets, sitting under the live preview (1.6a). Web 2.5 consume
 - `ToolbarDropdown`: `size="touch"` (labelled 52 px tool trigger, `accent` while open, no tooltip), `detents`,
   `defaultDetent` (1.3 sheet detents), `keepOpenOnSelect` is the caller's: the `close` callback is simply not called.
 - `ColorPickerContent`: `size="touch"` (48 px swatches, full-width grid) and `sections` (which groups render).
-- `DrawCharPickerContent`: `size="touch"` (44 px cells, 7 columns, arrow keys follow).
+- `DrawCharPickerContent`: `size="touch"` (44 px cells, 6 columns, arrow keys follow).
 - New `EditorWarning kind="line-overflow"` + `EditorWarningAction` (built on `Alert variant="destructive"`), `size`.
 
 ## Out of scope (recorded)
@@ -48,7 +48,7 @@ pickers in bottom sheets, sitting under the live preview (1.6a). Web 2.5 consume
 - The formula sheet body (H5 value hint, categories): formula atom work in 1.11; the Formula tool inserts a formula
   as on desktop.
 - The canvas tool set (04b Layers · Pan · Brush …): 1.11.
-- Keyboard docking (VirtualKeyboard / visualViewport): host layout in 2.5, via `container`.
+- Full editor layout remains in 2.5. This slice owns toolbar docking via `layout="docked"`, visualViewport, and sheet-height tracking; `container` can portal it into a host dock.
 
 ## Steps (test first)
 
@@ -58,3 +58,12 @@ pickers in bottom sheets, sitting under the live preview (1.6a). Web 2.5 consume
 3. Stories (light, dark, mobile): touch split-flap, LED, sheet open per tool, draw mode, More; EditorWarning default and
    touch. Inventory entry for EditorWarning; toolbar summary mentions touch.
 4. Checks: typecheck, lint, format, test:coverage + changed-file gate, build, release:test, test-storybook (axe).
+
+## Codex handoff completion (2026-11-13)
+
+Add `trailing?: ReactNode` at the trailing edge of both toolbar sizes and draw mode for web 2.7.
+Jev selected the bar (p=0.85) over relocating it to More: the latter duplicates
+`moreContent` semantics and drops it in draw mode. Hosts keep touch content compact
+or responsive. Test the interactive slot in both sizes/modes, its removal, and add
+light/dark/mobile Storybook coverage. Rerun the full brief checks and changed-file gate,
+review the complete slice, push normally after merging alpha, and record actual CI results.

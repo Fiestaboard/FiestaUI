@@ -24,3 +24,5 @@ The template editor gets a touch toolbar with bottom-sheet pickers, and the edit
   - Both are polite status regions on the `Alert` surfaces.
 
 At the default size, nothing changes.
+
+Add a `trailing` host slot to TemplateEditorToolbar in default and touch sizes, retained in draw mode.

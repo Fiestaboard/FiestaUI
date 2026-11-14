@@ -124,6 +124,7 @@ export interface TouchToolbarProps {
   // Host slots.
   entityButton?: ReactNode;
   moreContent?: ReactNode;
+  trailing?: ReactNode;
   renderSizePicker?: (ctx: { close: () => void }) => ReactNode;
   colorPickerLabels?: Partial<ColorPickerLabels>;
   formattingPickerLabels?: Partial<FormattingPickerLabels>;
@@ -569,6 +570,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
       style={docked ? { bottom: dockOffset } : undefined}
     >
       {tools}
+      {props.trailing != null && <div className="ml-auto flex shrink-0 items-center">{props.trailing}</div>}
     </div>
   );
 

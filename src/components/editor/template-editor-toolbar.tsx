@@ -384,6 +384,12 @@ export interface TemplateEditorToolbarProps {
    */
   moreContent?: ReactNode;
   /**
+   * Host content at the trailing edge of either toolbar size, including draw
+   * mode (for example, a shortcuts button). Keep touch content compact or hide
+   * it responsively; use `moreContent` for additional rows in the touch sheet.
+   */
+  trailing?: ReactNode;
+  /**
    * Touch, LED only: the Size sheet's body. The LED face is a display setting
    * the host owns; without this the Size tool is disabled.
    */
@@ -441,6 +447,7 @@ function TemplateEditorToolbarImpl({
   capabilities,
   pickerPresentation = "popover",
   moreContent,
+  trailing,
   renderSizePicker,
   layout = "row",
   container,
@@ -769,6 +776,7 @@ function TemplateEditorToolbarImpl({
             ) : undefined
           }
           moreContent={moreContent}
+          trailing={trailing}
           renderSizePicker={renderSizePicker}
           colorPickerLabels={colorPickerLabels}
           formattingPickerLabels={formattingPickerLabels}
@@ -1292,6 +1300,7 @@ function TemplateEditorToolbarImpl({
             )}
           </>
         )}
+        {trailing != null && <Box className="ml-auto flex shrink-0 items-center">{trailing}</Box>}
       </Flex>
     </TooltipProvider>
   );

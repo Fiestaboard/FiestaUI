@@ -362,3 +362,24 @@ describe("TemplateEditorToolbar labels", () => {
     ]);
   });
 });
+
+describe("TemplateEditorToolbar trailing slot", () => {
+  it.each(["default", "touch"] as const)(
+    "keeps host actions interactive at the end of the %s bar in both modes",
+    async (size) => {
+      const user = userEvent.setup();
+      const onClick = vi.fn();
+      const trailing = <button onClick={onClick}>All shortcuts</button>;
+      const { rerender } = render(<TemplateEditorToolbar editor={null} size={size} trailing={trailing} />);
+      for (const drawMode of [false, true]) {
+        rerender(<TemplateEditorToolbar editor={null} size={size} trailing={trailing} drawMode={drawMode} />);
+        const action = screen.getByRole("button", { name: "All shortcuts" });
+        expect(action.parentElement).toBe(action.parentElement?.parentElement?.lastElementChild);
+        await user.click(action);
+      }
+      expect(onClick).toHaveBeenCalledTimes(2);
+      rerender(<TemplateEditorToolbar editor={null} size={size} />);
+      expect(screen.queryByRole("button", { name: "All shortcuts" })).not.toBeInTheDocument();
+    },
+  );
+});

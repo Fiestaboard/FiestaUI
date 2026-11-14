@@ -70,6 +70,31 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+/** Host action at the trailing edge; also retained while drawing. */
+export const WithTrailing: Story = {
+  args: {
+    trailing: (
+      <Button variant="ghost" size="sm">
+        All shortcuts
+      </Button>
+    ),
+  },
+};
+
+/** A compact host action leaves room for the touch tools. */
+export const TouchWithTrailing: Story = {
+  parameters: { layout: "fullscreen" },
+  render: (args) => <TouchEditor {...args} />,
+  args: {
+    size: "touch",
+    trailing: (
+      <Button variant="ghost" size="icon-touch" aria-label="All shortcuts">
+        ?
+      </Button>
+    ),
+  },
+};
+
 /** No plugins configured — Variables is disabled and the dropdowns disappear. */
 export const NoVariables: Story = {
   args: {
