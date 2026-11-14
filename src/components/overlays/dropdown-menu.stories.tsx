@@ -260,3 +260,49 @@ export const BoardCardMenu = () => (
     </DropdownMenu>
   </div>
 );
+
+/**
+ * `trigger="context"` (slice 1.8a, WEB-18): the DropdownMenuTrigger becomes
+ * an area that opens the menu on right-click, a long press, Shift+F10 or
+ * the Menu key. The menu opens at the pointer, or under the focused element
+ * from the keyboard. `play` right-clicks the area, so the shot shows the
+ * menu where a reader would see it.
+ */
+export const ContextTrigger: Story = {
+  render: () => (
+    <DropdownMenu trigger="context">
+      <DropdownMenuTrigger className="flex h-32 w-full items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground sm:w-[320px]">
+        Right-click or long-press here
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem>
+          <Pencil />
+          Rename
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <Copy />
+          Duplicate
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive">
+          <Trash2 />
+          Delete…
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ),
+  play: async ({ canvasElement }) => {
+    const area = canvasElement.querySelector<HTMLElement>('[data-slot="dropdown-menu-context-trigger"]');
+    if (!area) return;
+    const rect = area.getBoundingClientRect();
+    area.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        button: 2,
+        clientX: rect.left + 24,
+        clientY: rect.top + 24,
+      }),
+    );
+  },
+};
