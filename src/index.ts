@@ -72,10 +72,10 @@ export * from "./components/layout/stack";
 export * from "./components/overlays/sheet";
 export * from "./components/overlays/shortcut-list";
 export * from "./components/overlays/tooltip";
-export * from "./components/schedule/week-calendar";
-export * from "./components/schedule/week-calendar-inspector";
 export * from "./components/schedule/agenda-row";
 export * from "./components/schedule/day-chip";
+export * from "./components/schedule/week-calendar";
+export * from "./components/schedule/week-calendar-inspector";
 export * from "./components/typography/text";
 export * from "./components/typography/text-link";
 // App chrome — branding, sidebar, layout, festive treatments.
