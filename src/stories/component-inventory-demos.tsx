@@ -180,6 +180,7 @@ import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
 import { Label } from "../components/forms/label";
 import { NotificationRow } from "../components/forms/notification-row";
+import { SchemaFormRows, UnavailableSettingRow } from "../components/forms/schema-form-rows";
 import { SecretInput } from "../components/forms/secret-input";
 import {
   Select,
@@ -2174,6 +2175,29 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </CardHeader>
       </Card>
     </FadeContent>
+  ),
+  SchemaFormRows: () => (
+    <SchemaFormRows
+      className="w-full max-w-md"
+      schema={{
+        type: "object",
+        required: ["api_key"],
+        properties: {
+          api_key: { type: "string", title: "511.org API key", "ui:widget": "password" },
+          lines: {
+            type: "array",
+            title: "Lines",
+            items: { type: "string", enum: ["N", "J"], enumNames: ["N Judah", "J Church"] },
+          },
+          minutes_only: { type: "boolean", title: "Minutes only" },
+        },
+      }}
+      value={{ api_key: "***", lines: ["N"], minutes_only: true }}
+      onChange={() => {}}
+    />
+  ),
+  UnavailableSettingRow: () => (
+    <UnavailableSettingRow title="Brightness" reason="Not adjustable — split-flap has no backlight." />
   ),
   WeekCalendar: () => (
     <WeekCalendar

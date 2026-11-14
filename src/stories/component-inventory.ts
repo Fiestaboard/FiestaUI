@@ -90,6 +90,15 @@ export const INVENTORY = [
       },
       { name: "Checkbox", summary: "Native checkbox styled to the system." },
       {
+        name: "SchemaFormRows",
+        summary:
+          "A plugin's settings schema as form rows: the hub's ui:* hints and ui:visible_when, secrets kept masked, host widgets.",
+      },
+      {
+        name: "UnavailableSettingRow",
+        summary: "A setting this display can't offer, said in place of its control, with the reason.",
+      },
+      {
         name: "ChoiceCard",
         summary: "Pick by what it looks like — an actual-size board crop, title and meta; radio or checkbox group.",
       },
