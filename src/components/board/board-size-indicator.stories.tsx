@@ -62,3 +62,14 @@ export const AllPresets: Story = {
     </ul>
   ),
 };
+
+/** `format="cols×rows"`: width first, the way the redesign names hardware ("45 × 3"). */
+export const ColsByRows: Story = {
+  render: () => (
+    <div className="flex flex-col gap-2">
+      <BoardSizeIndicator deviceType="flagship" format="cols×rows" />
+      <BoardSizeIndicator deviceType="note_array" notesWide={3} format="cols×rows" layoutLabel="3 wide" />
+      <BoardSizeIndicator deviceType="panel" gridRows={12} gridCols={29} format="cols×rows" />
+    </div>
+  ),
+};

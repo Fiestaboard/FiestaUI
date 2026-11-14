@@ -285,3 +285,30 @@ export const AllStates: Story = {
     </div>
   ),
 };
+
+/**
+ * `SelectTrigger size="touch"`: 44px tall (--control-h-touch) with 16px text,
+ * the same row height as `Input size="touch"` so a touch form lines up.
+ */
+export const Touch = () => (
+  <div className="flex w-full sm:w-[320px] flex-col gap-3">
+    <Select defaultValue="kitchen">
+      <SelectTrigger aria-label="Board (default)">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="kitchen">Kitchen</SelectItem>
+        <SelectItem value="office">Office</SelectItem>
+      </SelectContent>
+    </Select>
+    <Select defaultValue="kitchen">
+      <SelectTrigger size="touch" aria-label="Board (touch)">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="kitchen">Kitchen</SelectItem>
+        <SelectItem value="office">Office</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+);
