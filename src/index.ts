@@ -13,6 +13,7 @@ export * from "./components/containment/card";
 export * from "./components/containment/collapsible";
 export * from "./components/containment/icon-tile";
 export * from "./components/containment/json-tree";
+export * from "./components/containment/list-row";
 export * from "./components/containment/media-frame";
 export * from "./components/feedback/alert";
 export * from "./components/feedback/badge";
@@ -43,6 +44,7 @@ export * from "./components/typography/list";
 export * from "./components/typography/prose";
 // react-bits components are default exports — re-export them as named.
 export * from "./components/containment/scroll-area";
+export * from "./components/containment/sortable-list";
 export * from "./components/containment/table";
 export * from "./components/containment/tabs";
 export { default as FadeContent } from "./components/effects/react-bits/fade-content";
@@ -93,8 +95,10 @@ export { cn } from "./lib/utils";
 // Board preview — the split-flap Vestaboard display renderer + its data.
 export * from "./components/board/board-backdrop";
 export * from "./components/board/board-display";
+export * from "./components/board/board-preview-mode";
 export * from "./components/board/board-size-indicator";
 export * from "./components/board/board-teaser";
+export * from "./components/board/board-viewport";
 export * from "./components/board/scaled-board-display";
 export * from "./components/board/static-board-display";
 export * from "./lib/board-characters";

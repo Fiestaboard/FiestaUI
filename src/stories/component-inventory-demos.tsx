@@ -69,6 +69,7 @@ import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
 import { BoardSizeIndicator } from "../components/board/board-size-indicator";
 import { BoardTeaser } from "../components/board/board-teaser";
+import { BoardViewport } from "../components/board/board-viewport";
 import { CharacterGlyph } from "../components/board/character-glyph";
 import { CharacterSetSpecimen } from "../components/board/character-set-specimen";
 import { DisplayPreview } from "../components/board/display-preview";
@@ -125,8 +126,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { IconTile } from "../components/containment/icon-tile";
 import { JsonTree } from "../components/containment/json-tree";
+import { ListRow, ListRowGroup } from "../components/containment/list-row";
 import { MediaFrame, MediaFrameBar, MediaFrameMedia } from "../components/containment/media-frame";
 import { ScrollArea } from "../components/containment/scroll-area";
+import {
+  arrayMove,
+  SortableList,
+  SortableListHandle,
+  SortableListMoveButtons,
+} from "../components/containment/sortable-list";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/containment/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containment/tabs";
 import { BarList } from "../components/data/bar-list";
@@ -416,6 +424,38 @@ function SliderDemo() {
           the component's WithLabel story. */}
       <Slider id="inv-slider" aria-label="Brightness" value={value} onValueChange={setValue} max={100} step={1} />
     </Stack>
+  );
+}
+
+const COLLECTION_PAGES = [
+  { id: "market", name: "Market open", meta: "10 min" },
+  { id: "commute", name: "Morning commute", meta: "15 min" },
+  { id: "weather", name: "Weather + surf", meta: "10 min" },
+];
+
+function SortableListDemo() {
+  const [pages, setPages] = useState(COLLECTION_PAGES);
+  return (
+    <div className="w-full max-w-md">
+      <SortableList
+        aria-label="Pages in Weekday mornings"
+        items={pages}
+        getKey={(page) => page.id}
+        getLabel={(page) => page.name}
+        onMove={(from, to) => setPages((prev) => arrayMove(prev, from, to))}
+        renderItem={(page) => (
+          <ListRow
+            variant="card"
+            className="pl-1"
+            leading={<SortableListHandle />}
+            title={page.name}
+            description="Kitchen board · Flagship"
+            meta={page.meta}
+            trailing={<SortableListMoveButtons />}
+          />
+        )}
+      />
+    </div>
   );
 }
 
@@ -1171,6 +1211,32 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <JsonTree data={JSON_SAMPLE} path="response" defaultExpandedDepth={1} />
     </Frame>
   ),
+  ListRow: () => (
+    <ListRowGroup aria-label="Settings" className="w-full max-w-md">
+      <ListRow
+        leading={
+          <IconTile size="sm">
+            <Calendar />
+          </IconTile>
+        }
+        title="Schedule Mode"
+        description="Pages change on their own"
+        meta="On"
+        trailing={<ChevronRight />}
+      />
+      <ListRow
+        leading={
+          <IconTile size="sm">
+            <Monitor />
+          </IconTile>
+        }
+        title="FiestaPi"
+        description="fiestapi.local:4420"
+        trailing={<ChevronRight />}
+      />
+    </ListRowGroup>
+  ),
+  SortableList: () => <SortableListDemo />,
   MediaFrame: () => (
     <MediaFrame className="w-full max-w-md">
       <MediaFrameMedia>
@@ -1672,6 +1738,19 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ScaledBoardDisplay: () => (
     <div className="w-full max-w-[320px]">
       <ScaledBoardDisplay message={BOARD_MESSAGE} size="md" />
+    </div>
+  ),
+  BoardViewport: () => (
+    <div className="w-full max-w-[320px]">
+      <BoardViewport
+        deviceType="note_array"
+        notesWide={3}
+        message="LOBBY  COFFEE $3   WIFI FIESTA"
+        size="sm"
+        title="Note array 3×1 · 45×3"
+        hint="swipe"
+        persist={false}
+      />
     </div>
   ),
   PreviewSlot: () => (

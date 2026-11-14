@@ -596,3 +596,29 @@ export const KeyboardNavigation = () => (
     </div>
   </div>
 );
+
+/**
+ * `SegmentedControl size="touch"` (slice 1.2): 44px pills inline, 44px
+ * floors in the grid. The second row holds one unselected pill in the C21
+ * pressed state with `data-press`.
+ */
+export const SegmentedControlTouch = () => (
+  <div className="flex w-full sm:w-[400px] flex-col gap-4">
+    <SegmentedControl aria-label="Board size" size="touch" defaultValue="actual">
+      <SegmentedControlItem value="fit">Fit</SegmentedControlItem>
+      <SegmentedControlItem value="actual">Actual size</SegmentedControlItem>
+    </SegmentedControl>
+    <SegmentedControl aria-label="Repeat" size="touch" defaultValue="weekly">
+      <SegmentedControlItem value="once">Once</SegmentedControlItem>
+      <SegmentedControlItem value="daily" data-press="">
+        Daily
+      </SegmentedControlItem>
+      <SegmentedControlItem value="weekly">Weekly</SegmentedControlItem>
+    </SegmentedControl>
+    <SegmentedControl aria-label="Duration" size="touch" layout="grid" columns="3" defaultValue="15">
+      <SegmentedControlItem value="15">15 min</SegmentedControlItem>
+      <SegmentedControlItem value="60">1 hour</SegmentedControlItem>
+      <SegmentedControlItem value="eod">Until tonight</SegmentedControlItem>
+    </SegmentedControl>
+  </div>
+);

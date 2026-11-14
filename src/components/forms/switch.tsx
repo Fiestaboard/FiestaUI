@@ -3,6 +3,7 @@
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
 import * as React from "react";
 
+import { COARSE_HIT_AREA, TOUCH_HIT_AREA } from "../../lib/touch";
 import { cn } from "../../lib/utils";
 
 // Static — hoisted so the thumb skips a per-render cn() pass over a
@@ -21,7 +22,16 @@ import { cn } from "../../lib/utils";
 const thumbClassName =
   "bg-background dark:bg-foreground pointer-events-none block size-5 rounded-full border border-input ring-0 transition-transform data-[checked]:translate-x-[calc(100%+2px)] data-[unchecked]:translate-x-0";
 
-function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimitive.Root>) {
+export type SwitchProps = React.ComponentProps<typeof SwitchPrimitive.Root> & {
+  /**
+   * `"touch"` (slice 1.2) keeps the 24×44 track exactly as drawn and adds an
+   * invisible ::before hit area of at least 44×44 (--touch-target), so the
+   * TARGET meets Apple's 44pt without a bigger switch. @default "default"
+   */
+  size?: "default" | "touch";
+};
+
+function Switch({ className, size = "default", ...props }: SwitchProps) {
   return (
     <SwitchPrimitive.Root
       // Render a real <button> like Radix did: keeps `disabled:` styles
@@ -29,6 +39,7 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
       render={<button type="button" />}
       nativeButton
       data-slot="switch"
+      data-size={size}
       className={cn(
         // h-6 (24px) meets WCAG 2.2 SC 2.5.8; w-11 keeps the track's original
         // aspect ratio at the larger height (issue #164).
@@ -40,6 +51,9 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
         // aria-invalid:data-[unchecked]: re-asserts the destructive border so
         // it cannot lose the specificity tie with data-[unchecked]:border-input.
         "peer data-[checked]:bg-primary data-[unchecked]:bg-muted data-[unchecked]:border-input focus-visible:border-ring focus-visible:ring-ring/50 enabled:hover:ring-ring/30 enabled:hover:ring-[3px] aria-invalid:border-destructive aria-invalid:data-[unchecked]:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-[color,background-color,border-color,box-shadow] duration-control outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        // The hit area: always at `touch`, and under the opted-in
+        // coarse-pointer layer (W2) at the default size.
+        size === "touch" ? TOUCH_HIT_AREA : COARSE_HIT_AREA,
         className,
       )}
       {...props}

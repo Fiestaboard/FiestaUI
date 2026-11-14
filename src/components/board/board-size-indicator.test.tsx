@@ -128,3 +128,43 @@ describe("BoardSizeIndicator", () => {
     expect(indicator()).toHaveClass("text-sm");
   });
 });
+
+describe("BoardSizeIndicator format (C8 / CANON addendum)", () => {
+  it('format="cols×rows" reads width first, the way the hardware is named', () => {
+    render(<BoardSizeIndicator deviceType="flagship" format="cols×rows" />);
+    expect(indicator()).toHaveTextContent(/^22 × 6$/);
+    expect(indicator()).toHaveAccessibleName("22 columns by 6 rows");
+    expect(indicator()).toHaveAttribute("data-format", "cols×rows");
+  });
+
+  it("keeps the layout name and its separator", () => {
+    render(
+      <BoardSizeIndicator
+        deviceType="note_array"
+        notesWide={3}
+        notesTall={1}
+        layoutLabel="3 wide"
+        format="cols×rows"
+      />,
+    );
+    expect(indicator()).toHaveTextContent("45 × 3 · 3 wide");
+    expect(indicator()).toHaveAccessibleName("45 columns by 3 rows, 3 wide");
+  });
+
+  it("passes the format to custom labels", () => {
+    render(
+      <BoardSizeIndicator
+        deviceType="note"
+        format="cols×rows"
+        labels={{ dimensions: (rows, cols, format) => `${format}: ${cols}/${rows}` }}
+      />,
+    );
+    expect(indicator()).toHaveAccessibleName("cols×rows: 15/3");
+  });
+
+  it("the default stays rows × cols and stamps no format", () => {
+    render(<BoardSizeIndicator deviceType="flagship" />);
+    expect(indicator()).toHaveTextContent(/^6 × 22$/);
+    expect(indicator()).not.toHaveAttribute("data-format");
+  });
+});

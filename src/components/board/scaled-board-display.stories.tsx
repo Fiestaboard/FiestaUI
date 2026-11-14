@@ -265,3 +265,48 @@ export const Playground: Story = {
     </div>
   ),
 };
+
+/**
+ * R1: FiestaBoard passes `defaultMode="actual"`, so a note array opens at its
+ * readable size. `persist={false}` keeps this capture independent of the mode
+ * other stories leave in sessionStorage.
+ */
+export const DefaultModeActual: Story = {
+  args: {
+    message: "THREE NOTES SIDE BY SIDE AT THEIR READABLE SIZE\n{green}ACTUAL SIZE IS THE DEFAULT{/green}",
+    size: "md",
+    deviceType: "note_array",
+    notesWide: 3,
+    notesTall: 1,
+    defaultMode: "actual",
+    persist: false,
+  },
+  render: (args) => (
+    <div className="w-[560px] max-w-full overflow-hidden">
+      <ScaledBoardDisplay {...args} />
+    </div>
+  ),
+};
+
+/**
+ * C8 layouts: each picks its tile size on the wrapper — phone hero Tile sm,
+ * medium hero and pane Tile md, full screen Tile lg letterboxed in its slot.
+ */
+export const Layouts = () => (
+  <div className="flex flex-col items-center gap-6">
+    {(["phone-hero", "medium-hero", "pane"] as const).map((layout) => (
+      <div key={layout} className="flex w-full flex-col items-center gap-2">
+        <p className="font-mono text-xs text-muted-foreground">layout=&quot;{layout}&quot;</p>
+        <div className="w-full max-w-[800px] overflow-hidden">
+          <ScaledBoardDisplay message={sampleMessage} layout={layout} animationsEnabled={false} />
+        </div>
+      </div>
+    ))}
+    <div className="flex w-full flex-col items-center gap-2">
+      <p className="font-mono text-xs text-muted-foreground">layout=&quot;full-screen&quot;</p>
+      <div className="h-[402px] w-full max-w-[874px] overflow-hidden rounded-lg bg-black">
+        <ScaledBoardDisplay message={sampleMessage} layout="full-screen" animationsEnabled={false} />
+      </div>
+    </div>
+  </div>
+);
