@@ -33,6 +33,7 @@ export * from "./components/forms/duration-chip-group";
 export * from "./components/forms/field";
 export * from "./components/forms/input";
 export * from "./components/forms/label";
+export * from "./components/forms/notification-row";
 export * from "./components/forms/secret-input";
 export * from "./components/layout/box";
 export * from "./components/layout/flex";
@@ -72,6 +73,8 @@ export * from "./components/layout/stack";
 export * from "./components/overlays/sheet";
 export * from "./components/overlays/shortcut-list";
 export * from "./components/overlays/tooltip";
+export * from "./components/schedule/agenda-row";
+export * from "./components/schedule/day-chip";
 export * from "./components/typography/text";
 export * from "./components/typography/text-link";
 // App chrome — branding, sidebar, layout, festive treatments.
@@ -98,6 +101,10 @@ export * from "./components/chrome/theme-toggle";
 export * from "./components/chrome/top-nav";
 export * from "./components/wizard/wizard-progress";
 export * from "./components/wizard/wizard-shell";
+// Onboarding and PWA (universal slice 1.10).
+export * from "./components/onboarding/install-card";
+export * from "./components/onboarding/install-steps";
+export * from "./components/onboarding/privacy-note";
 export { cn } from "./lib/utils";
 // Board preview — the split-flap Vestaboard display renderer + its data.
 export * from "./components/board/board-backdrop";
