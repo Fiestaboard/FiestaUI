@@ -81,14 +81,14 @@ export const WithTrailing: Story = {
   },
 };
 
-/** A compact host action leaves room for the touch tools. */
+/** Hide the host shortcut hint on narrow screens to leave room for touch tools. */
 export const TouchWithTrailing: Story = {
   parameters: { layout: "fullscreen" },
   render: (args) => <TouchEditor {...args} />,
   args: {
     size: "touch",
     trailing: (
-      <Button variant="ghost" size="icon-touch" aria-label="All shortcuts">
+      <Button variant="ghost" size="icon-touch" className="hidden md:inline-flex" aria-label="All shortcuts">
         ?
       </Button>
     ),
