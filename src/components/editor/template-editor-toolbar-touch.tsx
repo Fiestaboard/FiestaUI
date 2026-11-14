@@ -40,7 +40,7 @@ import {
   Undo2,
   Variable,
 } from "lucide-react";
-import { type ReactNode, useId } from "react";
+import { type ReactNode, useId, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 import type { Code62Glyph } from "../../lib/board-characters";
@@ -70,9 +70,17 @@ import type { DrawBrush } from "./utils/draw-mode";
 /** Which tool set the bar offers (08 C5 `capabilities`). Canvas is 1.11. */
 export type EditorToolbarCapabilities = "split-flap" | "led-text";
 
+/**
+ * `row`: the bar sits in the page flow where it is rendered. `docked`: it is
+ * fixed to the bottom of the viewport, above the soft keyboard (visualViewport)
+ * and, while a picker is open, on top of its sheet — 07c's phone editor.
+ */
+export type EditorToolbarLayout = "row" | "docked";
+
 export interface TouchToolbarProps {
   l: TemplateEditorToolbarLabels;
   capabilities: EditorToolbarCapabilities;
+  layout: EditorToolbarLayout;
   className?: string;
   container?: Element | null;
   // History and clipboard, owned by the toolbar.
@@ -122,6 +130,41 @@ export interface TouchToolbarProps {
   drawCharPickerLabels?: Partial<DrawCharPickerLabels>;
 }
 
+/*
+ * How much of the layout viewport the soft keyboard covers. iOS Safari keeps
+ * `position: fixed; bottom: 0` behind the keyboard; the visual viewport is
+ * what shrinks, so the gap between the two is the keyboard (the VirtualKeyboard
+ * API reports the same number where it exists, through the same viewport).
+ */
+function subscribeViewport(onChange: () => void) {
+  const viewport = window.visualViewport;
+  if (!viewport) return () => {};
+  viewport.addEventListener("resize", onChange);
+  viewport.addEventListener("scroll", onChange);
+  return () => {
+    viewport.removeEventListener("resize", onChange);
+    viewport.removeEventListener("scroll", onChange);
+  };
+}
+
+function keyboardInset(): number {
+  const viewport = window.visualViewport;
+  if (!viewport) return 0;
+  return Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop));
+}
+
+function noopSubscribe() {
+  return () => {};
+}
+
+function useKeyboardInset(enabled: boolean): number {
+  return useSyncExternalStore(
+    enabled ? subscribeViewport : noopSubscribe,
+    () => (enabled ? keyboardInset() : 0),
+    () => 0,
+  );
+}
+
 /** Long lists open at half height and drag to full (the 1.3 detents). */
 const LIST_DETENTS = ["half", "full"] as const;
 
@@ -135,10 +178,11 @@ function Divider() {
 function MoreAction({
   icon,
   children,
+  className,
   ...props
 }: { icon: ReactNode; children: ReactNode } & Omit<React.ComponentProps<typeof Button>, "children">) {
   return (
-    <Button variant="outline" size="touch" className="flex-1 justify-start" {...props}>
+    <Button variant="outline" size="touch" className={cn("justify-start", className)} {...props}>
       {icon}
       {children}
     </Button>
@@ -146,7 +190,13 @@ function MoreAction({
 }
 
 export function TouchToolbar(props: TouchToolbarProps) {
-  const { l, capabilities, className, container, drawMode } = props;
+  const { l, capabilities, layout, className, container, drawMode } = props;
+  const docked = layout === "docked";
+  const [sheetHeight, setSheetHeight] = useState(0);
+  const keyboard = useKeyboardInset(docked);
+  const dockOffset = Math.max(sheetHeight, keyboard);
+  // Every picker reports its sheet, so a docked bar can ride on top of it.
+  const onSheetHeightChange = docked ? setSheetHeight : undefined;
   const wrapSwitchId = useId();
   const wrapLabelId = useId();
   const alignLabelId = useId();
@@ -164,6 +214,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
       key="brush"
       size="touch"
       presentation="sheet"
+      onSheetHeightChange={onSheetHeightChange}
       label={l.brush}
       icon={<Paintbrush />}
       detents={LIST_DETENTS}
@@ -232,6 +283,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
       key="variables"
       size="touch"
       presentation="sheet"
+      onSheetHeightChange={onSheetHeightChange}
       label={l.variables}
       icon={<Variable />}
       disabled={!props.hasVariables}
@@ -254,7 +306,15 @@ export function TouchToolbar(props: TouchToolbarProps) {
         ? props.setIcons.length > 0
         : props.hasColors || Boolean(props.set?.colorSpans || props.set?.blockSpans);
     return (
-      <ToolbarDropdown key={face} size="touch" presentation="sheet" label={label} icon={icon} disabled={!enabled}>
+      <ToolbarDropdown
+        key={face}
+        size="touch"
+        presentation="sheet"
+        onSheetHeightChange={onSheetHeightChange}
+        label={label}
+        icon={icon}
+        disabled={!enabled}
+      >
         {(close) => (
           <div className="flex flex-col gap-3">
             <ColorPickerContent
@@ -305,7 +365,14 @@ export function TouchToolbar(props: TouchToolbarProps) {
   };
 
   const formattingTool = (
-    <ToolbarDropdown key="formatting" size="touch" presentation="sheet" label={l.formatting} icon={<Type />}>
+    <ToolbarDropdown
+      key="formatting"
+      size="touch"
+      presentation="sheet"
+      onSheetHeightChange={onSheetHeightChange}
+      label={l.formatting}
+      icon={<Type />}
+    >
       {(close) => (
         <div className="flex flex-col gap-3">
           {props.formatting && Object.keys(props.formatting).length > 0 && (
@@ -354,6 +421,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
       key="size"
       size="touch"
       presentation="sheet"
+      onSheetHeightChange={onSheetHeightChange}
       label={l.size}
       icon={<Type />}
       disabled={!props.renderSizePicker}
@@ -363,32 +431,55 @@ export function TouchToolbar(props: TouchToolbarProps) {
   );
 
   const moreTool = (
-    <ToolbarDropdown key="more" size="touch" presentation="sheet" label={l.more} icon={<Ellipsis />}>
+    <ToolbarDropdown
+      key="more"
+      size="touch"
+      presentation="sheet"
+      onSheetHeightChange={onSheetHeightChange}
+      label={l.more}
+      icon={<Ellipsis />}
+    >
       {(close) => (
         <div className="flex flex-col gap-3">
           {led && (
             <div className="flex gap-2">
-              <MoreAction icon={<Undo2 />} disabled={!props.canUndo} onClick={props.onUndo}>
+              <MoreAction className="min-w-0 flex-1" icon={<Undo2 />} disabled={!props.canUndo} onClick={props.onUndo}>
                 {l.undoAriaLabel}
               </MoreAction>
-              <MoreAction icon={<Redo2 />} disabled={!props.canRedo} onClick={props.onRedo}>
+              <MoreAction className="min-w-0 flex-1" icon={<Redo2 />} disabled={!props.canRedo} onClick={props.onRedo}>
                 {l.redoAriaLabel}
               </MoreAction>
             </div>
           )}
           <div role="group" aria-label={l.clipboard} className="flex gap-2">
-            <MoreAction icon={<Scissors />} disabled={!props.hasSelection} onClick={props.onCut}>
+            <MoreAction
+              className="min-w-0 flex-1"
+              icon={<Scissors />}
+              disabled={!props.hasSelection}
+              onClick={props.onCut}
+            >
               {l.cutAriaLabel}
             </MoreAction>
-            <MoreAction icon={<Copy />} disabled={!props.hasSelection} onClick={props.onCopy}>
+            <MoreAction
+              className="min-w-0 flex-1"
+              icon={<Copy />}
+              disabled={!props.hasSelection}
+              onClick={props.onCopy}
+            >
               {l.copyAriaLabel}
             </MoreAction>
-            <MoreAction icon={<ClipboardPaste />} disabled={!props.hasClipboardContent} onClick={props.onPaste}>
+            <MoreAction
+              className="min-w-0 flex-1"
+              icon={<ClipboardPaste />}
+              disabled={!props.hasClipboardContent}
+              onClick={props.onPaste}
+            >
               {l.pasteAriaLabel}
             </MoreAction>
           </div>
           {props.onDrawModeToggle && (
             <MoreAction
+              className="w-full"
               icon={<Pencil />}
               onClick={() => {
                 close();
@@ -467,7 +558,15 @@ export function TouchToolbar(props: TouchToolbarProps) {
       data-slot="editor-toolbar"
       data-size="touch"
       data-capabilities={capabilities}
-      className={cn("flex w-full items-center border-t border-border bg-card px-1 py-1", className)}
+      data-layout={layout}
+      className={cn(
+        "flex w-full items-center border-t border-border bg-card px-1 py-1",
+        docked && "fixed inset-x-0 bottom-0 z-[var(--z-mobile-menu)] motion-safe:transition-[bottom] duration-base",
+        // Clear the home indicator only when nothing sits under the bar.
+        docked && dockOffset === 0 && "pb-[max(0.25rem,env(safe-area-inset-bottom))]",
+        className,
+      )}
+      style={docked ? { bottom: dockOffset } : undefined}
     >
       {tools}
     </div>

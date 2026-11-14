@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -338,5 +338,21 @@ describe("ToolbarDropdown · size=touch (slice 1.6b)", () => {
     const trigger = screen.getByTestId("colors");
     expect(trigger).toHaveAccessibleName("Menü");
     expect(trigger).toBeDisabled();
+  });
+});
+
+describe("ToolbarDropdown · sheet initial focus by input", () => {
+  it("a tap keeps focus on the sheet; a key press lands on its first control", async () => {
+    const user = userEvent.setup();
+    const { trigger } = setup({ size: "touch", presentation: "sheet" });
+    await user.pointer([{ keys: "[TouchA]", target: trigger }]);
+    await waitFor(() => expect(sheet()).toBeInTheDocument());
+    await waitFor(() => expect(document.activeElement).toBe(sheet()));
+    await user.click(within(sheet()!).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
+
+    trigger.focus();
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Red" })));
   });
 });

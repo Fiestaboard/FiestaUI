@@ -54,9 +54,13 @@ import type { DeviceType } from "./constants";
 import { DrawCharPickerContent, type DrawCharPickerLabels } from "./draw-char-picker-content";
 import { FormattingPickerContent, type FormattingPickerLabels } from "./formatting-picker-content";
 import type { LineAlignment } from "./template-editor";
-import { type EditorToolbarCapabilities, TouchToolbar } from "./template-editor-toolbar-touch";
+import {
+  type EditorToolbarCapabilities,
+  type EditorToolbarLayout,
+  TouchToolbar,
+} from "./template-editor-toolbar-touch";
 
-export type { EditorToolbarCapabilities };
+export type { EditorToolbarCapabilities, EditorToolbarLayout };
 import { ToolbarDropdown, type ToolbarDropdownPresentation } from "./toolbar-dropdown";
 import type { DrawBrush } from "./utils/draw-mode";
 import { insertTemplateContent } from "./utils/insertion";
@@ -385,8 +389,16 @@ export interface TemplateEditorToolbarProps {
    */
   renderSizePicker?: (ctx: { close: () => void }) => ReactNode;
   /**
-   * Touch only: render the bar into this element (a portal), so a host can
-   * dock it above the soft keyboard while the editor keeps feeding it state.
+   * Touch only (08 C5 `layout`). `"row"` (default): the bar sits where it is
+   * rendered. `"docked"`: fixed to the bottom of the viewport, above the soft
+   * keyboard (visualViewport) and on top of an open picker sheet, as on the
+   * 07c phone editor. A docked bar is out of flow: give the page 60 px of
+   * bottom room.
+   */
+  layout?: EditorToolbarLayout;
+  /**
+   * Touch only: render the bar into this element (a portal), for a host that
+   * places it in its own chrome while the editor keeps feeding it state.
    */
   container?: Element | null;
 }
@@ -430,6 +442,7 @@ function TemplateEditorToolbarImpl({
   pickerPresentation = "popover",
   moreContent,
   renderSizePicker,
+  layout = "row",
   container,
 }: TemplateEditorToolbarProps) {
   const l = { ...DEFAULT_TEMPLATE_EDITOR_TOOLBAR_LABELS, ...labels };
@@ -705,6 +718,7 @@ function TemplateEditorToolbarImpl({
         <TouchToolbar
           l={l}
           capabilities={capabilities ?? deriveCapabilities(set)}
+          layout={layout}
           className={className}
           container={container}
           canUndo={canUndo}

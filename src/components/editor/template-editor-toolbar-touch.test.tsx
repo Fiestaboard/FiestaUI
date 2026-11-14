@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Editor } from "@tiptap/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -368,5 +368,71 @@ describe("TemplateEditorToolbar pickerPresentation (default size)", () => {
     );
     await user.click(screen.getByRole("button", { name: "Colors" }));
     expect(sheet()).toBeInTheDocument();
+  });
+});
+
+describe("TemplateEditorToolbar size=touch · layout=docked", () => {
+  function mockViewport(height: number) {
+    const listeners = new Set<() => void>();
+    const viewport = {
+      height,
+      offsetTop: 0,
+      addEventListener: (_: string, cb: () => void) => listeners.add(cb),
+      removeEventListener: (_: string, cb: () => void) => listeners.delete(cb),
+    };
+    Object.defineProperty(window, "visualViewport", { configurable: true, value: viewport });
+    return {
+      set(next: number) {
+        viewport.height = next;
+        act(() => listeners.forEach((cb) => cb()));
+      },
+      restore() {
+        Object.defineProperty(window, "visualViewport", { configurable: true, value: undefined });
+      },
+    };
+  }
+
+  it("is a row by default, in the page flow", () => {
+    render(<TemplateEditorToolbar editor={fakeEditor().editor} size="touch" />);
+    expect(tools()).toHaveAttribute("data-layout", "row");
+    expect(tools().className).not.toMatch(/\bfixed\b/);
+  });
+
+  it("docks above the soft keyboard", () => {
+    const viewport = mockViewport(window.innerHeight);
+    render(<TemplateEditorToolbar editor={fakeEditor().editor} size="touch" layout="docked" />);
+    const bar = tools();
+    expect(bar).toHaveAttribute("data-layout", "docked");
+    expect(bar.className).toMatch(/\bfixed\b/);
+    expect(bar.style.bottom).toBe("0px");
+    // Safe area only when nothing sits under the bar.
+    expect(bar.className).toMatch(/safe-area-inset-bottom/);
+    viewport.set(window.innerHeight - 300);
+    expect(bar.style.bottom).toBe("300px");
+    expect(bar.className).not.toMatch(/safe-area-inset-bottom/);
+    viewport.restore();
+  });
+
+  it("rides on top of an open picker sheet, and drops back when it closes", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      const height = this.dataset.slot === "sheet-content" ? 324 : 0;
+      return { x: 0, y: 0, left: 0, top: 0, right: 0, bottom: height, width: 0, height, toJSON: () => ({}) };
+    });
+    render(
+      <TemplateEditorToolbar
+        editor={fakeEditor().editor}
+        size="touch"
+        layout="docked"
+        templateVariables={TEMPLATE_VARIABLES}
+      />,
+    );
+    const colors = screen.getByRole("button", { name: "Colors" });
+    await user.click(colors);
+    await waitFor(() => expect(tools().style.bottom).toBe("324px"));
+    await user.click(within(sheet()!).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(colors).toHaveAttribute("aria-expanded", "false"));
+    await waitFor(() => expect(tools().style.bottom).toBe("0px"));
+    vi.restoreAllMocks();
   });
 });

@@ -157,7 +157,8 @@ export const Localized: Story = {
  * (Formatting) and 07 `57:65460` (Colors).
  *
  * Each story is the 07c phone composition: the docked live preview (1.6a),
- * the template, and the 60 px bar under it. The page is `position: fixed`,
+ * the template, and the 60 px bar docked to the bottom (`layout="docked"`),
+ * which rides on top of an open sheet. The page is `position: fixed`,
  * so VRT captures the viewport and the portalled sheet is in the shot
  * (the 1.3 convention). Sheets open in `play`.
  * ------------------------------------------------------------------ */
@@ -168,7 +169,8 @@ const TEMPLATE_LINES = ["GOOD MORNING", "{{weather.temp}}°{red}", "NICE OUT", "
 function TouchEditor(props: Partial<ComponentProps<typeof TemplateEditorToolbar>>) {
   return (
     <div className="fixed inset-0 flex justify-center bg-background text-foreground">
-      <div className="flex w-full max-w-[390px] flex-col">
+      {/* pb-15: room for the docked 60 px bar. */}
+      <div className="flex w-full max-w-[390px] flex-col pb-15">
         <EditorPreview variant="docked" boardName="Kitchen board">
           <ScaledBoardDisplay message={PHONE_MESSAGE} size="sm" animationsEnabled={false} />
         </EditorPreview>
@@ -180,7 +182,13 @@ function TouchEditor(props: Partial<ComponentProps<typeof TemplateEditorToolbar>
             </li>
           ))}
         </ol>
-        <TemplateEditorToolbar editor={null} templateVariables={TEMPLATE_VARIABLES} size="touch" {...props} />
+        <TemplateEditorToolbar
+          editor={null}
+          templateVariables={TEMPLATE_VARIABLES}
+          size="touch"
+          layout="docked"
+          {...props}
+        />
       </div>
     </div>
   );
@@ -189,7 +197,10 @@ function TouchEditor(props: Partial<ComponentProps<typeof TemplateEditorToolbar>
 const openTool =
   (name: string): Story["play"] =>
   async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole("button", { name }));
+    // A tap, not a click: a touch-opened sheet keeps focus on itself (1.3),
+    // so no picker tooltip opens over the sheet title, as on a phone.
+    const tool = within(canvasElement).getByRole("button", { name });
+    await userEvent.pointer([{ keys: "[TouchA]", target: tool }]);
   };
 
 /** 07 `53:100602`: the split-flap tool set — Variables · Colors · Formatting · Formula │ Undo · Redo · More. */
