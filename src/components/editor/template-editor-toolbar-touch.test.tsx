@@ -382,8 +382,9 @@ describe("TemplateEditorToolbar size=touch · layout=docked", () => {
     };
     Object.defineProperty(window, "visualViewport", { configurable: true, value: viewport });
     return {
-      set(next: number) {
+      set(next: number, offsetTop = 0) {
         viewport.height = next;
+        viewport.offsetTop = offsetTop;
         act(() => listeners.forEach((cb) => cb()));
       },
       restore() {
@@ -411,6 +412,31 @@ describe("TemplateEditorToolbar size=touch · layout=docked", () => {
     expect(bar.style.bottom).toBe("300px");
     expect(bar.className).not.toMatch(/safe-area-inset-bottom/);
     viewport.restore();
+  });
+
+  it("reserves the measured bar above sheets and keeps both above a panned keyboard viewport", async () => {
+    const user = userEvent.setup();
+    const viewport = mockViewport(window.innerHeight);
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      const height = this.dataset.slot === "sheet-content" ? 324 : this.dataset.slot === "editor-toolbar" ? 61 : 0;
+      return { x: 0, y: 0, left: 0, top: 0, right: 0, bottom: height, width: 0, height, toJSON: () => ({}) };
+    });
+    render(
+      <TemplateEditorToolbar
+        editor={fakeEditor().editor}
+        size="touch"
+        layout="docked"
+        templateVariables={TEMPLATE_VARIABLES}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Variables" }));
+    expect(sheet()!.style.maxHeight).toContain(`${window.innerHeight - 61}px`);
+    viewport.set(460, 40);
+    expect(sheet()!.style.maxHeight).toContain("399px");
+    expect(sheet()!.style.bottom).toBe(`${window.innerHeight - 500}px`);
+    await waitFor(() => expect(tools().style.bottom).toBe(`${324 + window.innerHeight - 500}px`));
+    viewport.restore();
+    vi.restoreAllMocks();
   });
 
   it("rides on top of an open picker sheet, and drops back when it closes", async () => {

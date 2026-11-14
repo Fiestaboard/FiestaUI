@@ -99,6 +99,8 @@ export interface ToolbarDropdownProps {
    * rides on top of the sheet with it (07c: the bar sits above the sheet).
    */
   onSheetHeightChange?: (height: number) => void;
+  /** Sheet presentation only: host layout constraints (for example room for a docked toolbar). */
+  sheetStyle?: React.CSSProperties;
   "data-testid"?: string;
 }
 
@@ -116,6 +118,7 @@ export function ToolbarDropdown({
   detents,
   defaultDetent,
   onSheetHeightChange,
+  sheetStyle,
   "data-testid": dataTestId,
 }: ToolbarDropdownProps) {
   const sheetId = useId();
@@ -259,7 +262,7 @@ export function ToolbarDropdown({
 
   return (
     <TooltipProvider>
-      <Box ref={dropdownRef} className={cn("relative", size === "touch" && "flex min-w-fit flex-1")}>
+      <Box ref={dropdownRef} className={cn("relative", size === "touch" && "flex min-w-fit flex-[1_0_auto]")}>
         {size === "touch" ? (
           <EditorTool
             ref={triggerRef}
@@ -341,6 +344,7 @@ export function ToolbarDropdown({
               // The sheet is a container: when a tap focuses it (above),
               // it takes no ring of its own; its controls keep theirs.
               className="outline-none"
+              style={sheetStyle}
               grabber
               scrim={false}
               finalFocus={triggerRef}

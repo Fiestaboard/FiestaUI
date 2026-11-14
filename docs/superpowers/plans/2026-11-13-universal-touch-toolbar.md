@@ -67,3 +67,14 @@ Jev selected the bar (p=0.85) over relocating it to More: the latter duplicates
 or responsive. Test the interactive slot in both sizes/modes, its removal, and add
 light/dark/mobile Storybook coverage. Rerun the full brief checks and changed-file gate,
 review the complete slice, push normally after merging alpha, and record actual CI results.
+
+## Review fix round (2026-11-14)
+
+1. Reproduce the missing sheet allowance in a unit test and undersized tools in Chromium.
+2. Reserve the measured toolbar height from editor-owned sheets; constrain their maximum height
+   to the visual viewport and place both sheet and bar above the keyboard. Keep shared Sheet unchanged.
+3. Keep intrinsic label widths and a 44 px floor; overflow horizontally when necessary. Jev selected
+   the scrollable single row (p=0.78) over wrapping or dynamically relocating actions into More.
+4. Run a persistent Storybook browser regression for Variables and Brush: full/half detents,
+   viewport resize, emulated panned keyboard, dismissal; per-tool visible bounds and hit tests at
+   390/375/320 and 200% root text size. Repeat in both themes, plus full brief checks.

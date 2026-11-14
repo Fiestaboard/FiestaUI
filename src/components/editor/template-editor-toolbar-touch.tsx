@@ -40,7 +40,7 @@ import {
   Undo2,
   Variable,
 } from "lucide-react";
-import { type ReactNode, useId, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 import type { Code62Glyph } from "../../lib/board-characters";
@@ -195,7 +195,31 @@ export function TouchToolbar(props: TouchToolbarProps) {
   const docked = layout === "docked";
   const [sheetHeight, setSheetHeight] = useState(0);
   const keyboard = useKeyboardInset(docked);
-  const dockOffset = Math.max(sheetHeight, keyboard);
+  const viewportHeight = useSyncExternalStore(
+    docked ? subscribeViewport : noopSubscribe,
+    () => (docked ? (window.visualViewport?.height ?? window.innerHeight) : 0),
+    () => 0,
+  );
+  const barRef = useRef<HTMLDivElement>(null);
+  const [barHeight, setBarHeight] = useState(0);
+  useLayoutEffect(() => {
+    if (!docked || !barRef.current) return;
+    const bar = barRef.current;
+    const measure = () => setBarHeight(bar.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, [docked]);
+  // Only editor-owned sheets reserve the bar. Full detents and content-sized
+  // pickers share the same cap; the common Sheet and other consumers stay unchanged.
+  const sheetStyle = docked
+    ? {
+        bottom: keyboard,
+        maxHeight: `max(0px, calc(${viewportHeight - barHeight}px - env(safe-area-inset-top)))`,
+      }
+    : undefined;
+  const dockOffset = sheetHeight + keyboard;
   // Every picker reports its sheet, so a docked bar can ride on top of it.
   const onSheetHeightChange = docked ? setSheetHeight : undefined;
   const wrapSwitchId = useId();
@@ -216,6 +240,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
       size="touch"
       presentation="sheet"
       onSheetHeightChange={onSheetHeightChange}
+      sheetStyle={sheetStyle}
       label={l.brush}
       icon={<Paintbrush />}
       detents={LIST_DETENTS}
@@ -285,6 +310,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
       size="touch"
       presentation="sheet"
       onSheetHeightChange={onSheetHeightChange}
+      sheetStyle={sheetStyle}
       label={l.variables}
       icon={<Variable />}
       disabled={!props.hasVariables}
@@ -312,6 +338,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
         size="touch"
         presentation="sheet"
         onSheetHeightChange={onSheetHeightChange}
+        sheetStyle={sheetStyle}
         label={label}
         icon={icon}
         disabled={!enabled}
@@ -371,6 +398,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
       size="touch"
       presentation="sheet"
       onSheetHeightChange={onSheetHeightChange}
+      sheetStyle={sheetStyle}
       label={l.formatting}
       icon={<Type />}
     >
@@ -423,6 +451,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
       size="touch"
       presentation="sheet"
       onSheetHeightChange={onSheetHeightChange}
+      sheetStyle={sheetStyle}
       label={l.size}
       icon={<Type />}
       disabled={!props.renderSizePicker}
@@ -437,6 +466,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
       size="touch"
       presentation="sheet"
       onSheetHeightChange={onSheetHeightChange}
+      sheetStyle={sheetStyle}
       label={l.more}
       icon={<Ellipsis />}
     >
@@ -554,6 +584,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
 
   const bar = (
     <div
+      ref={barRef}
       role="group"
       aria-label={l.tools}
       data-slot="editor-toolbar"
@@ -561,7 +592,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
       data-capabilities={capabilities}
       data-layout={layout}
       className={cn(
-        "flex w-full items-center border-t border-border bg-card px-1 py-1",
+        "flex w-full items-center overflow-x-auto overscroll-x-contain border-t border-border bg-card px-1 py-1",
         docked && "fixed inset-x-0 bottom-0 z-[var(--z-mobile-menu)] motion-safe:transition-[bottom] duration-base",
         // Clear the home indicator only when nothing sits under the bar.
         docked && dockOffset === 0 && "pb-[max(0.25rem,env(safe-area-inset-bottom))]",

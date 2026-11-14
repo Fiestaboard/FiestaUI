@@ -69,12 +69,12 @@ describe("EditorWarning kind=line-overflow", () => {
     expect(screen.getByRole("button", { name: "Wrap to line 5" })).toHaveAttribute("data-size", "touch");
   });
 
-  it("never claims a negative cut, and takes localized copy", () => {
+  it.each([20, 22])("never claims a negative cut at %i columns, and takes localized copy", (columns) => {
     render(
       <EditorWarning
         kind="line-overflow"
         line={2}
-        columns={22}
+        columns={columns}
         maxColumns={22}
         labels={{
           line: (n) => `Zeile ${n}`,
@@ -83,7 +83,7 @@ describe("EditorWarning kind=line-overflow", () => {
       />,
     );
     expect(screen.getByText("Zeile 2")).toBeInTheDocument();
-    expect(screen.getByText("22 von 22 Spalten · 0 abgeschnitten")).toBeInTheDocument();
+    expect(screen.getByText(`${columns} von 22 Spalten · 0 abgeschnitten`)).toBeInTheDocument();
     expect(document.querySelector('[data-slot="editor-warning-actions"]')).toBeNull();
     expect(document.querySelector('[data-slot="editor-warning-checked"]')).toBeNull();
   });

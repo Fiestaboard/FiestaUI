@@ -26,3 +26,5 @@ The template editor gets a touch toolbar with bottom-sheet pickers, and the edit
 At the default size, nothing changes.
 
 Add a `trailing` host slot to TemplateEditorToolbar in default and touch sizes, retained in draw mode.
+
+Docked editor sheets reserve the toolbar's measured height and stay above the soft keyboard, including full detents. Touch tools keep their labels and a 44 px minimum width; the row scrolls horizontally when a narrow viewport or enlarged text needs more space.

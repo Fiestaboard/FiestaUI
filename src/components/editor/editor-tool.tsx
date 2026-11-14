@@ -15,12 +15,12 @@ import { cn } from "../../lib/utils";
  * also the accessible name: no hover-only tooltip on a touch bar. The tool
  * whose sheet is open fills `accent` (07c `306:36342`, the Formatting tool).
  *
- * Tools share the row (`flex-1`) but never shrink below their label
- * (`min-w-fit`), which is how 07 keeps "Formatting" whole at 390 px.
+ * Tools share spare row space but never shrink below their label or the
+ * 44 px touch floor. The toolbar scrolls horizontally when those do not fit.
  * The C21 pressed state is visual only (lib/press.ts): no haptics.
  */
 export const EDITOR_TOOL_CLASS = cn(
-  "flex h-toolbar-touch min-w-fit flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1",
+  "flex h-toolbar-touch min-w-11 flex-[1_0_auto] flex-col items-center justify-center gap-0.5 rounded-lg px-1",
   "text-xs leading-4 font-medium whitespace-nowrap text-foreground",
   "hover:bg-muted/50 active:bg-accent data-[press]:bg-accent data-[active]:bg-accent",
   "focus-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-5 [&_svg]:shrink-0",
