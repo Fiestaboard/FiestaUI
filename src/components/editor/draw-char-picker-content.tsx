@@ -96,8 +96,9 @@ export interface DrawCharPickerContentProps {
   labels?: Partial<DrawCharPickerLabels>;
   /**
    * `touch` (slice 1.6b): 44 px stamp cells (`--touch-target`) in six columns
-   * that fill the sheet, instead of the popover's 28 px cells in eight. The
-   * arrow keys follow the column count. Default: `"default"`, today's grid.
+   * with matching minimum tracks in sheets and scrollable popovers, instead
+   * of the default 28 px cells in eight columns. The arrow keys follow the
+   * column count. Default: `"default"`, today's grid.
    */
   size?: "default" | "touch";
 }
@@ -214,7 +215,13 @@ export function DrawCharPickerContent({
       role="group"
       aria-label={l.characters}
     >
-      <Grid cols={touch ? "6" : "8"} gap={touch ? "2" : "1"}>
+      <Grid
+        cols={touch ? "6" : "8"}
+        gap={touch ? "2" : "1"}
+        // Match size-11 cells so narrow or enlarged popovers scroll without
+        // overlapping stamps; retain the six-column arrow-key map.
+        className={touch ? "grid-cols-[repeat(6,minmax(calc(var(--spacing)*11),1fr))]" : undefined}
+      >
         {chars.map((char, index) => {
           // Code 62 is the one character whose drawn glyph depends on the
           // device; every other stamp draws as itself.
