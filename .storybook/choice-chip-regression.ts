@@ -15,8 +15,9 @@ export async function checkChoiceChip(page: Page, id: string) {
   });
   assert.ok(loadedFaces.length > 0, `${id}: Archivo Variable face must be registered and loaded`);
   // Measure the font and outline independently of the component's layout.
-  // These are diagnostics while investigating the hosted browser's 29px
-  // label and 1px computed outline versus Figma's 30px / authored 1.5px.
+  // Font hinting and CSS stroke snapping vary by renderer. Use the same
+  // independently authored typography as the Figma contract, without taking
+  // the expected text width from the component under test.
   const browserReference = await page.evaluate(() => {
     const reference = document.createElement("span");
     reference.textContent = "Chip";
@@ -109,10 +110,20 @@ export async function checkChoiceChip(page: Page, id: string) {
   assert.equal(geometry.targetHeight, 44, `${id}: touch target height`);
   assert.equal(geometry.pillHeight, 32, `${id}: visual pill height`);
   assert.equal(geometry.labelInset, selected ? 35.5 : 15, `${id}: label inset includes Figma stroke`);
-  // Compare content-relative width exactly, then allow subpixel font metrics in
-  // the total Figma width (Archivo's 30px sample label → Off60 / On81).
+  // Figma's label is 30px wide; the browser may hint the same Archivo text to
+  // 29px. Keep the designed non-text geometry exact and verify text against an
+  // independent plain span, so a component-specific width/font change fails.
   assert.equal(geometry.pillWidth - geometry.labelWidth, selected ? 51 : 30, `${id}: horizontal geometry`);
-  assert.ok(Math.abs(geometry.pillWidth - (selected ? 81 : 60)) < 0.5, `${id}: Figma pill width; ${diagnostic}`);
+  assert.equal(
+    geometry.labelWidth,
+    browserReference.textWidth,
+    `${id}: independent Archivo label width; ${diagnostic}`,
+  );
+  assert.equal(
+    geometry.pillWidth,
+    browserReference.textWidth + (selected ? 51 : 30),
+    `${id}: Figma geometry plus independent Archivo width; ${diagnostic}`,
+  );
   if (selected) {
     assert.equal(geometry.checkInset, 15.5, `${id}: check inset includes Figma stroke`);
     assert.equal(geometry.checkWidth, 14, `${id}: check width`);

@@ -106,6 +106,28 @@ export const SelectedFocused: Story = {
     await waitFor(() => expect(chip.querySelector('[data-slot="choice-chip-check"]')).toBeVisible());
     await waitFor(() => expect(getComputedStyle(chip).boxShadow).not.toBe("none"));
     const pill = chip.querySelector('[data-slot="choice-chip-pill"]') as HTMLElement;
-    await expect(getComputedStyle(pill).outlineWidth).toBe("1.5px");
+    // CSS outlines snap to rendered pixels. Compare with an independently
+    // authored stroke, at normal size and 200% zoom where 1px and 1.5px remain
+    // distinguishable. Restore the story before screenshots and axe run.
+    const reference = document.createElement("span");
+    reference.style.cssText =
+      "all: initial; position: fixed; left: -10000px; outline: 1.5px solid black; outline-offset: -1.5px;";
+    document.body.append(reference);
+    const originalZoom = pill.style.zoom;
+    try {
+      for (const zoom of ["1", "2"]) {
+        pill.style.zoom = zoom;
+        reference.style.zoom = zoom;
+        const actual = getComputedStyle(pill);
+        const expected = getComputedStyle(reference);
+        await expect(actual.outlineStyle).toBe("solid");
+        await expect(Number.parseFloat(actual.outlineWidth)).toBeGreaterThan(0);
+        await expect(actual.outlineWidth).toBe(expected.outlineWidth);
+        await expect(actual.outlineOffset).toBe(expected.outlineOffset);
+      }
+    } finally {
+      pill.style.zoom = originalZoom;
+      reference.remove();
+    }
   },
 };
