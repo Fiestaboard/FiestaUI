@@ -61,7 +61,7 @@ export async function checkDataSourceSwitch(page: Page, id: string) {
         };
       });
       assert.equal(focused.forced, true, `${id}: forced colors applied`);
-      assert.equal(focused.focused, true, `${id}: selected radio receives keyboard focus`);
+      assert.equal(focused.focused, true, `${id}/${colorScheme}: selected radio receives keyboard focus`);
       assert.equal(focused.style, "solid", `${id}: focus outline style`);
       assert.ok(focused.width >= 2 && focused.offset >= 2, `${id}: external focus outline`);
       assert.equal(focused.markerStyle, "solid", `${id}: selection remains distinct from focus`);
@@ -97,6 +97,11 @@ export async function checkDataSourceSwitch(page: Page, id: string) {
       assert.equal(uncheckedFocus.checked, "false", `${id}: focus alone does not change selection`);
       assert.ok(uncheckedFocus.outlineWidth >= 2, `${id}: unchecked radio still has a focus cue`);
       assert.equal(uncheckedFocus.markerWidth, 0, `${id}: unchecked radio has no selected marker`);
+      // Programmatic focus moves Base UI's roving tab stop without selecting
+      // Sample. Restore Live's entry point before the next palette repeats
+      // the same keyboard sequence on this mounted story.
+      await selected.focus();
+      process.stdout.write(`[DataSourceSwitch forced-colors] ${id}/${colorScheme}: all focus states passed\n`);
     } finally {
       await page.evaluate(() => document.querySelector("[data-data-source-focus-start]")?.remove());
       await page.emulateMedia({
