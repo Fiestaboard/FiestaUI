@@ -1026,6 +1026,97 @@
       },
       "tolerance": {},
       "waivers": []
+    },
+    {
+      "id": "editor-inspector-row",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "171:163203",
+        "waitingOn": "Reference registration and hosted visual review; DD-W102 preserves py8 with a 48px minimum and natural two-line height instead of the fixed48px source drawing."
+      },
+      "target": {
+        "story": "editor-inspectorrow--default",
+        "root": "[data-inspector-row]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "border-bottom-color",
+            "variable": "var(--border)"
+          },
+          {
+            "selector": ":scope",
+            "property": "padding-top",
+            "variable": "calc(var(--spacing) * 2)"
+          },
+          {
+            "selector": ":scope",
+            "property": "min-height",
+            "variable": "calc(var(--spacing) * 12)"
+          },
+          {
+            "selector": "[data-slot=list-row-title]",
+            "property": "color",
+            "variable": "var(--foreground)"
+          },
+          {
+            "selector": "[data-slot=list-row-description]",
+            "property": "color",
+            "variable": "var(--muted-foreground)"
+          },
+          {
+            "selector": "[data-slot=list-row-meta]",
+            "property": "color",
+            "variable": "var(--muted-foreground)"
+          },
+          {
+            "selector": "svg",
+            "property": "color",
+            "variable": "var(--foreground)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Title",
+            "selector": "[data-slot=list-row-title]",
+            "measure": "text"
+          },
+          {
+            "node": "Detail",
+            "selector": "[data-slot=list-row-description]",
+            "measure": "text"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=list-row-meta]",
+            "measure": "text"
+          },
+          {
+            "node": "Chevron",
+            "selector": "svg",
+            "measure": "box"
+          }
+        ],
+        "text": [
+          {
+            "node": "Title",
+            "selector": "[data-slot=list-row-title]"
+          },
+          {
+            "node": "Detail",
+            "selector": "[data-slot=list-row-description]"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=list-row-meta]"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
     }
   ]
 }

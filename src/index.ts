@@ -367,6 +367,7 @@ export * from "./components/editor/editor-preview";
 export * from "./components/editor/editor-tool";
 export * from "./components/editor/editor-warning";
 export * from "./components/editor/formula-atom";
+export * from "./components/editor/inspector-row";
 export * from "./components/editor/revision-diff";
 export * from "./components/editor/revision-row";
 export * from "./components/editor/template-editor";

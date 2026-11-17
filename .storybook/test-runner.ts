@@ -6,6 +6,7 @@ import { checkDataSourceSwitch } from "./data-source-switch-regression";
 import { checkEditorPreviewNeverCollapses } from "./editor-preview-regression";
 import { checkTouchToolbarGeometry } from "./editor-toolbar-regression";
 import { checkFlowShellGeometry } from "./flow-shell-regression";
+import { checkInspectorRowForcedColors } from "./inspector-row-regression";
 import { checkSpinnerMotion } from "./spinner-regression";
 
 /**
@@ -111,6 +112,7 @@ const config: TestRunnerConfig = {
     await checkEditorPreviewNeverCollapses(page, context.id);
     await checkTouchToolbarGeometry(page, context.id);
     await checkFlowShellGeometry(page, context.id);
+    await checkInspectorRowForcedColors(page, context.id);
 
     await configureAxe(page, {
       rules: [

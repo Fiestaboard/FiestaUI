@@ -474,6 +474,11 @@ export const INVENTORY = [
     entries: [
       { name: "TraceStep", summary: "One formula evaluation step, with value, error/skipped cues and depth." },
       {
+        name: "InspectorRow",
+        summary:
+          "A full-row Inspector action with optional detail, value and chevron; wraps for narrow panes and large text.",
+      },
+      {
         name: "TemplateEditor",
         summary: "The editor: line gutter, variable/colour nodes, alignment and wrap controls.",
       },
