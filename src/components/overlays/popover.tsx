@@ -90,6 +90,8 @@ function PopoverTrigger({
 }
 
 interface PopoverContentProps extends Omit<React.ComponentProps<typeof PopoverPrimitive.Popup>, "children"> {
+  /** Optional portal host; defaults to the document body. */
+  container?: React.ComponentProps<typeof PopoverPrimitive.Portal>["container"];
   /** Preferred side of the anchor. Flipped automatically when it does not fit. */
   side?: "top" | "right" | "bottom" | "left";
   /** Alignment along the chosen side. Shifted automatically when it does not fit. */
@@ -131,6 +133,7 @@ interface PopoverContentProps extends Omit<React.ComponentProps<typeof PopoverPr
 function PopoverContent({
   className,
   positionerClassName,
+  container,
   side = "bottom",
   align = "center",
   sideOffset = 4,
@@ -148,7 +151,7 @@ function PopoverContent({
   const close = usePopoverClose();
 
   return (
-    <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Portal container={container}>
       <PopoverPrimitive.Positioner
         side={side}
         align={align}

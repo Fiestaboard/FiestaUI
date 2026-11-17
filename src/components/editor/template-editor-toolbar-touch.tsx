@@ -13,7 +13,7 @@
  *     More, a 1×32 divider before the history tools;
  *   • LED (CANON): Variables · Text color · Icon · Size · Formula · More —
  *     More holds Undo/Redo (and the host's Effects).
- * Every picker is the 1.3 non-modal bottom sheet (grabber, no scrim), so the
+ * Pickers default to the 1.3 non-modal bottom sheet (grabber, no scrim), so the
  * docked preview above stays live (07c `306:36342`, `57:65460`).
  *
  * Draw mode on touch (Jev `jev_decide` brush_sheet, p = 0.95): the bar becomes
@@ -64,7 +64,7 @@ import { EditorTool } from "./editor-tool";
 import { FormattingPickerContent, type FormattingPickerLabels } from "./formatting-picker-content";
 import type { LineAlignment } from "./template-editor";
 import type { FormattingVariable, TemplateEditorToolbarLabels } from "./template-editor-toolbar";
-import { ToolbarDropdown } from "./toolbar-dropdown";
+import { ToolbarDropdown, type ToolbarDropdownPresentation } from "./toolbar-dropdown";
 import type { DrawBrush } from "./utils/draw-mode";
 
 /** Which tool set the bar offers (08 C5 `capabilities`). Canvas is 1.11. */
@@ -83,6 +83,7 @@ export interface TouchToolbarProps {
   layout: EditorToolbarLayout;
   className?: string;
   container?: Element | null;
+  pickerPresentation?: ToolbarDropdownPresentation;
   // History and clipboard, owned by the toolbar.
   canUndo: boolean;
   canRedo: boolean;
@@ -191,7 +192,7 @@ function MoreAction({
 }
 
 export function TouchToolbar(props: TouchToolbarProps) {
-  const { l, capabilities, layout, className, container, drawMode } = props;
+  const { l, capabilities, layout, className, container, drawMode, pickerPresentation = "sheet" } = props;
   const docked = layout === "docked";
   const [sheetHeight, setSheetHeight] = useState(0);
   const keyboard = useKeyboardInset(docked);
@@ -238,7 +239,8 @@ export function TouchToolbar(props: TouchToolbarProps) {
     <ToolbarDropdown
       key="brush"
       size="touch"
-      presentation="sheet"
+      presentation={pickerPresentation}
+      container={container}
       onSheetHeightChange={onSheetHeightChange}
       sheetStyle={sheetStyle}
       label={l.brush}
@@ -308,7 +310,8 @@ export function TouchToolbar(props: TouchToolbarProps) {
     <ToolbarDropdown
       key="variables"
       size="touch"
-      presentation="sheet"
+      presentation={pickerPresentation}
+      container={container}
       onSheetHeightChange={onSheetHeightChange}
       sheetStyle={sheetStyle}
       label={l.variables}
@@ -336,14 +339,15 @@ export function TouchToolbar(props: TouchToolbarProps) {
       <ToolbarDropdown
         key={face}
         size="touch"
-        presentation="sheet"
+        presentation={pickerPresentation}
+        container={container}
         onSheetHeightChange={onSheetHeightChange}
         sheetStyle={sheetStyle}
         label={label}
         icon={icon}
         disabled={!enabled}
       >
-        {(close) => (
+        {(close, presentation) => (
           <div className="flex flex-col gap-3">
             <ColorPickerContent
               size="touch"
@@ -383,7 +387,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
             />
             {face !== "icon" && (
               <Text size="sm" tone="muted">
-                {l.colorsHint}
+                {presentation === "sheet" ? l.colorsHint : l.colorsPopoverHint}
               </Text>
             )}
           </div>
@@ -396,7 +400,8 @@ export function TouchToolbar(props: TouchToolbarProps) {
     <ToolbarDropdown
       key="formatting"
       size="touch"
-      presentation="sheet"
+      presentation={pickerPresentation}
+      container={container}
       onSheetHeightChange={onSheetHeightChange}
       sheetStyle={sheetStyle}
       label={l.formatting}
@@ -449,7 +454,8 @@ export function TouchToolbar(props: TouchToolbarProps) {
     <ToolbarDropdown
       key="size"
       size="touch"
-      presentation="sheet"
+      presentation={pickerPresentation}
+      container={container}
       onSheetHeightChange={onSheetHeightChange}
       sheetStyle={sheetStyle}
       label={l.size}
@@ -464,7 +470,8 @@ export function TouchToolbar(props: TouchToolbarProps) {
     <ToolbarDropdown
       key="more"
       size="touch"
-      presentation="sheet"
+      presentation={pickerPresentation}
+      container={container}
       onSheetHeightChange={onSheetHeightChange}
       sheetStyle={sheetStyle}
       label={l.more}
