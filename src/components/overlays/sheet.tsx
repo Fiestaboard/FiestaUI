@@ -438,7 +438,7 @@ function SheetContent({
           grabberOn &&
             "flex max-h-[calc(100dvh-env(safe-area-inset-top))] flex-col gap-0 rounded-t-[var(--radius-chrome-mobile)] border bg-popover p-0 px-4 pt-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-popover-foreground translate-y-[var(--sheet-drag-y,0px)] motion-safe:transition-[height,translate] duration-base ease-[var(--motion-ease-standard)] data-[sheet-drag]:transition-none",
           grabberOn && hasDetents && "h-[var(--sheet-detent-height)]",
-          grabberOn && confirmation && "pb-[max(1rem,env(safe-area-inset-bottom))]",
+          grabberOn && confirmation && "px-5 pb-[max(1rem,env(safe-area-inset-bottom))]",
           className,
         )}
         onKeyDown={handleKeyDown}
@@ -455,7 +455,10 @@ function SheetContent({
               onPointerMove={handlePointerMove}
               onPointerUp={(event) => endDrag(event, false)}
               onPointerCancel={(event) => endDrag(event, true)}
-              className="relative -mx-4 flex h-[var(--sheet-grabber-zone)] shrink-0 cursor-grab touch-none select-none items-center justify-center rounded-t-[var(--radius-chrome-mobile)] focus-ring before:absolute before:inset-x-0 before:top-0 before:h-touch active:cursor-grabbing"
+              className={cn(
+                "relative -mx-4 flex h-[var(--sheet-grabber-zone)] shrink-0 cursor-grab touch-none select-none items-center justify-center rounded-t-[var(--radius-chrome-mobile)] focus-ring before:absolute before:inset-x-0 before:top-0 before:h-touch active:cursor-grabbing",
+                confirmation && "-mx-5",
+              )}
             >
               <span
                 data-slot="sheet-grabber-pill"
@@ -468,12 +471,19 @@ function SheetContent({
             <div
               ref={bodyRef}
               data-slot="sheet-body"
-              className="-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 py-1"
+              className={cn(
+                "-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 py-1",
+                confirmation && body.length === 0 && "py-0",
+              )}
             >
               {body}
             </div>
             {foot.length > 0 && (
-              <div ref={footRef} data-slot="sheet-foot" className="shrink-0 pt-2">
+              <div
+                ref={footRef}
+                data-slot="sheet-foot"
+                className={cn("shrink-0 pt-2", confirmation && body.length === 0 && "pt-6")}
+              >
                 {foot}
               </div>
             )}
@@ -510,7 +520,7 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sheet-header"
       className={cn(
-        "flex flex-col space-y-2 text-center sm:text-left group-data-[variant=confirmation]/sheet:text-left",
+        "flex flex-col space-y-2 text-center sm:text-left group-data-[variant=confirmation]/sheet:space-y-1 group-data-[variant=confirmation]/sheet:text-left",
         className,
       )}
       {...props}
@@ -536,7 +546,7 @@ function SheetTitle({ className, ...props }: React.ComponentProps<typeof SheetPr
     <SheetPrimitive.Title
       data-slot="sheet-title"
       className={cn(
-        "text-lg font-semibold text-foreground group-data-[variant=confirmation]/sheet:flex group-data-[variant=confirmation]/sheet:min-h-12 group-data-[variant=confirmation]/sheet:items-center group-data-[variant=confirmation]/sheet:pr-12",
+        "text-lg font-semibold text-foreground group-data-[variant=confirmation]/sheet:flex group-data-[variant=confirmation]/sheet:min-h-12 group-data-[variant=confirmation]/sheet:items-center group-data-[variant=confirmation]/sheet:pr-12 group-data-[variant=confirmation]/sheet:leading-tight group-data-[variant=confirmation]/sheet:tracking-tight",
         className,
       )}
       {...props}

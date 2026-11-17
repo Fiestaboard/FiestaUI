@@ -11,6 +11,19 @@ afterEach(() => {
 });
 
 describe("Toaster", () => {
+  it("uses the snackbar success mark without changing the default status icon", async () => {
+    const { rerender } = render(<Toaster variant="snackbar" />);
+    act(() => {
+      toast.success("Saved with snackbar", { duration: Infinity });
+    });
+    await screen.findByText("Saved with snackbar");
+    const icon = () => document.querySelector("[data-sonner-toast] [data-icon] svg")!;
+    expect(icon()).toBeInTheDocument();
+    expect(icon().querySelector("circle")).toBeNull();
+    rerender(<Toaster />);
+    expect(icon().querySelector("circle")).toBeInTheDocument();
+  });
+
   it("announces a snackbar without stealing focus and dismisses with its localized close control", async () => {
     const user = userEvent.setup();
     render(

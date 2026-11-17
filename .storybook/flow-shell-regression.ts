@@ -18,7 +18,12 @@ export async function checkFlowShellGeometry(page: Page, id: string) {
         const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]")!;
         const page = document.querySelector<HTMLElement>('[data-testid="flow-page"]')!.getBoundingClientRect();
         const mobile = matchMedia("(max-width: 600px)").matches;
+        const successIcon = toast.querySelector<SVGElement>("[data-icon] svg")!;
+        const closeIcon = toast.querySelector<SVGElement>("[data-close-button] svg")!;
         return {
+          successMarkHasCircle: successIcon.querySelector("circle") !== null,
+          successIconWidth: successIcon.getBoundingClientRect().width,
+          closeIconWidth: closeIcon.getBoundingClientRect().width,
           width: toast.getBoundingClientRect().width,
           expected: mobile ? page.width - 16 : 380,
           mobile,
@@ -42,6 +47,9 @@ export async function checkFlowShellGeometry(page: Page, id: string) {
         };
       });
       if (snackbar) {
+        assert.equal(snackbar.successMarkHasCircle, false, `${id}: snackbar uses the plain success check`);
+        assert.equal(snackbar.successIconWidth, 16, `${id}: success glyph is 16px`);
+        assert.equal(snackbar.closeIconWidth, 14, `${id}: dismiss glyph is 14px`);
         console.log(`${id} at ${width}px: snackbar ${JSON.stringify(snackbar)}`);
         assert.ok(
           Math.abs(snackbar.width - snackbar.expected) < 1,
@@ -95,7 +103,16 @@ export async function checkFlowShellGeometry(page: Page, id: string) {
           return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
         });
         const box = surface.getBoundingClientRect();
+        const surfaceStyle = getComputedStyle(surface);
+        const titleStyle = getComputedStyle(title);
         return {
+          paddingLeft: parseFloat(surfaceStyle.paddingLeft),
+          paddingRight: parseFloat(surfaceStyle.paddingRight),
+          titleFontSize: parseFloat(titleStyle.fontSize),
+          titleLineHeight: parseFloat(titleStyle.lineHeight),
+          titleTracking: parseFloat(titleStyle.letterSpacing),
+          titleDescriptionGap: description.getBoundingClientRect().top - title.getBoundingClientRect().bottom,
+          descriptionActionGap: first.top - description.getBoundingClientRect().bottom,
           kind,
           width: box.width,
           layoutWidth: document.querySelector<HTMLElement>('[data-testid="flow-page"]')!.getBoundingClientRect().width,
@@ -114,6 +131,13 @@ export async function checkFlowShellGeometry(page: Page, id: string) {
       assert.ok(geometry, `${id} at ${width}px: missing shell`);
       assert.equal(geometry.overlap, false, `${id} at ${width}px: title overlaps the close control`);
       if (geometry.kind === "sheet") {
+        assert.equal(geometry.paddingLeft, 20, `${id}: confirmation content has the reference left inset`);
+        assert.equal(geometry.paddingRight, 20, `${id}: confirmation actions have the reference right inset`);
+        assert.equal(geometry.titleFontSize, 18, `${id}: confirmation title font size`);
+        assert.equal(geometry.titleLineHeight, 22.5, `${id}: confirmation title line height`);
+        assert.ok(Math.abs(geometry.titleTracking + 0.45) < 0.01, `${id}: confirmation title tracking`);
+        assert.equal(geometry.titleDescriptionGap, 4, `${id}: confirmation title/description gap`);
+        assert.equal(geometry.descriptionActionGap, 24, `${id}: confirmation description/action gap`);
         assert.ok(
           geometry.descriptionTop >= geometry.closeBottom + 2,
           `${id} at ${width}px: description enters the close hit area`,

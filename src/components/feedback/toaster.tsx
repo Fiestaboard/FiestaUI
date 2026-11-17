@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, Info, OctagonX, TriangleAlert } from "lucide-react";
+import { Check, CircleCheck, Info, OctagonX, TriangleAlert, X } from "lucide-react";
 import * as React from "react";
 import { type ExternalToast, toast as sonnerToast, Toaster as SonnerToaster } from "sonner";
 
@@ -67,6 +67,13 @@ const ICONS = {
   warning: <TriangleAlert className="size-4 text-warning" aria-hidden="true" />,
   error: <OctagonX className="size-4 text-destructive" aria-hidden="true" />,
   loading: <Spinner size="md" label={null} />,
+};
+
+/** The drawn snackbar uses lighter marks; ordinary notifications keep their status glyphs. */
+const SNACKBAR_ICONS = {
+  ...ICONS,
+  success: <Check className="size-4 text-success" aria-hidden="true" />,
+  close: <X className="size-3.5" aria-hidden="true" />,
 };
 
 /**
@@ -307,7 +314,7 @@ function Toaster({
       visibleToasts={visibleToasts}
       containerAriaLabel={labels?.container ?? "Notifications"}
       className={cn("toaster group", className)}
-      icons={ICONS}
+      icons={snackbar ? SNACKBAR_ICONS : ICONS}
       style={snackbar ? ({ ...TOKEN_STYLE, "--width": "380px" } as React.CSSProperties) : TOKEN_STYLE}
       offset={mergeOffsets(clearBottomNav ? NAV_CLEAR_OFFSET : undefined, offset)}
       mobileOffset={mergeOffsets(

@@ -54,3 +54,29 @@ Storybook freezes entrance animations at their reversed final frame. Geometry ch
 The production repair passed the full local suite (3,379 passed, 33 skipped), all three changed-source coverage gates, static checks, library/Storybook builds and release checks. Hosted browser acceptance must execute again at the new head.
 
 The next hosted run supplied the missing 320px evidence: `clientWidth` was 320 while both the fixed page and toast containing block were 305px; the toast was correctly 289px with 8px side insets. Measure the independent fixed page fixture for expected dialog/toast widths, and explicitly assert both snackbar insets. This keeps the production sizing and strict geometry contract unchanged while accounting for the rendered gutter. The paused-animation and equal-footer-edge checks passed in that run; only the three width oracles failed.
+
+## Live-Figma continuation (uikit3c1)
+
+Fresh read-only contexts for 316:91801 and shared shell 297:7630 confirm a
+remaining variant-level difference: the confirmation footer uses 20px side
+insets and its 18px title uses 1.25 line height and -0.025em tracking. Preserve
+the existing 48px title/close clearance and all default sheet recipes. The
+snackbar drawing uses a plain 16px Check and 14px X; choose those through
+Sonner's existing icon extension point only for this variant.
+
+Jev selected targeted variant repair (p=0.77, confidence=0.72) over retaining
+all differences as CLOSE (0.18) or rewriting shared defaults (0). The shared
+15px scrollbar gutter and inherited Escape-collapse behavior stay explicitly
+outside this bounded patch; neither is declared fixed or approved.
+
+1. Add a real rendered variant-switch regression for the success mark and
+   extend the existing browser geometry checks for title/insets/icon sizes.
+   Record the old glyph failure and existing screenshot/layout failure evidence.
+2. Change only the new variant recipes; preserve default icon and sheet paths.
+3. Run full local checks serially, including coverage and existing geometry/axe
+   stories, then normal alpha merge/push and exact-head independent review/CI.
+   Current c6efa03f passes remain historical after a replacement head is pushed.
+
+The independent live review also confirmed a4px title/description gap and24px description/action separation in empty-body confirmation sheets. The variant keeps the48px title/close safety band, removes padding from its empty body, and gives its footer24px top spacing. Populated scrolling-body focus-ring padding and default sheet layout stay intact. Browser geometry assertions cover the actual gaps.
+
+Validation of the final repair:3380 tests passed/33 existing skips; all three changed source files pass the90%lines/85%branches gate (Sheet100/96.87, Dialog100/100, Toaster100/100). Typecheck, lint (one existing diagnostic-console warning), formatting, production build,499 release checks and Storybook build passed. All six FlowShells stories passed their play functions and exact authored geometry/body-axe hooks in light and dark. The local shared0.26 Jest runner failed before tests on platform/resolution setup; the direct run reused the repository0.24.4 story-completion bridge and bundled unchanged authored hooks. Jev selected this bounded validation route with probability1.0/confidence1.0; normal hosted Jest/CI remains required. Logs and12 captures are in program/shots/uikit3-overlays/local-uikit3c1. No default recipes or shared dependencies changed.
