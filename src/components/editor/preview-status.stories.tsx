@@ -99,11 +99,24 @@ async function checkTextAndTargets({ canvasElement }: { canvasElement: HTMLEleme
   const rect = button.getBoundingClientRect();
   await expect(rect.width).toBeGreaterThanOrEqual(44);
   await expect(rect.height).toBeGreaterThanOrEqual(44);
-  for (const x of [rect.left + 1, rect.right - 1]) {
-    for (const y of [rect.top + 1, rect.bottom - 1]) {
-      const hit = canvasElement.ownerDocument.elementFromPoint(x, y);
-      await expect(hit === button || button.contains(hit)).toBe(true);
-    }
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  // Button uses rounded-md (8 px at the default root size). Bounding-box
+  // corners inset by 1 px are outside that rounded hit area. Probe the center
+  // and each straight edge instead, retaining the full 44 px size checks.
+  const hitPoints = [
+    [centerX, centerY],
+    [rect.left + 1, centerY],
+    [rect.right - 1, centerY],
+    [centerX, rect.top + 1],
+    [centerX, rect.bottom - 1],
+  ];
+  for (const [x, y] of hitPoints) {
+    const hit = canvasElement.ownerDocument.elementFromPoint(x, y);
+    await expect(
+      hit === button || button.contains(hit),
+      `Problems target at (${x}, ${y}) in rect (${rect.left}, ${rect.top}, ${rect.width}, ${rect.height}) hit ${hit?.outerHTML.slice(0, 240) ?? "null"}`,
+    ).toBe(true);
   }
 }
 
