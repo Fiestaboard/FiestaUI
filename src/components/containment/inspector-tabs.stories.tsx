@@ -100,12 +100,22 @@ export const Controlled: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Open History" }));
-    await expect(canvas.getByRole("tabpanel", { name: "History" })).toBeVisible();
-    await waitFor(() => {
-      const tab = canvas.getByRole("tab", { name: "History" }).getBoundingClientRect();
+    // Base UI mounts a newly opened panel in its starting state and clears it
+    // on the next animation frame. Re-query and verify the complete settled
+    // outcome rather than asserting visibility on the first matching DOM node.
+    await waitFor(async () => {
+      const tab = canvas.getByRole("tab", { name: "History" });
+      const panel = canvas.getByRole("tabpanel", { name: "History" });
+      await expect(tab).toHaveAttribute("aria-selected", "true");
+      await expect(panel).not.toHaveAttribute("data-starting-style");
+      await expect(panel).toBeVisible();
+      await expect(within(panel).getByText("History Inspector content.")).toBeVisible();
+      await expect(tab).toHaveAttribute("aria-controls", panel.id);
+      await expect(canvas.queryByRole("tabpanel", { name: "Data" })).not.toBeInTheDocument();
+      const target = tab.getBoundingClientRect();
       const viewport = canvasElement.querySelector("[data-slot=inspector-tabs-viewport]")!.getBoundingClientRect();
-      expect(tab.left).toBeGreaterThanOrEqual(viewport.left);
-      expect(tab.right).toBeLessThanOrEqual(viewport.right);
+      await expect(target.left).toBeGreaterThanOrEqual(viewport.left);
+      await expect(target.right).toBeLessThanOrEqual(viewport.right);
     });
   },
 };

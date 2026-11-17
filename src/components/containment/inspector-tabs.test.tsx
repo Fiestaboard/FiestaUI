@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -112,6 +112,32 @@ describe("InspectorTabs", () => {
     expect(screen.getByRole("tablist", { name: "Inspecteur" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: "Page" }));
     expect(screen.getByRole("tabpanel", { name: "Page" })).toBeInTheDocument();
+  });
+
+  it("settles an externally opened panel with its content and selected-tab relationship", async () => {
+    function Host() {
+      const [value, setValue] = useState<string | null>("data");
+      return (
+        <>
+          <button onClick={() => setValue("history")}>Open History</button>
+          <InspectorTabs tabs={tabs} aria-label="Inspector" value={value} onValueChange={setValue}>
+            {panels}
+          </InspectorTabs>
+        </>
+      );
+    }
+    render(<Host />);
+    await userEvent.click(screen.getByRole("button", { name: "Open History" }));
+    await waitFor(() => {
+      const history = screen.getByRole("tab", { name: "History" });
+      const panel = screen.getByRole("tabpanel", { name: "History" });
+      expect(history).toHaveAttribute("aria-selected", "true");
+      expect(history).toHaveAttribute("aria-controls", panel.id);
+      expect(panel).not.toHaveAttribute("data-starting-style");
+      expect(panel).toBeVisible();
+      expect(panel).toHaveTextContent("History content");
+      expect(screen.queryByRole("tabpanel", { name: "Data" })).not.toBeInTheDocument();
+    });
   });
 
   it("shows supplied counts including zero and omits invalid counts", () => {
