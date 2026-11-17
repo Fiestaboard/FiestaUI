@@ -3,11 +3,25 @@ import { expect } from "storybook/test";
 
 import { TraceStep } from "./trace-step";
 
+function expectViewportFit(canvasElement: HTMLElement) {
+  const viewportWidth = canvasElement.ownerDocument.documentElement.clientWidth;
+  expect(canvasElement.getBoundingClientRect().right).toBeLessThanOrEqual(viewportWidth + 1);
+  for (const row of canvasElement.querySelectorAll<HTMLElement>('[data-slot="trace-step"]')) {
+    const bounds = row.getBoundingClientRect();
+    expect(bounds.left).toBeGreaterThanOrEqual(0);
+    expect(bounds.right).toBeLessThanOrEqual(viewportWidth + 1);
+    expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth + 1);
+  }
+}
+
 const meta = {
   title: "Editor/TraceStep",
   component: TraceStep,
   tags: ["autodocs"],
-  parameters: { layout: "centered" },
+  // A centered flex canvas grows to the fixed desktop width plus both
+  // decorators' padding. Padded block layout lets max-w-full constrain the
+  // 380px reference row to the actual mobile viewport.
+  parameters: { layout: "padded" },
   args: { expression: 'DATEDIFF(NOW(), DATE(item.eta), "minutes")', value: "7" },
   decorators: [
     (Story) => (
@@ -16,6 +30,9 @@ const meta = {
       </div>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    expectViewportFit(canvasElement);
+  },
 } satisfies Meta<typeof TraceStep>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -46,6 +63,7 @@ export const LongValues: Story = {
     depth: 20,
   },
   play: async ({ canvasElement }) => {
+    expectViewportFit(canvasElement);
     for (const el of canvasElement.querySelectorAll<HTMLElement>("[data-slot^=trace-step]")) {
       expect(el.scrollWidth).toBeLessThanOrEqual(el.clientWidth + 1);
       expect(el.scrollHeight).toBeLessThanOrEqual(el.clientHeight + 1);
