@@ -42,7 +42,7 @@ export function RevisionOverview({
     <div
       aria-hidden="true"
       data-slot="revision-overview"
-      className="relative max-w-full shrink-0"
+      className="relative max-w-full shrink-0 overflow-hidden"
       style={{ width, height }}
     >
       <PreviewSlot className="h-full w-full bg-transparent [&>div]:inset-0">{children}</PreviewSlot>

@@ -37,6 +37,20 @@ describe("RevisionDiff", () => {
     expect(parseFloat(regions[0].style.height)).toBeCloseTo(10);
     expect(regions[1].style.left).toBe("0%");
   });
+  it.each(["side-by-side", "overlay"] as const)("preserves tiny positive edge changes in %s mode", (mode) => {
+    const { container } = render(
+      <RevisionDiff
+        before={before}
+        after={after}
+        mode={mode}
+        changes={[{ id: "tiny-edge", x: 0.999, y: 0.999, width: 0.001, height: 0.001 }]}
+      />,
+    );
+    const regions = container.querySelectorAll<HTMLElement>('[data-slot="revision-change-region"]');
+    expect(regions).toHaveLength(1);
+    expect(regions[0]).toHaveStyle({ left: "99.9%", top: "99.9%", width: "0.1%", height: "0.1%" });
+    expect(screen.getByText("1 changed regions")).toBeInTheDocument();
+  });
   it("restores the earlier version as a new draft, with accessible explanatory text", async () => {
     const restore = vi.fn();
     const { rerender } = render(<RevisionDiff before={before} after={after} onRestore={restore} />);

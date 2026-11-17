@@ -66,7 +66,7 @@ export function RevisionRow({
       aria-current={current ? "true" : undefined}
       layout="inline"
       className={cn(
-        "min-h-[79px] flex-wrap gap-x-2.5 gap-y-2 border-b border-border px-0 py-1.5 [&>[data-slot=list-row-body]]:min-w-28 [&_[data-slot=list-row-text]]:gap-[3px] [&>[data-slot=list-row-trailing]]:max-w-full",
+        "min-h-[79px] flex-wrap gap-x-2.5 gap-y-2 border-b border-border px-0 py-1.5 [&>[data-slot=list-row-body]]:min-w-[min(7rem,100%)] [&_[data-slot=list-row-text]]:gap-[3px] [&>[data-slot=list-row-trailing]]:max-w-full",
         className,
       )}
       leading={
@@ -74,7 +74,9 @@ export function RevisionRow({
           <RevisionOverview width={86} height={48}>
             {thumbnail}
           </RevisionOverview>
-          <span className="font-mono text-xs font-medium leading-4">{labels.overview ?? "OVERVIEW"}</span>
+          <span className="w-full text-center font-mono text-xs font-medium leading-4 [overflow-wrap:anywhere]">
+            {labels.overview ?? "OVERVIEW"}
+          </span>
         </span>
       }
       title={
