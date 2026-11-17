@@ -69,7 +69,7 @@ function DeviceCodeCard({
       {(primaryAction != null || secondaryAction != null) && (
         <div
           data-slot="device-code-actions"
-          className="flex flex-col gap-4 @min-[22rem]/device-code:flex-row-reverse @min-[22rem]/device-code:gap-2 [&>*]:min-h-11 [&>*]:min-w-0 [&>*]:flex-1 [&>*]:whitespace-normal"
+          className="flex flex-col gap-4 @min-[22rem]/device-code:flex-row-reverse @min-[22rem]/device-code:gap-2 [&>*]:min-h-11 @min-[22rem]/device-code:[&>*]:min-h-10 @min-[22rem]/device-code:coarse:[&>*]:min-h-touch [&>*]:min-w-0 [&>*]:flex-1 [&>*]:whitespace-normal"
         >
           {primaryAction}
           {secondaryAction}

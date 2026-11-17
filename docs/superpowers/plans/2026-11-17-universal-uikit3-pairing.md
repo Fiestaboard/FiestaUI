@@ -84,3 +84,17 @@ Jev selected one native input with decorative cells (p=0.95; confidence 0.94), o
 ## Local verification and handoff
 
 Full suite: 146 files passed, one skipped; 3408 tests passed, 33 skipped. All seven changed source files pass 90% lines / 85% branches. Final presentation-only corrections follow the frozen PNGs (100px identity header, 4px title gap, 16px phone action gap) and pass focused tests plus typecheck/lint/format/build/release:test/Storybook build. Release checks: 499 passed. Browser/axe and independent review are delegated to the coordinator because host Chromium cannot launch and shared Docker is unavailable. No visual parity or axe completion is claimed.
+
+## Live-Figma continuation M6–M9
+
+- [x] Verify clean starting head `2da51184`, PR410, current checks, owner instructions and independent live-reference evidence.
+- [x] Author browser assertions for default/compact Archivo 14/600/20 including separator, 36×48 / 30×44 cells, unchanged native mono16 opacity, terminal 28px icons/12px gap/body x81, footer help14/gap6, and 40px wide / 44px narrow/coarse actions.
+- [x] Apply bounded visible font, story icon/footer and responsive action-floor fixes, preserving native overlay and host policy/API.
+- [x] Run local typecheck, lint, format, full unit coverage, build, release checks, Storybook build and changed-file coverage; retain logs under `.tmp/uikit3-pairing/c1-live/`.
+- [ ] Merge current origin/alpha normally, commit with existing trailer and push; obtain independent exact-head review and hosted browser/native/axe evidence.
+
+Ruling: real browser appearance assertions are authored before the repairs but cannot be executed locally under the coordinator's no-local-browser constraint. Their red/green result remains unobserved until permitted hosted execution; existing real native editing probes remain required for both default and compact sizes. Historical 2da51184 browser/axe evidence does not certify this new head.
+
+Evidence: reviewer-owned `program/shots/uikit3-pairing/live-figma-reviewer/context-327-38256.json` (grid327:40138, cells327:40139/40140, footer327:40189/icon327:40194, button327:40187); compact `context-327-43227.json` (grid327:43690, cells327:43691/43692, result icon327:43724); approved327:43203, used327:44224, denied327:44720. Shared desktop consent327:40226 uses 40px lg buttons; narrow/coarse targets retain 44px. No global harness changes or Figma writes.
+
+Fresh local continuation results: full coverage 146 files passed / one skipped, 3411 tests passed / 33 skipped (132.66s, maxWorkers=1); typecheck, lint, format:check, package build, 499 release tests and Storybook build all passed. All seven PR-changed source files pass the 90% lines / 85% branches gate; DeviceCodeInput 94.73% / 92.3%, DeviceCodeCard 100% / 100%. Native overlay class and native probe/runner unchanged. Browser assertions, native acceptance, axe and replacement images are pending fresh execution; prior 2da51184 evidence remains historical.

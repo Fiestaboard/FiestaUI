@@ -129,7 +129,7 @@ function DeviceCodeInput({
         data-slot="device-code-cells"
         aria-hidden="true"
         className={cn(
-          "grid grid-cols-[repeat(4,minmax(0,1fr))_auto_repeat(4,minmax(0,1fr))] font-mono text-base font-medium",
+          "grid grid-cols-[repeat(4,minmax(0,1fr))_auto_repeat(4,minmax(0,1fr))] font-sans text-sm font-semibold",
           size === "compact" ? "gap-0.75" : "gap-1.5",
         )}
         dir="ltr"

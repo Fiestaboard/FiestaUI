@@ -22,8 +22,35 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Live 327:40138 / 327:43690 share Archivo typography at both cell sizes. */
+async function expectCodeTypography(canvasElement: HTMLElement, width: number, height: number, gap: number) {
+  await document.fonts.ready;
+  const grid = canvasElement.querySelector('[data-slot="device-code-cells"]')!;
+  expect(getComputedStyle(grid).columnGap).toBe(`${gap}px`);
+  for (const glyph of grid.children) {
+    const style = getComputedStyle(glyph);
+    expect(style.fontFamily).toContain("Archivo");
+    expect(style.fontSize).toBe("14px");
+    expect(style.fontWeight).toBe("600");
+    expect(style.lineHeight).toBe("20px");
+  }
+  for (const cell of grid.querySelectorAll('[data-slot="device-code-cell"]')) {
+    expect(cell.getBoundingClientRect().width).toBeCloseTo(width, 1);
+    expect(cell.getBoundingClientRect().height).toBe(height);
+  }
+  // Decorative glyph typography must not alter the native editing metric.
+  const input = canvasElement.querySelector("input")!;
+  expect(getComputedStyle(input).fontFamily).toContain("Spline Sans Mono");
+  expect(getComputedStyle(input).fontSize).toBe("16px");
+  expect(getComputedStyle(input).opacity).toBe("0");
+}
+
 /** All stories run in both token themes in the a11y/VRT matrix. */
-export const Default: Story = {};
+export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    await expectCodeTypography(canvasElement, 36, 48, 6);
+  },
+};
 export const Empty: Story = { args: { value: "" } };
 export const Complete: Story = { args: { value: "BCDF7KQM" } };
 export const Invalid: Story = { args: { "aria-invalid": true } };
@@ -117,6 +144,7 @@ export const Compact: Story = {
     for (const cell of grid.querySelectorAll('[data-slot="device-code-cell"]')) {
       expect(cell.getBoundingClientRect().height).toBe(44);
     }
+    await expectCodeTypography(canvasElement, 30, 44, 3);
     // The hidden field's native character advance scales with this container,
     // rather than retaining the default 343px geometry. postVisit tests real hits.
     await document.fonts.ready;

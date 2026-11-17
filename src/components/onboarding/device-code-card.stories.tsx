@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { CircleCheck, Clock, ShieldAlert, Tv, UserRound, X } from "lucide-react";
+import { CircleCheck, CircleHelp, Clock, ShieldAlert, Tv, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { expect } from "storybook/test";
 
@@ -28,6 +28,20 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Fine desktop actions use the drawn lg size; narrow/coarse targets retain 44px. */
+async function expectActionGeometry(canvasElement: HTMLElement) {
+  const card = canvasElement.querySelector<HTMLElement>('[data-slot="device-code-card"]')!;
+  const actions = card.querySelector('[data-slot="device-code-actions"]')!;
+  const style = getComputedStyle(card);
+  const contentWidth = card.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+  const wide = contentWidth >= 352;
+  const coarse = !!card.closest(".fui-coarse") && matchMedia("(pointer: coarse)").matches;
+  expect(getComputedStyle(actions).gap).toBe(wide ? "8px" : "16px");
+  for (const button of actions.querySelectorAll("button")) {
+    expect(button.getBoundingClientRect().height).toBe(wide && !coarse ? 40 : 44);
+  }
+}
+
 // These result references exist only at 390px. The fixed frame keeps the
 // shared scrollbar gutter from shrinking their intended 358px card column.
 const phoneReference: Story = {
@@ -41,6 +55,7 @@ const phoneReference: Story = {
     ),
   ],
   play: async ({ canvasElement }) => {
+    await expectActionGeometry(canvasElement);
     const frame = canvasElement.querySelector("main")!.getBoundingClientRect();
     const card = canvasElement.querySelector<HTMLElement>('[data-slot="device-code-card"]')!;
     expect(frame.width).toBe(390);
@@ -50,6 +65,15 @@ const phoneReference: Story = {
     expect(
       card.querySelector('[data-slot="device-code-header"]')!.getBoundingClientRect().height,
     ).toBeGreaterThanOrEqual(100);
+    const result = card.querySelector('[data-slot="device-code-result"]');
+    if (result) {
+      const icon = result.querySelector("svg")!.getBoundingClientRect();
+      const body = result.querySelector("div")!.getBoundingClientRect();
+      expect(icon.width).toBe(28);
+      expect(icon.height).toBe(28);
+      expect(getComputedStyle(result).columnGap).toBe("12px");
+      expect(body.left - frame.left).toBeCloseTo(81, 1);
+    }
     for (const button of card.querySelectorAll("button")) {
       expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
     }
@@ -57,17 +81,32 @@ const phoneReference: Story = {
 };
 
 export const EnterCode: Story = {
+  play: async ({ canvasElement }) => {
+    await expectActionGeometry(canvasElement);
+    const footer = canvasElement.querySelector('[data-slot="device-code-footer"]')!;
+    const row = footer.firstElementChild!;
+    const icon = row.querySelector("svg")!;
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    expect(icon.getBoundingClientRect().width).toBe(14);
+    expect(icon.getBoundingClientRect().height).toBe(14);
+    expect(getComputedStyle(row).columnGap).toBe("6px");
+  },
   render: function Entry(args) {
     const [value, setValue] = useState("BCDF7KQ");
     return (
       <DeviceCodeCard
         {...args}
         primaryAction={
-          <Button size="touch" disabled={value.length !== 8}>
+          <Button size="lg" disabled={value.length !== 8}>
             Continue
           </Button>
         }
-        footer="No code? Open FiestaBoard on the TV and choose Sign in."
+        footer={
+          <span className="flex items-center gap-1.5">
+            <CircleHelp aria-hidden="true" className="size-3.5 shrink-0" />
+            <span>No code? Open FiestaBoard on the TV and choose Sign in.</span>
+          </span>
+        }
       >
         <DeviceCodeInput
           aria-label="Code shown on your TV"
@@ -84,12 +123,13 @@ export const EnterCode: Story = {
 };
 
 export const AllowTV: Story = {
+  play: async ({ canvasElement }) => expectActionGeometry(canvasElement),
   args: {
     title: "Allow this TV?",
     description: "Only allow a TV you can see in front of you right now.",
-    primaryAction: <Button size="touch">Allow this TV</Button>,
+    primaryAction: <Button size="lg">Allow this TV</Button>,
     secondaryAction: (
-      <Button size="touch" variant="outline">
+      <Button size="lg" variant="outline">
         Deny
       </Button>
     ),
@@ -133,8 +173,8 @@ export const Approved: Story = {
     title: "Living room Apple TV is signed in",
     description: undefined,
     children: (
-      <div className="flex items-start gap-3">
-        <CircleCheck aria-hidden="true" className="size-6 shrink-0 text-success" />
+      <div data-slot="device-code-result" className="flex items-start gap-3">
+        <CircleCheck aria-hidden="true" className="size-7 shrink-0 text-success" />
         <div className="flex flex-col gap-1">
           <p className="text-sm text-muted-foreground">
             It will show its panel in a few seconds. If it asks, pick a panel on the TV.
@@ -143,9 +183,9 @@ export const Approved: Story = {
         </div>
       </div>
     ),
-    primaryAction: <Button size="touch">Done</Button>,
+    primaryAction: <Button size="lg">Done</Button>,
     secondaryAction: (
-      <Button size="touch" variant="outline">
+      <Button size="lg" variant="outline">
         See signed-in devices
       </Button>
     ),
@@ -166,8 +206,8 @@ export const Expired: Story = {
           readOnly
           aria-invalid
         />
-        <div className="flex items-start gap-3">
-          <Clock aria-hidden="true" className="size-6 shrink-0 text-muted-foreground" />
+        <div data-slot="device-code-result" className="flex items-start gap-3">
+          <Clock aria-hidden="true" className="size-7 shrink-0 text-muted-foreground" />
           <div className="flex flex-col gap-1 text-sm">
             <p className="text-muted-foreground">Codes last 10 minutes. Nothing was signed in.</p>
             <p>On the TV, choose Get a new code, then type the new one here.</p>
@@ -175,7 +215,7 @@ export const Expired: Story = {
         </div>
       </>
     ),
-    primaryAction: <Button size="touch">Enter a new code</Button>,
+    primaryAction: <Button size="lg">Enter a new code</Button>,
   },
   play: async (context) => {
     await phoneReference.play?.(context);
@@ -195,17 +235,17 @@ export const AlreadyUsed: Story = {
     title: "This code was already used",
     description: undefined,
     children: (
-      <div className="flex items-start gap-3">
-        <ShieldAlert aria-hidden="true" className="size-6 shrink-0 text-warning" />
+      <div data-slot="device-code-result" className="flex items-start gap-3">
+        <ShieldAlert aria-hidden="true" className="size-7 shrink-0 text-warning" />
         <div className="flex flex-col gap-1 text-sm">
           <p className="text-muted-foreground">Codes work once. Someone allowed or denied this one at 5:29 PM.</p>
           <p>If you didn’t do that, check Signed-in devices and sign out any TV you don’t recognize.</p>
         </div>
       </div>
     ),
-    primaryAction: <Button size="touch">See signed-in devices</Button>,
+    primaryAction: <Button size="lg">See signed-in devices</Button>,
     secondaryAction: (
-      <Button size="touch" variant="outline">
+      <Button size="lg" variant="outline">
         Enter a different code
       </Button>
     ),
@@ -217,8 +257,8 @@ export const Denied: Story = {
     title: "Not allowed",
     description: undefined,
     children: (
-      <div className="flex items-start gap-3">
-        <X aria-hidden="true" className="size-6 shrink-0 text-destructive" />
+      <div data-slot="device-code-result" className="flex items-start gap-3">
+        <X aria-hidden="true" className="size-7 shrink-0 text-destructive" />
         <div className="flex flex-col gap-1 text-sm">
           <p className="text-muted-foreground">
             “Living room Apple TV” can’t sign in with this code. The TV shows “Not allowed”.
@@ -227,9 +267,9 @@ export const Denied: Story = {
         </div>
       </div>
     ),
-    primaryAction: <Button size="touch">Done</Button>,
+    primaryAction: <Button size="lg">Done</Button>,
     secondaryAction: (
-      <Button size="touch" variant="outline">
+      <Button size="lg" variant="outline">
         Enter a new code
       </Button>
     ),
