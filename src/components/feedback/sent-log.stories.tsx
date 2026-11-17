@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 
 import { SentLog } from "./sent-log";
 
@@ -29,9 +29,11 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    expect(canvas.getAllByRole("listitem")).toHaveLength(3);
-    expect(canvas.getByText("Held")).toBeVisible();
-    expect(canvas.getByText("Paused")).toBeVisible();
+    await expect(canvas.getAllByRole("listitem")).toHaveLength(3);
+    await waitFor(async () => {
+      await expect(canvas.getByText("Held")).toBeVisible();
+      await expect(canvas.getByText("Paused")).toBeVisible();
+    });
   },
 };
 export const Summary: Story = { args: { presentation: "summary" } };
