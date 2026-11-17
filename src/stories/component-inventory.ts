@@ -439,6 +439,11 @@ export const INVENTORY = [
       "The TipTap-backed authoring surface for board templates. Consumers must also import `@fiestaboard/ui/editor.css` — the package does not import it at runtime.",
     entries: [
       {
+        name: "InspectorRow",
+        summary:
+          "A full-row Inspector action with optional detail, value and chevron; wraps for narrow panes and large text.",
+      },
+      {
         name: "TemplateEditor",
         summary: "The editor: line gutter, variable/colour nodes, alignment and wrap controls.",
       },

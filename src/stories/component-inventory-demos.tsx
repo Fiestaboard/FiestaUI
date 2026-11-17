@@ -152,6 +152,7 @@ import { EditorTool } from "../components/editor/editor-tool";
 import { EditorWarning, EditorWarningAction } from "../components/editor/editor-warning";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
+import { InspectorRow } from "../components/editor/inspector-row";
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
@@ -476,6 +477,24 @@ const COLLECTION_PAGES = [
   { id: "weather", name: "Weather + surf", meta: "10 min" },
 ];
 
+function InspectorRowDemo() {
+  const [opened, setOpened] = useState(false);
+  return (
+    <div className="w-full max-w-88">
+      <InspectorRow
+        title="Weekdays 7:30–8:30 AM"
+        detail="Den TV · Schedule entry"
+        value="On"
+        chevron
+        onPress={() => setOpened(true)}
+      />
+      <span role="status" className="sr-only">
+        {opened ? "Schedule entry opened" : ""}
+      </span>
+    </div>
+  );
+}
+
 function SortableListDemo() {
   const [pages, setPages] = useState(COLLECTION_PAGES);
   return (
@@ -557,6 +576,7 @@ function TemplateEditorDemo() {
  * ------------------------------------------------------------------ */
 
 export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
+  InspectorRow: InspectorRowDemo,
   HubDiscoveryRow: () => (
     <ListRowGroup aria-label="Discovered hubs" className="w-full max-w-md">
       <HubDiscoveryRow name="FiestaPi" address="fiestapi.local:4420" onSelect={() => {}} />
