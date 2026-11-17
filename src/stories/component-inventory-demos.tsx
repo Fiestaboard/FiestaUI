@@ -152,6 +152,7 @@ import { EditorTool } from "../components/editor/editor-tool";
 import { EditorWarning, EditorWarningAction } from "../components/editor/editor-warning";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
+import { GoToCell } from "../components/editor/go-to-cell";
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
@@ -2028,6 +2029,10 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
 
   /* ---- Template editor ---- */
+  GoToCell: function GoToCellDemo() {
+    const [value, setValue] = useState({ row: 14, column: 49 });
+    return <GoToCell columns={96} rows={24} value={value} onGo={setValue} />;
+  },
   TemplateEditor: TemplateEditorDemo,
   EditorPreview: () => (
     <EditorPreview

@@ -449,6 +449,10 @@ export const INVENTORY = [
       },
       { name: "EditorTool", summary: "One labelled 52 px tool of the touch editor bar." },
       {
+        name: "GoToCell",
+        summary: "Inline coordinate navigation with Mod+J, bounded validation and host-owned band/search resolution.",
+      },
+      {
         name: "EditorWarning",
         summary: "What the board will drop: the line-limit box, or a validated line-overflow card with fixes.",
       },
