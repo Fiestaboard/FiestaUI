@@ -70,6 +70,7 @@ import { Task, TaskContent, TaskItem, TaskTrigger } from "../components/ai/task"
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "../components/ai/tool";
 import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
+import { BoardMinimap } from "../components/board/board-minimap";
 import { BoardPreviewModeToggle } from "../components/board/board-preview-mode-toggle";
 import { BoardSizeIndicator } from "../components/board/board-size-indicator";
 import { BoardTeaser } from "../components/board/board-teaser";
@@ -130,7 +131,9 @@ import { Avatar } from "../components/containment/avatar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { IconTile } from "../components/containment/icon-tile";
+import { InspectorTabs, InspectorTabsContent } from "../components/containment/inspector-tabs";
 import { JsonTree } from "../components/containment/json-tree";
+import { type LayerItem, LayerRow, LayersPanel } from "../components/containment/layer-row";
 import { ListRow, ListRowGroup } from "../components/containment/list-row";
 import { MediaFrame, MediaFrameBar, MediaFrameMedia } from "../components/containment/media-frame";
 import { PagePreviewCard } from "../components/containment/page-preview-card";
@@ -146,25 +149,41 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containm
 import { BarList } from "../components/data/bar-list";
 import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
+import { ColumnRuler } from "../components/editor/column-ruler";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
+import { EditStateChip } from "../components/editor/edit-state-chip";
 import { EditorPreview } from "../components/editor/editor-preview";
 import { EditorTool } from "../components/editor/editor-tool";
 import { EditorWarning, EditorWarningAction } from "../components/editor/editor-warning";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
+import { FormulaAtom } from "../components/editor/formula-atom";
+import { GoToCell } from "../components/editor/go-to-cell";
+import { InspectorRow } from "../components/editor/inspector-row";
+import { NoteFocus } from "../components/editor/note-focus";
+import { NoteSeams } from "../components/editor/note-seams";
+import { PreviewStatus } from "../components/editor/preview-status";
+import { RevisionDiff } from "../components/editor/revision-diff";
+import { RevisionRow } from "../components/editor/revision-row";
+import { RowBand } from "../components/editor/row-band";
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
 import { TraceStep } from "../components/editor/trace-step";
+import { TruncationMap } from "../components/editor/truncation-map";
 import { createLucideIconResolver, VariablePickerContent } from "../components/editor/variable-picker-content";
+import { ZoomControl, type ZoomValue } from "../components/editor/zoom-control";
 import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
 import { Chip } from "../components/feedback/chip";
 import { Countdown } from "../components/feedback/countdown";
 import { EmptyState } from "../components/feedback/empty-state";
+import { OtherDisplaysCard, ScheduleModeCard, UpNextCard } from "../components/feedback/home-supporting-cards";
 import { Note } from "../components/feedback/note";
 import { NowShowingCard } from "../components/feedback/now-showing-card";
+import { ProblemItem } from "../components/feedback/problem-item";
+import { SentLog } from "../components/feedback/sent-log";
 import { Skeleton } from "../components/feedback/skeleton";
 import { Spinner } from "../components/feedback/spinner";
 import { StatusBanner, StatusBannerAction } from "../components/feedback/status-banner";
@@ -173,9 +192,11 @@ import { toast, Toaster } from "../components/feedback/toaster";
 import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
 import { ChoiceCard, ChoiceCardGroup, ChoiceCardPreview } from "../components/forms/choice-card";
+import { ChoiceChip, ChoiceChipGroup } from "../components/forms/choice-chip";
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
 import { CopyableCode } from "../components/forms/copyable-code";
+import { DataSourceSwitch } from "../components/forms/data-source-switch";
 import { buildDurationOptions, DurationChipGroup, OutcomeLine } from "../components/forms/duration-chip-group";
 import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
@@ -388,9 +409,31 @@ const SeeItsOwnStory = ({ storyPath, why }: { storyPath: string; why: string }) 
  * Controlled components need an owner
  * ------------------------------------------------------------------ */
 
+function BoardMinimapDemo() {
+  const [position, setPosition] = useState({ column: 1, row: 1 });
+  return (
+    <BoardMinimap
+      board={{ deviceType: "panel", gridCols: 29, gridRows: 12, message: "NEXT DEPARTURES" }}
+      viewport={{ ...position, columns: 21, rows: 12 }}
+      onJump={setPosition}
+    />
+  );
+}
+
+function NoteFocusDemo() {
+  const [note, setNote] = useState<number | null>(null);
+  return <NoteFocus note={note} onNoteChange={setNote} />;
+}
+
 function BoardPreviewModeToggleDemo() {
   const [mode, setMode] = useState<"fit" | "actual">("actual");
   return <BoardPreviewModeToggle mode={mode} onModeChange={setMode} />;
+}
+
+function ZoomControlDemo() {
+  const [value, setValue] = useState<ZoomValue>("sm");
+  const [open, setOpen] = useState(false);
+  return <ZoomControl value={value} onValueChange={setValue} minimapOpen={open} onMinimapOpenChange={setOpen} />;
 }
 
 function CountdownDemo() {
@@ -480,6 +523,35 @@ const COLLECTION_PAGES = [
   { id: "weather", name: "Weather + surf", meta: "10 min" },
 ];
 
+function LayersPanelDemo() {
+  const [layers, setLayers] = useState<LayerItem[]>([
+    { id: "temperature", name: "Temperature", meta: "Text · 5×7 · x 2, y 22", bound: true, boundValue: "= 64°" },
+    { id: "background", name: "Background", locked: true },
+  ]);
+  return (
+    <div className="w-full max-w-sm">
+      <LayersPanel layers={layers} onReorder={setLayers} />
+    </div>
+  );
+}
+function InspectorRowDemo() {
+  const [opened, setOpened] = useState(false);
+  return (
+    <div className="w-full max-w-88">
+      <InspectorRow
+        title="Weekdays 7:30–8:30 AM"
+        detail="Den TV · Schedule entry"
+        value="On"
+        chevron
+        onPress={() => setOpened(true)}
+      />
+      <span role="status" className="sr-only">
+        {opened ? "Schedule entry opened" : ""}
+      </span>
+    </div>
+  );
+}
+
 function SortableListDemo() {
   const [pages, setPages] = useState(COLLECTION_PAGES);
   return (
@@ -560,7 +632,10 @@ function TemplateEditorDemo() {
  * The demos
  * ------------------------------------------------------------------ */
 
+const rulerViewportClass = "max-w-full overflow-x-auto focus-ring";
+
 export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
+  InspectorRow: InspectorRowDemo,
   HubDiscoveryRow: () => (
     <ListRowGroup aria-label="Discovered hubs" className="w-full max-w-md">
       <HubDiscoveryRow name="FiestaPi" address="fiestapi.local:4420" onSelect={() => {}} />
@@ -822,6 +897,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <SecretInput id="inv-secret" defaultValue="fb_live_2f9c41" />
     </Stack>
   ),
+  DataSourceSwitch: () => <DataSourceSwitch aria-label="Preview data" />,
   TraceStep: () => <TraceStep expression="SUM(3, 4)" value="7" />,
   SegmentedControl: () => (
     <SegmentedControl aria-label="Board animations" defaultValue="subtle">
@@ -901,6 +977,13 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       </Toggle>
     </Flex>
   ),
+  ChoiceChip: () => (
+    <ChoiceChipGroup aria-label="Display status" size="touch" defaultValue="all">
+      <ChoiceChip value="all" label="All displays" />
+      <ChoiceChip value="online" label="Online" />
+      <ChoiceChip value="offline" label="Offline" />
+    </ChoiceChipGroup>
+  ),
   ChoiceCard: () => (
     <ChoiceCardGroup aria-label="Display type" defaultValue="flagship" className="w-full max-w-[370px]">
       <ChoiceCard
@@ -943,6 +1026,10 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
 
   /* ---- Feedback ---- */
+  ProblemItem: () => (
+    <ProblemItem severity="error" message="#REF · Row 12" detail="muni.next doesn’t exist" onJump={() => {}} />
+  ),
+  SentLog: () => <SentLog items={[{ id: "last", at: "7:41 AM", outcome: "shown", message: "to Den TV" }]} />,
   Alert: () => (
     <Stack gap="3" className="w-full max-w-lg">
       <Alert>
@@ -1128,6 +1215,63 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     />
   ),
   OutcomeLine: () => <OutcomeLine>Holds until 9:00 PM, then Schedule resumes. Next: Good night.</OutcomeLine>,
+  UpNextCard: () => (
+    <UpNextCard
+      className="w-full max-w-[274px]"
+      display="Kitchen board"
+      items={[{ id: "next", time: "9:00 PM", title: "Good night", description: "Schedule · Page" }]}
+      actions={
+        <Button size="sm" variant="ghost">
+          View Schedule
+        </Button>
+      }
+    />
+  ),
+  OtherDisplaysCard: () => (
+    <OtherDisplaysCard
+      className="w-full max-w-[274px]"
+      items={[
+        {
+          id: "desk",
+          name: "Desk Pixoo",
+          description: "Collection · Desk agenda",
+          status: "success",
+          statusLabel: "Online",
+          preview: (
+            <span className="block w-[75px]">
+              <DisplayPreview model="divoom_pixoo64" content="sample" />
+            </span>
+          ),
+        },
+      ]}
+      actions={
+        <Button size="sm" variant="ghost">
+          <Monitor aria-hidden="true" />
+          All displays
+        </Button>
+      }
+    />
+  ),
+  ScheduleModeCard: function ScheduleModeDemo() {
+    const [checked, setChecked] = useState(false);
+    return (
+      <ScheduleModeCard
+        className="w-full max-w-[274px]"
+        checked={checked}
+        onCheckedChange={setChecked}
+        description={
+          checked
+            ? "Pages change according to the Schedule."
+            : "Evening commute stays until you change it or turn Schedule Mode back on."
+        }
+        actions={
+          <Button size="sm" variant="ghost">
+            View Schedule
+          </Button>
+        }
+      />
+    );
+  },
   Note: () => (
     <Stack gap="3" className="w-full max-w-lg">
       <Note icon={<Info />}>Transitions are only applied when sending through the local API.</Note>
@@ -1308,6 +1452,17 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <JsonTree data={JSON_SAMPLE} path="response" defaultExpandedDepth={1} />
     </Frame>
   ),
+  LayerRow: () => (
+    <LayerRow
+      name="Temperature"
+      meta="Text · 5×7 · x 2, y 22"
+      bound
+      boundValue="= 64°"
+      selected
+      className="w-full max-w-sm"
+    />
+  ),
+  LayersPanel: () => <LayersPanelDemo />,
   ListRow: () => (
     <ListRowGroup aria-label="Settings" className="w-full max-w-md">
       <ListRow
@@ -1386,6 +1541,34 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </TableBody>
       </Table>
     </Frame>
+  ),
+  InspectorTabs: () => (
+    <InspectorTabs
+      aria-label="Inspector"
+      tabs={[
+        { value: "data", label: "Data" },
+        { value: "logic", label: "Logic" },
+        { value: "page", label: "Page" },
+      ]}
+      defaultValue="data"
+      className="w-full max-w-lg"
+    >
+      <InspectorTabsContent value="data">
+        <Text size="sm" tone="muted">
+          Data sources and variables.
+        </Text>
+      </InspectorTabsContent>
+      <InspectorTabsContent value="logic">
+        <Text size="sm" tone="muted">
+          Page formulas.
+        </Text>
+      </InspectorTabsContent>
+      <InspectorTabsContent value="page">
+        <Text size="sm" tone="muted">
+          Page settings.
+        </Text>
+      </InspectorTabsContent>
+    </InspectorTabs>
   ),
   Tabs: () => (
     <Tabs defaultValue="inv-tab-overview" className="w-full max-w-lg">
@@ -1906,6 +2089,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <ScaledBoardDisplay message={BOARD_MESSAGE} size="md" />
     </div>
   ),
+  BoardMinimap: () => <BoardMinimapDemo />,
   BoardViewport: () => (
     <div className="w-full max-w-[320px]">
       <BoardViewport
@@ -1920,6 +2104,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </div>
   ),
   BoardPreviewModeToggle: () => <BoardPreviewModeToggleDemo />,
+  ZoomControl: () => <ZoomControlDemo />,
   PreviewSlot: () => (
     <PreviewSlot className="w-full max-w-[320px]">
       <StaticBoardDisplay message={BOARD_MESSAGE} size="sm" />
@@ -2033,7 +2218,77 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
 
   /* ---- Template editor ---- */
+  GoToCell: function GoToCellDemo() {
+    const [value, setValue] = useState({ row: 14, column: 49 });
+    return <GoToCell columns={96} rows={24} value={value} onGo={setValue} />;
+  },
   TemplateEditor: TemplateEditorDemo,
+  RevisionRow: () => (
+    <RevisionRow
+      thumbnail={<StaticBoardDisplay message="REVISION" size="sm" />}
+      savedAt="7:12 AM"
+      author="Saved on iPad"
+      status="live"
+      onCompare={() => {}}
+    />
+  ),
+  RevisionDiff: () => (
+    <RevisionDiff
+      before={{ label: "7:12 AM", thumbnail: <StaticBoardDisplay message="BEFORE" size="sm" /> }}
+      after={{ label: "Now", thumbnail: <StaticBoardDisplay message="AFTER" size="sm" /> }}
+      summary="One row changed"
+    />
+  ),
+  PreviewStatus: () => (
+    <PreviewStatus
+      display="live"
+      editState="testing"
+      message="Showing on Den TV now"
+      problems={2}
+      onOpenProblems={() => {}}
+      size="touch"
+    />
+  ),
+  EditStateChip: () => (
+    <div className="flex flex-wrap gap-2">
+      <EditStateChip state="unsaved" />
+      <EditStateChip state="draft" />
+      <EditStateChip state="testing" />
+      <EditStateChip state="saved" label="Saved 2 min ago" />
+    </div>
+  ),
+  ColumnRuler: () => (
+    // The overflow viewport is the keyboard target for this read-only diagram.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+    <div role="region" aria-label="Column ruler viewport" tabIndex={0} className={rulerViewportClass}>
+      <ColumnRuler columns={29} marks={[{ id: "cut", type: "cut", column: 29 }]} />
+    </div>
+  ),
+  TruncationMap: () => (
+    <TruncationMap
+      columns={29}
+      lines={[
+        { row: 1, length: 16 },
+        { row: 2, length: 31, overflow: { column: 29, count: 2, description: "Row 2 · Last two columns are cut" } },
+      ]}
+    />
+  ),
+  NoteFocus: () => <NoteFocusDemo />,
+  NoteSeams: () => (
+    <div className="max-w-full overflow-x-auto">
+      <div className="relative w-[483px]">
+        <StaticBoardDisplay
+          deviceType="note_array"
+          notesWide={2}
+          notesTall={2}
+          size="sm"
+          bezel={false}
+          message="ONE CANVAS"
+        />
+        <NoteSeams note={2} />
+      </div>
+    </div>
+  ),
   EditorPreview: () => (
     <EditorPreview
       className="static w-full max-w-md"
@@ -2049,6 +2304,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <TemplateEditorToolbar editor={null} templateVariables={TEMPLATE_VARIABLES} />
     </Frame>
   ),
+  RowBand: () => <RowBand label="Departures" rows={[3, 10]} meta="Rows 3–10 · FOREACH" selected />,
   EditorTool: () => (
     <Frame className="flex max-w-[200px] border-t border-border bg-card px-1 py-1">
       <EditorTool icon={<Palette />} label="Colors" />
@@ -2067,6 +2323,13 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         “N JUDAH 4, 12 AND 25 MIN” — the board shows the first 22 columns.
       </EditorWarning>
       <EditorWarning kind="line-limit" lines={7} maxLines={6} />
+    </Stack>
+  ),
+  FormulaAtom: () => (
+    <Stack gap="3" className="items-start">
+      <FormulaAtom source="IF(temp > 80, …)" value="= 72" />
+      <FormulaAtom kind="variable" state="error" source="weather.temp" value="#REF" />
+      <FormulaAtom state="fallback" source="DEFAULT(temp, 72)" value="= 72" />
     </Stack>
   ),
   ToolbarDropdown: () => (

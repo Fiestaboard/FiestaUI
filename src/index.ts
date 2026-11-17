@@ -12,7 +12,9 @@ export * from "./components/containment/avatar";
 export * from "./components/containment/card";
 export * from "./components/containment/collapsible";
 export * from "./components/containment/icon-tile";
+export * from "./components/containment/inspector-tabs";
 export * from "./components/containment/json-tree";
+export * from "./components/containment/layer-row";
 export * from "./components/containment/list-row";
 export * from "./components/containment/media-frame";
 export * from "./components/containment/page-preview-card";
@@ -21,14 +23,19 @@ export * from "./components/feedback/badge";
 export * from "./components/feedback/chip";
 export * from "./components/feedback/countdown";
 export * from "./components/feedback/empty-state";
+export * from "./components/feedback/home-supporting-cards";
 export * from "./components/feedback/note";
 export * from "./components/feedback/now-showing-card";
+export * from "./components/feedback/problem-item";
+export * from "./components/feedback/sent-log";
 export * from "./components/forms/button";
 export * from "./components/forms/checkbox";
 export * from "./components/forms/choice-card";
+export * from "./components/forms/choice-chip";
 export * from "./components/forms/combobox";
 export * from "./components/forms/copy-button";
 export * from "./components/forms/copyable-code";
+export * from "./components/forms/data-source-switch";
 export * from "./components/forms/duration-chip-group";
 export * from "./components/forms/field";
 export * from "./components/forms/input";
@@ -117,6 +124,7 @@ export { cn } from "./lib/utils";
 // Board preview — the split-flap Vestaboard display renderer + its data.
 export * from "./components/board/board-backdrop";
 export * from "./components/board/board-display";
+export * from "./components/board/board-minimap";
 export * from "./components/board/board-preview-mode";
 export * from "./components/board/board-preview-mode-toggle";
 export * from "./components/board/board-size-indicator";
@@ -127,6 +135,7 @@ export * from "./components/board/static-board-display";
 export * from "./lib/board-characters";
 export * from "./lib/board-colors";
 export * from "./lib/board-dimensions";
+export * from "./lib/note-array-geometry";
 // The icon registry behind `{icon:…}` (parsed under `extendedMarkup`, which
 // every renderer now defaults on): a curated surface, so the LED glyph data
 // that joins it later stays internal.
@@ -358,13 +367,24 @@ export * from "./components/plugin/scaled-board-teaser";
 //   import { FormulaEditorPanel } from "@fiestaboard/ui/components/editor/formula/formula-editor-panel";
 // FormulaNodeView reaches it through a `lazy()` dynamic import, so it lands in a
 // separate async chunk rather than the barrel's graph — keep it that way.
+export * from "./components/editor/column-ruler";
 export * from "./components/editor/constants";
 export * from "./components/editor/editor-preview";
 export * from "./components/editor/editor-tool";
 export * from "./components/editor/editor-warning";
+export * from "./components/editor/formula-atom";
+export * from "./components/editor/go-to-cell";
+export * from "./components/editor/inspector-row";
+export * from "./components/editor/note-focus";
+export * from "./components/editor/note-seams";
+export * from "./components/editor/revision-diff";
+export * from "./components/editor/revision-row";
+export * from "./components/editor/row-band";
 export * from "./components/editor/template-editor";
 export * from "./components/editor/template-editor-toolbar";
 export * from "./components/editor/toolbar-dropdown";
+export * from "./components/editor/truncation-map";
+export * from "./components/editor/zoom-control";
 // Pickers — rendered by the toolbar, exported so an app can host them standalone.
 export * from "./components/editor/color-picker-content";
 export * from "./components/editor/draw-char-picker-content";
@@ -424,5 +444,7 @@ export * from "./components/ai/suggestion";
 export * from "./components/ai/task";
 export * from "./components/ai/tool";
 export * from "./components/board/preview-slot";
+export * from "./components/editor/edit-state-chip";
+export * from "./components/editor/preview-status";
 export * from "./components/editor/trace-step";
 export * from "./components/onboarding/hub-discovery-row";
