@@ -12,11 +12,14 @@ export async function checkFlowShellGeometry(page: Page, id: string) {
       await page.evaluate(
         () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
       );
-      const geometry = await page.evaluate(() => {
+      const geometry = await page.evaluate(async () => {
         const sheet = document.querySelector<HTMLElement>('[data-slot="sheet-content"]');
         const dialog = document.querySelector<HTMLElement>('[data-slot="dialog-content"]');
         const surface = sheet ?? dialog;
         if (!surface) return null;
+        // A bottom sheet can still be translating into view after its play
+        // function finishes. Measure its settled bounds at every viewport.
+        await Promise.all(surface.getAnimations().map((animation) => animation.finished.catch(() => {})));
         const kind = sheet ? "sheet" : "dialog";
         const title = surface.querySelector<HTMLElement>(`[data-slot="${kind}-title"]`)!;
         const description = surface.querySelector<HTMLElement>(`[data-slot="${kind}-description"]`)!;
