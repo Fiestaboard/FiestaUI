@@ -6,7 +6,14 @@ import type { Page } from "playwright";
 export async function checkChoiceChip(page: Page, id: string) {
   if (id !== "forms-choicechip--default" && id !== "forms-choicechip--selected") return;
   const selected = id === "forms-choicechip--selected";
-  await page.evaluate(() => document.fonts.ready);
+  const loadedFaces = await page.evaluate(async () => {
+    // ready only waits for loads already in flight. Request the exact face
+    // before the first geometry read after Storybook switches this story in.
+    const faces = await document.fonts.load('500 14px "Archivo Variable"', "Chip");
+    await document.fonts.ready;
+    return faces.map((face) => ({ family: face.family, weight: face.weight, status: face.status }));
+  });
+  assert.ok(loadedFaces.length > 0, `${id}: Archivo Variable face must be registered and loaded`);
   const geometry = await page.locator('[data-slot="choice-chip"]').evaluate((root) => {
     const pill = root.querySelector<HTMLElement>('[data-slot="choice-chip-pill"]')!;
     const label = root.querySelector<HTMLElement>('[data-slot="choice-chip-label"]')!;
@@ -14,7 +21,15 @@ export async function checkChoiceChip(page: Page, id: string) {
     const pillBox = pill.getBoundingClientRect();
     const labelBox = label.getBoundingClientRect();
     const checkBox = check.getBoundingClientRect();
+    const labelStyle = getComputedStyle(label);
     return {
+      text: label.textContent,
+      fontFamily: labelStyle.fontFamily,
+      fontSize: labelStyle.fontSize,
+      fontWeight: labelStyle.fontWeight,
+      fontStretch: labelStyle.fontStretch,
+      letterSpacing: labelStyle.letterSpacing,
+      checked: root.hasAttribute("data-checked"),
       targetHeight: root.getBoundingClientRect().height,
       pillHeight: pillBox.height,
       pillWidth: pillBox.width,
@@ -24,13 +39,20 @@ export async function checkChoiceChip(page: Page, id: string) {
       checkWidth: checkBox.width,
     };
   });
+  const diagnostic = JSON.stringify({ geometry, loadedFaces });
+  process.stdout.write(`[ChoiceChip geometry] ${id}: ${diagnostic}\n`);
+  assert.equal(geometry.text, "Chip", `${id}: Figma sample label`);
+  assert.match(geometry.fontFamily, /^"?Archivo Variable"?(?:,|$)/, `${id}: expected family; ${diagnostic}`);
+  assert.equal(geometry.fontSize, "14px", `${id}: Figma text size`);
+  assert.equal(geometry.fontWeight, "500", `${id}: Figma text weight`);
+  assert.equal(geometry.checked, selected, `${id}: selected state; ${diagnostic}`);
   assert.equal(geometry.targetHeight, 44, `${id}: touch target height`);
   assert.equal(geometry.pillHeight, 32, `${id}: visual pill height`);
   assert.equal(geometry.labelInset, selected ? 35.5 : 15, `${id}: label inset includes Figma stroke`);
   // Compare content-relative width exactly, then allow subpixel font metrics in
   // the total Figma width (Archivo's 30px sample label → Off60 / On81).
   assert.equal(geometry.pillWidth - geometry.labelWidth, selected ? 51 : 30, `${id}: horizontal geometry`);
-  assert.ok(Math.abs(geometry.pillWidth - (selected ? 81 : 60)) < 0.5, `${id}: Figma pill width`);
+  assert.ok(Math.abs(geometry.pillWidth - (selected ? 81 : 60)) < 0.5, `${id}: Figma pill width; ${diagnostic}`);
   if (selected) {
     assert.equal(geometry.checkInset, 15.5, `${id}: check inset includes Figma stroke`);
     assert.equal(geometry.checkWidth, 14, `${id}: check width`);

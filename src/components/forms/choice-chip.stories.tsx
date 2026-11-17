@@ -3,7 +3,12 @@ import { Wifi } from "lucide-react";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
-import { ChoiceChip, ChoiceChipGroup } from "./choice-chip";
+import { ChoiceChip, ChoiceChipGroup, type ChoiceChipProps } from "./choice-chip";
+
+function InteractiveChip(args: ChoiceChipProps) {
+  const [selected, setSelected] = useState(args.selected ?? false);
+  return <ChoiceChip {...args} selected={selected} onSelectedChange={setSelected} />;
+}
 
 const meta = {
   title: "Forms/ChoiceChip",
@@ -11,10 +16,8 @@ const meta = {
   parameters: { layout: "padded" },
   tags: ["autodocs"],
   args: { label: "Chip", size: "touch" },
-  render: function Render(args) {
-    const [selected, setSelected] = useState(args.selected ?? false);
-    return <ChoiceChip {...args} selected={selected} onSelectedChange={setSelected} />;
-  },
+  // Reset local interaction state when the selected control changes.
+  render: (args) => <InteractiveChip key={String(args.selected)} {...args} />,
 } satisfies Meta<typeof ChoiceChip>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -97,7 +100,10 @@ export const SelectedFocused: Story = {
     const chip = within(canvasElement).getByRole("button", { name: "Chip" });
     await userEvent.tab();
     await expect(chip).toHaveFocus();
-    await expect(chip.querySelector('[data-slot="choice-chip-check"]')).toBeVisible();
+    await expect(chip).toHaveAttribute("aria-pressed", "true");
+    // The shared <main> enters from opacity0; wait for painted visibility,
+    // without replacing the selected-check assertion with a class check.
+    await waitFor(() => expect(chip.querySelector('[data-slot="choice-chip-check"]')).toBeVisible());
     await waitFor(() => expect(getComputedStyle(chip).boxShadow).not.toBe("none"));
     const pill = chip.querySelector('[data-slot="choice-chip-pill"]') as HTMLElement;
     await expect(getComputedStyle(pill).outlineWidth).toBe("1.5px");
