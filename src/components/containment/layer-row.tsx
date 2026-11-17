@@ -69,7 +69,7 @@ function LayerRow({
   const boundContent = (
     <span
       data-slot="layer-row-bound"
-      className="inline-flex min-w-0 items-center gap-1 rounded-sm bg-tag-formula/15 px-1.5 py-0.5 font-mono text-xs leading-4 font-normal text-tag-formula"
+      className="inline-flex min-w-0 items-center gap-1 rounded-sm bg-tag-formula/15 px-1.5 py-0.5 font-mono text-xs leading-4 font-normal text-tag-formula-foreground"
     >
       <Sigma aria-hidden="true" className="size-3" />
       <span id={valueId} className="truncate" title={boundValue}>

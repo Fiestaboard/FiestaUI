@@ -28,7 +28,8 @@ export const Default: Story = {};
 export const Selected: Story = { args: { selected: true } };
 export const Locked: Story = { args: { name: "Protected text", locked: true, bound: false } };
 export const Hidden: Story = { args: { visible: false } };
-export const Dark: Story = { globals: { theme: "dark" }, args: { selected: true } };
+/** The toolbar and CI theme matrix own the palette, including this selected-state example. */
+export const Dark: Story = { args: { selected: true } };
 export const Touch: Story = { args: { size: "touch" } };
 export const LongContent: Story = {
   args: {
@@ -167,6 +168,29 @@ export const HostChangesDuringDrag: Story = {
   render: () => <LifecycleDemo />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    const expectNoReorders = async () => {
+      try {
+        await waitFor(() => expect(canvas.getByText("Reorders: 0")).toBeVisible());
+      } catch (error) {
+        // Preserve the failing assertion and capture the missing ancestor evidence in CI.
+        const ancestors = [];
+        for (let node: HTMLElement | null = canvas.queryByText("Reorders: 0"); node; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          ancestors.push({
+            tag: node.tagName,
+            id: node.id,
+            className: node.className,
+            hidden: node.hidden,
+            connected: node.isConnected,
+            display: style.display,
+            visibility: style.visibility,
+            opacity: style.opacity,
+          });
+        }
+        console.error("LayerRow lifecycle visibility failure", JSON.stringify(ancestors));
+        throw error;
+      }
+    };
     const begin = (from: number, to: number, pointerId: number) => {
       const rows = canvas.getAllByRole("listitem");
       const row = rows[from];
@@ -186,7 +210,7 @@ export const HostChangesDuringDrag: Story = {
     gamma.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 21 }));
     await expect(canvasElement.querySelector("[data-dragging]")).toBeNull();
     await expect(canvas.getAllByRole("listitem")).toHaveLength(2);
-    await expect(canvas.getByText("Reorders: 0")).toBeVisible();
+    await expectNoReorders();
 
     const beta = begin(0, 1, 22);
     await waitFor(() => expect(canvasElement.querySelector("[data-dragging]")).not.toBeNull());
@@ -194,7 +218,7 @@ export const HostChangesDuringDrag: Story = {
     await expect(canvasElement.querySelector("[data-dragging]")).toBeNull();
     await userEvent.click(canvas.getByRole("button", { name: "Enable layers" }));
     beta.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 22 }));
-    await expect(canvas.getByText("Reorders: 0")).toBeVisible();
+    await expectNoReorders();
     await expect(canvas.getAllByRole("listitem")[0]).toHaveTextContent("Beta");
   },
 };
