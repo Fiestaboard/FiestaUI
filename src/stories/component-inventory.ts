@@ -505,6 +505,10 @@ export const INVENTORY = [
       },
       { name: "PreviewStatus", summary: "Display and edit status with a touch-friendly Problems action." },
       { name: "EditStateChip", summary: "Independent unsaved, draft, testing and saved edit state." },
+      {
+        name: "FormulaAtom",
+        summary: "Formula or variable source with its current value, error tag or fallback hint.",
+      },
       { name: "ToolbarDropdown", summary: "The popover shell the toolbar's pickers are mounted in." },
       { name: "VariablePickerContent", summary: "Plugin variables, grouped by plugin with previews." },
       {

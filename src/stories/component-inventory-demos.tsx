@@ -156,6 +156,7 @@ import { EditorTool } from "../components/editor/editor-tool";
 import { EditorWarning, EditorWarningAction } from "../components/editor/editor-warning";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
+import { FormulaAtom } from "../components/editor/formula-atom";
 import { PreviewStatus } from "../components/editor/preview-status";
 import { RevisionDiff } from "../components/editor/revision-diff";
 import { RevisionRow } from "../components/editor/revision-row";
@@ -2242,6 +2243,13 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         “N JUDAH 4, 12 AND 25 MIN” — the board shows the first 22 columns.
       </EditorWarning>
       <EditorWarning kind="line-limit" lines={7} maxLines={6} />
+    </Stack>
+  ),
+  FormulaAtom: () => (
+    <Stack gap="3" className="items-start">
+      <FormulaAtom source="IF(temp > 80, …)" value="= 72" />
+      <FormulaAtom kind="variable" state="error" source="weather.temp" value="#REF" />
+      <FormulaAtom state="fallback" source="DEFAULT(temp, 72)" value="= 72" />
     </Stack>
   ),
   ToolbarDropdown: () => (
