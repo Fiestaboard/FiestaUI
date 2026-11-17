@@ -1,6 +1,33 @@
 import assert from "node:assert/strict";
+import { isNativeError } from "node:util/types";
 
-import type { Page } from "playwright";
+import type { CDPSession, Page } from "playwright";
+
+/** Optional launch diagnostics must not prevent font and geometry checks. */
+export async function readChoiceChipRenderingFlags(session: Pick<CDPSession, "send">) {
+  return session
+    .send("Browser.getBrowserCommandLine")
+    .then(({ arguments: launchArguments }) =>
+      launchArguments.filter((argument) =>
+        /^--(?:headless|font-render-hinting|disable-font-subpixel-positioning|force-device-scale-factor|force-color-profile)(?:=|$)/.test(
+          argument,
+        ),
+      ),
+    )
+    .catch((error: unknown) => {
+      // Playwright can reject with an Error from outside Jest's VM realm.
+      // Recognize native errors across realms, but only this exact CDP case.
+      if (
+        isNativeError(error) &&
+        error.message.endsWith(
+          "Protocol error (Browser.getBrowserCommandLine): Command line not returned because --enable-automation not set.",
+        )
+      ) {
+        return "unavailable: --enable-automation not set";
+      }
+      throw error;
+    });
+}
 
 /** C30 geometry and forced-colors focus need the compiled CSS in a real browser. */
 export async function checkChoiceChip(page: Page, id: string) {
@@ -55,21 +82,7 @@ export async function checkChoiceChip(page: Page, id: string) {
       const { fonts } = await session.send("CSS.getPlatformFontsForNode", { nodeId });
       // Storybook's runner may omit --enable-automation. That only prevents
       // optional command-line diagnostics; font and geometry checks still run.
-      const renderingFlags = await session
-        .send("Browser.getBrowserCommandLine")
-        .then(({ arguments: launchArguments }) =>
-          launchArguments.filter((argument) =>
-            /^--(?:headless|font-render-hinting|disable-font-subpixel-positioning|force-device-scale-factor|force-color-profile)(?:=|$)/.test(
-              argument,
-            ),
-          ),
-        )
-        .catch((error: unknown) => {
-          if (error instanceof Error && error.message.includes("--enable-automation not set")) {
-            return "unavailable: --enable-automation not set";
-          }
-          throw error;
-        });
+      const renderingFlags = await readChoiceChipRenderingFlags(session);
       return { fonts, renderingFlags };
     } finally {
       await session.detach();
