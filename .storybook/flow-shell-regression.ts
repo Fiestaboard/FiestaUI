@@ -12,6 +12,18 @@ export async function checkFlowShellGeometry(page: Page, id: string) {
       await page.evaluate(
         () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
       );
+      const snackbar = await page.evaluate(() => {
+        const toast = document.querySelector<HTMLElement>("[data-sonner-toast]");
+        if (!toast) return null;
+        return {
+          width: toast.getBoundingClientRect().width,
+          expected: matchMedia("(max-width: 600px)").matches ? document.documentElement.clientWidth - 16 : 380,
+        };
+      });
+      if (snackbar) {
+        assert.ok(Math.abs(snackbar.width - snackbar.expected) < 1, `${id} at ${width}px: snackbar width is incorrect`);
+        continue;
+      }
       const geometry = await page.evaluate(async () => {
         const sheet = document.querySelector<HTMLElement>('[data-slot="sheet-content"]');
         const dialog = document.querySelector<HTMLElement>('[data-slot="dialog-content"]');
@@ -39,6 +51,8 @@ export async function checkFlowShellGeometry(page: Page, id: string) {
         const box = surface.getBoundingClientRect();
         return {
           kind,
+          width: box.width,
+          layoutWidth: document.documentElement.clientWidth,
           overlap,
           descriptionTop: description.getBoundingClientRect().top,
           closeBottom: closeBox.bottom,
@@ -59,6 +73,10 @@ export async function checkFlowShellGeometry(page: Page, id: string) {
         );
         assert.ok(geometry.bottom <= 844, `${id} at ${width}px: confirmation actions are outside the viewport`);
       } else {
+        assert.ok(
+          Math.abs(geometry.width - Math.min(560, geometry.layoutWidth - 32)) < 1,
+          `${id} at ${width}px: dialog does not keep its viewport gutters`,
+        );
         assert.ok(
           Math.abs(geometry.footerLeft - geometry.contentLeft) < 1,
           `${id} at ${width}px: footer is not left aligned`,

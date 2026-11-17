@@ -55,8 +55,9 @@ export const WideDialog: Story = {
     const dialog = await body.findByRole("dialog");
     await waitFor(() => expect(body.getByRole("button", { name: "Keep editing" })).toHaveFocus());
     const width = canvasElement.ownerDocument.defaultView!.innerWidth;
+    const layoutWidth = canvasElement.ownerDocument.documentElement.clientWidth;
     await waitFor(() =>
-      expect(Math.abs(dialog.getBoundingClientRect().width - Math.min(560, width - 32))).toBeLessThan(1),
+      expect(Math.abs(dialog.getBoundingClientRect().width - Math.min(560, layoutWidth - 32))).toBeLessThan(1),
     );
     await Promise.all(dialog.getAnimations().map((animation) => animation.finished.catch(() => {})));
     const title = body.getByRole("heading").getBoundingClientRect();
@@ -189,8 +190,11 @@ export const SnackbarDesktop: Story = {
     await body.findByText("Saved to Pages");
     const notification = canvasElement.ownerDocument.querySelector<HTMLElement>("[data-sonner-toast]")!;
     const width = canvasElement.ownerDocument.defaultView!.innerWidth;
+    const layoutWidth = canvasElement.ownerDocument.documentElement.clientWidth;
     await waitFor(() =>
-      expect(Math.abs(notification.getBoundingClientRect().width - (width <= 600 ? width - 16 : 380))).toBeLessThan(1),
+      expect(
+        Math.abs(notification.getBoundingClientRect().width - (width <= 600 ? layoutWidth - 16 : 380)),
+      ).toBeLessThan(1),
     );
     const show = body.getByRole("button", { name: "Show now" });
     const schedule = body.getByRole("button", { name: "Add to Schedule" });
