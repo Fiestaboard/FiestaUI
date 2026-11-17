@@ -176,24 +176,38 @@ describe("ConnectPhoneCard", () => {
     expect(screen.getByText("Connects to fiestapi.local (not localhost)")).toBeInTheDocument();
   });
 
-  it("expired: the QR is dimmed and hidden, with no countdown or bar", () => {
-    render(
-      <ConnectPhoneCard
-        state="expired"
-        qr={QR}
-        qrLabel="QR"
-        hubAddress="fiestapi.local"
-        expiresLabel="Expires in 0:00"
-        timeLeft={0}
-      />,
+  it.each(["expired", "claimed", "loading", "error"] as const)(
+    "%s: removes the actual code, countdown and bar",
+    (state) => {
+      render(
+        <ConnectPhoneCard
+          state={state}
+          qr={QR}
+          qrLabel="QR"
+          hubAddress="fiestapi.local"
+          expiresLabel="Expires in 0:00"
+          timeLeft={0}
+        />,
+      );
+      expect(card()).toHaveAttribute("data-state", state);
+      expect(screen.queryByTestId("qr")).toBeNull();
+      expect(screen.queryByRole("img")).toBeNull();
+      const slot = card().querySelector<HTMLElement>('[data-slot="connect-phone-qr"]');
+      expect(slot).toHaveAttribute("aria-hidden", "true");
+      expect(card().querySelector('[data-slot="connect-phone-countdown"]')).toBeNull();
+      expect(card().querySelector('[data-slot="connect-phone-time-left"]')).toBeNull();
+    },
+  );
+
+  it("removes a live code immediately when claimed and announces the host's status", () => {
+    const { rerender } = render(<ConnectPhoneCard qr={QR} qrLabel="QR" hubAddress="fiestapi.local" />);
+    expect(screen.getByTestId("qr")).toBeInTheDocument();
+    rerender(
+      <ConnectPhoneCard state="claimed" qr={QR} qrLabel="QR" hubAddress="fiestapi.local" status="Teléfono conectado" />,
     );
-    expect(card()).toHaveAttribute("data-state", "expired");
-    expect(screen.queryByRole("img")).toBeNull();
-    const slot = card().querySelector<HTMLElement>('[data-slot="connect-phone-qr"]');
-    expect(slot).toHaveAttribute("aria-hidden", "true");
-    expect(slot?.className).toContain("opacity-12");
-    expect(card().querySelector('[data-slot="connect-phone-countdown"]')).toBeNull();
-    expect(card().querySelector('[data-slot="connect-phone-time-left"]')).toBeNull();
+    expect(screen.queryByTestId("qr")).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("Teléfono conectado");
+    expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
   });
 
   it("refuses to draw a QR for a loopback hub (H18): no image, no countdown, no bar", () => {

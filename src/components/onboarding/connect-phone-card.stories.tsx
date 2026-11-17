@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Info, RotateCw } from "lucide-react";
+import { expect } from "storybook/test";
 
 import { PairingQrStandIn } from "../../stories/pairing-qr-stand-in";
 import { Alert, AlertDescription, AlertTitle } from "../feedback/alert";
@@ -89,10 +90,11 @@ export const OnLocalhost: Story = {
   },
 };
 
-/** 07e `323:22216`: the code is spent; the QR is a dimmed placeholder and nothing was connected. */
+/** DD-W81: spent code removed; only a non-scannable decorative placeholder remains. */
 export const Expired: Story = {
   args: {
     state: "expired",
+    status: "This code expired. Make a new code when your phone is ready.",
     footnote: undefined,
     aside: (
       <div className="flex flex-col gap-2.5 sm:w-[230px]">
@@ -102,6 +104,55 @@ export const Expired: Story = {
         </p>
       </div>
     ),
+  },
+};
+
+export const Claimed: Story = {
+  args: {
+    state: "claimed",
+    status: "Maya’s iPhone is connected. This code can’t be used again.",
+    steps: undefined,
+    footnote: undefined,
+  },
+};
+
+export const Loading: Story = {
+  args: { state: "loading", status: "Making a new code…", steps: undefined, footnote: undefined },
+};
+
+export const Error: Story = {
+  args: { state: "error", status: "A code couldn’t be made. Try again.", steps: undefined, footnote: undefined },
+};
+
+export const Mobile: Story = {
+  parameters: { layout: "fullscreen" },
+  globals: { viewport: { value: "mobile", isRotated: false } },
+  args: {
+    steps: undefined,
+    notice: (
+      <Alert variant="info">
+        <Info />
+        <AlertTitle>On the phone you want to connect?</AlertTitle>
+        <AlertDescription>
+          Open the FiestaBoard app instead and tap Find hubs on my network. This QR is for scanning with a second phone.
+        </AlertDescription>
+      </Alert>
+    ),
+  },
+  decorators: [
+    (Story) => (
+      <main className="min-h-screen w-[390px] p-4">
+        <Story />
+      </main>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const frame = canvasElement.querySelector("main")!.getBoundingClientRect();
+    const card = canvasElement.querySelector<HTMLElement>('[data-slot="connect-phone-card"]')!;
+    expect(frame.width).toBe(390);
+    expect(card.getBoundingClientRect().width).toBe(358);
+    expect(card.getBoundingClientRect().left - frame.left).toBe(16);
+    expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth + 1);
   },
 };
 

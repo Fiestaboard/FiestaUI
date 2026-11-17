@@ -113,10 +113,13 @@ export * from "./components/wizard/wizard-progress";
 export * from "./components/wizard/wizard-shell";
 // Onboarding and PWA (universal slice 1.10).
 export * from "./components/onboarding/connect-phone-card";
+export * from "./components/onboarding/device-code-card";
+export * from "./components/onboarding/device-code-input";
 export * from "./components/onboarding/install-card";
 export * from "./components/onboarding/install-steps";
 export * from "./components/onboarding/privacy-note";
 export * from "./components/onboarding/recovery-steps";
+export * from "./components/onboarding/session-row";
 export { cn } from "./lib/utils";
 // Board preview — the split-flap Vestaboard display renderer + its data.
 export * from "./components/board/board-backdrop";

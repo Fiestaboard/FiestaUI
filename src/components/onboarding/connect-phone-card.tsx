@@ -1,4 +1,4 @@
-import { Clock, ShieldCheck, ShieldX } from "lucide-react";
+import { Clock, QrCode, ShieldCheck, ShieldX } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
@@ -40,10 +40,10 @@ export function isLoopbackHost(host: string): boolean {
 
 /**
  * - `live`: the code can be scanned; the countdown and time-left bar show.
- * - `expired`: the code is spent. The QR stays as a dimmed, hidden
- *   placeholder (07e `323:22216`) and the countdown goes.
+ * - Every non-live state removes the actual QR and countdown. A decorative
+ *   placeholder preserves the panel geometry without retaining a secret.
  */
-export type ConnectPhoneCardState = "live" | "expired";
+export type ConnectPhoneCardState = "live" | "expired" | "claimed" | "loading" | "error";
 
 export interface ConnectPhoneCardProps extends Omit<React.ComponentProps<"div">, "children"> {
   /** @default "live" */
@@ -79,6 +79,8 @@ export interface ConnectPhoneCardProps extends Omit<React.ComponentProps<"div">,
   notice?: React.ReactNode;
   /** Below: the honest risk line ("Only show it to a phone you own."). */
   footnote?: React.ReactNode;
+  /** Localized lifecycle announcement, e.g. "This code expired". Not the ticking countdown. */
+  status?: React.ReactNode;
 }
 
 /**
@@ -86,7 +88,7 @@ export interface ConnectPhoneCardProps extends Omit<React.ComponentProps<"div">,
  * the pairing QR panel (code, hub line, countdown, time left) beside the
  * steps for the phone, with an optional notice above and footnote below.
  * Host it in a Dialog (desktop) or a page (phone); the title, the footer
- * ("Make a new code", "Done") and the claimed state are the host's.
+ * ("Make a new code", "Done") and connected-device details are the host's.
  *
  * Presentational: the host asks the hub for the code, renders the QR, ticks
  * the countdown and swaps to `expired`. The countdown is not a live region
@@ -113,6 +115,7 @@ function ConnectPhoneCard({
   aside,
   notice,
   footnote,
+  status,
   className,
   ...props
 }: ConnectPhoneCardProps) {
@@ -148,7 +151,7 @@ function ConnectPhoneCard({
             {...(live ? { role: "img", "aria-label": qrLabel } : { "aria-hidden": true })}
             className={cn("size-52 [&>*]:size-full", !live && "opacity-12")}
           >
-            {refused ? null : qr}
+            {live ? qr : <QrCode aria-hidden="true" className="text-muted-foreground" />}
           </div>
           <p data-slot="connect-phone-hub" className="flex items-center gap-1.5 text-xs font-medium text-foreground">
             {refused ? (
@@ -183,6 +186,9 @@ function ConnectPhoneCard({
           )}
         </div>
         {aside ?? (steps != null && <NumberedSteps appearance="plain" steps={steps} className="min-w-0 flex-1" />)}
+      </div>
+      <div role="status" aria-live="polite" aria-atomic="true" className={cn("text-sm", status == null && "sr-only")}>
+        {status}
       </div>
       {footnote != null && (
         <p data-slot="connect-phone-footnote" className="text-xs text-muted-foreground">

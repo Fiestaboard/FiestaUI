@@ -226,11 +226,14 @@ import { Flex } from "../components/layout/flex";
 import { Grid } from "../components/layout/grid";
 import { Stack } from "../components/layout/stack";
 import { ConnectPhoneCard } from "../components/onboarding/connect-phone-card";
+import { DeviceCodeCard } from "../components/onboarding/device-code-card";
+import { DeviceCodeInput } from "../components/onboarding/device-code-input";
 import { HubDiscoveryRow } from "../components/onboarding/hub-discovery-row";
 import { InstallCard } from "../components/onboarding/install-card";
 import { InstallSteps } from "../components/onboarding/install-steps";
 import { PrivacyNote } from "../components/onboarding/privacy-note";
 import { RecoverySteps } from "../components/onboarding/recovery-steps";
+import { SessionRow } from "../components/onboarding/session-row";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -2406,6 +2409,33 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         { text: "Leave Open as Web App on, then tap Add.", icon: <Check /> },
       ]}
     />
+  ),
+  SessionRow: () => (
+    <ListRowGroup className="w-full max-w-lg p-1">
+      <SessionRow
+        name="Maya’s iPhone"
+        kind="phone"
+        kindLabel="Phone"
+        description="Connected with a QR code · Nov 5 · approved 2 TVs"
+        lastConnected="Last connected 5:38 PM"
+        signOut={{ label: "Sign out…", onClick: () => {} }}
+      />
+    </ListRowGroup>
+  ),
+  DeviceCodeInput: () => (
+    <DeviceCodeInput aria-label="Code shown on your TV" value="BCDF7KQM" onValueChange={() => {}} readOnly />
+  ),
+  DeviceCodeCard: () => (
+    <DeviceCodeCard
+      headingLevel={3}
+      title="Allow this TV?"
+      description="Only allow a TV you can see in front of you right now."
+      account="maya · Maya’s FiestaPi"
+      primaryAction={<Button>Allow this TV</Button>}
+      secondaryAction={<Button variant="outline">Deny</Button>}
+    >
+      <p className="text-sm">Living room Apple TV · Code BCDF-7KQM</p>
+    </DeviceCodeCard>
   ),
   ConnectPhoneCard: () => (
     <ConnectPhoneCard

@@ -4,6 +4,7 @@ import { checkA11y, configureAxe, injectAxe } from "axe-playwright";
 import { checkCanvasEditing } from "./canvas-editor-regression";
 import { checkChoiceChip } from "./choice-chip-regression";
 import { checkDataSourceSwitch } from "./data-source-switch-regression";
+import { checkDeviceCodeNativeEditing } from "./device-code-regression";
 import { checkEditorPreviewNeverCollapses } from "./editor-preview-regression";
 import { checkTouchToolbarGeometry } from "./editor-toolbar-regression";
 import { checkFlowShellGeometry } from "./flow-shell-regression";
@@ -110,6 +111,7 @@ const config: TestRunnerConfig = {
     await checkCanvasEditing(page, context.id);
     await checkDataSourceSwitch(page, context.id);
     await checkChoiceChip(page, context.id);
+    await checkDeviceCodeNativeEditing(page, context.id);
     await checkSpinnerMotion(page, context.id);
     await checkEditorPreviewNeverCollapses(page, context.id);
     await checkTouchToolbarGeometry(page, context.id);
