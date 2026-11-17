@@ -60,6 +60,10 @@ export const Default: Story = {
     const chevron = button.querySelector("svg")!;
     expect(chevron.getBoundingClientRect().width).toBe(16);
     expect(chevron.getBoundingClientRect().height).toBe(16);
+    // C34 draws the chevron in foreground, while detail and value stay muted.
+    expect(getComputedStyle(chevron).color).toBe(
+      getComputedStyle(button.querySelector('[data-slot="list-row-title"]')!).color,
+    );
     await userEvent.click(button);
     expect(args.onPress).toHaveBeenCalledTimes(1);
     await userEvent.keyboard("{Enter}");
@@ -92,7 +96,7 @@ export const Disabled: Story = {
   },
 };
 
-/** Kept focused for VRT. The hosted runner also evaluates forced-colors focus. */
+/** Kept focused for VRT; forced-colors assertions live in inspector-row-regression.ts. */
 export const Focused: Story = {
   play: async ({ canvasElement }) => {
     const button = within(canvasElement).getByRole("button");

@@ -51,3 +51,10 @@ Jev `natural_height`, p=0.99 (2026-11-16): preserve py8 and 48px minimum, allow 
 - GREEN: eleven component tests and one inventory consumer test pass (12 total). The accessible-name test exposed concatenated inline text; explicit `aria-labelledby` slot IDs preserve word boundaries and caller labels.
 - Typecheck and format pass. Lint found one unsorted export and passes after the targeted ordering fix.
 - Full suite, coverage, hosted axe/VRT, forced-colors/browser geometry and exact-head review remain coordinator gates. No browser was launched locally.
+
+## Review round 1 follow-up
+
+- M1: C34 maps the chevron to foreground; ListRow's generic trailing slot is muted. Give the exact Lucide icon `text-foreground`, add a rendered-color assertion beside its Default story geometry checks, and add a foreground token probe in the parity manifest.
+- C1: `.storybook/inspector-row-regression.ts`, wired additively into the runner, scopes forced-colors emulation to the Focused story. It checks keyboard focus-visible plus a solid 2px system Highlight outline with 2px offset, then restores media before axe. Corrected the story comment to identify the actual hook.
+- Validation: 12 focused tests, typecheck, targeted lint/format, package build and Storybook build pass. The new browser assertions are written and built but remain pending hosted execution; no local browser was launched.
+- Coordinator evidence at the preceding head `b88d245f`: 3,386 tests passed / 33 skipped, changed-source coverage 100% lines and branches for all four changed source files, release guards 499 passed. These full gates were not rerun for the color-only component fix.

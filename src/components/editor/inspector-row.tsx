@@ -67,7 +67,7 @@ function InspectorRow({
       title={<span id={`${id}-title`}>{title}</span>}
       description={hasDetail ? <span id={`${id}-detail`}>{detail}</span> : undefined}
       meta={hasValue ? <span id={`${id}-value`}>{value}</span> : undefined}
-      trailing={chevron ? <ChevronRight aria-hidden="true" className="size-4" /> : undefined}
+      trailing={chevron ? <ChevronRight aria-hidden="true" className="size-4 text-foreground" /> : undefined}
       variant="plain"
       size="default"
       className={cn(

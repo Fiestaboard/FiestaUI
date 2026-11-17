@@ -422,6 +422,11 @@
             "selector": "[data-slot=list-row-meta]",
             "property": "color",
             "variable": "var(--muted-foreground)"
+          },
+          {
+            "selector": "svg",
+            "property": "color",
+            "variable": "var(--foreground)"
           }
         ],
         "geometry": [
