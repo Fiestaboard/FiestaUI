@@ -449,6 +449,10 @@ export const INVENTORY = [
       },
       { name: "EditorTool", summary: "One labelled 52 px tool of the touch editor bar." },
       {
+        name: "ZoomControl",
+        summary: "Fit overview and tile zoom steps with a minimum size, touch targets and a minimap action.",
+      },
+      {
         name: "EditorWarning",
         summary: "What the board will drop: the line-limit box, or a validated line-overflow card with fixes.",
       },
