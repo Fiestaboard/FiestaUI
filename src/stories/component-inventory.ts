@@ -453,6 +453,14 @@ export const INVENTORY = [
         summary: "What the board will drop: the line-limit box, or a validated line-overflow card with fixes.",
       },
       {
+        name: "RevisionRow",
+        summary: "Revision overview and metadata with Compare and Restore-to-new-draft actions.",
+      },
+      {
+        name: "RevisionDiff",
+        summary: "Labeled before/after overviews, change regions and a Restore-to-new-draft request.",
+      },
+      {
         name: "EditorPreview",
         summary: "The editor's always-visible live preview: a sticky pane or a phone dock, with the mirror switch.",
       },
