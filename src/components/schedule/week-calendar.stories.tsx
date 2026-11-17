@@ -246,6 +246,100 @@ export const CreateReportsRange: Story = {
   },
 };
 
+/**
+ * Move, pointer only (1.9d): press on Sunday's Weekend brunch (9 AM–1 PM) and drag it down an hour.
+ * The preview reuses the drag draft's recipe and keeps the block's length; this story stops mid-drag.
+ */
+export const DraggingToMove: Story = {
+  args: { ...Default.args, onEntryChange: fn() },
+  render: Default.render,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const sunday = canvas.getByRole("group", { name: "Sunday, November 15" });
+    const brunch = within(sunday).getByRole("button", { name: "Weekend brunch" });
+    const rect = sunday.getBoundingClientRect();
+    const yAt = (hour: number) => rect.top + (hour - 6) * 34 + 2;
+    const init = { pointerId: 5, pointerType: "mouse", button: 0, bubbles: true, clientX: rect.left + 20 };
+    brunch.dispatchEvent(new PointerEvent("pointerdown", { ...init, clientY: yAt(10) }));
+    brunch.dispatchEvent(new PointerEvent("pointermove", { ...init, clientY: yAt(11) }));
+    await waitFor(() =>
+      expect(canvasElement.querySelector('[data-slot="week-calendar-change"]')).toHaveTextContent("10:00 AM – 2:00 PM"),
+    );
+  },
+};
+
+function MoveAndResizeDemo(args: React.ComponentProps<typeof WeekCalendar>) {
+  const [entries, setEntries] = React.useState(args.entries);
+  return (
+    <div className="w-full max-w-[640px]">
+      <WeekCalendar
+        {...args}
+        entries={entries}
+        onEntryChange={(entry, range) => {
+          args.onEntryChange?.(entry, range);
+          setEntries((list) => list.map((e) => (e.id === entry.id ? { ...e, ...range } : e)));
+        }}
+      />
+    </div>
+  );
+}
+
+/**
+ * The host owns the data: releasing reports `{ day, start, end }` and the host moves the entry.
+ * Here Sunday's brunch moves to Saturday at 10 AM, then its bottom edge stretches it to 3 PM.
+ * Gaps and the silence schedule stay fixed; touch never drags (the entry form edits on touch).
+ */
+export const MoveAndResize: Story = {
+  args: { ...Default.args, onEntryChange: fn() },
+  render: (args) => <MoveAndResizeDemo {...args} />,
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    const saturday = canvas.getByRole("group", { name: "Saturday, November 14" });
+    const sunday = canvas.getByRole("group", { name: "Sunday, November 15" });
+    const sat = saturday.getBoundingClientRect();
+    const sun = sunday.getBoundingClientRect();
+    const yAt = (hour: number) => sun.top + (hour - 6) * 34 + 2;
+    const brunch = within(sunday).getByRole("button", { name: "Weekend brunch" });
+    const id = brunch.getAttribute("data-entry-id");
+    const mouse = { pointerId: 1, pointerType: "mouse", button: 0, bubbles: true };
+
+    const touch = { ...mouse, pointerId: 3, pointerType: "touch", clientX: sun.left + 20 };
+    brunch.dispatchEvent(new PointerEvent("pointerdown", { ...touch, clientY: yAt(10) }));
+    brunch.dispatchEvent(new PointerEvent("pointermove", { ...touch, clientY: yAt(12) }));
+    brunch.dispatchEvent(new PointerEvent("pointerup", { ...touch, clientY: yAt(12) }));
+    await expect(args.onEntryChange).not.toHaveBeenCalled();
+
+    brunch.dispatchEvent(new PointerEvent("pointerdown", { ...mouse, clientX: sun.left + 20, clientY: yAt(10) }));
+    brunch.dispatchEvent(new PointerEvent("pointermove", { ...mouse, clientX: sat.left + 20, clientY: yAt(11) }));
+    brunch.dispatchEvent(new PointerEvent("pointerup", { ...mouse, clientX: sat.left + 20, clientY: yAt(11) }));
+    await waitFor(() =>
+      expect(args.onEntryChange).toHaveBeenCalledWith(expect.objectContaining({ id }), {
+        day: 5,
+        start: 10 * H,
+        end: 14 * H,
+      }),
+    );
+    const moved = await waitFor(() => {
+      const block = saturday.querySelector<HTMLElement>(`[data-entry-id="${id}"]`);
+      expect(block).toHaveAccessibleDescription("Page, 10:00 AM to 2:00 PM");
+      return block!;
+    });
+
+    const handle = moved.querySelector('[data-slot="week-calendar-entry-resize"]')!;
+    handle.dispatchEvent(new PointerEvent("pointerdown", { ...mouse, clientX: sat.left + 20, clientY: yAt(14) - 4 }));
+    moved.dispatchEvent(new PointerEvent("pointermove", { ...mouse, clientX: sat.left + 20, clientY: yAt(15) }));
+    moved.dispatchEvent(new PointerEvent("pointerup", { ...mouse, clientX: sat.left + 20, clientY: yAt(15) }));
+    await waitFor(() =>
+      expect(args.onEntryChange).toHaveBeenLastCalledWith(expect.objectContaining({ id }), {
+        day: 5,
+        start: 10 * H,
+        end: 15 * H,
+      }),
+    );
+    await expect(within(saturday).getByRole("button", { name: "Silence" })).not.toHaveAttribute("data-movable");
+  },
+};
+
 /** Keyboard: one tab stop; ← → move to the nearest block on the next day, ↑ ↓ within a day. */
 export const KeyboardFocus: Story = {
   args: { ...Default.args, selectedId: "market-0" },
