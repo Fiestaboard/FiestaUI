@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { type DataSource, DataSourceSwitch } from "./data-source-switch";
 
@@ -106,6 +106,8 @@ export const Controlled: Story = {
     await userEvent.click(canvas.getByRole("radio", { name: "Live" }));
     await userEvent.keyboard("{ArrowRight}");
     await expect(canvas.getByRole("radio", { name: "Sample" })).toHaveAttribute("aria-checked", "true");
-    await expect(canvas.getByText("Previewing sample data")).toBeVisible();
+    // Re-query inside waitFor: the runner can re-render the story between the
+    // keypress and this check, leaving a detached paragraph behind (#412 CI).
+    await waitFor(() => expect(canvas.getByText("Previewing sample data")).toBeVisible());
   },
 };
