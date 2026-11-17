@@ -89,10 +89,11 @@ export const OnLocalhost: Story = {
   },
 };
 
-/** 07e `323:22216`: the code is spent; the QR is a dimmed placeholder and nothing was connected. */
+/** DD-W81: spent code removed; only a non-scannable decorative placeholder remains. */
 export const Expired: Story = {
   args: {
     state: "expired",
+    status: "This code expired. Make a new code when your phone is ready.",
     footnote: undefined,
     aside: (
       <div className="flex flex-col gap-2.5 sm:w-[230px]">
@@ -103,6 +104,48 @@ export const Expired: Story = {
       </div>
     ),
   },
+};
+
+export const Claimed: Story = {
+  args: {
+    state: "claimed",
+    status: "Maya’s iPhone is connected. This code can’t be used again.",
+    steps: undefined,
+    footnote: undefined,
+  },
+};
+
+export const Loading: Story = {
+  args: { state: "loading", status: "Making a new code…", steps: undefined, footnote: undefined },
+};
+
+export const Error: Story = {
+  args: { state: "error", status: "A code couldn’t be made. Try again.", steps: undefined, footnote: undefined },
+};
+
+export const Light: Story = { globals: { theme: "light" } };
+export const Dark: Story = { globals: { theme: "dark" } };
+export const Mobile: Story = {
+  globals: { viewport: { value: "mobile1", isRotated: false } },
+  args: {
+    steps: undefined,
+    notice: (
+      <Alert variant="info">
+        <Info />
+        <AlertTitle>On the phone you want to connect?</AlertTitle>
+        <AlertDescription>
+          Open the FiestaBoard app instead and tap Find hubs on my network. This QR is for scanning with a second phone.
+        </AlertDescription>
+      </Alert>
+    ),
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-full max-w-[358px]">
+        <Story />
+      </div>
+    ),
+  ],
 };
 
 /**
