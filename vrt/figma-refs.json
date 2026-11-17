@@ -385,7 +385,7 @@
       "pendingRef": {
         "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
         "figmaNode": "109:3027",
-        "waitingOn": "versioned design-refs checkout; live MCP export and visual comparison saved in program/shots/fiestaui-1.11/ui111a-data-source-switch"
+        "waitingOn": "versioned design-refs checkout; local reference/evidence directory: program/shots/fiestaui-1.11/ui111a-data-source-switch"
       },
       "target": {
         "story": "forms-datasourceswitch--live",
@@ -417,7 +417,7 @@
       "pendingRef": {
         "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
         "figmaNode": "109:3034",
-        "waitingOn": "versioned design-refs checkout; live MCP export and visual comparison saved in program/shots/fiestaui-1.11/ui111a-data-source-switch"
+        "waitingOn": "versioned design-refs checkout; local reference/evidence directory: program/shots/fiestaui-1.11/ui111a-data-source-switch"
       },
       "target": {
         "story": "forms-datasourceswitch--sample",
@@ -449,7 +449,7 @@
       "pendingRef": {
         "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
         "figmaNode": "109:3041",
-        "waitingOn": "versioned design-refs checkout; live MCP export and visual comparison saved in program/shots/fiestaui-1.11/ui111a-data-source-switch"
+        "waitingOn": "versioned design-refs checkout; local reference/evidence directory: program/shots/fiestaui-1.11/ui111a-data-source-switch"
       },
       "target": {
         "story": "forms-datasourceswitch--missing",
