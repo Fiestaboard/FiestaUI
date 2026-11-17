@@ -43,6 +43,47 @@ function popup() {
   return document.querySelector<HTMLElement>('[data-slot="sheet-content"]')!;
 }
 
+describe("confirmation shell", () => {
+  it("uses the bottom grabber surface and keeps safe/destructive actions in DOM order", async () => {
+    render(
+      <Sheet defaultOpen>
+        <SheetContent side="bottom" variant="confirmation">
+          <SheetHeader>
+            <SheetTitle>Discard changes?</SheetTitle>
+            <SheetDescription>The saved page stays on the board.</SheetDescription>
+          </SheetHeader>
+          <SheetFooter>
+            <SheetClose>Keep editing</SheetClose>
+            <button type="button">Discard changes</button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>,
+    );
+    expect(popup()).toHaveAttribute("data-grabber");
+    expect(popup()).toHaveAttribute("data-variant", "confirmation");
+    expect(popup()).not.toHaveAttribute("variant");
+    expect(popup()).toHaveClass("pb-[max(1rem,env(safe-area-inset-bottom))]");
+    expect(document.querySelector('[data-slot="sheet-footer"]')?.textContent).toBe("Keep editingDiscard changes");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Keep editing" })).toHaveFocus());
+    await userEvent.setup().click(screen.getByRole("button", { name: "Keep editing" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("leaves side sheets unchanged and permits opting out of a grabber", () => {
+    const { rerender } = renderSheet({ side: "right", variant: "confirmation" });
+    expect(popup()).not.toHaveAttribute("data-grabber");
+    expect(popup()).not.toHaveAttribute("data-variant", "confirmation");
+    rerender(
+      <Sheet defaultOpen>
+        <SheetContent side="bottom" variant="confirmation" grabber={false} aria-describedby={undefined}>
+          <SheetTitle>Plain</SheetTitle>
+        </SheetContent>
+      </Sheet>,
+    );
+    expect(popup()).not.toHaveAttribute("data-grabber");
+  });
+});
+
 function stubHeight(el: HTMLElement, height: number) {
   vi.spyOn(el, "getBoundingClientRect").mockReturnValue({
     x: 0,
