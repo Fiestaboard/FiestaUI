@@ -163,9 +163,11 @@ export const ManualPending: Story = {
 
 export const Mobile: Story = {
   globals: { viewport: { value: "mobile", isRotated: false } },
-  parameters: { supportingWidth: 358 },
+  // Fullscreen bypasses both Storybook's padded canvas and the global
+  // padded main. This fixture supplies its own landmark and one 16px inset.
+  parameters: { layout: "fullscreen", supportingWidth: 390 },
   render: () => (
-    <div className="flex flex-col gap-4">
+    <main className="flex w-[390px] flex-col gap-4 p-4">
       <UpNextCard size="compact" items={[event]} actions={scheduleAction} />
       <ScheduleModeCard
         size="compact"
@@ -174,11 +176,18 @@ export const Mobile: Story = {
         description={manualDescription}
         actions={scheduleAction}
       />
-    </div>
+    </main>
   ),
   play: async ({ canvasElement }) => {
-    const card = within(canvasElement).getByRole("region", { name: "Up next" });
+    const frame = within(canvasElement).getByRole("main");
+    const card = within(frame).getByRole("region", { name: "Up next" });
     const time = within(card).getByText("9:00 PM");
+    const frameRect = frame.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    expect(frameRect.width).toBe(390);
+    expect(cardRect.width).toBe(358);
+    expect(cardRect.left - frameRect.left).toBe(16);
+    expect(within(frame).getByRole("region", { name: "Schedule Mode is off" }).getBoundingClientRect().width).toBe(358);
     expect(getComputedStyle(card).padding).toBe("16px");
     expect(getComputedStyle(card).gap).toBe("10px");
     expect(time.getBoundingClientRect().width).toBe(70);
