@@ -150,7 +150,12 @@ export function ZoomControl({
             value={option}
             disabled={option !== "fit" && tileSizes.indexOf(option) < floor}
             aria-describedby={option === "fit" ? descriptionId : undefined}
-            className="max-w-full px-2.5 text-xs whitespace-normal"
+            // The inline primitive has a fixed height. Keep its single-line
+            // geometry as a floor, so wrapped translations stay in the pill.
+            className={cn(
+              "h-auto max-w-full px-2.5 text-xs whitespace-normal [overflow-wrap:anywhere]",
+              size === "touch" ? "min-h-touch py-2" : "min-h-7 py-1",
+            )}
           >
             {labels[option]}
           </SegmentedControlItem>
