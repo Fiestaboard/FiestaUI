@@ -146,8 +146,8 @@ export interface ColorPickerContentProps {
   labels?: Partial<ColorPickerLabels>;
   /**
    * `touch` (slice 1.6b, C6): 48 px swatches and glyph buttons in a grid that
-   * fills its container — the picker's width inside a bottom sheet, not the
-   * 256 px popover. Default: `"default"`, byte for byte today's picker.
+   * fills its container while retaining 48 px target minima in sheets and
+   * popovers. Default: `"default"`, byte for byte today's picker.
    */
   size?: "default" | "touch";
   /**
@@ -203,7 +203,7 @@ export function colorSwatchClassName(
   ...state: ClassValue[]
 ): string {
   return cn(
-    size === "touch" ? "h-12 rounded-md text-sm" : "h-10 rounded-md text-xs",
+    size === "touch" ? "h-12 rounded-md text-sm min-w-12" : "h-10 rounded-md text-xs",
     "font-medium transition-all hover:scale-105 hover:shadow-md",
     "flex items-center justify-center",
     ...state,
@@ -224,7 +224,8 @@ const BLOCK_BACKGROUNDS = COLORS.filter((c) => c !== "black");
 /** The classes every button in the set-driven groups shares — a 40px target holding a 30px glyph. */
 const GLYPH_BUTTON_CLASS = "flex h-10 items-center justify-center rounded-md border hover:bg-muted/50 focus-ring";
 /** …and 48 px at touch. */
-const GLYPH_BUTTON_TOUCH_CLASS = "flex h-12 items-center justify-center rounded-md border hover:bg-muted/50 focus-ring";
+const GLYPH_BUTTON_TOUCH_CLASS =
+  "flex h-12 min-w-12 items-center justify-center rounded-md border hover:bg-muted/50 focus-ring";
 
 export function ColorPickerContent({
   onInsert,
@@ -242,6 +243,11 @@ export function ColorPickerContent({
   const set = charset ? resolveCharacterSet(charset) : null;
   const touch = size === "touch";
   const gridWidth = touch ? "w-full" : "w-64";
+  // Keep the four-column keyboard map and five-column icon order. At large
+  // text sizes the shared popup can scroll; minimum tracks keep enlarged
+  // targets from overlapping instead of shrinking them below the touch floor.
+  const colorGridClass = cn(gridWidth, touch && "grid-cols-[repeat(4,minmax(calc(var(--spacing)*12),1fr))]");
+  const iconGridClass = cn(gridWidth, touch && "grid-cols-[repeat(5,minmax(calc(var(--spacing)*12),1fr))]");
   const glyphButtonClass = touch ? GLYPH_BUTTON_TOUCH_CLASS : GLYPH_BUTTON_CLASS;
   const groupClass = cn(
     "mt-2 pt-2 border-t border-border",
@@ -346,7 +352,7 @@ export function ColorPickerContent({
           {/* role="presentation" on the layout wrappers: a listbox owns options,
             and an unmarked grid/divider div between the two makes the swatches
             unowned children (axe `aria-required-children`). */}
-          <Grid cols="4" gap="2" className={gridWidth} role="presentation">
+          <Grid cols="4" gap="2" className={colorGridClass} role="presentation">
             {COLORS.map((colorName, index) => {
               const isHighlighted = highlightedIndex === index;
 
@@ -392,7 +398,7 @@ export function ColorPickerContent({
                     onClick={() => onInsert("°")}
                     className={cn(
                       "w-full",
-                      touch ? "h-12" : "h-10",
+                      touch ? "h-12 min-w-12" : "h-10",
                       "rounded-md text-sm font-medium transition-all hover:scale-[1.02] hover:shadow-md",
                       "flex items-center justify-center gap-1.5 focus:outline-none",
                       // Board red is hardware ink, not a text colour: as the 14px
@@ -444,7 +450,7 @@ export function ColorPickerContent({
           <Text as="span" className="mb-1 block text-xs text-muted-foreground">
             {l.textColors}
           </Text>
-          <Grid cols="4" gap="2" className={gridWidth} role="presentation">
+          <Grid cols="4" gap="2" className={colorGridClass} role="presentation">
             {textColors.map((colorName) => {
               const name = colorName === "black" ? l.unlitTextColor : l.textColorOptionLabel(l.colorNames[colorName]);
               return (
@@ -474,7 +480,7 @@ export function ColorPickerContent({
           <Text as="span" className="mb-1 block text-xs text-muted-foreground">
             {l.blockColors}
           </Text>
-          <Grid cols="4" gap="2" className={gridWidth} role="presentation">
+          <Grid cols="4" gap="2" className={colorGridClass} role="presentation">
             {blockColors.map((background) => {
               const name = l.blockColorOptionLabel(l.colorNames[background]);
               return (
@@ -504,7 +510,7 @@ export function ColorPickerContent({
           <Text as="span" className="mb-1 block text-xs text-muted-foreground">
             {l.icons}
           </Text>
-          <Grid cols="5" gap="1" className={gridWidth} role="presentation">
+          <Grid cols="5" gap="1" className={iconGridClass} role="presentation">
             {icons.map((name) => (
               <Tooltip key={name}>
                 <TooltipTrigger asChild>
