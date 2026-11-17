@@ -41,7 +41,8 @@ export const Mobile: Story = {
   args: { viewport: { column: 1, row: 1, columns: 31, rows: 12 } },
   globals: { viewport: { value: "mobile1", isRotated: false } },
 };
-export const Dark: Story = { globals: { theme: "dark" } };
+/** The toolbar and CI theme matrix control the palette for this named story. */
+export const Dark: Story = {};
 export const Disabled: Story = { args: { disabled: true } };
 export const Keyboard: Story = {
   play: async ({ canvasElement }) => {
