@@ -31,6 +31,7 @@ export * from "./components/feedback/sent-log";
 export * from "./components/forms/button";
 export * from "./components/forms/checkbox";
 export * from "./components/forms/choice-card";
+export * from "./components/forms/choice-chip";
 export * from "./components/forms/combobox";
 export * from "./components/forms/copy-button";
 export * from "./components/forms/copyable-code";
