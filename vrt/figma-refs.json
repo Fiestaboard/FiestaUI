@@ -380,6 +380,102 @@
       "waivers": []
     },
     {
+      "id": "forms-data-source-switch-live",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:3027",
+        "waitingOn": "versioned design-refs checkout; local reference/evidence directory: program/shots/fiestaui-1.11/ui111a-data-source-switch"
+      },
+      "target": {
+        "story": "forms-datasourceswitch--live",
+        "root": "[data-slot=data-source-switch]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--muted)"
+          },
+          {
+            "selector": "[data-checked]",
+            "property": "background-color",
+            "variable": "var(--background)"
+          }
+        ],
+        "geometry": [],
+        "typography": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "forms-data-source-switch-sample",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:3034",
+        "waitingOn": "versioned design-refs checkout; local reference/evidence directory: program/shots/fiestaui-1.11/ui111a-data-source-switch"
+      },
+      "target": {
+        "story": "forms-datasourceswitch--sample",
+        "root": "[data-slot=data-source-switch]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--muted)"
+          },
+          {
+            "selector": "[data-checked]",
+            "property": "background-color",
+            "variable": "var(--background)"
+          }
+        ],
+        "geometry": [],
+        "typography": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "forms-data-source-switch-missing",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:3041",
+        "waitingOn": "versioned design-refs checkout; local reference/evidence directory: program/shots/fiestaui-1.11/ui111a-data-source-switch"
+      },
+      "target": {
+        "story": "forms-datasourceswitch--missing",
+        "root": "[data-slot=data-source-switch]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--muted)"
+          },
+          {
+            "selector": "[data-checked]",
+            "property": "background-color",
+            "variable": "var(--background)"
+          }
+        ],
+        "geometry": [],
+        "typography": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
       "id": "editor-trace-step-ok",
       "kind": "component",
       "pendingRef": {
@@ -437,6 +533,586 @@
         "tokens": [],
         "geometry": [],
         "typography": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "containment-inspector-tabs-desktop",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "184:162235",
+        "waitingOn": "Isolated desktop C28 ref; web in-context 184:159319 is the Core target. Mobile native skins remain kit references."
+      },
+      "target": {
+        "story": "containment-inspectortabs--desktop",
+        "root": "[data-slot=inspector-tabs-bar]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--muted)"
+          },
+          {
+            "selector": "[role=tab][aria-selected=true]",
+            "property": "background-color",
+            "variable": "var(--background)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Tabs \u00b7 Data | Logic | Page | Shows on | History",
+            "selector": ":scope",
+            "measure": "box"
+          }
+        ],
+        "text": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-preview-status-live",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "171:163148",
+        "waitingOn": "C29 ref export into the refs checkout; local PNG evidence is in program/shots/fiestaui-1.11/ui111a-preview-status"
+      },
+      "target": {
+        "story": "editor-previewstatus--live",
+        "root": "[data-slot=preview-status]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "column-gap",
+            "variable": "calc(var(--spacing) * 2)"
+          },
+          {
+            "selector": "[data-slot=preview-status-message]",
+            "property": "color",
+            "variable": "var(--muted-foreground)"
+          },
+          {
+            "selector": "[data-slot=preview-status-problems]",
+            "property": "color",
+            "variable": "var(--destructive)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Badge",
+            "selector": "[data-slot=preview-status-display]",
+            "measure": "box"
+          }
+        ],
+        "text": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-preview-status-not-scheduled",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "171:163168",
+        "waitingOn": "C29 ref export into the refs checkout; local PNG evidence is in program/shots/fiestaui-1.11/ui111a-preview-status"
+      },
+      "target": {
+        "story": "editor-previewstatus--not-scheduled",
+        "root": "[data-slot=preview-status]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "column-gap",
+            "variable": "calc(var(--spacing) * 2)"
+          },
+          {
+            "selector": "[data-slot=preview-status-message]",
+            "property": "color",
+            "variable": "var(--muted-foreground)"
+          },
+          {
+            "selector": "[data-slot=preview-status-problems]",
+            "property": "color",
+            "variable": "var(--destructive)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Badge",
+            "selector": "[data-slot=preview-status-display]",
+            "measure": "box"
+          }
+        ],
+        "text": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-preview-status-scheduled",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "186:179665",
+        "waitingOn": "C29 ref export into the refs checkout; local PNG evidence is in program/shots/fiestaui-1.11/ui111a-preview-status"
+      },
+      "target": {
+        "story": "editor-previewstatus--scheduled",
+        "root": "[data-slot=preview-status]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "column-gap",
+            "variable": "calc(var(--spacing) * 2)"
+          },
+          {
+            "selector": "[data-slot=preview-status-message]",
+            "property": "color",
+            "variable": "var(--muted-foreground)"
+          },
+          {
+            "selector": "[data-slot=preview-status-problems]",
+            "property": "color",
+            "variable": "var(--destructive)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Badge",
+            "selector": "[data-slot=preview-status-display]",
+            "measure": "box"
+          }
+        ],
+        "text": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-formula-atom-formula-ok",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:2976",
+        "waitingOn": "Refs checkout and hosted parity capture. DD-W103: actual error tags replace the stale = 72 sample; DD-W95: dark uses semantic tokens."
+      },
+      "target": {
+        "story": "editor-formulaatom--formula-ok",
+        "root": "[data-slot=formula-atom]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": "[data-slot=formula-atom-source]",
+            "property": "color",
+            "variable": "var(--tag-formula-foreground)"
+          },
+          {
+            "selector": "[data-slot=formula-atom-value]",
+            "property": "background-color",
+            "variable": "var(--card)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]",
+            "measure": "text"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]",
+            "measure": "box"
+          }
+        ],
+        "text": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-formula-atom-formula-error",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:2982",
+        "waitingOn": "Refs checkout and hosted parity capture. DD-W103: actual error tags replace the stale = 72 sample; DD-W95: dark uses semantic tokens."
+      },
+      "target": {
+        "story": "editor-formulaatom--formula-error",
+        "root": "[data-slot=formula-atom]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--tint-danger)"
+          },
+          {
+            "selector": "[data-slot=formula-atom-source]",
+            "property": "color",
+            "variable": "var(--destructive)"
+          },
+          {
+            "selector": "[data-slot=formula-atom-value]",
+            "property": "background-color",
+            "variable": "var(--destructive)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]",
+            "measure": "text"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]",
+            "measure": "box"
+          }
+        ],
+        "text": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-formula-atom-formula-fallback",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:2990",
+        "waitingOn": "Refs checkout and hosted parity capture. DD-W103: actual error tags replace the stale = 72 sample; DD-W95: dark uses semantic tokens."
+      },
+      "target": {
+        "story": "editor-formulaatom--formula-fallback",
+        "root": "[data-slot=formula-atom]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": "[data-slot=formula-atom-source]",
+            "property": "color",
+            "variable": "var(--tag-formula-foreground)"
+          },
+          {
+            "selector": "[data-slot=formula-atom-value]",
+            "property": "background-color",
+            "variable": "var(--tint-warning)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]",
+            "measure": "text"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]",
+            "measure": "box"
+          }
+        ],
+        "text": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-formula-atom-variable-ok",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:2996",
+        "waitingOn": "Refs checkout and hosted parity capture. DD-W103: actual error tags replace the stale = 72 sample; DD-W95: dark uses semantic tokens."
+      },
+      "target": {
+        "story": "editor-formulaatom--variable-ok",
+        "root": "[data-slot=formula-atom]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": "[data-slot=formula-atom-source]",
+            "property": "color",
+            "variable": "var(--tag-variable-foreground)"
+          },
+          {
+            "selector": "[data-slot=formula-atom-value]",
+            "property": "background-color",
+            "variable": "var(--card)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]",
+            "measure": "text"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]",
+            "measure": "box"
+          }
+        ],
+        "text": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-formula-atom-variable-error",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:3002",
+        "waitingOn": "Refs checkout and hosted parity capture. DD-W103: actual error tags replace the stale = 72 sample; DD-W95: dark uses semantic tokens."
+      },
+      "target": {
+        "story": "editor-formulaatom--variable-error",
+        "root": "[data-slot=formula-atom]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--tint-danger)"
+          },
+          {
+            "selector": "[data-slot=formula-atom-source]",
+            "property": "color",
+            "variable": "var(--destructive)"
+          },
+          {
+            "selector": "[data-slot=formula-atom-value]",
+            "property": "background-color",
+            "variable": "var(--destructive)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]",
+            "measure": "text"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]",
+            "measure": "box"
+          }
+        ],
+        "text": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-formula-atom-variable-fallback",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:3010",
+        "waitingOn": "Refs checkout and hosted parity capture. DD-W103: actual error tags replace the stale = 72 sample; DD-W95: dark uses semantic tokens."
+      },
+      "target": {
+        "story": "editor-formulaatom--variable-fallback",
+        "root": "[data-slot=formula-atom]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": "[data-slot=formula-atom-source]",
+            "property": "color",
+            "variable": "var(--tag-variable-foreground)"
+          },
+          {
+            "selector": "[data-slot=formula-atom-value]",
+            "property": "background-color",
+            "variable": "var(--tint-warning)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]",
+            "measure": "text"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]",
+            "measure": "box"
+          }
+        ],
+        "text": [
+          {
+            "node": "Source",
+            "selector": "[data-slot=formula-atom-source]"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=formula-atom-value]"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-inspector-row",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "171:163203",
+        "waitingOn": "Reference registration and hosted visual review; DD-W102 preserves py8 with a 48px minimum and natural two-line height instead of the fixed48px source drawing."
+      },
+      "target": {
+        "story": "editor-inspectorrow--default",
+        "root": "[data-inspector-row]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "border-bottom-color",
+            "variable": "var(--border)"
+          },
+          {
+            "selector": ":scope",
+            "property": "padding-top",
+            "variable": "calc(var(--spacing) * 2)"
+          },
+          {
+            "selector": ":scope",
+            "property": "min-height",
+            "variable": "calc(var(--spacing) * 12)"
+          },
+          {
+            "selector": "[data-slot=list-row-title]",
+            "property": "color",
+            "variable": "var(--foreground)"
+          },
+          {
+            "selector": "[data-slot=list-row-description]",
+            "property": "color",
+            "variable": "var(--muted-foreground)"
+          },
+          {
+            "selector": "[data-slot=list-row-meta]",
+            "property": "color",
+            "variable": "var(--muted-foreground)"
+          },
+          {
+            "selector": "svg",
+            "property": "color",
+            "variable": "var(--foreground)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Title",
+            "selector": "[data-slot=list-row-title]",
+            "measure": "text"
+          },
+          {
+            "node": "Detail",
+            "selector": "[data-slot=list-row-description]",
+            "measure": "text"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=list-row-meta]",
+            "measure": "text"
+          },
+          {
+            "node": "Chevron",
+            "selector": "svg",
+            "measure": "box"
+          }
+        ],
+        "text": [
+          {
+            "node": "Title",
+            "selector": "[data-slot=list-row-title]"
+          },
+          {
+            "node": "Detail",
+            "selector": "[data-slot=list-row-description]"
+          },
+          {
+            "node": "Value",
+            "selector": "[data-slot=list-row-meta]"
+          }
+        ],
         "colors": []
       },
       "tolerance": {},
