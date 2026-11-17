@@ -185,8 +185,9 @@ function SortableList<T>({
   const keys = items.map(getKey);
   const previousKeys = React.useRef(keys);
   // Keyboard moves are controlled and legitimately change the order on every
-  // arrow. Only the exact requested order may preserve that same row's lift.
-  const expectedMove = React.useRef<{ key: React.Key; keys: React.Key[] } | null>(null);
+  // arrow. An expectation belongs to this exact lift object, not merely its
+  // row key: a delayed response from an ended lift must not authorize a new one.
+  const expectedMove = React.useRef<{ lift: NonNullable<typeof lifted>; keys: React.Key[] } | null>(null);
 
   const indexOfKey = (key: React.Key) => items.findIndex((item) => getKey(item) === key);
   const labelOfKey = (key: React.Key) => {
@@ -208,7 +209,7 @@ function SortableList<T>({
     // invalidates the measured slots. External changes also end a keyboard
     // lift; our own acknowledged step keeps its original Escape destination.
     const interruptedDrag = dragRef.current != null && (disabled || changed);
-    const interruptedLift = lifted != null && (disabled || (changed && !(acknowledged && expected.key === lifted.key)));
+    const interruptedLift = lifted != null && (disabled || (changed && !(acknowledged && expected.lift === lifted)));
     if (!interruptedDrag && !interruptedLift) return;
     const key = dragRef.current?.key ?? lifted!.key;
     if (interruptedDrag) setDrag(null);
@@ -235,13 +236,16 @@ function SortableList<T>({
   const move = (key: React.Key, from: number, to: number, keepFocus: HTMLElement | null) => {
     if (disabled || from < 0 || from >= total || getKey(items[from]) !== key || to < 0 || to >= total || to === from)
       return false;
-    expectedMove.current = { key, keys: arrayMove(keys, from, to) };
+    // Pointer drops and standalone Move buttons do not have an active lift
+    // to preserve. Keep only requests made within the current keyboard lift.
+    expectedMove.current = lifted?.key === key ? { lift: lifted, keys: arrayMove(keys, from, to) } : null;
     pendingFocus.current = { key, element: keepFocus };
     onMove(from, to);
     return true;
   };
 
   const drop = (key: React.Key) => {
+    expectedMove.current = null;
     setLifted(null);
     const i = indexOfKey(key);
     setMessage(labels.dropped(labelOfKey(key), i + 1, total));
@@ -271,6 +275,7 @@ function SortableList<T>({
     if (lifted?.key !== key) {
       if (event.key === " ") {
         event.preventDefault();
+        expectedMove.current = null;
         setLifted({ key, origin: index });
         setMessage(labels.lifted(labelOfKey(key), index + 1, total));
       }
@@ -301,6 +306,7 @@ function SortableList<T>({
       event.preventDefault();
       event.stopPropagation();
       move(key, index, lifted.origin, row);
+      expectedMove.current = null;
       setLifted(null);
       setMessage(labels.cancelled(labelOfKey(key), lifted.origin + 1, total));
     }
@@ -332,6 +338,7 @@ function SortableList<T>({
         height: r?.height ?? 0,
       };
     });
+    expectedMove.current = null;
     setLifted(null);
     setDrag({ key, from: index, over: index, pointerId: event.pointerId, startY: event.clientY, dy: 0, rects });
     setMessage(labels.moving(labelOfKey(key), index + 1, total));
@@ -360,12 +367,14 @@ function SortableList<T>({
     const { key, from, over } = drag;
     setDrag(null);
     move(key, from, over, rowRefs.current.get(key) ?? null);
+    expectedMove.current = null;
     setMessage(labels.dropped(labelOfKey(key), over + 1, total));
   };
 
   function cancelDrag() {
     const drag = dragRef.current;
     if (!drag) return;
+    expectedMove.current = null;
     setDrag(null);
     setMessage(labels.cancelled(labelOfKey(drag.key), drag.from + 1, total));
   }

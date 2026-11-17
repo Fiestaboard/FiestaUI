@@ -60,3 +60,16 @@
 - [x] Complete static/package/Storybook checks, normal-push updated PR, and hand to root for review round2. Browser parity remains pending.
 
 **Ruling:** A shared correction was necessary: SortableList owns private drag/lift state and has no cancellation API. An adapter-only guard leaves stale state; synthetic cancellation is brittle; remounting breaks DOM/focus continuity. Jev `shared_lifecycle` p=0.91 (confidence0.89), all requirements supported; root reserved the shared source for this branch.
+
+### Task 3: Review R2 acknowledgment lifetime correction
+
+**Files:** Extend `sortable-list.tsx`; add `sortable-list-acknowledgment.test.tsx`.
+
+**Interfaces:** No public API change. Pending keyboard acknowledgment belongs to the exact active lift object. Ending, canceling, blurring or starting another gesture invalidates it. Pointer and standalone move-button requests cannot preserve a subsequent keyboard lift. Same-gesture delayed acknowledgments and metadata renders remain supported.
+
+- [x] Reproduce all terminal routes (Space, Enter, Escape, blur), with delayed acknowledgment before/after a new lift; cover earlier move-button/pointer requests and continuing-lift metadata/acknowledgment behavior.
+- [x] Observe RED6failed/6passed across12cases; implement exact-lift scoping and explicit boundary clearing.
+- [x] Run family/shared focused suite:96/96passed across5files.
+- [x] Run full shared-source coverage/static/build checks:3429passed/33skipped; all five changed files clear the gate; typecheck/lint/format/build/release499/Storybook pass. Normal-push updated PR body/report and hand to root for final review round3. Browser parity remains pending.
+
+**Ruling:** This is one directly reproduced acknowledgment-lifetime cause, settled by source inspection and tests; no new architecture fork or repeat Jev call is needed.
