@@ -456,6 +456,10 @@ export const INVENTORY = [
         name: "EditorPreview",
         summary: "The editor's always-visible live preview: a sticky pane or a phone dock, with the mirror switch.",
       },
+      {
+        name: "FormulaAtom",
+        summary: "Formula or variable source with its current value, error tag or fallback hint.",
+      },
       { name: "ToolbarDropdown", summary: "The popover shell the toolbar's pickers are mounted in." },
       { name: "VariablePickerContent", summary: "Plugin variables, grouped by plugin with previews." },
       {
