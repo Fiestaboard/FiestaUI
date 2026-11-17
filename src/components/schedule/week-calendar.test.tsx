@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import * as React from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { WeekCalendar, type WeekCalendarDay, type WeekCalendarEntry } from "./week-calendar";
@@ -606,6 +607,61 @@ describe("WeekCalendar", () => {
       fireEvent.lostPointerCapture(market, { pointerId: 1 });
       expect(change(container)).toBeNull();
       expect(onEntryChange).not.toHaveBeenCalled();
+    });
+
+    it("a block the visible hours clip stays fixed", () => {
+      const onEntryChange = vi.fn();
+      const { container } = setup({
+        onEntryChange,
+        hourHeight: 36,
+        entries: [
+          { id: "early", day: 1, start: 240, end: 480, title: "Early bird" },
+          { id: "late", day: 2, start: 1320, end: 1440, title: "Late show" },
+        ],
+      });
+      layOutWeek();
+      for (const name of ["Early bird", "Late show"]) {
+        const clipped = block(name);
+        expect(clipped).not.toHaveAttribute("data-movable");
+        expect(clipped.querySelector('[data-slot="week-calendar-entry-resize"]')).toBeNull();
+        fireEvent.pointerDown(clipped, { pointerType: "mouse", button: 0, clientX: 100, clientY: 120, pointerId: 1 });
+        fireEvent.pointerMove(clipped, { pointerType: "mouse", clientX: 100, clientY: 300, pointerId: 1 });
+        expect(change(container)).toBeNull();
+        fireEvent.pointerUp(clipped, { pointerType: "mouse", clientX: 100, clientY: 300, pointerId: 1 });
+      }
+      expect(onEntryChange).not.toHaveBeenCalled();
+    });
+
+    it("after a host moves a block to another day, the next click on any block still selects", async () => {
+      const onSelect = vi.fn();
+      function Host() {
+        const [entries, setEntries] = React.useState(ENTRIES);
+        return (
+          <WeekCalendar
+            aria-label="Week"
+            days={DAYS}
+            entries={entries}
+            hourHeight={36}
+            onSelect={onSelect}
+            onEntryChange={(entry, range) =>
+              setEntries((list) => list.map((e) => (e.id === entry.id ? { ...e, ...range } : e)))
+            }
+          />
+        );
+      }
+      render(<Host />);
+      layOutWeek();
+      const brunch = block("Brunch");
+      fireEvent.pointerDown(brunch, { pointerType: "mouse", button: 0, clientX: 200, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(brunch, { pointerType: "mouse", clientX: 100, clientY: 250, pointerId: 1 });
+      fireEvent.pointerUp(brunch, { pointerType: "mouse", clientX: 100, clientY: 250, pointerId: 1 });
+      // The browser's click lands on the old node, which React has replaced: nothing selects.
+      fireEvent.click(brunch);
+      expect(screen.getByRole("group", { name: "Tuesday, November 10" })).toContainElement(block("Brunch"));
+      await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+      fireEvent.click(block("Market open"));
+      expect(onSelect).toHaveBeenCalledTimes(1);
+      expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "mon-market" }));
     });
 
     it("a press on a block does not start a create draft, even with both turned on", () => {

@@ -41,7 +41,7 @@ import { cn } from "../../lib/utils";
  * differs; the host owns the data, so the block moves when `entries` does.
  * The preview is the drag draft's recipe (DD-W20). A press that does not
  * travel 4px is still a click (`onSelect`). Gaps and the silence schedule are
- * read-only and stay fixed. Touch never drags, and the keyboard alternative
+ * read-only and stay fixed, and so does a block the visible hours clip. Touch never drags, and the keyboard alternative
  * is the host's entry form (Enter opens it through `onSelect`). Escape or a
  * cancelled pointer drops the change.
  *
@@ -333,7 +333,13 @@ function WeekCalendar({
     changeRef.current = next;
     setChangeState(next);
   }, []);
-  const isMovable = (entry: WeekCalendarEntry) => onEntryChange != null && (entry.kind ?? "entry") === "entry";
+  // A block clipped by the visible hours stays fixed: dragging it could only
+  // report a range the grid cannot show (or one past midnight).
+  const isMovable = (entry: WeekCalendarEntry) =>
+    onEntryChange != null &&
+    (entry.kind ?? "entry") === "entry" &&
+    entry.start >= startMinute &&
+    entry.end <= endMinute;
 
   const snap = (minute: number) => Math.round(minute / snapMinutes) * snapMinutes;
   const rawMinuteAt = (column: HTMLElement, clientY: number) =>
@@ -409,7 +415,13 @@ function WeekCalendar({
         if (!current || current.pointerId !== event.pointerId) return;
         setChange(null);
         if (!current.active) return; // a click: onClick selects
+        // Swallow the click this release produces, and only that one: when
+        // the host moves the entry to another day the click lands on a new
+        // node (or nowhere), so the flag must not outlive this task.
         swallowClickRef.current = true;
+        window.setTimeout(() => {
+          swallowClickRef.current = false;
+        }, 0);
         const range = changeRangeAt(current, event.clientX, event.clientY);
         const { entry: from } = current;
         if (range.day !== from.day || range.start !== from.start || range.end !== from.end) {
@@ -425,14 +437,15 @@ function WeekCalendar({
     };
   };
 
+  const changing = change != null;
   React.useEffect(() => {
-    if (!change) return;
+    if (!changing) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setChange(null);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [change, setChange]);
+  }, [changing, setChange]);
 
   React.useEffect(() => {
     if (!draft) return;
@@ -611,7 +624,7 @@ function WeekCalendar({
                   {...entryHandlers(entry)}
                   className={cn(
                     // 07d `322:14175`: radius 6, pt 3 / px 5, 12/16 type, 1px between lines.
-                    "absolute inset-x-0.75 flex cursor-pointer flex-col items-start gap-px overflow-hidden rounded-sm px-1.25 pt-0.75 text-left text-xs leading-4",
+                    "absolute inset-x-0.75 flex flex-col items-start gap-px overflow-hidden rounded-sm px-1.25 pt-0.75 text-left text-xs leading-4",
                     "focus-ring focus-visible:z-20",
                     kindClasses[kind],
                     // Opaque T4 tint, so a conflicting block that paints over
@@ -627,7 +640,7 @@ function WeekCalendar({
                     // and the title goes muted. Opacity on the whole block
                     // would take the text under 4.5:1.
                     entry.off && "border-border/50 bg-card",
-                    movable && "cursor-grab select-none active:cursor-grabbing",
+                    movable ? "cursor-grab select-none active:cursor-grabbing" : "cursor-pointer",
                   )}
                   style={{ top: `${top}px`, height: `${height}px` }}
                 >
