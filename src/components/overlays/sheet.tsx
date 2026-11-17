@@ -535,7 +535,10 @@ function SheetTitle({ className, ...props }: React.ComponentProps<typeof SheetPr
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn("text-lg font-semibold text-foreground", className)}
+      className={cn(
+        "text-lg font-semibold text-foreground group-data-[variant=confirmation]/sheet:flex group-data-[variant=confirmation]/sheet:min-h-12 group-data-[variant=confirmation]/sheet:items-center group-data-[variant=confirmation]/sheet:pr-12",
+        className,
+      )}
       {...props}
     />
   );

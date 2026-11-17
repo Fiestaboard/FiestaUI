@@ -119,6 +119,9 @@ const SNACKBAR_CLASSNAMES = {
   toast: cn(TOAST_CLASSNAMES.toast, "!py-3.5 !pl-4 !pr-3"),
   title: "!text-sm !font-semibold",
   description: cn(TOAST_CLASSNAMES.description, "!text-xs"),
+  content: cn(TOAST_CLASSNAMES.content, "group-has-[[data-close-button]]/toast:pr-9"),
+  closeButton:
+    "!left-auto !right-3 !top-3.5 !transform-none !size-5 !rounded-md !border-0 !bg-transparent before:absolute before:-inset-3 before:rounded-full focus-ring",
 };
 
 /** Scalar offsets intentionally replace every edge; partial objects preserve other kit defaults. */

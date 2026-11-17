@@ -58,6 +58,7 @@ export const WideDialog: Story = {
     await waitFor(() =>
       expect(Math.abs(dialog.getBoundingClientRect().width - Math.min(560, width - 32))).toBeLessThan(1),
     );
+    await Promise.all(dialog.getAnimations().map((animation) => animation.finished.catch(() => {})));
     const title = body.getByRole("heading").getBoundingClientRect();
     const close = body.getByRole("button", { name: "Close" }).getBoundingClientRect();
     expect(title.right).toBeLessThanOrEqual(close.left);
@@ -116,6 +117,35 @@ export const MobileConfirmation: Story = {
   globals: { viewport: { value: "mobile", isRotated: false } },
 };
 
+export const LongConfirmation: Story = {
+  ...ConfirmationSheet,
+  render: () => (
+    <>
+      <Page />
+      <Sheet defaultOpen>
+        <SheetContent side="bottom" variant="confirmation" labels={{ close: "Schließen" }}>
+          <SheetHeader>
+            <SheetTitle>Änderungen an der morgendlichen Anzeige für die Küche wirklich verwerfen?</SheetTitle>
+            <SheetDescription>
+              The saved page stays on the board. This longer title must leave the close control reachable.
+            </SheetDescription>
+          </SheetHeader>
+          <SheetFooter>
+            <SheetClose asChild>
+              <Button size="touch" variant="outline">
+                Keep editing
+              </Button>
+            </SheetClose>
+            <Button size="touch" variant="destructive">
+              Discard changes
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </>
+  ),
+};
+
 function Snackbar({ theme, mobile = false }: { theme: "light" | "dark"; mobile?: boolean }) {
   useEffect(() => {
     const id = toast.success("Saved to Pages", {
@@ -131,12 +161,20 @@ function Snackbar({ theme, mobile = false }: { theme: "light" | "dark"; mobile?:
   return (
     <>
       <Page />
-      {mobile && <div aria-label="Editor toolbar" className="fixed inset-x-0 bottom-0 h-15 border-t bg-card" />}
+      {mobile && (
+        <div
+          aria-hidden="true"
+          data-testid="editor-toolbar"
+          className="fixed inset-x-0 bottom-0 h-15 border-t bg-card"
+        />
+      )}
       <Toaster
         variant="snackbar"
         theme={theme}
         position={mobile ? "bottom-center" : "top-right"}
         duration={6000}
+        closeButton
+        labels={{ close: "Dismiss notification" }}
         offset={mobile ? { bottom: "calc(68px + env(safe-area-inset-bottom))" } : undefined}
         mobileOffset={mobile ? { bottom: "calc(68px + env(safe-area-inset-bottom))" } : undefined}
       />
@@ -158,6 +196,20 @@ export const SnackbarDesktop: Story = {
     const schedule = body.getByRole("button", { name: "Add to Schedule" });
     expect(show.compareDocumentPosition(schedule) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(show.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    const close = body.getByRole("button", { name: "Dismiss notification" });
+    await waitFor(() => {
+      const closeBox = close.getBoundingClientRect();
+      const toastBox = notification.getBoundingClientRect();
+      expect(closeBox.width).toBe(20);
+      expect(toastBox.right - closeBox.right).toBeGreaterThanOrEqual(11);
+      expect(toastBox.right - closeBox.right).toBeLessThanOrEqual(14);
+      expect(close.contains(canvasElement.ownerDocument.elementFromPoint(closeBox.left - 11, closeBox.top + 10))).toBe(
+        true,
+      );
+      expect(close.contains(canvasElement.ownerDocument.elementFromPoint(closeBox.right + 11, closeBox.top + 10))).toBe(
+        true,
+      );
+    });
   },
 };
 
@@ -168,7 +220,7 @@ export const SnackbarAboveEditor: Story = {
   play: async (context) => {
     await SnackbarDesktop.play!(context);
     const doc = context.canvasElement.ownerDocument;
-    const toolbar = within(doc.body).getByLabelText("Editor toolbar");
+    const toolbar = within(doc.body).getByTestId("editor-toolbar");
     const notification = doc.querySelector<HTMLElement>("[data-sonner-toast]")!;
     await waitFor(() =>
       expect(notification.getBoundingClientRect().bottom).toBeLessThanOrEqual(toolbar.getBoundingClientRect().top - 8),

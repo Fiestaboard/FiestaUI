@@ -11,6 +11,23 @@ afterEach(() => {
 });
 
 describe("Toaster", () => {
+  it("announces a snackbar without stealing focus and dismisses with its localized close control", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button type="button">Editor</button>
+        <Toaster variant="snackbar" closeButton labels={{ close: "Dismiss notification" }} />
+      </>,
+    );
+    screen.getByRole("button", { name: "Editor" }).focus();
+    act(() => {
+      toast("Saved to Pages", { duration: Infinity });
+    });
+    expect(await screen.findByText("Saved to Pages")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Editor" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Dismiss notification" }));
+    await waitFor(() => expect(screen.queryByText("Saved to Pages")).not.toBeInTheDocument());
+  });
   it("offers the reference snackbar size and mobile inset without moving focus", async () => {
     render(<Toaster variant="snackbar" position="top-right" />);
     act(() => {
