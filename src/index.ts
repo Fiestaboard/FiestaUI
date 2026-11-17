@@ -131,6 +131,7 @@ export * from "./components/board/static-board-display";
 export * from "./lib/board-characters";
 export * from "./lib/board-colors";
 export * from "./lib/board-dimensions";
+export * from "./lib/note-array-geometry";
 // The icon registry behind `{icon:…}` (parsed under `extendedMarkup`, which
 // every renderer now defaults on): a curated surface, so the LED glyph data
 // that joins it later stays internal.
@@ -369,6 +370,8 @@ export * from "./components/editor/editor-tool";
 export * from "./components/editor/editor-warning";
 export * from "./components/editor/formula-atom";
 export * from "./components/editor/inspector-row";
+export * from "./components/editor/note-focus";
+export * from "./components/editor/note-seams";
 export * from "./components/editor/revision-diff";
 export * from "./components/editor/revision-row";
 export * from "./components/editor/row-band";

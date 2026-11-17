@@ -159,6 +159,8 @@ import { FilterPickerContent } from "../components/editor/filter-picker-content"
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
 import { FormulaAtom } from "../components/editor/formula-atom";
 import { InspectorRow } from "../components/editor/inspector-row";
+import { NoteFocus } from "../components/editor/note-focus";
+import { NoteSeams } from "../components/editor/note-seams";
 import { PreviewStatus } from "../components/editor/preview-status";
 import { RevisionDiff } from "../components/editor/revision-diff";
 import { RevisionRow } from "../components/editor/revision-row";
@@ -411,6 +413,11 @@ function BoardMinimapDemo() {
       onJump={setPosition}
     />
   );
+}
+
+function NoteFocusDemo() {
+  const [note, setNote] = useState<number | null>(null);
+  return <NoteFocus note={note} onNoteChange={setNote} />;
 }
 
 function BoardPreviewModeToggleDemo() {
@@ -2249,6 +2256,22 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         { row: 2, length: 31, overflow: { column: 29, count: 2, description: "Row 2 · Last two columns are cut" } },
       ]}
     />
+  ),
+  NoteFocus: () => <NoteFocusDemo />,
+  NoteSeams: () => (
+    <div className="max-w-full overflow-x-auto">
+      <div className="relative w-[483px]">
+        <StaticBoardDisplay
+          deviceType="note_array"
+          notesWide={2}
+          notesTall={2}
+          size="sm"
+          bezel={false}
+          message="ONE CANVAS"
+        />
+        <NoteSeams note={2} />
+      </div>
+    </div>
   ),
   EditorPreview: () => (
     <EditorPreview

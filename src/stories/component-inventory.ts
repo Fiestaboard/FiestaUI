@@ -526,6 +526,8 @@ export const INVENTORY = [
         name: "FormulaAtom",
         summary: "Formula or variable source with its current value, error tag or fallback hint.",
       },
+      { name: "NoteFocus", summary: "Select one physical Note or the whole array while keeping one canvas." },
+      { name: "NoteSeams", summary: "Shared Note boundary and focus overlays aligned to the existing board renderer." },
       { name: "ToolbarDropdown", summary: "The popover shell the toolbar's pickers are mounted in." },
       { name: "VariablePickerContent", summary: "Plugin variables, grouped by plugin with previews." },
       {
