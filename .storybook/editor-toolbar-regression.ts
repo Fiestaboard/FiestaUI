@@ -335,8 +335,18 @@ async function checkTouchPickerTargets(page: Page, id: string) {
       : id.endsWith("--led-text-color-popover")
         ? ["[data-text-color]", "[data-block-color]", '[role="option"]']
         : ['[role="option"]'];
+  const started = Date.now();
+  const progress = { stage: "popup visible", width: 0, font: originalFont, targetIndex: -1, targetCount: 0, cases: 0 };
+  // Jest's15s budget otherwise masks Playwright's longer default waits.
+  // One early warning identifies cumulative traversal cost even if no
+  // individual operation reaches its own bounded timeout.
+  const diagnosticTimer = setTimeout(() => {
+    console.warn(
+      `[toolbar-targets] ${id}: slow stage ${JSON.stringify({ ...progress, elapsedMs: Date.now() - started })}`,
+    );
+  }, 10_000);
   try {
-    await popup.waitFor({ state: "visible" });
+    await popup.waitFor({ state: "visible", timeout: 2_500 });
     await page.mouse.move(0, 0);
     for (const [width, font] of [
       [320, originalFont],
@@ -346,10 +356,13 @@ async function checkTouchPickerTargets(page: Page, id: string) {
       [1280, originalFont],
       [320, "200%"],
     ] as const) {
+      Object.assign(progress, { stage: "viewport", width, font, targetIndex: -1, targetCount: 0 });
       await page.evaluate((fontSize) => {
         document.documentElement.style.fontSize = fontSize;
       }, font);
       await page.setViewportSize({ width, height: 844 });
+      progress.stage = "popup fit";
+      const fitStarted = Date.now();
       await page.waitForFunction(
         ({ selector, viewportWidth }) => {
           const element = document.querySelector(selector);
@@ -365,17 +378,25 @@ async function checkTouchPickerTargets(page: Page, id: string) {
           );
         },
         { selector: popupSelector, viewportWidth: width },
+        { timeout: 2_500 },
       );
+      const fitMs = Date.now() - fitStarted;
+      progress.stage = "target groups";
       for (const selector of groups) {
         assert.ok(
           (await popup.locator(selector).count()) > 0,
           `${id}/${width}/${font || "default"}: missing target group ${selector}`,
         );
       }
-      for (const target of await popup.locator("button").all()) {
+      const targets = await popup.locator("button").all();
+      progress.targetCount = targets.length;
+      const targetsStarted = Date.now();
+      for (const [index, target] of targets.entries()) {
         // Tall palettes can scroll inside the available-height cap. Every
         // target must become reachable without moving or clipping the popup.
-        await target.scrollIntoViewIfNeeded();
+        Object.assign(progress, { stage: "target scroll", targetIndex: index });
+        await target.scrollIntoViewIfNeeded({ timeout: 2_500 });
+        progress.stage = "target geometry";
         const geometry = await target.evaluate((element) => {
           const rect = element.getBoundingClientRect();
           const panel = element.closest('[data-slot="popover-content"]')!.getBoundingClientRect();
@@ -404,8 +425,13 @@ async function checkTouchPickerTargets(page: Page, id: string) {
           `${id}/${width}/${font || "default"}: undersized or clipped picker target ${JSON.stringify(geometry)}`,
         );
       }
+      progress.cases++;
+      console.warn(
+        `[toolbar-targets] ${id}: case complete ${JSON.stringify({ width, font, targets: targets.length, fitMs, targetsMs: Date.now() - targetsStarted, elapsedMs: Date.now() - started })}`,
+      );
     }
     if (brush) {
+      progress.stage = "brush selection";
       // The real editor forwards the brush to the host. A selection closes
       // this popup, and reopening must retain the selected brush state.
       const trigger = page.locator(TOOLBAR).getByRole("button", { name: "Brush", exact: true });
@@ -421,7 +447,45 @@ async function checkTouchPickerTargets(page: Page, id: string) {
         assert.equal(await popup.getByRole("button", { name, exact: true }).getAttribute("aria-pressed"), "true");
       }
     }
+  } catch (error) {
+    const snapshot = await page
+      .evaluate(
+        ({ selector, targetIndex }) => {
+          const panel = document.querySelector<HTMLElement>(selector);
+          const target = panel?.querySelectorAll("button")[targetIndex];
+          const styles = panel ? getComputedStyle(panel) : null;
+          return {
+            viewport: { width: innerWidth, height: innerHeight, scrollX, scrollY },
+            popup: panel?.getBoundingClientRect().toJSON(),
+            popupStyle: styles && {
+              display: styles.display,
+              visibility: styles.visibility,
+              maxWidth: styles.maxWidth,
+              maxHeight: styles.maxHeight,
+              availableWidth: styles.getPropertyValue("--available-width"),
+              availableHeight: styles.getPropertyValue("--available-height"),
+            },
+            scroll: panel && {
+              left: panel.scrollLeft,
+              top: panel.scrollTop,
+              width: panel.scrollWidth,
+              height: panel.scrollHeight,
+            },
+            target: target && {
+              name: target.getAttribute("aria-label") ?? target.textContent,
+              rect: target.getBoundingClientRect().toJSON(),
+            },
+          };
+        },
+        { selector: popupSelector, targetIndex: progress.targetIndex },
+      )
+      .catch(() => "page unavailable");
+    throw new Error(
+      `${id}: target check failed ${JSON.stringify({ ...progress, elapsedMs: Date.now() - started, snapshot })}`,
+      { cause: error },
+    );
   } finally {
+    clearTimeout(diagnosticTimer);
     await page.evaluate((font) => {
       document.documentElement.style.fontSize = font;
     }, originalFont);
