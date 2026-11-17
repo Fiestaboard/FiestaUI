@@ -155,6 +155,8 @@ import { EditorTool } from "../components/editor/editor-tool";
 import { EditorWarning, EditorWarningAction } from "../components/editor/editor-warning";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
+import { RevisionDiff } from "../components/editor/revision-diff";
+import { RevisionRow } from "../components/editor/revision-row";
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
@@ -2171,6 +2173,22 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
 
   /* ---- Template editor ---- */
   TemplateEditor: TemplateEditorDemo,
+  RevisionRow: () => (
+    <RevisionRow
+      thumbnail={<StaticBoardDisplay message="REVISION" size="sm" />}
+      savedAt="7:12 AM"
+      author="Saved on iPad"
+      status="live"
+      onCompare={() => {}}
+    />
+  ),
+  RevisionDiff: () => (
+    <RevisionDiff
+      before={{ label: "7:12 AM", thumbnail: <StaticBoardDisplay message="BEFORE" size="sm" /> }}
+      after={{ label: "Now", thumbnail: <StaticBoardDisplay message="AFTER" size="sm" /> }}
+      summary="One row changed"
+    />
+  ),
   EditorPreview: () => (
     <EditorPreview
       className="static w-full max-w-md"
