@@ -76,15 +76,20 @@ export const Medium: Story = {
   ],
 };
 export const Mobile: Story = {
+  parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "mobile", isRotated: false } },
   decorators: [
     (Story) => (
-      <div className="w-full max-w-[348px]">
+      <main className="min-h-screen w-full max-w-[390px] p-4">
         <Story />
-      </div>
+      </main>
     ),
   ],
   play: async ({ canvasElement }) => {
+    const group = canvasElement.querySelector('[data-slot="list-row-group"]')!;
+    const row = canvasElement.querySelector('[data-slot="session-row"]')!;
+    expect(group.getBoundingClientRect().width).toBeCloseTo(358, 0);
+    expect(row.getBoundingClientRect().width).toBeCloseTo(348, 0);
     for (const element of canvasElement.querySelectorAll<HTMLElement>(
       '[data-slot="session-row"], [data-slot="list-row-body"], [data-slot="list-row-text"]',
     )) {

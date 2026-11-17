@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Info, RotateCw } from "lucide-react";
+import { expect } from "storybook/test";
 
 import { PairingQrStandIn } from "../../stories/pairing-qr-stand-in";
 import { Alert, AlertDescription, AlertTitle } from "../feedback/alert";
@@ -124,6 +125,7 @@ export const Error: Story = {
 };
 
 export const Mobile: Story = {
+  parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "mobile", isRotated: false } },
   args: {
     steps: undefined,
@@ -139,11 +141,16 @@ export const Mobile: Story = {
   },
   decorators: [
     (Story) => (
-      <div className="w-full max-w-[358px]">
+      <main className="min-h-screen w-full max-w-[390px] p-4">
         <Story />
-      </div>
+      </main>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    const card = canvasElement.querySelector<HTMLElement>('[data-slot="connect-phone-card"]')!;
+    expect(card.getBoundingClientRect().width).toBeCloseTo(358, 0);
+    expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth + 1);
+  },
 };
 
 /**

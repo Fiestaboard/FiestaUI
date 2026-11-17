@@ -11,6 +11,15 @@ function Example({ initial = "" }: { initial?: string }) {
 }
 
 describe("DeviceCodeInput", () => {
+  it.each([undefined, "rtl"] as const)("keeps native code editing LTR inside an RTL host even when dir=%s", (dir) => {
+    const { container } = render(
+      <div dir="rtl">
+        <DeviceCodeInput aria-label="TV code" dir={dir} value="BCDF7KQM" onValueChange={() => {}} />
+      </div>,
+    );
+    expect(screen.getByRole("textbox")).toHaveAttribute("dir", "ltr");
+    expect(container.querySelector('[data-slot="device-code-cells"]')).toHaveAttribute("dir", "ltr");
+  });
   it("leaves pointer events on the native input available for selection and the mobile paste menu", () => {
     render(<Example initial="BCDF7KQM" />);
     const event = new PointerEvent("pointerdown", { bubbles: true, cancelable: true });

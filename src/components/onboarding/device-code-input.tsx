@@ -86,6 +86,8 @@ function DeviceCodeInput({
     >
       <Input
         {...props}
+        // ASCII code positions must match the LTR cells even in an RTL host.
+        dir="ltr"
         ref={inputRef}
         type="text"
         value={code}

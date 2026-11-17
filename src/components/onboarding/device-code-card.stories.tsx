@@ -187,16 +187,18 @@ export const Denied: Story = {
 };
 export const Mobile: Story = {
   ...AllowTV,
+  parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "mobile", isRotated: false } },
   decorators: [
     (Story) => (
-      <div className="w-full max-w-[358px]">
+      <main className="min-h-screen w-full max-w-[390px] p-4">
         <Story />
-      </div>
+      </main>
     ),
   ],
   play: async ({ canvasElement }) => {
     const card = canvasElement.querySelector<HTMLElement>('[data-slot="device-code-card"]')!;
+    expect(card.getBoundingClientRect().width).toBeCloseTo(358, 0);
     expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth + 1);
     expect(
       card.querySelector('[data-slot="device-code-header"]')!.getBoundingClientRect().height,
