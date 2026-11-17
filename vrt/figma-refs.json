@@ -388,7 +388,7 @@
         "waitingOn": "versioned design-refs checkout; live MCP export and visual comparison saved in program/shots/fiestaui-1.11/ui111a-data-source-switch"
       },
       "target": {
-        "story": "forms-data-source-switch--live",
+        "story": "forms-datasourceswitch--live",
         "root": "[data-slot=data-source-switch]"
       },
       "probes": {
@@ -420,7 +420,7 @@
         "waitingOn": "versioned design-refs checkout; live MCP export and visual comparison saved in program/shots/fiestaui-1.11/ui111a-data-source-switch"
       },
       "target": {
-        "story": "forms-data-source-switch--sample",
+        "story": "forms-datasourceswitch--sample",
         "root": "[data-slot=data-source-switch]"
       },
       "probes": {
@@ -452,7 +452,7 @@
         "waitingOn": "versioned design-refs checkout; live MCP export and visual comparison saved in program/shots/fiestaui-1.11/ui111a-data-source-switch"
       },
       "target": {
-        "story": "forms-data-source-switch--missing",
+        "story": "forms-datasourceswitch--missing",
         "root": "[data-slot=data-source-switch]"
       },
       "probes": {

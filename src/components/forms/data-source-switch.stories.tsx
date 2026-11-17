@@ -44,6 +44,30 @@ export const Mobile: Story = {
     }
   },
 };
+export const ShortLabels: Story = {
+  ...Mobile,
+  args: {
+    size: "touch",
+    options: [
+      { value: "live", label: "L" },
+      { value: "sample", label: "S" },
+      { value: "missing", label: "M" },
+    ],
+  },
+};
+export const CoarseShortLabels: Story = {
+  ...ShortLabels,
+  args: { ...ShortLabels.args, size: "default" },
+  // The browser runner enables a coarse pointer and checks both dimensions.
+  play: undefined,
+  decorators: [
+    (Story) => (
+      <div className="fui-coarse">
+        <Story />
+      </div>
+    ),
+  ],
+};
 export const LongLabels: Story = {
   args: {
     size: "touch",

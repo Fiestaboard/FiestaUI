@@ -66,12 +66,15 @@ function DataSourceSwitch({
           disabled={option.disabled}
           data-slot="data-source-option"
           className={cn(
-            "inline-flex min-w-0 max-w-full cursor-pointer items-center justify-center rounded-sm px-3 py-1.5 text-center text-sm font-medium wrap-anywhere text-muted-foreground",
+            "relative inline-flex min-w-0 max-w-full cursor-pointer items-center justify-center rounded-sm px-3 py-1.5 text-center text-sm font-medium wrap-anywhere text-muted-foreground",
             "transition-[color,background-color,box-shadow] duration-base focus-ring forced-colors:focus-visible:[outline:2px_solid_Highlight]! forced-colors:focus-visible:outline-offset-2!",
             "not-data-[checked]:hover:bg-background/50 not-data-[checked]:hover:text-foreground not-data-[checked]:active:bg-background/50",
             "data-[checked]:bg-background data-[checked]:text-foreground data-[checked]:shadow-sm",
+            // Shadows disappear in forced colors. A separate inner marker
+            // preserves selection while the outer outline shows keyboard focus.
+            "forced-colors:data-[checked]:after:pointer-events-none forced-colors:data-[checked]:after:absolute forced-colors:data-[checked]:after:inset-0.5 forced-colors:data-[checked]:after:rounded-sm forced-colors:data-[checked]:after:border forced-colors:data-[checked]:after:border-[Highlight]",
             "disabled:pointer-events-none disabled:opacity-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-            size === "touch" ? "min-h-control-touch" : "coarse:min-h-touch",
+            size === "touch" ? "min-h-control-touch min-w-control-touch" : "coarse:min-h-touch coarse:min-w-touch",
           )}
         >
           {option.label ?? labels[option.value]}
