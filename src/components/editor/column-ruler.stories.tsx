@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 import { ColumnRuler } from "./column-ruler";
 
+const viewportClass = "max-w-full overflow-x-auto p-1 focus-ring";
+
 const meta = {
   title: "App/Editor/ColumnRuler",
   component: ColumnRuler,
@@ -16,7 +18,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="max-w-full overflow-x-auto p-1">
+      // Scrollable rulers must remain reachable without a pointer.
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+      <div role="region" aria-label="Column ruler viewport" tabIndex={0} className={viewportClass}>
         <Story />
       </div>
     ),
