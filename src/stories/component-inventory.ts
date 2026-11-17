@@ -99,6 +99,10 @@ export const INVENTORY = [
         summary: "A setting this display can't offer, said in place of its control, with the reason.",
       },
       {
+        name: "ChoiceChip",
+        summary: "Compact choice pills: named radio groups or standalone filter toggles, with a 44px touch target.",
+      },
+      {
         name: "ChoiceCard",
         summary: "Pick by what it looks like — an actual-size board crop, title and meta; radio or checkbox group.",
       },

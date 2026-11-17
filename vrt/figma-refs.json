@@ -378,6 +378,102 @@
       },
       "tolerance": {},
       "waivers": []
+    },
+    {
+      "id": "forms-choice-chip-off",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "142:21730",
+        "waitingOn": "a ref for this id in a refs checkout; local MCP screenshot is in program/shots/fiestaui-1.11/ui111a-choice-chip/"
+      },
+      "target": {
+        "story": "forms-choicechip--default",
+        "root": "[data-slot=choice-chip]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": "[data-slot=choice-chip-pill]",
+            "property": "background-color",
+            "variable": "var(--card)"
+          },
+          {
+            "selector": ":scope",
+            "property": "color",
+            "variable": "var(--foreground)"
+          },
+          {
+            "selector": ":scope",
+            "property": "min-height",
+            "variable": "var(--control-h-touch)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Pill (32 visual)",
+            "selector": "[data-slot=choice-chip-pill]",
+            "measure": "box"
+          }
+        ],
+        "text": [
+          {
+            "node": "Label",
+            "selector": "[data-slot=choice-chip-label]"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "forms-choice-chip-on",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "142:21733",
+        "waitingOn": "a ref for this id in a refs checkout; local MCP screenshot is in program/shots/fiestaui-1.11/ui111a-choice-chip/"
+      },
+      "target": {
+        "story": "forms-choicechip--selected",
+        "root": "[data-slot=choice-chip]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": "[data-slot=choice-chip-pill]",
+            "property": "background-color",
+            "variable": "var(--tint-selected)"
+          },
+          {
+            "selector": ":scope",
+            "property": "color",
+            "variable": "var(--foreground)"
+          },
+          {
+            "selector": ":scope",
+            "property": "min-height",
+            "variable": "var(--control-h-touch)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Pill (32 visual)",
+            "selector": "[data-slot=choice-chip-pill]",
+            "measure": "box"
+          }
+        ],
+        "text": [
+          {
+            "node": "Label",
+            "selector": "[data-slot=choice-chip-label]"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
     }
   ]
 }

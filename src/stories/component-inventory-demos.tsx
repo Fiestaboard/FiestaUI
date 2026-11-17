@@ -172,6 +172,7 @@ import { toast, Toaster } from "../components/feedback/toaster";
 import { Button } from "../components/forms/button";
 import { Checkbox } from "../components/forms/checkbox";
 import { ChoiceCard, ChoiceCardGroup, ChoiceCardPreview } from "../components/forms/choice-card";
+import { ChoiceChip, ChoiceChipGroup } from "../components/forms/choice-chip";
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
 import { CopyableCode } from "../components/forms/copyable-code";
@@ -895,6 +896,13 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         <Bold /> Disabled
       </Toggle>
     </Flex>
+  ),
+  ChoiceChip: () => (
+    <ChoiceChipGroup aria-label="Display status" size="touch" defaultValue="all">
+      <ChoiceChip value="all" label="All displays" />
+      <ChoiceChip value="online" label="Online" />
+      <ChoiceChip value="offline" label="Offline" />
+    </ChoiceChipGroup>
   ),
   ChoiceCard: () => (
     <ChoiceCardGroup aria-label="Display type" defaultValue="flagship" className="w-full max-w-[370px]">
