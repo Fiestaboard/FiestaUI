@@ -4,6 +4,7 @@ import { expect, userEvent, within } from "storybook/test";
 
 import { Button } from "../forms/button";
 import { TemplateEditor } from "./template-editor";
+import type { DrawBrush } from "./utils/draw-mode";
 
 const VARIABLES = {
   variables: { weather: ["temp"] },
@@ -27,10 +28,12 @@ function useMedia(query: string) {
  * selects the three independent web2.5 policies and supplies a portal host.
  * forceTouch demonstrates a host's coarse-input preference at desktop widths.
  */
-function IntegratedToolbar({ led = false, forceTouch = true, forcePopover = false }) {
+function IntegratedToolbar({ led = false, forceTouch = true, forcePopover = false, draw = false }) {
   const [value, setValue] = useState("GOOD MORNING\n{{weather.temp}}°\nHAVE A GREAT DAY");
   const [host, setHost] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState("Large 5×7");
+  const [drawing, setDrawing] = useState(draw);
+  const [brush, setBrush] = useState<DrawBrush>({ kind: "color", color: "blue" });
   const sheet = useMedia("(width < 640px)");
   const touch = useMedia("(width < 768px)");
   const coarse = useMedia("(pointer: coarse)");
@@ -42,6 +45,10 @@ function IntegratedToolbar({ led = false, forceTouch = true, forcePopover = fals
         value={value}
         onChange={setValue}
         charset={led ? "led_5x7" : "vestaboard_v1"}
+        drawMode={drawing}
+        onDrawModeToggle={draw ? () => setDrawing((active) => !active) : undefined}
+        drawBrush={brush}
+        onDrawBrushChange={setBrush}
         toolbarProps={{
           size: touch || coarse || forceTouch ? "touch" : "default",
           pickerPresentation: sheet && !forcePopover ? "sheet" : "popover",
@@ -73,6 +80,11 @@ function IntegratedToolbar({ led = false, forceTouch = true, forcePopover = fals
       <output data-testid="toolbar-template-value" className="mt-4 block whitespace-pre-wrap text-sm">
         {value}
       </output>
+      {drawing && (
+        <output data-testid="toolbar-selected-brush" className="mt-4 block text-sm">
+          Selected brush: {brush.kind === "color" ? brush.color : brush.kind === "char" ? brush.char : brush.kind}
+        </output>
+      )}
       <div ref={setHost} data-testid="toolbar-portal-host" className="mt-6" />
     </main>
   );
@@ -131,5 +143,12 @@ export const ColorPopover: Story = {
   args: { forcePopover: true },
   play: async ({ canvasElement }) => {
     await userEvent.click(await within(canvasElement).findByRole("button", { name: "Colors" }));
+  },
+};
+
+export const BrushPopover: Story = {
+  args: { draw: true, forcePopover: true },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(await within(canvasElement).findByRole("button", { name: "Brush" }));
   },
 };

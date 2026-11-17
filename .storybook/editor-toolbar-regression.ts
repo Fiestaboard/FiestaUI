@@ -149,7 +149,11 @@ export async function checkTouchToolbarGeometry(page: Page, id: string) {
 
 /** Real viewport and hit testing for touch popovers (uikit3/DD-W75). */
 async function checkIntegratedToolbarGeometry(page: Page, id: string) {
-  if (["--led-icon-popover", "--led-text-color-popover", "--color-popover"].some((suffix) => id.endsWith(suffix))) {
+  if (
+    ["--led-icon-popover", "--led-text-color-popover", "--color-popover", "--brush-popover"].some((suffix) =>
+      id.endsWith(suffix),
+    )
+  ) {
     await checkTouchPickerTargets(page, id);
     return;
   }
@@ -315,6 +319,7 @@ async function checkIntegratedToolbarGeometry(page: Page, id: string) {
  * Tailwind class strings, including every shared color/glyph recipe.
  */
 async function checkTouchPickerTargets(page: Page, id: string) {
+  const brush = id.endsWith("--brush-popover");
   const originalViewport = page.viewportSize();
   const originalFont = await page.evaluate(() => document.documentElement.style.fontSize);
   const popupSelector = '[data-slot="popover-content"]';
@@ -323,11 +328,13 @@ async function checkTouchPickerTargets(page: Page, id: string) {
     content:
       '[data-slot="popover-content"], [data-slot="editor-toolbar"] { animation: none !important; transition: none !important; }',
   });
-  const groups = id.endsWith("--led-icon-popover")
-    ? ["[data-icon]"]
-    : id.endsWith("--led-text-color-popover")
-      ? ["[data-text-color]", "[data-block-color]", '[role="option"]']
-      : ['[role="option"]'];
+  const groups = brush
+    ? ['[data-testid="draw-color-red"]', "[data-draw-char]"]
+    : id.endsWith("--led-icon-popover")
+      ? ["[data-icon]"]
+      : id.endsWith("--led-text-color-popover")
+        ? ["[data-text-color]", "[data-block-color]", '[role="option"]']
+        : ['[role="option"]'];
   try {
     await popup.waitFor({ state: "visible" });
     await page.mouse.move(0, 0);
@@ -396,6 +403,22 @@ async function checkTouchPickerTargets(page: Page, id: string) {
           geometry.width >= 44 && geometry.height >= 44 && geometry.hit && geometry.inPopup && geometry.inViewport,
           `${id}/${width}/${font || "default"}: undersized or clipped picker target ${JSON.stringify(geometry)}`,
         );
+      }
+    }
+    if (brush) {
+      // The real editor forwards the brush to the host. A selection closes
+      // this popup, and reopening must retain the selected brush state.
+      const trigger = page.locator(TOOLBAR).getByRole("button", { name: "Brush", exact: true });
+      for (const [name, selected] of [
+        ["Red", "red"],
+        ["A", "A"],
+      ] as const) {
+        await popup.getByRole("button", { name, exact: true }).click();
+        await popup.waitFor({ state: "hidden" });
+        assert.equal(await page.getByTestId("toolbar-selected-brush").textContent(), `Selected brush: ${selected}`);
+        await trigger.click();
+        await popup.waitFor({ state: "visible" });
+        assert.equal(await popup.getByRole("button", { name, exact: true }).getAttribute("aria-pressed"), "true");
       }
     }
   } finally {

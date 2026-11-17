@@ -256,7 +256,11 @@ export function TouchToolbar(props: TouchToolbarProps) {
         return (
           <div className="flex flex-col gap-3">
             {props.drawColors.length > 0 && (
-              <div role="group" aria-label={l.brush} className="grid w-full grid-cols-4 gap-2">
+              <div
+                role="group"
+                aria-label={l.brush}
+                className="grid w-full grid-cols-[repeat(4,minmax(calc(var(--spacing)*12),1fr))] gap-2"
+              >
                 {props.drawColors.map((name) => {
                   const selected = props.brush.kind === "color" && props.brush.color === name;
                   const colorName = l.drawColors[name];
