@@ -91,7 +91,7 @@ function LayerRow({
       className={cn(
         "gap-2 rounded-md py-1 pr-2.5 pl-2 [&_[data-slot=list-row-leading]]:gap-2 [&_[data-slot=list-row-title]]:flex",
         size === "touch" ? "min-h-14" : "min-h-11",
-        selected && "bg-accent outline-[1.5px] -outline-offset-[1.5px] outline-primary",
+        selected && "bg-accent outline-[1.5px]! -outline-offset-[1.5px]! outline-solid! outline-primary!",
         disabled && "opacity-50",
         className,
       )}

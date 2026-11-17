@@ -23,13 +23,40 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Assert the painted selected boundary, including the cascade inherited from ListRow. */
+async function expectSelectedBoundary(canvasElement: HTMLElement) {
+  const row = canvasElement.querySelector<HTMLElement>("[data-layer-row][data-selected]")!;
+  const token = canvasElement.ownerDocument.createElement("span");
+  token.style.color = "var(--primary)";
+  token.style.position = "absolute";
+  canvasElement.append(token);
+  const primary = getComputedStyle(token).color;
+  token.remove();
+  await waitFor(async () => {
+    const style = getComputedStyle(row);
+    const width = parseFloat(style.outlineWidth);
+    await expect(style.outlineStyle).toBe("solid");
+    // Chromium quantizes the 1.5px CSS outline to a 1px used value at DPR 1.
+    await expect(width).toBeGreaterThanOrEqual(1);
+    await expect(width).toBeLessThanOrEqual(1.5);
+    await expect(parseFloat(style.outlineOffset)).toBe(-width);
+    await expect(style.outlineColor).toBe(primary);
+  });
+}
+
 /** C41 111:29455. Standalone readonly rows omit the inert drag affordance. */
 export const Default: Story = {};
-export const Selected: Story = { args: { selected: true } };
+export const Selected: Story = {
+  args: { selected: true },
+  play: async ({ canvasElement }) => expectSelectedBoundary(canvasElement),
+};
 export const Locked: Story = { args: { name: "Protected text", locked: true, bound: false } };
 export const Hidden: Story = { args: { visible: false } };
 /** The toolbar and CI theme matrix own the palette, including this selected-state example. */
-export const Dark: Story = { args: { selected: true } };
+export const Dark: Story = {
+  args: { selected: true },
+  play: async ({ canvasElement }) => expectSelectedBoundary(canvasElement),
+};
 export const Touch: Story = { args: { size: "touch" } };
 export const LongContent: Story = {
   args: {
@@ -75,6 +102,7 @@ export const Interactive: Story = {
     select.focus();
     await userEvent.keyboard("{Enter}");
     await expect(select).toHaveAttribute("aria-pressed", "true");
+    await expectSelectedBoundary(canvasElement);
     await expect(canvasElement.querySelector("button button")).toBeNull();
     for (const button of canvas.getAllByRole("button")) {
       await expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(24);
@@ -130,6 +158,7 @@ export const Panel: Story = {
 export const Mobile: Story = {
   globals: { viewport: { value: "mobile", isRotated: false } },
   render: () => <PanelDemo size="touch" />,
+  play: async ({ canvasElement }) => expectSelectedBoundary(canvasElement),
 };
 
 function LifecycleDemo() {
