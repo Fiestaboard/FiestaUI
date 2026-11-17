@@ -32,7 +32,10 @@ const meta = {
       const value = atom.querySelector<HTMLElement>('[data-slot="formula-atom-value"]')!;
       const icon = atom.querySelector("svg")!;
       const bounds = atom.getBoundingClientRect();
-      await expect(bounds.height).toBe(atom.dataset.state === "error" ? 24 : 22);
+      // The shared page-enter translation can introduce fractional DOMRect
+      // rounding (CI: 22.000003814697266). Four decimals allow <0.00005px
+      // noise while preserving the 22px/24px geometry requirement.
+      await expect(bounds.height).toBeCloseTo(atom.dataset.state === "error" ? 24 : 22, 4);
       await expect(icon.getBoundingClientRect().width).toBe(12);
       await expect(icon.getBoundingClientRect().height).toBe(12);
       await expect(value.getBoundingClientRect().height).toBe(18);
