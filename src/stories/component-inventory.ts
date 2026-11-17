@@ -438,6 +438,7 @@ export const INVENTORY = [
     description:
       "The TipTap-backed authoring surface for board templates. Consumers must also import `@fiestaboard/ui/editor.css` — the package does not import it at runtime.",
     entries: [
+      { name: "TraceStep", summary: "One formula evaluation step, with value, error/skipped cues and depth." },
       {
         name: "InspectorRow",
         summary:

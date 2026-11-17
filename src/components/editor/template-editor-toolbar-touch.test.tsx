@@ -462,3 +462,35 @@ describe("TemplateEditorToolbar size=touch · layout=docked", () => {
     vi.restoreAllMocks();
   });
 });
+
+describe("touch pickerPresentation override", () => {
+  it.each([
+    ["Variables", "vestaboard_v1", false],
+    ["Colors", "vestaboard_v1", false],
+    ["Formatting", "vestaboard_v1", false],
+    ["More", "vestaboard_v1", false],
+    ["Text color", "led_5x7", false],
+    ["Icon", "led_5x7", false],
+    ["Size", "led_5x7", false],
+    ["Brush", "vestaboard_v1", true],
+  ] as const)("honors explicit popover for %s", async (name, charset, drawMode) => {
+    const user = userEvent.setup();
+    render(
+      <TemplateEditorToolbar
+        editor={fakeEditor().editor}
+        size="touch"
+        pickerPresentation="popover"
+        charset={charset}
+        drawMode={drawMode}
+        templateVariables={TEMPLATE_VARIABLES}
+        renderVariablePicker={() => <button>Temperature</button>}
+        renderSizePicker={() => <button>Large 5×7</button>}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name }));
+    const popup = await screen.findByRole("dialog", { name });
+    expect(popup).toHaveAttribute("data-slot", "popover-content");
+    expect(sheet()).toBeNull();
+    expect(tools()).not.toContainElement(popup);
+  });
+});
