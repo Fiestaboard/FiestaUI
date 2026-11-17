@@ -321,6 +321,10 @@ export const INVENTORY = [
       { name: "StaticBoardDisplay", summary: "The unscaled primitive — a real tile grid at sm/md/lg." },
       { name: "ScaledBoardDisplay", summary: "StaticBoardDisplay scaled to fit a slot narrower than the board." },
       {
+        name: "BoardMinimap",
+        summary: "Labeled board overview with a controlled viewport, drag, jump and keyboard panning.",
+      },
+      {
         name: "BoardViewport",
         summary:
           "A board wider than its slot scrolls in its bezel — edge fade, snap per Note, “Note 1 of 3”, Fit overview.",
