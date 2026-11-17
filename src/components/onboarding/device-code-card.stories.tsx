@@ -28,6 +28,34 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// These result references exist only at 390px. The fixed frame keeps the
+// shared scrollbar gutter from shrinking their intended 358px card column.
+const phoneReference: Story = {
+  parameters: { layout: "fullscreen" },
+  globals: { viewport: { value: "mobile", isRotated: false } },
+  decorators: [
+    (Story) => (
+      <main className="min-h-screen w-[390px] p-4">
+        <Story />
+      </main>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const frame = canvasElement.querySelector("main")!.getBoundingClientRect();
+    const card = canvasElement.querySelector<HTMLElement>('[data-slot="device-code-card"]')!;
+    expect(frame.width).toBe(390);
+    expect(card.getBoundingClientRect().width).toBe(358);
+    expect(card.getBoundingClientRect().left - frame.left).toBe(16);
+    expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth + 1);
+    expect(
+      card.querySelector('[data-slot="device-code-header"]')!.getBoundingClientRect().height,
+    ).toBeGreaterThanOrEqual(100);
+    for (const button of card.querySelectorAll("button")) {
+      expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    }
+  },
+};
+
 export const EnterCode: Story = {
   render: function Entry(args) {
     const [value, setValue] = useState("BCDF7KQ");
@@ -100,6 +128,7 @@ export const AllowTV: Story = {
 };
 
 export const Approved: Story = {
+  ...phoneReference,
   args: {
     title: "Living room Apple TV is signed in",
     description: undefined,
@@ -123,12 +152,20 @@ export const Approved: Story = {
   },
 };
 export const Expired: Story = {
+  ...phoneReference,
   args: {
     title: "This code expired",
     description: undefined,
     children: (
       <>
-        <DeviceCodeInput aria-label="Expired code" value="BCDF7KQM" onValueChange={() => {}} readOnly aria-invalid />
+        <DeviceCodeInput
+          aria-label="Expired code"
+          value="BCDF7KQM"
+          onValueChange={() => {}}
+          size="compact"
+          readOnly
+          aria-invalid
+        />
         <div className="flex items-start gap-3">
           <Clock aria-hidden="true" className="size-6 shrink-0 text-muted-foreground" />
           <div className="flex flex-col gap-1 text-sm">
@@ -140,8 +177,20 @@ export const Expired: Story = {
     ),
     primaryAction: <Button size="touch">Enter a new code</Button>,
   },
+  play: async (context) => {
+    await phoneReference.play?.(context);
+    const { canvasElement } = context;
+    const field = canvasElement.querySelector('[data-slot="device-code-input"]')!;
+    const grid = canvasElement.querySelector('[data-slot="device-code-cells"]')!;
+    expect(field.getBoundingClientRect().width).toBe(271);
+    expect(getComputedStyle(grid).columnGap).toBe("3px");
+    for (const cell of grid.querySelectorAll('[data-slot="device-code-cell"]')) {
+      expect(cell.getBoundingClientRect().height).toBe(44);
+    }
+  },
 };
 export const AlreadyUsed: Story = {
+  ...phoneReference,
   args: {
     title: "This code was already used",
     description: undefined,
@@ -163,6 +212,7 @@ export const AlreadyUsed: Story = {
   },
 };
 export const Denied: Story = {
+  ...phoneReference,
   args: {
     title: "Not allowed",
     description: undefined,
@@ -187,23 +237,5 @@ export const Denied: Story = {
 };
 export const Mobile: Story = {
   ...AllowTV,
-  parameters: { layout: "fullscreen" },
-  globals: { viewport: { value: "mobile", isRotated: false } },
-  decorators: [
-    (Story) => (
-      <main className="min-h-screen w-full max-w-[390px] p-4">
-        <Story />
-      </main>
-    ),
-  ],
-  play: async ({ canvasElement }) => {
-    const card = canvasElement.querySelector<HTMLElement>('[data-slot="device-code-card"]')!;
-    expect(card.getBoundingClientRect().width).toBeCloseTo(358, 0);
-    expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth + 1);
-    expect(
-      card.querySelector('[data-slot="device-code-header"]')!.getBoundingClientRect().height,
-    ).toBeGreaterThanOrEqual(100);
-    const buttons = card.querySelectorAll("button");
-    for (const button of buttons) expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
-  },
+  ...phoneReference,
 };

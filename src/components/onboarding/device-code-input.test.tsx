@@ -91,11 +91,12 @@ describe("DeviceCodeInput", () => {
     expect(new FormData(screen.getByRole("form") as HTMLFormElement).get("device_code")).toBe("BCDF7KQM");
   });
 
-  it("does not edit disabled or read-only values", async () => {
+  it.each(["default", "compact"] as const)("does not edit disabled or read-only values at size=%s", async (size) => {
     const user = userEvent.setup();
     const { rerender } = render(
       <DeviceCodeInput
         aria-label="TV code"
+        size={size}
         value="BCDF7KQM"
         onValueChange={() => {
           throw new Error("disabled");
@@ -109,6 +110,7 @@ describe("DeviceCodeInput", () => {
     rerender(
       <DeviceCodeInput
         aria-label="TV code"
+        size={size}
         value="BCDF7KQM"
         onValueChange={() => {
           throw new Error("read only");

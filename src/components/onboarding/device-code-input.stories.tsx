@@ -27,14 +27,25 @@ export const Default: Story = {};
 export const Empty: Story = { args: { value: "" } };
 export const Complete: Story = { args: { value: "BCDF7KQM" } };
 export const Invalid: Story = { args: { "aria-invalid": true } };
-export const Disabled: Story = { args: { disabled: true } };
+export const Disabled: Story = {
+  args: { disabled: true },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole("textbox");
+    const field = canvasElement.querySelector('[data-slot="device-code-input"]')!;
+    expect(input).toBeDisabled();
+    // Only the decorative cells dim; native text/border must never show through.
+    expect(getComputedStyle(input).opacity).toBe("0");
+    expect(getComputedStyle(field).opacity).toBe("0.5");
+    expect(input).toHaveValue("BCDF7KQ");
+  },
+};
 export const ReadOnly: Story = { args: { value: "BCDF7KQM", readOnly: true } };
 export const Mobile: Story = {
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "mobile", isRotated: false } },
   decorators: [
     (Story) => (
-      <main className="min-h-screen w-full max-w-[390px] p-4">
+      <main className="min-h-screen w-[390px] p-4">
         <div className="mx-auto w-full max-w-[308px]">
           <Story />
         </div>
@@ -42,8 +53,11 @@ export const Mobile: Story = {
     ),
   ],
   play: async ({ canvasElement }) => {
+    const frame = canvasElement.querySelector("main")!.getBoundingClientRect();
     const field = canvasElement.querySelector<HTMLElement>('[data-slot="device-code-input"]')!;
-    expect(field.getBoundingClientRect().width).toBeCloseTo(308, 0);
+    expect(frame.width).toBe(390);
+    expect(field.getBoundingClientRect().width).toBe(308);
+    expect(field.getBoundingClientRect().left - frame.left).toBe(41);
     expect(field.scrollWidth).toBeLessThanOrEqual(field.clientWidth + 1);
   },
 };
@@ -86,5 +100,33 @@ export const RTLHost: Story = {
     expect(input).toHaveValue("BCDF7KQM");
     expect(cells.map((cell) => cell.textContent).join("")).toBe("BCDF7KQM");
     input.blur();
+  },
+};
+
+/** The compact result-strip size also retains native editing when not read-only. */
+export const Compact: Story = {
+  ...RTLHost,
+  args: { ...RTLHost.args, size: "compact" },
+  play: async (context) => {
+    const { canvasElement } = context;
+    const field = canvasElement.querySelector('[data-slot="device-code-input"]')!;
+    const grid = canvasElement.querySelector('[data-slot="device-code-cells"]')!;
+    const input = within(canvasElement).getByRole("textbox");
+    expect(field.getBoundingClientRect().width).toBe(271);
+    expect(getComputedStyle(grid).columnGap).toBe("3px");
+    for (const cell of grid.querySelectorAll('[data-slot="device-code-cell"]')) {
+      expect(cell.getBoundingClientRect().height).toBe(44);
+    }
+    // The hidden field's native character advance scales with this container,
+    // rather than retaining the default 343px geometry. postVisit tests real hits.
+    await document.fonts.ready;
+    const style = getComputedStyle(input);
+    const measurement = document.createElement("canvas").getContext("2d")!;
+    measurement.font = style.font;
+    const characterWidth = measurement.measureText("0").width;
+    expect(input.getBoundingClientRect().width).toBe(271);
+    expect(Number.parseFloat(style.letterSpacing) + characterWidth).toBeCloseTo(271 / 8, 1);
+    expect(Number.parseFloat(style.paddingLeft)).toBeCloseTo((271 / 8 - characterWidth) / 2, 1);
+    await RTLHost.play?.(context);
   },
 };

@@ -74,22 +74,33 @@ export const Medium: Story = {
       </div>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    const row = canvasElement.querySelector('[data-slot="session-row"]')!;
+    const button = canvasElement.querySelector("button")!;
+    const wide = row.getBoundingClientRect().width >= 480;
+    expect(getComputedStyle(button).paddingLeft).toBe(wide ? "12px" : "24px");
+    expect(getComputedStyle(button).paddingRight).toBe(wide ? "12px" : "24px");
+    expect(button.getBoundingClientRect().height).toBe(wide ? 32 : 44);
+  },
 };
 export const Mobile: Story = {
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "mobile", isRotated: false } },
   decorators: [
     (Story) => (
-      <main className="min-h-screen w-full max-w-[390px] p-4">
+      <main className="min-h-screen w-[390px] p-4">
         <Story />
       </main>
     ),
   ],
   play: async ({ canvasElement }) => {
+    const frame = canvasElement.querySelector("main")!.getBoundingClientRect();
     const group = canvasElement.querySelector('[data-slot="list-row-group"]')!;
     const row = canvasElement.querySelector('[data-slot="session-row"]')!;
-    expect(group.getBoundingClientRect().width).toBeCloseTo(358, 0);
-    expect(row.getBoundingClientRect().width).toBeCloseTo(348, 0);
+    expect(frame.width).toBe(390);
+    expect(group.getBoundingClientRect().width).toBe(358);
+    expect(group.getBoundingClientRect().left - frame.left).toBe(16);
+    expect(row.getBoundingClientRect().width).toBe(348);
     for (const element of canvasElement.querySelectorAll<HTMLElement>(
       '[data-slot="session-row"], [data-slot="list-row-body"], [data-slot="list-row-text"]',
     )) {
@@ -97,6 +108,8 @@ export const Mobile: Story = {
     }
     const button = canvasElement.querySelector("button")!;
     expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    expect(getComputedStyle(button).paddingLeft).toBe("24px");
+    expect(getComputedStyle(button).paddingRight).toBe("24px");
   },
 };
 export const LongNames: Story = {

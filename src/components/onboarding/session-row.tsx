@@ -114,7 +114,10 @@ function SessionRow({
               size="sm"
               onClick={signOut.onClick}
               disabled={signOut.disabled}
-              className={cn("h-11 max-w-full whitespace-normal", !compact && "@min-[30rem]/session:h-8")}
+              className={cn(
+                "h-11 max-w-full px-6 whitespace-normal",
+                !compact && "@min-[30rem]/session:h-8 @min-[30rem]/session:px-3",
+              )}
             >
               {signOut.label}
             </Button>

@@ -12,6 +12,8 @@ export interface DeviceCodeInputProps extends Omit<
   /** Controlled code; letters/digits, at most eight. Separator/space input is normalized. */
   value: string;
   onValueChange: (value: string) => void;
+  /** Compact result-strip geometry; readOnly alone preserves the default entry size. */
+  size?: "default" | "compact";
   /** Applied to the segmented field wrapper. The ref and other attributes reach the native input. */
   className?: string;
 }
@@ -32,6 +34,7 @@ function normalize(value: string) {
 function DeviceCodeInput({
   value,
   onValueChange,
+  size = "default",
   className,
   ref,
   disabled,
@@ -64,10 +67,12 @@ function DeviceCodeInput({
   return (
     <div
       data-slot="device-code-input"
+      data-size={size}
       data-disabled={disabled || undefined}
       data-invalid={invalid || undefined}
       className={cn(
-        "@container/code relative w-full max-w-[343px] cursor-text data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
+        "@container/code relative w-full cursor-text data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
+        size === "compact" ? "max-w-[271px]" : "max-w-[343px]",
         className,
       )}
       onPointerDown={(event) => {
@@ -96,7 +101,8 @@ function DeviceCodeInput({
         autoComplete={props.autoComplete ?? "one-time-code"}
         autoCapitalize="characters"
         spellCheck={false}
-        className="absolute inset-0 h-full w-full px-[calc((100cqw/8-1ch)/2)] font-mono text-base tracking-[calc(100cqw/8-1ch)] opacity-0"
+        // The wrapper owns disabled dimming; the native overlay stays invisible.
+        className="absolute inset-0 h-full w-full px-[calc((100cqw/8-1ch)/2)] font-mono text-base tracking-[calc(100cqw/8-1ch)] opacity-0 disabled:opacity-0"
         onChange={(event) => {
           const next = normalize(event.currentTarget.value);
           const position = normalize(
@@ -122,7 +128,10 @@ function DeviceCodeInput({
       <div
         data-slot="device-code-cells"
         aria-hidden="true"
-        className="grid grid-cols-[repeat(4,minmax(0,1fr))_auto_repeat(4,minmax(0,1fr))] gap-1.5 font-mono text-base font-medium"
+        className={cn(
+          "grid grid-cols-[repeat(4,minmax(0,1fr))_auto_repeat(4,minmax(0,1fr))] font-mono text-base font-medium",
+          size === "compact" ? "gap-0.75" : "gap-1.5",
+        )}
         dir="ltr"
       >
         {Array.from({ length: 8 }, (_, index) => {
@@ -138,7 +147,8 @@ function DeviceCodeInput({
                 data-active={active || undefined}
                 data-selected={selected || undefined}
                 className={cn(
-                  "flex h-12 min-w-0 items-center justify-center rounded-md border border-input bg-transparent text-foreground",
+                  "flex min-w-0 items-center justify-center rounded-md border border-input bg-transparent text-foreground",
+                  size === "compact" ? "h-11" : "h-12",
                   selected && "bg-accent",
                   active && "border-ring shadow-[var(--focus-ring-shadow)]",
                   invalid && "border-destructive",

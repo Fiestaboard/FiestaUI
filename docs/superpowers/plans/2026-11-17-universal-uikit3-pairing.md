@@ -61,7 +61,7 @@ Jev selected one native input with decorative cells (p=0.95; confidence 0.94), o
 
 **Files:** create `src/components/onboarding/device-code-input.tsx`, `.test.tsx`, `.stories.tsx`; `device-code-card.tsx`, `.test.tsx`, `.stories.tsx`.
 
-**Interfaces:** controlled `DeviceCodeInput({value: string, onValueChange(value): void, ...nativeInputProps})`, fixed eight-character four-four grouping, forwarding native input label/ref/form/invalid/disabled/readOnly. `DeviceCodeCard({title, description?, brand?, account?, children?, primaryAction?, secondaryAction?, footer?, ...divProps})` composes the shared card; host owns result state and action behavior.
+**Interfaces:** controlled `DeviceCodeInput({value: string, onValueChange(value): void, size?: "default" | "compact", ...nativeInputProps})`, fixed eight-character four-four grouping, forwarding native input label/ref/form/invalid/disabled/readOnly. Default entry geometry is 343×48 with 6px gaps; the explicit compact result strip is 271×44 with 3px gaps (frozen 327:43227), without changing readOnly defaults. `DeviceCodeCard({title, description?, brand?, account?, children?, primaryAction?, secondaryAction?, footer?, ...divProps})` composes the shared card; host owns result state and action behavior.
 
 - [x] Write input interaction tests for typing, normalization/paste, controlled updates, select-all replacement, backspace, invalid, disabled, readOnly, labels/ref and form value.
 - [x] Write card tests for associated heading/description and header/content/action order, optional slots, localized content and host action behavior.

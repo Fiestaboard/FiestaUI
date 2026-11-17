@@ -7,7 +7,7 @@ const CELL = '[data-slot="device-code-cell"]';
 
 /** Native hit testing and range editing complement the story's geometry/paste checks. */
 export async function checkDeviceCodeNativeEditing(page: Page, id: string) {
-  if (id !== "app-onboarding-devicecodeinput--rtl-host") return;
+  if (id !== "app-onboarding-devicecodeinput--rtl-host" && id !== "app-onboarding-devicecodeinput--compact") return;
 
   const input = page.locator(INPUT);
   const cells = page.locator(CELL);

@@ -141,14 +141,17 @@ export const Mobile: Story = {
   },
   decorators: [
     (Story) => (
-      <main className="min-h-screen w-full max-w-[390px] p-4">
+      <main className="min-h-screen w-[390px] p-4">
         <Story />
       </main>
     ),
   ],
   play: async ({ canvasElement }) => {
+    const frame = canvasElement.querySelector("main")!.getBoundingClientRect();
     const card = canvasElement.querySelector<HTMLElement>('[data-slot="connect-phone-card"]')!;
-    expect(card.getBoundingClientRect().width).toBeCloseTo(358, 0);
+    expect(frame.width).toBe(390);
+    expect(card.getBoundingClientRect().width).toBe(358);
+    expect(card.getBoundingClientRect().left - frame.left).toBe(16);
     expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth + 1);
   },
 };
