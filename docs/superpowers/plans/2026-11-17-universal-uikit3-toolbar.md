@@ -57,3 +57,11 @@ Files: new template-editor-toolbar-integration.test.tsx and template-editor-tool
 - Task2 local implementation complete: real TipTap insertion, selected LED colors/icons, history after open presentation changes, alignment/wrap, Size and repeated color insertion pass. Browser geometry and open-state VRT stories are authored; runtime browser acceptance remains pending.
 - Final immutable verification: `npm test -- --coverage --maxWorkers=1` →144 files passed/1 skipped;3389 tests passed/33 skipped,211.48s. `typecheck`, `lint` (no warnings), `format:check`, `build`, `build-storybook`, `release:test` (499/499) pass. Changed-file gate passes all4 source files at90% lines/85% branches.
 - No browser success claimed: host Playwright is blocked before launch. Permitted shared container/CI must execute geometry, axe and VRT. Root provides independent review after commit.
+
+## Independent review round1 repair
+
+- M1 fixed: a previous popover Escape dismissal left a return-focus ref set through a later sheet opening and sheet-to-popover switch. Return-focus intent is now rendered state, reset on a new sheet/default toggle and imperative picker commit; genuine Escape still restores the trigger.
+- Durable real-editor regressions cover both `vestaboard_v1` and `led_5x7`: Escape, reopen sheet, switch the open picker to popover, commit, assert editor focus and immediately type at the insertion caret. Both failed with the actual Variables trigger focused before the repair; focused suite34/34 passes after it.
+- Serialized full verification: `npm test -- --coverage --maxWorkers=1 --pool=threads --testTimeout=30000` passes3391 tests/33 skipped,144 files/1 skipped,187.81s. All4 PR source files pass the90/85 changed-file gate. Typecheck and lint pass. The CLI timeout accommodates shared host contention; no persistent test threshold changed.
+- S1 deferred to permitted browser acceptance: explicitly exercise open-picker767↔768 touch/default mode changes. This is a nonblocking browser coverage improvement; source behavior is not changed speculatively.
+- Root provides round2 review at the new committed head. Browser geometry, axe and VRT readiness remain separate pending gates.

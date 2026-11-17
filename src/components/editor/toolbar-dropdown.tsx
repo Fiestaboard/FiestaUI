@@ -141,7 +141,7 @@ export function ToolbarDropdown({
   const touchPopover = size === "touch" && !asSheet;
   const dropdownRef = useRef<HTMLElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const restoreTouchFocus = useRef(false);
+  const [restoreTouchFocus, setRestoreTouchFocus] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
   const [panelShift, setPanelShift] = useState(0);
 
@@ -216,6 +216,8 @@ export function ToolbarDropdown({
   }, [onSheetHeightChange, asSheet, isOpen, sheetId]);
 
   const handleClose = () => {
+    // A committed picker action owns the resulting editor focus.
+    setRestoreTouchFocus(false);
     setIsOpen(false);
     onClose?.();
   };
@@ -265,6 +267,8 @@ export function ToolbarDropdown({
 
   const toggle = () => {
     if (disabled) return;
+    // Sheet openings bypass Popover.onOpenChange; never inherit a prior Escape.
+    setRestoreTouchFocus(false);
     setIsOpen(!isOpen);
   };
 
@@ -280,7 +284,7 @@ export function ToolbarDropdown({
           details.cancel();
           return;
         }
-        restoreTouchFocus.current = details.reason === "escape-key";
+        setRestoreTouchFocus(details.reason === "escape-key");
         openRef.current = open;
         setIsOpen(open);
         // Preserve the toolbar contract: trigger toggles are not onClose.
@@ -403,7 +407,7 @@ export function ToolbarDropdown({
               // viewport, and use the shared portal to escape overflow-x-auto.
               className="w-max max-w-[min(24rem,var(--available-width))] p-4 shadow-lg"
               initialFocus={false}
-              finalFocus={() => (restoreTouchFocus.current ? triggerRef.current : false)}
+              finalFocus={restoreTouchFocus ? triggerRef : false}
             >
               {content}
             </PopoverContent>

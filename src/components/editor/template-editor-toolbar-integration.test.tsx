@@ -164,3 +164,27 @@ it("keeps a split-flap color popover open for repeated caret insertions with pre
   expect(screen.getByTestId("serialized")).toHaveTextContent("A{{red}}{{blue}}B");
   expect(portal()).toBeInTheDocument();
 });
+
+it.each(["vestaboard_v1", "led_5x7"] as const)(
+  "keeps the %s editor focused after Escape, reopening as a sheet, and committing from a popover",
+  async (charset) => {
+    const user = userEvent.setup();
+    const { textbox, rerender } = await mount({ charset });
+    await open("Variables");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(portal()).toBeNull());
+    expect(screen.getByRole("button", { name: "Variables" })).toHaveFocus();
+
+    await select(textbox, "B", true);
+    rerender(<EditorHost charset={charset} toolbarProps={{ pickerPresentation: "sheet" }} />);
+    await user.click(screen.getByRole("button", { name: "Variables" }));
+    await screen.findByRole("dialog", { name: "Variables" });
+    rerender(<EditorHost charset={charset} toolbarProps={{ pickerPresentation: "popover" }} />);
+    await waitFor(() => expect(portal()).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Insert temperature" }));
+    await waitFor(() => expect(portal()).toBeNull());
+    expect(textbox).toHaveFocus();
+    await user.keyboard("Z");
+    expect(screen.getByTestId("serialized")).toHaveTextContent("A{{weather.temp}}ZB");
+  },
+);
