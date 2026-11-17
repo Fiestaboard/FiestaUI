@@ -223,6 +223,11 @@ export const INVENTORY = [
         name: "IconTile",
         summary: "Rounded square that centres one icon; three sizes, muted or board-black ground, decorative.",
       },
+      { name: "LayerRow", summary: "Canvas layer with selection, visibility, bound value and protected-text status." },
+      {
+        name: "LayersPanel",
+        summary: "Controlled canvas layer order with pointer, keyboard and move-button reordering.",
+      },
       { name: "JsonTree", summary: "Expandable JSON viewer with per-type colouring and path selection." },
       {
         name: "ListRow",

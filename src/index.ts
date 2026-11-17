@@ -14,6 +14,7 @@ export * from "./components/containment/collapsible";
 export * from "./components/containment/icon-tile";
 export * from "./components/containment/inspector-tabs";
 export * from "./components/containment/json-tree";
+export * from "./components/containment/layer-row";
 export * from "./components/containment/list-row";
 export * from "./components/containment/media-frame";
 export * from "./components/containment/page-preview-card";
