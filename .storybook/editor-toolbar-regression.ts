@@ -5,6 +5,10 @@ import type { Page } from "playwright";
 
 const TOOLBAR = '[data-slot="editor-toolbar"]';
 const SHEET = '[data-slot="sheet-content"]';
+// Storybook freezes page-enter at translateY(0), which still makes <main>
+// the fixed dock's containing block. Live page-enter has fill:none and clears
+// that transform after300ms. Use its settled geometry only in this fixture.
+const SETTLED_INTEGRATION_PAGE = '[data-testid="toolbar-integration-page"] { animation: none !important; }';
 
 /** Real layout/hit testing for #403: jsdom cannot resolve flex minima or sheet detents. */
 export async function checkTouchToolbarGeometry(page: Page, id: string) {
@@ -165,6 +169,7 @@ async function checkIntegratedToolbarGeometry(page: Page, id: string) {
   const originalFont = await page.evaluate(() => document.documentElement.style.fontSize);
   const style = await page.addStyleTag({
     content:
+      SETTLED_INTEGRATION_PAGE +
       '[data-slot="popover-content"], [data-slot="sheet-content"], [data-slot="editor-toolbar"] { animation: none !important; transition: none !important; }',
   });
   const popupSelector = '[data-slot="popover-content"]';
@@ -326,6 +331,7 @@ async function checkTouchPickerTargets(page: Page, id: string) {
   const popup = page.locator(popupSelector);
   const style = await page.addStyleTag({
     content:
+      SETTLED_INTEGRATION_PAGE +
       '[data-slot="popover-content"], [data-slot="editor-toolbar"] { animation: none !important; transition: none !important; }',
   });
   const groups = brush
@@ -459,6 +465,28 @@ async function checkTouchPickerTargets(page: Page, id: string) {
         );
       }
       await page.setViewportSize({ width, height: 844 });
+      progress.stage = "dock fit";
+      await page.waitForFunction(
+        ({ barSelector, viewportWidth }) => {
+          const bar = document.querySelector<HTMLElement>(barSelector);
+          if (!bar) return false;
+          const docked = viewportWidth < 1024;
+          if (bar.dataset.layout !== (docked ? "docked" : "row")) return false;
+          if (!docked) return true;
+          const anchor = bar.querySelector('[aria-expanded="true"]');
+          if (!anchor) return false;
+          const barRect = bar.getBoundingClientRect();
+          const anchorRect = anchor.getBoundingClientRect();
+          return (
+            barRect.top >= 0 &&
+            Math.abs(barRect.bottom - innerHeight) < 1 &&
+            anchorRect.top >= 0 &&
+            anchorRect.bottom <= innerHeight
+          );
+        },
+        { barSelector: TOOLBAR, viewportWidth: width },
+        { timeout: 2_500 },
+      );
       progress.stage = "popup fit";
       const fitStarted = Date.now();
       await page.waitForFunction(

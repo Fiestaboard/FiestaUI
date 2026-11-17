@@ -39,7 +39,7 @@ function IntegratedToolbar({ led = false, forceTouch = true, forcePopover = fals
   const coarse = useMedia("(pointer: coarse)");
   const docked = useMedia("(width < 1024px)");
   return (
-    <main className="min-h-screen bg-background p-4 pb-24 text-foreground">
+    <main data-testid="toolbar-integration-page" className="min-h-screen bg-background p-4 pb-24 text-foreground">
       <h1 className="mb-4 text-xl font-semibold">Kitchen morning</h1>
       <TemplateEditor
         value={value}
