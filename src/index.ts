@@ -21,6 +21,7 @@ export * from "./components/feedback/badge";
 export * from "./components/feedback/chip";
 export * from "./components/feedback/countdown";
 export * from "./components/feedback/empty-state";
+export * from "./components/feedback/home-supporting-cards";
 export * from "./components/feedback/note";
 export * from "./components/feedback/now-showing-card";
 export * from "./components/forms/button";
