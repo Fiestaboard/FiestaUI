@@ -337,6 +337,99 @@ async function checkTouchPickerTargets(page: Page, id: string) {
         : ['[role="option"]'];
   const started = Date.now();
   const progress = { stage: "popup visible", width: 0, font: originalFont, targetIndex: -1, targetCount: 0, cases: 0 };
+  const readSnapshot = () =>
+    page.evaluate(
+      ({ selector, barSelector, targetIndex }) => {
+        const panel = document.querySelector<HTMLElement>(selector);
+        const bar = document.querySelector<HTMLElement>(barSelector);
+        const anchor = bar?.querySelector<HTMLElement>('[aria-expanded="true"]');
+        const positioner = panel?.parentElement;
+        const target = panel?.querySelectorAll("button")[targetIndex];
+        const rect = (element: Element | null | undefined) => element?.getBoundingClientRect().toJSON();
+        const position = (element: Element | null | undefined) => {
+          if (!element) return null;
+          const style = getComputedStyle(element);
+          return {
+            position: style.position,
+            top: style.top,
+            bottom: style.bottom,
+            transform: style.transform,
+            contain: style.contain,
+          };
+        };
+        const styles = panel ? getComputedStyle(panel) : null;
+        const viewport = window.visualViewport;
+        const barRect = bar?.getBoundingClientRect();
+        const anchorRect = anchor?.getBoundingClientRect();
+        return {
+          viewport: { width: innerWidth, height: innerHeight, scrollX, scrollY },
+          visualViewport: viewport && {
+            width: viewport.width,
+            height: viewport.height,
+            offsetTop: viewport.offsetTop,
+            offsetLeft: viewport.offsetLeft,
+            pageTop: viewport.pageTop,
+            scale: viewport.scale,
+          },
+          document: {
+            width: document.documentElement.clientWidth,
+            height: document.documentElement.clientHeight,
+            scrollHeight: document.documentElement.scrollHeight,
+            font: getComputedStyle(document.documentElement).fontSize,
+            dockedMedia: matchMedia("(width < 1024px)").matches,
+          },
+          toolbar: bar && {
+            rect: rect(bar),
+            layout: bar.dataset.layout,
+            style: position(bar),
+            scrollLeft: bar.scrollLeft,
+          },
+          anchor: anchor && {
+            name: anchor.textContent,
+            rect: rect(anchor),
+            style: position(anchor),
+            visibleWidth:
+              barRect && anchorRect
+                ? Math.max(
+                    0,
+                    Math.min(anchorRect.right, barRect.right, innerWidth) - Math.max(anchorRect.left, barRect.left, 0),
+                  )
+                : null,
+          },
+          host: rect(document.querySelector('[data-testid="toolbar-portal-host"]')),
+          positioner: positioner && {
+            rect: rect(positioner),
+            side: positioner.getAttribute("data-side"),
+            align: positioner.getAttribute("data-align"),
+            anchorHidden: positioner.hasAttribute("data-anchor-hidden"),
+            inlineTransform: positioner.style.transform,
+            style: position(positioner),
+            offsetParent: positioner.offsetParent && {
+              tag: positioner.offsetParent.tagName,
+              rect: rect(positioner.offsetParent),
+              style: position(positioner.offsetParent),
+            },
+          },
+          popup: rect(panel),
+          popupStyle: styles && {
+            display: styles.display,
+            visibility: styles.visibility,
+            maxWidth: styles.maxWidth,
+            maxHeight: styles.maxHeight,
+            availableWidth: styles.getPropertyValue("--available-width"),
+            availableHeight: styles.getPropertyValue("--available-height"),
+          },
+          scroll: panel && {
+            left: panel.scrollLeft,
+            top: panel.scrollTop,
+            width: panel.scrollWidth,
+            height: panel.scrollHeight,
+          },
+          target: target && { name: target.getAttribute("aria-label") ?? target.textContent, rect: rect(target) },
+        };
+      },
+      { selector: popupSelector, barSelector: TOOLBAR, targetIndex: progress.targetIndex },
+    );
   // Jest's15s budget otherwise masks Playwright's longer default waits.
   // One early warning identifies cumulative traversal cost even if no
   // individual operation reaches its own bounded timeout.
@@ -360,6 +453,11 @@ async function checkTouchPickerTargets(page: Page, id: string) {
       await page.evaluate((fontSize) => {
         document.documentElement.style.fontSize = fontSize;
       }, font);
+      if (font === "200%") {
+        console.warn(
+          `[toolbar-targets] ${id}: enlarged before viewport change ${JSON.stringify(await readSnapshot())}`,
+        );
+      }
       await page.setViewportSize({ width, height: 844 });
       progress.stage = "popup fit";
       const fitStarted = Date.now();
@@ -426,6 +524,11 @@ async function checkTouchPickerTargets(page: Page, id: string) {
         );
       }
       progress.cases++;
+      if (font === "200%") {
+        // Includes the passing Brush case for a direct anchor/dock comparison
+        // with palettes that fail the same enlarged-text viewport assertion.
+        console.warn(`[toolbar-targets] ${id}: enlarged targets complete ${JSON.stringify(await readSnapshot())}`);
+      }
       console.warn(
         `[toolbar-targets] ${id}: case complete ${JSON.stringify({ width, font, targets: targets.length, fitMs, targetsMs: Date.now() - targetsStarted, elapsedMs: Date.now() - started })}`,
       );
@@ -448,38 +551,7 @@ async function checkTouchPickerTargets(page: Page, id: string) {
       }
     }
   } catch (error) {
-    const snapshot = await page
-      .evaluate(
-        ({ selector, targetIndex }) => {
-          const panel = document.querySelector<HTMLElement>(selector);
-          const target = panel?.querySelectorAll("button")[targetIndex];
-          const styles = panel ? getComputedStyle(panel) : null;
-          return {
-            viewport: { width: innerWidth, height: innerHeight, scrollX, scrollY },
-            popup: panel?.getBoundingClientRect().toJSON(),
-            popupStyle: styles && {
-              display: styles.display,
-              visibility: styles.visibility,
-              maxWidth: styles.maxWidth,
-              maxHeight: styles.maxHeight,
-              availableWidth: styles.getPropertyValue("--available-width"),
-              availableHeight: styles.getPropertyValue("--available-height"),
-            },
-            scroll: panel && {
-              left: panel.scrollLeft,
-              top: panel.scrollTop,
-              width: panel.scrollWidth,
-              height: panel.scrollHeight,
-            },
-            target: target && {
-              name: target.getAttribute("aria-label") ?? target.textContent,
-              rect: target.getBoundingClientRect().toJSON(),
-            },
-          };
-        },
-        { selector: popupSelector, targetIndex: progress.targetIndex },
-      )
-      .catch(() => "page unavailable");
+    const snapshot = await readSnapshot().catch(() => "page unavailable");
     throw new Error(
       `${id}: target check failed ${JSON.stringify({ ...progress, elapsedMs: Date.now() - started, snapshot })}`,
       { cause: error },
