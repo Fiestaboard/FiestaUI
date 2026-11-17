@@ -380,6 +380,102 @@
       "waivers": []
     },
     {
+      "id": "forms-data-source-switch-live",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:3027",
+        "waitingOn": "versioned design-refs checkout; local reference/evidence directory: program/shots/fiestaui-1.11/ui111a-data-source-switch"
+      },
+      "target": {
+        "story": "forms-datasourceswitch--live",
+        "root": "[data-slot=data-source-switch]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--muted)"
+          },
+          {
+            "selector": "[data-checked]",
+            "property": "background-color",
+            "variable": "var(--background)"
+          }
+        ],
+        "geometry": [],
+        "typography": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "forms-data-source-switch-sample",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:3034",
+        "waitingOn": "versioned design-refs checkout; local reference/evidence directory: program/shots/fiestaui-1.11/ui111a-data-source-switch"
+      },
+      "target": {
+        "story": "forms-datasourceswitch--sample",
+        "root": "[data-slot=data-source-switch]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--muted)"
+          },
+          {
+            "selector": "[data-checked]",
+            "property": "background-color",
+            "variable": "var(--background)"
+          }
+        ],
+        "geometry": [],
+        "typography": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "forms-data-source-switch-missing",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:3041",
+        "waitingOn": "versioned design-refs checkout; local reference/evidence directory: program/shots/fiestaui-1.11/ui111a-data-source-switch"
+      },
+      "target": {
+        "story": "forms-datasourceswitch--missing",
+        "root": "[data-slot=data-source-switch]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--muted)"
+          },
+          {
+            "selector": "[data-checked]",
+            "property": "background-color",
+            "variable": "var(--background)"
+          }
+        ],
+        "geometry": [],
+        "typography": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
       "id": "editor-trace-step-ok",
       "kind": "component",
       "pendingRef": {
@@ -437,6 +533,44 @@
         "tokens": [],
         "geometry": [],
         "typography": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "containment-inspector-tabs-desktop",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "184:162235",
+        "waitingOn": "Isolated desktop C28 ref; web in-context 184:159319 is the Core target. Mobile native skins remain kit references."
+      },
+      "target": {
+        "story": "containment-inspectortabs--desktop",
+        "root": "[data-slot=inspector-tabs-bar]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--muted)"
+          },
+          {
+            "selector": "[role=tab][aria-selected=true]",
+            "property": "background-color",
+            "variable": "var(--background)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Tabs \u00b7 Data | Logic | Page | Shows on | History",
+            "selector": ":scope",
+            "measure": "box"
+          }
+        ],
+        "text": [],
         "colors": []
       },
       "tolerance": {},

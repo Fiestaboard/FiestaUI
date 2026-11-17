@@ -11,6 +11,79 @@ afterEach(() => {
 });
 
 describe("Toaster", () => {
+  it("uses the snackbar success mark without changing the default status icon", async () => {
+    const { rerender } = render(<Toaster variant="snackbar" />);
+    act(() => {
+      toast.success("Saved with snackbar", { duration: Infinity });
+    });
+    await screen.findByText("Saved with snackbar");
+    const icon = () => document.querySelector("[data-sonner-toast] [data-icon] svg")!;
+    expect(icon()).toBeInTheDocument();
+    expect(icon().querySelector("circle")).toBeNull();
+    rerender(<Toaster />);
+    expect(icon().querySelector("circle")).toBeInTheDocument();
+  });
+
+  it("announces a snackbar without stealing focus and dismisses with its localized close control", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button type="button">Editor</button>
+        <Toaster variant="snackbar" closeButton labels={{ close: "Dismiss notification" }} />
+      </>,
+    );
+    screen.getByRole("button", { name: "Editor" }).focus();
+    act(() => {
+      toast("Saved to Pages", { duration: Infinity });
+    });
+    expect(await screen.findByText("Saved to Pages")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Editor" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Dismiss notification" }));
+    await waitFor(() => expect(screen.queryByText("Saved to Pages")).not.toBeInTheDocument());
+  });
+  it("offers the reference snackbar size and mobile inset without moving focus", async () => {
+    render(<Toaster variant="snackbar" position="top-right" />);
+    act(() => {
+      toast.success("Saved to Pages");
+    });
+    await screen.findByText("Saved to Pages");
+    const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]")!;
+    expect(toaster.style.getPropertyValue("--width")).toBe("380px");
+    expect(toaster.style.getPropertyValue("--mobile-offset-left")).toBe("8px");
+    expect(toaster.style.getPropertyValue("--mobile-offset-right")).toBe("8px");
+    expect(document.querySelector("[data-sonner-toast]")).toHaveClass("!py-3.5", "!pl-4", "!pr-3");
+  });
+
+  it("lets hosts place toasts above editor chrome with explicit offsets", async () => {
+    render(
+      <Toaster
+        variant="snackbar"
+        offset={{ top: 72 }}
+        mobileOffset={{ bottom: "calc(60px + env(safe-area-inset-bottom))" }}
+      />,
+    );
+    act(() => {
+      toast("Editor saved");
+    });
+    await screen.findByText("Editor saved");
+    const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]")!;
+    expect(toaster.style.getPropertyValue("--offset-top")).toBe("72px");
+    expect(toaster.style.getPropertyValue("--mobile-offset-bottom")).toBe("calc(60px + env(safe-area-inset-bottom))");
+    expect(toaster.style.getPropertyValue("--mobile-offset-left")).toBe("8px");
+    expect(toaster.style.getPropertyValue("--offset-bottom")).toContain("--bottom-nav-offset");
+  });
+
+  it("accepts scalar edge offsets and disables automatic nav clearance independently", async () => {
+    render(<Toaster variant="snackbar" clearBottomNav={false} offset={30} mobileOffset="10px" />);
+    act(() => {
+      toast("Saved");
+    });
+    await screen.findByText("Saved");
+    const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]")!;
+    expect(toaster.style.getPropertyValue("--offset-bottom")).toBe("30px");
+    expect(toaster.style.getPropertyValue("--mobile-offset-right")).toBe("10px");
+  });
+
   it("is a landmark region named 'Notifications' by default", () => {
     render(<Toaster />);
     const region = screen.getByRole("region", { name: /^Notifications/ });

@@ -175,9 +175,23 @@ async function checkIntegratedToolbarGeometry(page: Page, id: string) {
   const popupSelector = '[data-slot="popover-content"]';
   const editor = await page.getByRole("textbox", { name: "Template editor" }).elementHandle();
   assert.ok(editor, `${id}: real editor did not mount`);
+  const layers = `${popupSelector}, ${SHEET}`;
   const close = async () => {
+    // A touch sheet moves focus into itself a frame after it becomes visible,
+    // and its Escape handling follows focus. An Escape pressed in that frame
+    // reaches only the toolbar and is lost; the sheet stayed open, the
+    // unbounded hidden-wait outlived Jest's 15s budget, and the abandoned
+    // check kept driving the shared page into the next story (#418/#420/#422
+    // hosted a11y shards). Popovers keep focus on their trigger and dismiss
+    // from there, so only a sheet needs the focus hand-off.
+    if (await page.locator(SHEET).isVisible()) {
+      await page.waitForFunction((selector) => document.activeElement?.closest(selector) != null, SHEET, {
+        timeout: 3_000,
+      });
+    }
     await page.keyboard.press("Escape");
-    await page.locator(`${popupSelector}, ${SHEET}`).waitFor({ state: "hidden" });
+    // Bounded, so a regression fails this story instead of the ones after it.
+    await page.locator(layers).waitFor({ state: "hidden", timeout: 3_000 });
   };
   const assertPopover = async (width: number) => {
     const popup = page.locator(popupSelector);
@@ -514,18 +528,18 @@ async function checkTouchPickerTargets(page: Page, id: string) {
           `${id}/${width}/${font || "default"}: missing target group ${selector}`,
         );
       }
-      const targets = await popup.locator("button").all();
-      progress.targetCount = targets.length;
+      progress.stage = "targets";
       const targetsStarted = Date.now();
-      for (const [index, target] of targets.entries()) {
-        // Tall palettes can scroll inside the available-height cap. Every
-        // target must become reachable without moving or clipping the popup.
-        Object.assign(progress, { stage: "target scroll", targetIndex: index });
-        await target.scrollIntoViewIfNeeded({ timeout: 2_500 });
-        progress.stage = "target geometry";
-        const geometry = await target.evaluate((element) => {
+      // One round trip per case: scroll each target into view and measure it
+      // in the page. Per-target Playwright calls (65 Brush targets x 2 calls
+      // x 6 cases) took ~13s of the runner's 15s budget on a fast machine.
+      // Tall palettes can scroll inside the available-height cap; every
+      // target must become reachable without moving or clipping the popup.
+      const measured = await popup.evaluate((panelElement) =>
+        Array.from(panelElement.querySelectorAll("button")).map((element) => {
+          element.scrollIntoView({ block: "nearest", inline: "nearest" });
           const rect = element.getBoundingClientRect();
-          const panel = element.closest('[data-slot="popover-content"]')!.getBoundingClientRect();
+          const panel = panelElement.getBoundingClientRect();
           const points = [
             [rect.left + 2, rect.top + rect.height / 2],
             [rect.right - 2, rect.top + rect.height / 2],
@@ -545,7 +559,11 @@ async function checkTouchPickerTargets(page: Page, id: string) {
             inViewport:
               rect.left >= 0 && rect.right <= window.innerWidth && rect.top >= 0 && rect.bottom <= window.innerHeight,
           };
-        });
+        }),
+      );
+      progress.targetCount = measured.length;
+      for (const [index, geometry] of measured.entries()) {
+        progress.targetIndex = index;
         assert.ok(
           geometry.width >= 44 && geometry.height >= 44 && geometry.hit && geometry.inPopup && geometry.inViewport,
           `${id}/${width}/${font || "default"}: undersized or clipped picker target ${JSON.stringify(geometry)}`,
@@ -558,7 +576,7 @@ async function checkTouchPickerTargets(page: Page, id: string) {
         console.warn(`[toolbar-targets] ${id}: enlarged targets complete ${JSON.stringify(await readSnapshot())}`);
       }
       console.warn(
-        `[toolbar-targets] ${id}: case complete ${JSON.stringify({ width, font, targets: targets.length, fitMs, targetsMs: Date.now() - targetsStarted, elapsedMs: Date.now() - started })}`,
+        `[toolbar-targets] ${id}: case complete ${JSON.stringify({ width, font, targets: measured.length, fitMs, targetsMs: Date.now() - targetsStarted, elapsedMs: Date.now() - started })}`,
       );
     }
     if (brush) {
