@@ -355,6 +355,7 @@ export * from "./components/plugin/scaled-board-teaser";
 //   import { FormulaEditorPanel } from "@fiestaboard/ui/components/editor/formula/formula-editor-panel";
 // FormulaNodeView reaches it through a `lazy()` dynamic import, so it lands in a
 // separate async chunk rather than the barrel's graph — keep it that way.
+export * from "./components/editor/column-ruler";
 export * from "./components/editor/constants";
 export * from "./components/editor/editor-preview";
 export * from "./components/editor/editor-tool";
@@ -362,6 +363,7 @@ export * from "./components/editor/editor-warning";
 export * from "./components/editor/template-editor";
 export * from "./components/editor/template-editor-toolbar";
 export * from "./components/editor/toolbar-dropdown";
+export * from "./components/editor/truncation-map";
 // Pickers — rendered by the toolbar, exported so an app can host them standalone.
 export * from "./components/editor/color-picker-content";
 export * from "./components/editor/draw-char-picker-content";

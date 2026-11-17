@@ -453,6 +453,14 @@ export const INVENTORY = [
         summary: "What the board will drop: the line-limit box, or a validated line-overflow card with fixes.",
       },
       {
+        name: "ColumnRuler",
+        summary: "Column numbers and cut, zone and Note-seam marks aligned to a controlled viewport.",
+      },
+      {
+        name: "TruncationMap",
+        summary: "Compact line lengths with accessible jumps to overflowing rows and columns.",
+      },
+      {
         name: "EditorPreview",
         summary: "The editor's always-visible live preview: a sticky pane or a phone dock, with the mirror switch.",
       },

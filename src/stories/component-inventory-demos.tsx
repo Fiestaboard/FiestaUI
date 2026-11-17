@@ -146,6 +146,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containm
 import { BarList } from "../components/data/bar-list";
 import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
+import { ColumnRuler } from "../components/editor/column-ruler";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
 import { EditorPreview } from "../components/editor/editor-preview";
 import { EditorTool } from "../components/editor/editor-tool";
@@ -155,6 +156,7 @@ import { FormattingPickerContent } from "../components/editor/formatting-picker-
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
+import { TruncationMap } from "../components/editor/truncation-map";
 import { createLucideIconResolver, VariablePickerContent } from "../components/editor/variable-picker-content";
 import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
@@ -2029,6 +2031,20 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
 
   /* ---- Template editor ---- */
   TemplateEditor: TemplateEditorDemo,
+  ColumnRuler: () => (
+    <div className="max-w-full overflow-x-auto">
+      <ColumnRuler columns={29} marks={[{ id: "cut", type: "cut", column: 29 }]} />
+    </div>
+  ),
+  TruncationMap: () => (
+    <TruncationMap
+      columns={29}
+      lines={[
+        { row: 1, length: 16 },
+        { row: 2, length: 31, overflow: { column: 29, count: 2, description: "Row 2 · Last two columns are cut" } },
+      ]}
+    />
+  ),
   EditorPreview: () => (
     <EditorPreview
       className="static w-full max-w-md"
