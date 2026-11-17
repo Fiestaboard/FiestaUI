@@ -18,7 +18,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 export const Selected: Story = { args: { selected: true } };
-export const Dark: Story = { args: { selected: true }, globals: { theme: "dark" } };
+/** Select Dark in the toolbar; CI exercises this example in both themes. */
+export const Dark: Story = { args: { selected: true } };
 
 function InteractiveBand(props: RowBandProps) {
   const [selected, setSelected] = React.useState(props.selected ?? false);
