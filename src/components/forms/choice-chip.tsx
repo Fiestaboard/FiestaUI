@@ -87,7 +87,9 @@ function ChoiceChip({
         "group/choice-chip relative inline-flex max-w-full min-w-0 cursor-pointer items-center justify-center rounded-full text-sm leading-5 font-medium text-foreground",
         "focus-ring outline-none transition-[box-shadow] duration-control",
         "disabled:pointer-events-none disabled:opacity-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-        "forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-offset-2",
+        // Important only here: the shared unlayered focus-ring rule resets
+        // outline; normal layered utilities cannot override that reset.
+        "forced-colors:focus-visible:[outline:2px_solid_Highlight]! forced-colors:focus-visible:outline-offset-2!",
         resolvedSize === "touch" ? "min-h-control-touch min-w-control-touch py-1.5" : "min-h-8",
         className,
       )}
@@ -96,11 +98,13 @@ function ChoiceChip({
       <span
         data-slot="choice-chip-pill"
         className={cn(
-          // An inset outline preserves the pill's geometry when its stroke grows.
-          "flex min-h-8 min-w-0 max-w-full items-center justify-center gap-1.5 rounded-full bg-card px-3.5 py-1.5 outline outline-1 -outline-offset-1 outline-border",
+          // Figma includes its stroke in horizontal layout: 14px padding +
+          // 1px Off / 1.5px On. Compensate for our layout-neutral outline
+          // without changing the 32px minimum height or 44px touch target.
+          "flex min-h-8 min-w-0 max-w-full items-center justify-center gap-1.5 rounded-full bg-card px-[calc(--spacing(3.5)+1px)] py-1.5 outline outline-1 -outline-offset-1 outline-border",
           "transition-[background-color,outline-color] duration-control",
           "group-not-data-[checked]/choice-chip:group-hover/choice-chip:bg-accent/50 group-not-data-[checked]/choice-chip:group-hover/choice-chip:outline-primary/50",
-          "group-data-[checked]/choice-chip:bg-tint-selected group-data-[checked]/choice-chip:outline-[1.5px] group-data-[checked]/choice-chip:-outline-offset-[1.5px] group-data-[checked]/choice-chip:outline-primary",
+          "group-data-[checked]/choice-chip:bg-tint-selected group-data-[checked]/choice-chip:px-[calc(--spacing(3.5)+1.5px)] group-data-[checked]/choice-chip:outline-[1.5px] group-data-[checked]/choice-chip:-outline-offset-[1.5px] group-data-[checked]/choice-chip:outline-primary",
           "forced-colors:group-data-[checked]/choice-chip:outline-[Highlight]",
         )}
       >

@@ -55,3 +55,10 @@ Files: choice-chip.stories.tsx, src/index.ts, src/stories/component-inventory.ts
 - Typecheck, package build, Storybook build and all 499 release guards pass. Full coverage and final static checks ongoing.
 - Native Chromium and Storybook runner launch denied by host macOS MachPortRendezvous permission before visiting stories; root owns alternate browser verification.
 - Program DD-W95 covers derived states/wrapping; DD-W99 covers C30 sizing/semantics.
+
+## Review R1 repairs
+
+- M1: the unlayered shared `.focus-ring:focus-visible { outline: none }` defeated the layered forced-colors utility. The chip now uses a scoped important `2px solid Highlight` outline and outward 2px offset in forced colors. The pill's selection outline remains independent. No shared theme rule changed.
+- M2: horizontal padding now includes Figma's stroke width: 14px token padding + 1px Off / 1.5px On, yielding content offsets15/15.5px and sample widths60/81px while retaining32px visual/44px target heights.
+- `.storybook/choice-chip-regression.ts` runs for Default and Selected in each runner theme, checks widths/insets, then emulates forced colors and tabs into the chip to assert visible focus and preserved selection. This is a browser assertion; host execution remains unavailable and CI must supply the result.
+- Local compiled-CSS regression reproduced both pre-fix defects and passed after the corrections; it imports the real Storybook stylesheet, including the shared unlayered reset. Evidence is retained in the program's family shots `r1-fix/` directory. Focused unit tests remain11/11.
