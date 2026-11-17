@@ -87,7 +87,10 @@ export function TruncationMap({
                     <span
                       data-slot="truncation-map-overflow"
                       className="absolute -top-0.5 h-2.5 min-w-3 -translate-x-px rounded-[2px] bg-destructive"
-                      style={{ left: `${fraction(line.overflow.column)}%`, width: `${fraction(line.overflow.count)}%` }}
+                      style={{
+                        left: `${fraction(line.overflow.column)}%`,
+                        width: `${Math.min(fraction(line.overflow.count), 100 - fraction(line.overflow.column))}%`,
+                      }}
                     />
                   )}
                 </span>

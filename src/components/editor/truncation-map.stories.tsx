@@ -33,6 +33,32 @@ export const Default: Story = {};
 export const Dark: Story = { globals: { theme: "dark" } };
 export const Mobile: Story = { args: { onJump: fn() }, globals: { viewport: { value: "mobile1", isRotated: false } } };
 export const Empty: Story = { args: { lines: [] } };
+export const LargeOverflow: Story = {
+  decorators: [
+    (Story) => (
+      <div style={{ width: 240 }}>
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    lines: [
+      { row: 1, length: 192, overflow: { column: 96, count: 96, description: "Row 1 · 96 columns beyond the board" } },
+      { row: 2, length: 144, overflow: { column: 48, count: 96, description: "Row 2 · 96 columns beyond the zone" } },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const map = canvasElement.querySelector<HTMLElement>('[data-slot="truncation-map"]')!;
+    const bounds = map.getBoundingClientRect();
+    expect(map.scrollWidth).toBeLessThanOrEqual(map.clientWidth);
+    for (const marker of map.querySelectorAll('[data-slot="truncation-map-overflow"]')) {
+      const rectangle = marker.getBoundingClientRect();
+      expect(rectangle.left).toBeGreaterThanOrEqual(bounds.left);
+      expect(rectangle.right).toBeLessThanOrEqual(bounds.right);
+      expect(rectangle.width).toBeGreaterThanOrEqual(12);
+    }
+  },
+};
 export const Disabled: Story = { args: { onJump: fn(), disabled: true } };
 export const KeyboardJump: Story = {
   args: { onJump: fn() },

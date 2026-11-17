@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 import { ColumnRuler } from "./column-ruler";
 
 describe("ColumnRuler", () => {
+  it.each([8, 16, 96])("labels an unmarked final major column %i", (columns) => {
+    render(<ColumnRuler columns={columns} />);
+    expect(screen.getByText(String(columns))).toBeInTheDocument();
+  });
   it("numbers arbitrary board geometry with shared sm pitch and a labeled read-only graphic", () => {
     const { container } = render(<ColumnRuler columns={29} />);
     expect(screen.getByRole("img")).toHaveAccessibleName("Column ruler · 29 columns");

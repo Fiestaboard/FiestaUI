@@ -10,6 +10,21 @@ const lines = [
   { row: 24, length: 98, overflow: { column: 96, count: 2, description: "Ticker loses its last 2" } },
 ];
 describe("TruncationMap", () => {
+  it("caps large overflow lengths at the remaining bar extent", () => {
+    const { container } = render(
+      <TruncationMap
+        columns={96}
+        lines={[
+          { row: 1, length: 192, overflow: { column: 96, count: 96, description: "Beyond board" } },
+          { row: 2, length: 144, overflow: { column: 48, count: 96, description: "Beyond zone" } },
+        ]}
+      />,
+    );
+    const markers = container.querySelectorAll<HTMLElement>('[data-slot="truncation-map-overflow"]');
+    for (const marker of markers) {
+      expect(parseFloat(marker.style.left) + parseFloat(marker.style.width)).toBeLessThanOrEqual(100);
+    }
+  });
   it("renders meaningful empty, partial and clipped full line lengths with zone markers", () => {
     const { container } = render(<TruncationMap columns={96} lines={lines} zones={[48]} />);
     expect(screen.getByRole("list", { name: "Where lines are cut" })).toBeInTheDocument();

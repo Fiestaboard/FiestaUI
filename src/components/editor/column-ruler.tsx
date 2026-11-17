@@ -80,7 +80,7 @@ export function ColumnRuler({
               className={cn("absolute bottom-0 w-px bg-muted-foreground", major ? "h-2" : "h-1")}
               style={{ left: position(column) + 14 }}
             >
-              {major && !named && (column < count || column === 1) && (
+              {major && !named && (
                 <span className="absolute bottom-[9px] left-1/2 -translate-x-1/2 whitespace-nowrap font-normal">
                   {column}
                 </span>
