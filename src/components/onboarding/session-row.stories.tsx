@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn } from "storybook/test";
 
 import { ListRowGroup } from "../containment/list-row";
 import { SessionRow } from "./session-row";
@@ -20,11 +20,16 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <ListRowGroup className="w-full max-w-[790px] p-1">
+      <div className="w-full max-w-[790px]">
         <Story />
-      </ListRowGroup>
+      </div>
     ),
   ],
+  render: (args) => (
+    <ListRowGroup className="w-full p-1">
+      <SessionRow {...args} />
+    </ListRowGroup>
+  ),
 } satisfies Meta<typeof SessionRow>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -79,6 +84,15 @@ export const Mobile: Story = {
       </div>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    for (const element of canvasElement.querySelectorAll<HTMLElement>(
+      '[data-slot="session-row"], [data-slot="list-row-body"], [data-slot="list-row-text"]',
+    )) {
+      expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth + 1);
+    }
+    const button = canvasElement.querySelector("button")!;
+    expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+  },
 };
 export const LongNames: Story = {
   ...Mobile,

@@ -539,6 +539,18 @@ export const INVENTORY = [
         summary: "Pairing QR panel with hub line, countdown and phone steps; refuses a loopback address.",
       },
       {
+        name: "SessionRow",
+        summary: "Signed-in device, approval and distinct connected/shown timestamps with an optional sign-out action.",
+      },
+      {
+        name: "DeviceCodeCard",
+        summary: "Responsive activation surface for code entry, approval and results; the host owns authentication.",
+      },
+      {
+        name: "DeviceCodeInput",
+        summary: "Eight segmented code cells backed by one accessible native text field, with paste and selection.",
+      },
+      {
         name: "InstallCard",
         summary: "In-content install offer with Install and Not now; no Install button on an insecure origin.",
       },

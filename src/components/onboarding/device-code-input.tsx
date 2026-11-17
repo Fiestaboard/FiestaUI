@@ -67,11 +67,13 @@ function DeviceCodeInput({
       data-disabled={disabled || undefined}
       data-invalid={invalid || undefined}
       className={cn(
-        "relative w-full max-w-[343px] cursor-text data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
+        "@container/code relative w-full max-w-[343px] cursor-text data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
         className,
       )}
       onPointerDown={(event) => {
-        if (disabled) return;
+        // Let the native field retain pointer selection and the touch paste
+        // menu. The cell path also supports direct programmatic cell picks.
+        if (disabled || event.target === inputRef.current) return;
         const cell = (event.target as HTMLElement).closest<HTMLElement>("[data-code-index]");
         const index = cell ? Number(cell.dataset.codeIndex) : code.length;
         const start = Math.min(index, code.length);
@@ -92,7 +94,7 @@ function DeviceCodeInput({
         autoComplete={props.autoComplete ?? "one-time-code"}
         autoCapitalize="characters"
         spellCheck={false}
-        className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+        className="absolute inset-0 h-full w-full px-[calc((100cqw/8-1ch)/2)] font-mono text-base tracking-[calc(100cqw/8-1ch)] opacity-0"
         onChange={(event) => {
           const next = normalize(event.currentTarget.value);
           const position = normalize(
@@ -136,9 +138,8 @@ function DeviceCodeInput({
                 className={cn(
                   "flex h-12 min-w-0 items-center justify-center rounded-md border border-input bg-transparent text-foreground",
                   selected && "bg-accent",
-                  active && "border-ring ring-[3px] ring-ring/50",
+                  active && "border-ring shadow-[var(--focus-ring-shadow)]",
                   invalid && "border-destructive",
-                  invalid && active && "ring-destructive/20 dark:ring-destructive/40",
                 )}
               >
                 {code[index] ?? ""}

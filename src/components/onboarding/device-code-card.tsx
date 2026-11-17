@@ -50,12 +50,12 @@ function DeviceCodeCard({
     >
       <div
         data-slot="device-code-header"
-        className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2"
+        className="flex min-h-25 min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-2"
       >
         {brand}
         {account != null && <div className="min-w-0 break-words text-xs text-muted-foreground">{account}</div>}
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1">
         <Heading id={`${id}-title`} className="text-xl leading-tight font-semibold tracking-tight break-words">
           {title}
         </Heading>
@@ -69,7 +69,7 @@ function DeviceCodeCard({
       {(primaryAction != null || secondaryAction != null) && (
         <div
           data-slot="device-code-actions"
-          className="flex flex-col gap-2 @min-[22rem]/device-code:flex-row-reverse [&>*]:min-h-11 [&>*]:min-w-0 [&>*]:flex-1 [&>*]:whitespace-normal"
+          className="flex flex-col gap-4 @min-[22rem]/device-code:flex-row-reverse @min-[22rem]/device-code:gap-2 [&>*]:min-h-11 [&>*]:min-w-0 [&>*]:flex-1 [&>*]:whitespace-normal"
         >
           {primaryAction}
           {secondaryAction}

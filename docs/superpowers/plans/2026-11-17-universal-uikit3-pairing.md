@@ -1,6 +1,6 @@
 # Universal account and pairing Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Promote the missing shared account and device activation grammar and safely extend the existing phone pairing component.
 
@@ -41,10 +41,10 @@ Jev selected one native input with decorative cells (p=0.95; confidence 0.94), o
 
 **Interfaces:** extend state to `live | expired | claimed | loading | error`; optional localized `status` slot. Existing live props and defaults remain.
 
-- [ ] Write regression tests for every non-live state and live-to-expired/claimed transitions removing the actual QR node and countdown; status announced politely.
-- [ ] Run `npm test -- src/components/onboarding/connect-phone-card.test.tsx --maxWorkers=1`; expect missing behavior failures.
-- [ ] Render QR only when live, safe decorative placeholder otherwise, localized status region, and matching light/dark/mobile stories.
-- [ ] Repeat focused command; expect pass. Commit with required trailer.
+- [x] Write regression tests for every non-live state and live-to-expired/claimed transitions removing the actual QR node and countdown; status announced politely.
+- [x] Run `npm test -- src/components/onboarding/connect-phone-card.test.tsx --maxWorkers=1`; expect missing behavior failures.
+- [x] Render QR only when live, safe decorative placeholder otherwise, localized status region, and matching light/dark/mobile stories.
+- [x] Repeat focused command; expect pass. Commit with required trailer.
 
 ## Task 2: SessionRow
 
@@ -52,10 +52,10 @@ Jev selected one native input with decorative cells (p=0.95; confidence 0.94), o
 
 **Interfaces:** `SessionRowProps`: name, kind (`browser | phone | tv`), kindLabel, optional description/lastConnected/lastShown ReactNode slots, current, compact, badgeVariant, and signOut `{label, onClick, disabled?}`. Root supports li props/ref and lives in ListRowGroup; internal ListRow remains noninteractive.
 
-- [ ] Write tests for list semantics, kind icon/badge metadata, distinct timestamp slots, current suppression, enabled/disabled sign out, localization, optional content and root ref.
-- [ ] Run `npm test -- src/components/onboarding/session-row.test.tsx --maxWorkers=1`; expect missing component failure.
-- [ ] Compose ListRow/IconTile/Badge/Button; preserve 12px inset, 32px icon, 14px name and 12px metadata; compact stacks timestamps/actions with 44px button.
-- [ ] Repeat focused command; expect pass. Add browser/phone/TV/password/long-copy and light/dark/mobile stories. Commit.
+- [x] Write tests for list semantics, kind icon/badge metadata, distinct timestamp slots, current suppression, enabled/disabled sign out, localization, optional content and root ref.
+- [x] Run `npm test -- src/components/onboarding/session-row.test.tsx --maxWorkers=1`; expect missing component failure.
+- [x] Compose ListRow/IconTile/Badge/Button; preserve 12px inset, 32px icon, 14px name and 12px metadata; compact stacks timestamps/actions with 44px button.
+- [x] Repeat focused command; expect pass. Add browser/phone/TV/password/long-copy and light/dark/mobile stories. Commit.
 
 ## Task 3: DeviceCodeInput and DeviceCodeCard
 
@@ -63,11 +63,11 @@ Jev selected one native input with decorative cells (p=0.95; confidence 0.94), o
 
 **Interfaces:** controlled `DeviceCodeInput({value: string, onValueChange(value): void, ...nativeInputProps})`, fixed eight-character four-four grouping, forwarding native input label/ref/form/invalid/disabled/readOnly. `DeviceCodeCard({title, description?, brand?, account?, children?, primaryAction?, secondaryAction?, footer?, ...divProps})` composes the shared card; host owns result state and action behavior.
 
-- [ ] Write input interaction tests for typing, normalization/paste, controlled updates, select-all replacement, backspace, invalid, disabled, readOnly, labels/ref and form value.
-- [ ] Write card tests for associated heading/description and header/content/action order, optional slots, localized content and host action behavior.
-- [ ] Run both files with maxWorkers=1; expect missing components.
-- [ ] Implement native field plus aria-hidden cells and responsive 440px card, 24px phone/32px desktop padding, primary-first phone/secondary-first desktop actions.
-- [ ] Repeat focused tests; expect pass. Add entry/approval/expired/used/denied and light/dark/mobile stories. Commit.
+- [x] Write input interaction tests for typing, normalization/paste, controlled updates, select-all replacement, backspace, invalid, disabled, readOnly, labels/ref and form value.
+- [x] Write card tests for associated heading/description and header/content/action order, optional slots, localized content and host action behavior.
+- [x] Run both files with maxWorkers=1; expect missing components.
+- [x] Implement native field plus aria-hidden cells and responsive 440px card, 24px phone/32px desktop padding, primary-first phone/secondary-first desktop actions.
+- [x] Repeat focused tests; expect pass. Add entry/approval/expired/used/denied and light/dark/mobile stories. Commit.
 
 ## Task 4: Adoption and complete verification
 
@@ -75,8 +75,12 @@ Jev selected one native input with decorative cells (p=0.95; confidence 0.94), o
 
 **Interfaces:** public SessionRow, DeviceCodeInput and DeviceCodeCard exports and types; existing ConnectPhoneCard remains canonical PairingQR implementation.
 
-- [ ] Add public export/inventory tests, observe red, add own export/entry/demo additions, then observe green.
-- [ ] Run typecheck, lint, format:check, full tests with maxWorkers=1, build, release:test, full coverage and changed-file gate. Preserve logs in `.tmp/uikit3-pairing/`.
-- [ ] Build Storybook; request root browser slot for light/dark/mobile axe and screenshots.
-- [ ] Record audit/decisions/check results in assigned program status; request independent exact-head review from root.
+- [x] Add public export/inventory tests, observe red, add own export/entry/demo additions, then observe green.
+- [x] Run typecheck, lint, format:check, full tests with maxWorkers=1, build, release:test, full coverage and changed-file gate. Preserve logs in `.tmp/uikit3-pairing/`.
+- [x] Build Storybook; request root browser slot for light/dark/mobile axe and screenshots.
+- [x] Record audit/decisions/check results in assigned program status; request independent exact-head review from root.
 - [ ] Commit, merge current origin/alpha normally, repeat affected checks after integration, push and open own PR into alpha with mandated footer. No merge/rebase/publish/VRT approval/PR comments.
+
+## Local verification and handoff
+
+Full suite: 146 files passed, one skipped; 3408 tests passed, 33 skipped. All seven changed source files pass 90% lines / 85% branches. Final presentation-only corrections follow the frozen PNGs (100px identity header, 4px title gap, 16px phone action gap) and pass focused tests plus typecheck/lint/format/build/release:test/Storybook build. Release checks: 499 passed. Browser/axe and independent review are delegated to the coordinator because host Chromium cannot launch and shared Docker is unavailable. No visual parity or axe completion is claimed.

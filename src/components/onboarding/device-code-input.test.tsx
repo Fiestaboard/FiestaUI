@@ -11,6 +11,12 @@ function Example({ initial = "" }: { initial?: string }) {
 }
 
 describe("DeviceCodeInput", () => {
+  it("leaves pointer events on the native input available for selection and the mobile paste menu", () => {
+    render(<Example initial="BCDF7KQM" />);
+    const event = new PointerEvent("pointerdown", { bubbles: true, cancelable: true });
+    screen.getByRole("textbox").dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
   it("is one labelled field and normalizes typing into eight visual cells", async () => {
     const user = userEvent.setup();
     const { container } = render(<Example />);
