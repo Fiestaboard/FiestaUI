@@ -23,14 +23,21 @@ export const Mobile: Story = {
   args: { size: "touch" },
   play: async ({ canvasElement }) => {
     const control = within(canvasElement).getByRole("textbox");
+    await canvasElement.ownerDocument.fonts.ready;
     expect(control.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    expect(control).toHaveValue("Row 14 · Col 49");
+    expect(control.scrollWidth).toBeLessThanOrEqual(control.clientWidth);
     expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   },
 };
 export const Touch: Story = {
   args: { size: "touch" },
   play: async ({ canvasElement }) => {
-    expect(within(canvasElement).getByRole("textbox").getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    const control = within(canvasElement).getByRole("textbox");
+    await canvasElement.ownerDocument.fonts.ready;
+    expect(control.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    expect(control).toHaveValue("Row 14 · Col 49");
+    expect(control.scrollWidth).toBeLessThanOrEqual(control.clientWidth);
   },
 };
 export const Disabled: Story = { args: { disabled: true } };

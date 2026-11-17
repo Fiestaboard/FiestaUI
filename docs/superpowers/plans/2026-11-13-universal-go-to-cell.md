@@ -23,3 +23,7 @@ API: columns,rows,onGo({row,column}),value?({row,column}),onSearch?(query),short
 - [ ] Normalmergealpha/commit/push,ownPRintoalpha, separateAstrareviewmax3rounds atfinalhead, observeCI/VRTwithoutapproving/merging.
 
 Observed: full3393passed/33skipped; finalfocused492passed; changedcoverage all4pass (GoToCell100lines/93.93branches); static/library/Storybook/packageexports and packdryrun pass; serialrelease499passed. First release run498passed/1failed focusringguard; corrected to shared --focus-ring-shadow then18/18guard and499/499release pass. Browser/axe/parity remain pending; existing native Chromium launch denial is documented in the program status.
+
+## Touch readability follow-up
+
+Keep the drawn compact field at 220×36. Explicit touch uses the shared `w-60` spacing token (240px preferred width, constrained by `max-w-full`) so 16px current-coordinate text and both shortcut keycaps fit while retaining the 44px input target. The Mobile and Touch stories wait for fonts and assert that the default coordinate fits the native input viewport. A narrower host may still constrain the input and use native horizontal scrolling for longer localized queries.

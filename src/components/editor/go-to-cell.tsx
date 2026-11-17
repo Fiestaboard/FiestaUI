@@ -114,7 +114,10 @@ export function GoToCell({
     } else setError(labels.invalid ?? "Enter a row and column, for example 14 49 or r14c49.");
   };
   return (
-    <div data-slot="go-to-cell" className={cn("w-55 max-w-full text-sm", size === "touch" && "text-base", className)}>
+    <div
+      data-slot="go-to-cell"
+      className={cn("w-55 max-w-full text-sm", size === "touch" && "w-60 text-base", className)}
+    >
       <div
         className={cn(
           "flex min-h-9 items-center gap-2 rounded-md border border-input bg-card pl-2.5 pr-1.5 transition-[border-color,box-shadow] focus-within:border-ring focus-within:shadow-[var(--focus-ring-shadow)] coarse:min-h-touch",
