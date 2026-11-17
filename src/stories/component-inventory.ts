@@ -130,6 +130,10 @@ export const INVENTORY = [
           "One alert, why it fires and its own switch; blocked or needs-HTTPS permission turns it off and says why.",
       },
       { name: "SecretInput", summary: "Password input with a reveal toggle." },
+      {
+        name: "DataSourceSwitch",
+        summary: "Live, Sample and Missing preview inputs with radio semantics and a tab appearance.",
+      },
       { name: "SegmentedControl", summary: "Pill group for a small set of mutually exclusive options." },
       { name: "Select", summary: "Listbox-backed dropdown with grouping and separators." },
       { name: "Slider", summary: "Range control over a continuous value." },
