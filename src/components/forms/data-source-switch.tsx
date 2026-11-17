@@ -56,7 +56,7 @@ function DataSourceSwitch({
       value={value}
       defaultValue={defaultValue}
       onValueChange={(next) => onValueChange?.(next as DataSource)}
-      className={cn("inline-flex max-w-full flex-wrap items-stretch gap-0.5 rounded-lg bg-muted p-0.75", className)}
+      className={cn("inline-flex max-w-full flex-wrap items-stretch gap-0.5 rounded-md bg-muted p-0.75", className)}
     >
       {options.map((option) => (
         <SelectableItemRoot
@@ -66,8 +66,8 @@ function DataSourceSwitch({
           disabled={option.disabled}
           data-slot="data-source-option"
           className={cn(
-            "inline-flex min-w-0 max-w-full cursor-pointer items-center justify-center rounded-md px-3 py-1.5 text-center text-sm font-medium wrap-anywhere text-muted-foreground",
-            "transition-[color,background-color,box-shadow] duration-base focus-ring",
+            "inline-flex min-w-0 max-w-full cursor-pointer items-center justify-center rounded-sm px-3 py-1.5 text-center text-sm font-medium wrap-anywhere text-muted-foreground",
+            "transition-[color,background-color,box-shadow] duration-base focus-ring forced-colors:focus-visible:[outline:2px_solid_Highlight]! forced-colors:focus-visible:outline-offset-2!",
             "not-data-[checked]:hover:bg-background/50 not-data-[checked]:hover:text-foreground not-data-[checked]:active:bg-background/50",
             "data-[checked]:bg-background data-[checked]:text-foreground data-[checked]:shadow-sm",
             "disabled:pointer-events-none disabled:opacity-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",

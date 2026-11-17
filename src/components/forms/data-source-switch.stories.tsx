@@ -14,7 +14,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Live: Story = { args: { defaultValue: "live" } };
+export const Live: Story = {
+  args: { defaultValue: "live" },
+  play: async ({ canvasElement }) => {
+    const group = within(canvasElement).getByRole("radiogroup");
+    expect(group.getBoundingClientRect().height).toBe(38);
+    expect(getComputedStyle(group).borderTopLeftRadius).toBe("8px");
+    for (const option of within(group).getAllByRole("radio")) {
+      expect(option.getBoundingClientRect().height).toBe(32);
+      expect(getComputedStyle(option).borderTopLeftRadius).toBe("6px");
+    }
+  },
+};
 export const Sample: Story = { args: { defaultValue: "sample" } };
 export const Missing: Story = { args: { defaultValue: "missing" } };
 export const Desktop: Story = { args: { options: [{ value: "live" }, { value: "sample" }] } };
@@ -33,8 +44,6 @@ export const Mobile: Story = {
     }
   },
 };
-export const Light: Story = { globals: { theme: "light" } };
-export const Dark: Story = { globals: { theme: "dark" } };
 export const LongLabels: Story = {
   args: {
     size: "touch",
