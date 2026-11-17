@@ -14,7 +14,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "C31 source/value content on Badge. The consumer supplies the formatted result or actual error tag; this component does not evaluate formulas. Both themes use semantic tokens (DD-W95). Error tags replace the stale Figma sample; long text ellipsizes while full strings remain in the DOM and native titles (DD-W103). No touch target or platform prop.",
+          "C31 source/value content on Badge. The consumer supplies the formatted result or actual error tag; this component does not evaluate formulas. Both themes use semantic tokens (DD-W95). Error tags replace the stale Figma sample; long text ellipsizes while full strings remain in the DOM and native titles (DD-W103). Kind ink inherits Badge’s contrast-tested foreground tokens (DD-W111). No touch target or platform prop.",
       },
     },
   },
@@ -47,6 +47,19 @@ const meta = {
       await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(bounds.right);
       await expect(atom.tabIndex).toBe(-1);
       await expect(atom.scrollWidth).toBeLessThanOrEqual(atom.clientWidth);
+      if (atom.dataset.state !== "error") {
+        // Badge's paired foreground keeps the translucent kind surface
+        // legible; the raw tint used as ink failed hosted light-theme axe.
+        const ink = document.createElement("span");
+        ink.setAttribute("aria-hidden", "true");
+        ink.style.cssText = `position:absolute;visibility:hidden;width:0;height:0;color:var(--tag-${atom.dataset.kind}-foreground)`;
+        atom.appendChild(ink);
+        try {
+          await expect(getComputedStyle(source).color).toBe(getComputedStyle(ink).color);
+        } finally {
+          ink.remove();
+        }
+      }
       if (atom.dataset.state === "error") {
         // Resolve the semantic surface through the browser in this atom's
         // theme scope. A nonexistent utility otherwise silently leaves it

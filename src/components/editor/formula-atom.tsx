@@ -34,7 +34,8 @@ export interface FormulaAtomProps extends Omit<React.ComponentProps<"span">, "ch
 
 /**
  * C31's noninteractive source/value atom, composed on the same Badge as the
- * existing editor node views. Compact desktop/tablet content, not a touch
+ * existing editor node views. Badge pairs the translucent kind fill with
+ * its contrast-tested foreground token. Compact desktop/tablet content, not a touch
  * editing control. The 4px atom and 3px value corners are Figma's inline-code
  * geometry, intentionally smaller than the kit's control radius roles.
  */
@@ -60,7 +61,6 @@ export function FormulaAtom({
       data-state={state}
       className={cn(
         "min-w-0 max-w-full shrink gap-1.5 rounded-[4px] border-0 py-0.5 pl-1.5 pr-[3px] align-baseline font-mono text-xs leading-4 font-normal",
-        kind === "variable" ? "text-tag-variable" : "text-tag-formula",
         error && "border border-destructive bg-tint-danger text-destructive",
         className,
       )}

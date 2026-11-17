@@ -396,7 +396,7 @@
           {
             "selector": "[data-slot=formula-atom-source]",
             "property": "color",
-            "variable": "var(--tag-formula)"
+            "variable": "var(--tag-formula-foreground)"
           },
           {
             "selector": "[data-slot=formula-atom-value]",
@@ -505,7 +505,7 @@
           {
             "selector": "[data-slot=formula-atom-source]",
             "property": "color",
-            "variable": "var(--tag-formula)"
+            "variable": "var(--tag-formula-foreground)"
           },
           {
             "selector": "[data-slot=formula-atom-value]",
@@ -557,7 +557,7 @@
           {
             "selector": "[data-slot=formula-atom-source]",
             "property": "color",
-            "variable": "var(--tag-variable)"
+            "variable": "var(--tag-variable-foreground)"
           },
           {
             "selector": "[data-slot=formula-atom-value]",
@@ -666,7 +666,7 @@
           {
             "selector": "[data-slot=formula-atom-source]",
             "property": "color",
-            "variable": "var(--tag-variable)"
+            "variable": "var(--tag-variable-foreground)"
           },
           {
             "selector": "[data-slot=formula-atom-value]",

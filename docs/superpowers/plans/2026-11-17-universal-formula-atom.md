@@ -14,7 +14,7 @@
 
 - `kind: formula | variable`; `state: ok | error | fallback`; required `source` and formatted `value`. No platform, interaction or evaluation props.
 - Error value is the actual hub error tag (`#REF`, `#VALUE`, `#DIV/0`, `#NAME?`, `#NUM`, `#SYNTAX:n`, `???`), per ruling; the drawing's `= 72` is stale. Preserve arbitrary caller text without parsing the hub's error grammar.
-- Badge supplies the reusable content primitive and formula/variable palette. Live context uses 15% tag fills (the prose digest says 20%). Source uses tag ink; error uses destructive tint/border/ink, and destructive value pill.
+- Badge supplies the reusable content primitive and formula/variable palette. Live context uses 15% tag fills (the prose digest says 20%). Source and leading icon inherit Badge's paired foreground roles (DD-W111) to meet contrast across supported surfaces; error uses destructive tint/border/ink, and destructive value pill.
 - Geometry: outer gap 6, padding 2/3/2/6, radius 4; 12px icon; 12/16 regular mono source; value pill padding 1/6, radius 3, medium mono. Error border adds 2px to dimensions.
 - Long source caps at 116px (sample width), long value caps at half the containing atom; both ellipsize without discarding the full DOM string or title. Small containers shrink both text slots and preserve the icon. Document this undrawn case to the parent for DD-W.
 - Fallback adds localized screen-reader status; error tag and CircleAlert give non-color cues. No live region per atom, no tab stop.
@@ -64,3 +64,11 @@ Files: `formula-atom.stories.tsx`, additive `src/index.ts`, `src/stories/compone
 - Test-first compiler evidence: actual server-rendered FormulaAtom/Badge classes plus the installed Tailwind compiler produced no background for either error kind before the fix (red), and `background-color: var(--tint-danger)` for both after the one-class correction (green). Evidence script and red/green logs are in the family shots folder. This proves class generation/composition, not browser pixels.
 - R1 validation: FormulaAtom + Badge **30/30**, typecheck, lint, format check, diff check and Storybook build pass. No full-suite rerun for this token-only correction, per coordinator instruction. Coordinator logs at the prior head show **3392 passed / 33 skipped**, all four changed source files **100% lines and branches**, release guards **499/499**, Storybook build pass.
 - Hosted browser execution/axe, implementation screenshot pairs, VRT counts and exact-new-head R2 review remain pending.
+
+### Hosted geometry and light-theme contrast corrections
+
+- Precision-only commit `ca392958` keeps 22px/24px outer heights, changing only that DOMRect comparison to four decimal places (<0.00005px tolerance). Hosted dark shard 1 had one fractional-height failure, 164 other tests passed; the captured value 22.000003814697266 passes the new comparison while 0.001px and 1/64px drift still fail.
+- Hosted light shard 1 then reported six failing stories (formula source text contrast; 159 other tests passed). Fresh live Figma context confirms the raw tint ink and 15% fill, while the component overrode Badge's existing contrast-tested foreground roles.
+- DD-W111 records the departure: inherit both Badge paired kind foregrounds. Actual rendered component + Tailwind + existing calibrated token arithmetic was red before and green after this one-line removal across 56 kind/state/theme/surface cases. No shared token, theme, geometry, error-tag or fill changes.
+- Browser play now compares non-error source ink with the appropriate resolved paired foreground token; error-background checks and all other geometry assertions remain intact. Four non-error parity source-color probes follow the paired tokens.
+- Current arithmetic minima: formula light5.6529/dark7.5420; variable light5.9423/dark7.4437. Full coverage passes3392/33skipped, all four changed source files100% lines/branches; release guards499/499 and package build pass. Hosted recheck follows. No Jev call needed for the ink correction: measured existing-role selection is deterministic, with no remaining implementation fork.
