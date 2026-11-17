@@ -25,7 +25,11 @@ type Story = StoryObj<typeof meta>;
 
 /** No simulated browser chrome; the host owns page content, navigation and responsive selection. */
 function Page() {
-  return <main className="fixed inset-0 bg-background p-6 text-foreground">Kitchen morning</main>;
+  return (
+    <main data-testid="flow-page" className="fixed inset-0 bg-background p-6 text-foreground">
+      Kitchen morning
+    </main>
+  );
 }
 
 export const WideDialog: Story = {
@@ -55,7 +59,7 @@ export const WideDialog: Story = {
     const dialog = await body.findByRole("dialog");
     await waitFor(() => expect(body.getByRole("button", { name: "Keep editing" })).toHaveFocus());
     const width = canvasElement.ownerDocument.defaultView!.innerWidth;
-    const layoutWidth = canvasElement.ownerDocument.documentElement.clientWidth;
+    const layoutWidth = body.getByTestId("flow-page").getBoundingClientRect().width;
     await waitFor(() =>
       expect(Math.abs(dialog.getBoundingClientRect().width - Math.min(560, layoutWidth - 32))).toBeLessThan(1),
     );
@@ -194,7 +198,7 @@ export const SnackbarDesktop: Story = {
     await body.findByText("Saved to Pages");
     const notification = canvasElement.ownerDocument.querySelector<HTMLElement>("[data-sonner-toast]")!;
     const width = canvasElement.ownerDocument.defaultView!.innerWidth;
-    const layoutWidth = canvasElement.ownerDocument.documentElement.clientWidth;
+    const layoutWidth = body.getByTestId("flow-page").getBoundingClientRect().width;
     await waitFor(() =>
       expect(
         Math.abs(notification.getBoundingClientRect().width - (width <= 600 ? layoutWidth - 16 : 380)),

@@ -16,12 +16,17 @@ export async function checkFlowShellGeometry(page: Page, id: string) {
         const toast = document.querySelector<HTMLElement>("[data-sonner-toast]");
         if (!toast) return null;
         const toaster = document.querySelector<HTMLElement>("[data-sonner-toaster]")!;
+        const page = document.querySelector<HTMLElement>('[data-testid="flow-page"]')!.getBoundingClientRect();
+        const mobile = matchMedia("(max-width: 600px)").matches;
         return {
           width: toast.getBoundingClientRect().width,
-          expected: matchMedia("(max-width: 600px)").matches ? document.documentElement.clientWidth - 16 : 380,
+          expected: mobile ? page.width - 16 : 380,
+          mobile,
           viewportWidth: window.innerWidth,
-          layoutWidth: document.documentElement.clientWidth,
-          pageWidth: document.querySelector("main")?.getBoundingClientRect().width,
+          clientWidth: document.documentElement.clientWidth,
+          pageWidth: page.width,
+          pageLeft: page.left,
+          pageRight: page.right,
           toasterWidth: toaster.getBoundingClientRect().width,
           left: toast.getBoundingClientRect().left,
           right: toast.getBoundingClientRect().right,
@@ -42,6 +47,13 @@ export async function checkFlowShellGeometry(page: Page, id: string) {
           Math.abs(snackbar.width - snackbar.expected) < 1,
           `${id} at ${width}px: snackbar width is incorrect: ${JSON.stringify(snackbar)}`,
         );
+        if (snackbar.mobile) {
+          assert.ok(
+            Math.abs(snackbar.left - snackbar.pageLeft - 8) < 1 &&
+              Math.abs(snackbar.pageRight - snackbar.right - 8) < 1,
+            `${id} at ${width}px: snackbar side insets are incorrect: ${JSON.stringify(snackbar)}`,
+          );
+        }
         continue;
       }
       // Storybook freezes entrance animations reversed at time zero, showing
@@ -86,7 +98,7 @@ export async function checkFlowShellGeometry(page: Page, id: string) {
         return {
           kind,
           width: box.width,
-          layoutWidth: document.documentElement.clientWidth,
+          layoutWidth: document.querySelector<HTMLElement>('[data-testid="flow-page"]')!.getBoundingClientRect().width,
           overlap,
           descriptionTop: description.getBoundingClientRect().top,
           closeBottom: closeBox.bottom,
