@@ -21,6 +21,8 @@ export interface ToasterLabels {
 }
 
 export interface ToasterProps {
+  /** `snackbar`: the shared 380px surface with 8px mobile side insets (07a/07c). */
+  variant?: "default" | "snackbar";
   /** The resolved theme, as ThemeToggle takes it. Default: "light". */
   theme?: "light" | "dark";
   /** Where the stack is anchored. Default: "bottom-right". */
@@ -44,6 +46,10 @@ export interface ToasterProps {
    * without a bar the toasts sit exactly where they always did. Default: true.
    */
   clearBottomNav?: boolean;
+  /** Host placement, e.g. below a header. Object edges override the kit defaults individually. */
+  offset?: React.ComponentProps<typeof SonnerToaster>["offset"];
+  /** Host mobile placement, e.g. above an editor dock. An explicit bottom edge replaces nav clearance. */
+  mobileOffset?: React.ComponentProps<typeof SonnerToaster>["mobileOffset"];
   className?: string;
 }
 
@@ -107,6 +113,21 @@ const TOAST_CLASSNAMES = {
   actionButton: PRIMARY_ACTION_CLASS,
   cancelButton: SECONDARY_ACTION_CLASS,
 };
+
+const SNACKBAR_CLASSNAMES = {
+  ...TOAST_CLASSNAMES,
+  toast: cn(TOAST_CLASSNAMES.toast, "!py-3.5 !pl-4 !pr-3"),
+  title: "!text-sm !font-semibold",
+  description: cn(TOAST_CLASSNAMES.description, "!text-xs"),
+};
+
+/** Scalar offsets intentionally replace every edge; partial objects preserve other kit defaults. */
+function mergeOffsets(
+  defaults: Exclude<ToasterProps["offset"], string | number>,
+  override: ToasterProps["offset"],
+): ToasterProps["offset"] {
+  return typeof override === "number" || typeof override === "string" ? override : { ...defaults, ...override };
+}
 
 type ToastAction = Exclude<ExternalToast["action"], React.ReactNode>;
 
@@ -261,6 +282,7 @@ export const toast: typeof sonnerToast = Object.assign(withOrderedActions(sonner
  * props, as with ThemeToggle and LanguageSelector.
  */
 function Toaster({
+  variant = "default",
   theme = "light",
   position = "bottom-right",
   duration,
@@ -268,8 +290,11 @@ function Toaster({
   visibleToasts = 3,
   labels,
   clearBottomNav = true,
+  offset,
+  mobileOffset,
   className,
 }: ToasterProps) {
+  const snackbar = variant === "snackbar";
   return (
     <SonnerToaster
       theme={theme}
@@ -280,12 +305,18 @@ function Toaster({
       containerAriaLabel={labels?.container ?? "Notifications"}
       className={cn("toaster group", className)}
       icons={ICONS}
-      style={TOKEN_STYLE}
-      offset={clearBottomNav ? NAV_CLEAR_OFFSET : undefined}
-      mobileOffset={clearBottomNav ? NAV_CLEAR_MOBILE_OFFSET : undefined}
+      style={snackbar ? ({ ...TOKEN_STYLE, "--width": "380px" } as React.CSSProperties) : TOKEN_STYLE}
+      offset={mergeOffsets(clearBottomNav ? NAV_CLEAR_OFFSET : undefined, offset)}
+      mobileOffset={mergeOffsets(
+        {
+          ...(clearBottomNav ? NAV_CLEAR_MOBILE_OFFSET : undefined),
+          ...(snackbar ? { left: 8, right: 8 } : undefined),
+        },
+        mobileOffset,
+      )}
       toastOptions={{
         closeButtonAriaLabel: labels?.close ?? "Close",
-        classNames: TOAST_CLASSNAMES,
+        classNames: snackbar ? SNACKBAR_CLASSNAMES : TOAST_CLASSNAMES,
       }}
     />
   );

@@ -127,7 +127,10 @@ const config: TestRunnerConfig = {
     //
     // Scoped to this one selector on purpose. Anything else that trips
     // color-contrast is a real failure and still fails the build.
-    await checkA11y(page, { include: "#storybook-root", exclude: ".logo-fiesta-text" } as never, {
+    // Flow-shell fixtures portal their actual dialogs/sheets to body. Checking
+    // only the canvas would test the inert background and miss every control.
+    const a11yRoot = context.id.startsWith("overlays-flowshells--") ? "body" : "#storybook-root";
+    await checkA11y(page, { include: a11yRoot, exclude: ".logo-fiesta-text" } as never, {
       detailedReport: true,
       detailedReportOptions: {
         html: true,

@@ -183,6 +183,8 @@ function fractionToDvh(fraction: number): string {
 
 export interface SheetContentProps
   extends React.ComponentProps<typeof SheetPrimitive.Popup>, VariantProps<typeof sheetVariants> {
+  /** Bottom confirmation shell: grabber by default, 16px bottom inset and stacked actions in DOM order. */
+  variant?: "default" | "confirmation";
   /**
    * Radix-compat: called on Escape while the sheet is open; call
    * `event.preventDefault()` to keep the sheet open. Implemented by stopping
@@ -236,6 +238,7 @@ export interface SheetContentProps
 
 function SheetContent({
   side = "right",
+  variant = "default",
   className,
   children,
   onEscapeKeyDown,
@@ -261,7 +264,8 @@ function SheetContent({
       ? detents.map((value) => ({ value, fraction: detentFraction(value) })).sort((a, b) => a.fraction - b.fraction)
       : [];
   const hasDetents = entries.length > 0;
-  const grabberOn = isBottom && (grabber ?? hasDetents);
+  const confirmation = isBottom && variant === "confirmation";
+  const grabberOn = isBottom && (grabber ?? (hasDetents || confirmation));
 
   const [uncontrolledDetent, setUncontrolledDetent] = React.useState<SheetDetent | undefined>(defaultDetent);
   const currentDetent = detentProp ?? uncontrolledDetent;
@@ -422,6 +426,7 @@ function SheetContent({
       <SheetPrimitive.Popup
         ref={popupRef}
         data-slot="sheet-content"
+        data-variant={confirmation ? "confirmation" : undefined}
         data-side={resolvedSide}
         data-grabber={grabberOn ? "" : undefined}
         data-scrim={scrim ? undefined : "false"}
@@ -429,9 +434,11 @@ function SheetContent({
         data-sheet-drag={dragY !== null ? "" : undefined}
         className={cn(
           sheetVariants({ side }),
+          "group/sheet",
           grabberOn &&
             "flex max-h-[calc(100dvh-env(safe-area-inset-top))] flex-col gap-0 rounded-t-[var(--radius-chrome-mobile)] border bg-popover p-0 px-4 pt-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-popover-foreground translate-y-[var(--sheet-drag-y,0px)] motion-safe:transition-[height,translate] duration-base ease-[var(--motion-ease-standard)] data-[sheet-drag]:transition-none",
           grabberOn && hasDetents && "h-[var(--sheet-detent-height)]",
+          grabberOn && confirmation && "pb-[max(1rem,env(safe-area-inset-bottom))]",
           className,
         )}
         onKeyDown={handleKeyDown}
@@ -502,7 +509,10 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex flex-col space-y-2 text-center sm:text-left", className)}
+      className={cn(
+        "flex flex-col space-y-2 text-center sm:text-left group-data-[variant=confirmation]/sheet:text-left",
+        className,
+      )}
       {...props}
     />
   );
@@ -512,7 +522,10 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-footer"
-      className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
+      className={cn(
+        "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 group-data-[variant=confirmation]/sheet:flex-col group-data-[variant=confirmation]/sheet:gap-2 group-data-[variant=confirmation]/sheet:space-x-0",
+        className,
+      )}
       {...props}
     />
   );
