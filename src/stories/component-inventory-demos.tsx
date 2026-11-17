@@ -70,6 +70,7 @@ import { Task, TaskContent, TaskItem, TaskTrigger } from "../components/ai/task"
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "../components/ai/tool";
 import { BoardBackdrop } from "../components/board/board-backdrop";
 import { BoardDisplay } from "../components/board/board-display";
+import { BoardMinimap } from "../components/board/board-minimap";
 import { BoardPreviewModeToggle } from "../components/board/board-preview-mode-toggle";
 import { BoardSizeIndicator } from "../components/board/board-size-indicator";
 import { BoardTeaser } from "../components/board/board-teaser";
@@ -387,6 +388,17 @@ const SeeItsOwnStory = ({ storyPath, why }: { storyPath: string; why: string }) 
 /* ------------------------------------------------------------------ *
  * Controlled components need an owner
  * ------------------------------------------------------------------ */
+
+function BoardMinimapDemo() {
+  const [position, setPosition] = useState({ column: 1, row: 1 });
+  return (
+    <BoardMinimap
+      board={{ deviceType: "panel", gridCols: 29, gridRows: 12, message: "NEXT DEPARTURES" }}
+      viewport={{ ...position, columns: 21, rows: 12 }}
+      onJump={setPosition}
+    />
+  );
+}
 
 function BoardPreviewModeToggleDemo() {
   const [mode, setMode] = useState<"fit" | "actual">("actual");
@@ -1941,6 +1953,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <ScaledBoardDisplay message={BOARD_MESSAGE} size="md" />
     </div>
   ),
+  BoardMinimap: () => <BoardMinimapDemo />,
   BoardViewport: () => (
     <div className="w-full max-w-[320px]">
       <BoardViewport
