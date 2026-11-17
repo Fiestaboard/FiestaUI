@@ -432,6 +432,14 @@ export const INVENTORY = [
           "One agenda row — entry, now, gap or conflict — written in words: title, time · detail, a status word.",
       },
       {
+        name: "ColumnRuler",
+        summary: "Column numbers and cut, zone and Note-seam marks aligned to a controlled viewport.",
+      },
+      {
+        name: "TruncationMap",
+        summary: "Compact line lengths with accessible jumps to overflowing rows and columns.",
+      },
+      {
         name: "WeekStrip",
         summary: "The day picker: touch-size SegmentedControl pills on one scrolling line.",
       },

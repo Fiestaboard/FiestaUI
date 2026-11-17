@@ -149,6 +149,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/containm
 import { BarList } from "../components/data/bar-list";
 import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
+import { ColumnRuler } from "../components/editor/column-ruler";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
 import { EditStateChip } from "../components/editor/edit-state-chip";
 import { EditorPreview } from "../components/editor/editor-preview";
@@ -166,6 +167,7 @@ import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
 import { TraceStep } from "../components/editor/trace-step";
+import { TruncationMap } from "../components/editor/truncation-map";
 import { createLucideIconResolver, VariablePickerContent } from "../components/editor/variable-picker-content";
 import { ZoomControl, type ZoomValue } from "../components/editor/zoom-control";
 import FadeContent from "../components/effects/react-bits/fade-content";
@@ -617,6 +619,8 @@ function TemplateEditorDemo() {
 /* ------------------------------------------------------------------ *
  * The demos
  * ------------------------------------------------------------------ */
+
+const rulerViewportClass = "max-w-full overflow-x-auto focus-ring";
 
 export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   InspectorRow: InspectorRowDemo,
@@ -2229,6 +2233,22 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <EditStateChip state="testing" />
       <EditStateChip state="saved" label="Saved 2 min ago" />
     </div>
+  ),
+  ColumnRuler: () => (
+    // The overflow viewport is the keyboard target for this read-only diagram.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+    <div role="region" aria-label="Column ruler viewport" tabIndex={0} className={rulerViewportClass}>
+      <ColumnRuler columns={29} marks={[{ id: "cut", type: "cut", column: 29 }]} />
+    </div>
+  ),
+  TruncationMap: () => (
+    <TruncationMap
+      columns={29}
+      lines={[
+        { row: 1, length: 16 },
+        { row: 2, length: 31, overflow: { column: 29, count: 2, description: "Row 2 · Last two columns are cut" } },
+      ]}
+    />
   ),
   EditorPreview: () => (
     <EditorPreview
