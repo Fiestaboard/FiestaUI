@@ -155,6 +155,7 @@ import { FormattingPickerContent } from "../components/editor/formatting-picker-
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
+import { TraceStep } from "../components/editor/trace-step";
 import { createLucideIconResolver, VariablePickerContent } from "../components/editor/variable-picker-content";
 import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
@@ -820,6 +821,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </Stack>
   ),
   DataSourceSwitch: () => <DataSourceSwitch aria-label="Preview data" />,
+  TraceStep: () => <TraceStep expression="SUM(3, 4)" value="7" />,
   SegmentedControl: () => (
     <SegmentedControl aria-label="Board animations" defaultValue="subtle">
       <SegmentedControlItem value="off">Off</SegmentedControlItem>

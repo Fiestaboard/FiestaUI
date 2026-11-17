@@ -7,7 +7,7 @@ import { ToolbarDropdown, type ToolbarDropdownProps } from "./toolbar-dropdown";
 /*
  * Slice 1.3 (WEB-05): `presentation="auto|popover|sheet"`. The default stays
  * "popover", so the first block pins the existing panel behaviour; the rest
- * covers the bottom-sheet presentation and the `auto` breakpoint (below 640).
+ * covers the bottom-sheet presentation and the legacy `auto` rule (below48rem/coarse).
  */
 
 function setup(props: Partial<ToolbarDropdownProps> = {}) {
@@ -355,4 +355,107 @@ describe("ToolbarDropdown · sheet initial focus by input", () => {
     await user.keyboard("{Enter}");
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Red" })));
   });
+});
+
+// These tests catch clipping caused by leaving a touch popup under the scroll
+// row, and lost focus/dismissal when its content moves to a portal. Browser
+// stories separately assert actual viewport geometry and hit testing.
+describe("ToolbarDropdown · touch popover", () => {
+  it("portals outside the trigger's scroll row into the supplied host and restores focus on Escape", async () => {
+    const user = userEvent.setup();
+    const host = document.createElement("div");
+    document.body.append(host);
+    try {
+      const { trigger, onClose } = setup({ size: "touch", presentation: "popover", container: host });
+      await user.click(trigger);
+      const popup = await screen.findByRole("dialog", { name: "Colors" });
+      expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+      expect(host).toContainElement(popup);
+      expect(trigger.parentElement).not.toContainElement(popup);
+      await user.click(within(popup).getByRole("button", { name: "Red" }));
+      expect(popup).toBeInTheDocument();
+      await user.keyboard("{Escape}");
+      await waitFor(() => expect(panel()).toBeNull());
+      expect(trigger).toHaveFocus();
+      expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      host.remove();
+    }
+  });
+
+  it("inserts through its render prop once and remains usable when outside dismissal is disabled", async () => {
+    const user = userEvent.setup();
+    const insert = vi.fn();
+    const { trigger, onClose } = setup({
+      size: "touch",
+      presentation: "popover",
+      closeOnOutsideClick: false,
+      children: (close) => (
+        <button
+          onClick={() => {
+            insert("{{temp}}");
+            close();
+          }}
+        >
+          Insert
+        </button>
+      ),
+    });
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "Outside" }));
+    expect(await screen.findByRole("dialog", { name: "Colors" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Insert" }));
+    await waitFor(() => expect(panel()).toBeNull());
+    expect(insert).toHaveBeenCalledExactlyOnceWith("{{temp}}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps an open picker open when auto crosses its legacy media query", async () => {
+    const viewport = mockViewport(false);
+    try {
+      const user = userEvent.setup();
+      const { trigger, onClose } = setup({ size: "touch", presentation: "auto" });
+      await user.click(trigger);
+      expect(await screen.findByRole("dialog", { name: "Colors" })).toHaveAttribute("data-slot", "popover-content");
+      viewport.set(true);
+      await waitFor(() => expect(sheet()).toBeInTheDocument());
+      expect(panel()).toBeNull();
+      viewport.set(false);
+      await waitFor(() => expect(sheet()).toBeNull());
+      expect(await screen.findByRole("dialog", { name: "Colors" })).toHaveAttribute("data-slot", "popover-content");
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+      expect(onClose).not.toHaveBeenCalled();
+    } finally {
+      viewport.restore();
+    }
+  });
+});
+
+it("makes a touch popover's controls reachable from a keyboard-opened trigger", async () => {
+  const user = userEvent.setup();
+  const { trigger, onClose } = setup({ size: "touch", presentation: "popover" });
+  trigger.focus();
+  await user.keyboard("{Enter}");
+  expect(await screen.findByRole("dialog", { name: "Colors" })).toBeInTheDocument();
+  await user.tab();
+  expect(screen.getByRole("button", { name: "Red" })).toHaveFocus();
+  await user.keyboard("{Escape}");
+  await waitFor(() => expect(panel()).toBeNull());
+  expect(trigger).toHaveFocus();
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+it("toggles and dismisses a touch popover once without closing on an inside press", async () => {
+  const user = userEvent.setup();
+  const { trigger, onClose } = setup({ size: "touch", presentation: "popover" });
+  await user.click(trigger);
+  await user.click(screen.getByRole("button", { name: "Red" }));
+  expect(panel()).toBeInTheDocument();
+  await user.click(trigger);
+  await waitFor(() => expect(panel()).toBeNull());
+  expect(onClose).not.toHaveBeenCalled();
+  await user.click(trigger);
+  await user.click(screen.getByRole("button", { name: "Outside" }));
+  await waitFor(() => expect(panel()).toBeNull());
+  expect(onClose).toHaveBeenCalledTimes(1);
 });

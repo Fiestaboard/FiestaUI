@@ -474,6 +474,69 @@
       },
       "tolerance": {},
       "waivers": []
+    },
+    {
+      "id": "editor-trace-step-ok",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:3049",
+        "waitingOn": "versioned design-refs checkout; live MCP export saved in program/shots/fiestaui-1.11/ui111a-trace-step"
+      },
+      "target": {
+        "story": "editor-tracestep--ok",
+        "root": "[data-slot=trace-step]"
+      },
+      "probes": {
+        "tokens": [],
+        "geometry": [],
+        "typography": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-trace-step-error",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:3054",
+        "waitingOn": "versioned design-refs checkout; live MCP export saved in program/shots/fiestaui-1.11/ui111a-trace-step"
+      },
+      "target": {
+        "story": "editor-tracestep--error",
+        "root": "[data-slot=trace-step]"
+      },
+      "probes": {
+        "tokens": [],
+        "geometry": [],
+        "typography": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-trace-step-skipped",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "109:3061",
+        "waitingOn": "versioned design-refs checkout; live MCP export saved in program/shots/fiestaui-1.11/ui111a-trace-step"
+      },
+      "target": {
+        "story": "editor-tracestep--skipped",
+        "root": "[data-slot=trace-step]"
+      },
+      "probes": {
+        "tokens": [],
+        "geometry": [],
+        "typography": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
     }
   ]
 }
