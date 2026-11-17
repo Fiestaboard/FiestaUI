@@ -168,6 +168,7 @@ import { RevisionRow } from "../components/editor/revision-row";
 import { RowBand } from "../components/editor/row-band";
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
+import { ToolRail, type ToolRailTool } from "../components/editor/tool-rail";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
 import { TraceStep } from "../components/editor/trace-step";
 import { TruncationMap } from "../components/editor/truncation-map";
@@ -2221,6 +2222,17 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   GoToCell: function GoToCellDemo() {
     const [value, setValue] = useState({ row: 14, column: 49 });
     return <GoToCell columns={96} rows={24} value={value} onGo={setValue} />;
+  },
+  ToolRail: function ToolRailDemo() {
+    const [selected, setSelected] = useState<ToolRailTool>("brush");
+    return (
+      <ToolRail
+        tools={["pan", "brush", "eraser", "rectangle"]}
+        orientation="horizontal"
+        selected={selected}
+        onSelectedChange={setSelected}
+      />
+    );
   },
   TemplateEditor: TemplateEditorDemo,
   RevisionRow: () => (

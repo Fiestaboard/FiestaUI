@@ -382,6 +382,7 @@ export * from "./components/editor/revision-row";
 export * from "./components/editor/row-band";
 export * from "./components/editor/template-editor";
 export * from "./components/editor/template-editor-toolbar";
+export * from "./components/editor/tool-rail";
 export * from "./components/editor/toolbar-dropdown";
 export * from "./components/editor/truncation-map";
 export * from "./components/editor/zoom-control";

@@ -1289,6 +1289,150 @@
       },
       "tolerance": {},
       "waivers": []
+    },
+    {
+      "id": "editor-tool-rail-brush",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "111:29504",
+        "waitingOn": "Ref publication; local @2x Figma and implementation pairs in program/shots/fiestaui-1.11/tool-rail."
+      },
+      "target": {
+        "story": "editor-toolrail--brush",
+        "root": "[data-slot=tool-rail]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--card)"
+          },
+          {
+            "selector": ":scope",
+            "property": "padding-left",
+            "variable": "var(--spacing)"
+          },
+          {
+            "selector": "[aria-pressed=true]",
+            "property": "background-color",
+            "variable": "var(--primary)"
+          },
+          {
+            "selector": "[data-slot=tool-rail-tool]",
+            "property": "width",
+            "variable": "var(--touch-target)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Tool \u00b7 Brush",
+            "selector": "[aria-pressed=true]",
+            "measure": "box"
+          }
+        ],
+        "text": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-tool-rail-pan",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "111:29550",
+        "waitingOn": "Ref publication; local @2x Figma and implementation pairs in program/shots/fiestaui-1.11/tool-rail."
+      },
+      "target": {
+        "story": "editor-toolrail--pan",
+        "root": "[data-slot=tool-rail]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--card)"
+          },
+          {
+            "selector": ":scope",
+            "property": "padding-left",
+            "variable": "var(--spacing)"
+          },
+          {
+            "selector": "[aria-pressed=true]",
+            "property": "background-color",
+            "variable": "var(--primary)"
+          },
+          {
+            "selector": "[data-slot=tool-rail-tool]",
+            "property": "width",
+            "variable": "var(--touch-target)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Tool \u00b7 Pan",
+            "selector": "[aria-pressed=true]",
+            "measure": "box"
+          }
+        ],
+        "text": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-tool-rail-rectangle",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "111:29587",
+        "waitingOn": "Ref publication; local @2x Figma and implementation pairs in program/shots/fiestaui-1.11/tool-rail."
+      },
+      "target": {
+        "story": "editor-toolrail--rectangle",
+        "root": "[data-slot=tool-rail]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--card)"
+          },
+          {
+            "selector": ":scope",
+            "property": "padding-left",
+            "variable": "var(--spacing)"
+          },
+          {
+            "selector": "[aria-pressed=true]",
+            "property": "background-color",
+            "variable": "var(--primary)"
+          },
+          {
+            "selector": "[data-slot=tool-rail-tool]",
+            "property": "width",
+            "variable": "var(--touch-target)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Tool \u00b7 Rectangle",
+            "selector": "[aria-pressed=true]",
+            "measure": "box"
+          }
+        ],
+        "text": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
     }
   ]
 }
