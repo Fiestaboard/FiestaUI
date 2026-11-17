@@ -131,6 +131,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { IconTile } from "../components/containment/icon-tile";
 import { JsonTree } from "../components/containment/json-tree";
+import { type LayerItem, LayerRow, LayersPanel } from "../components/containment/layer-row";
 import { ListRow, ListRowGroup } from "../components/containment/list-row";
 import { MediaFrame, MediaFrameBar, MediaFrameMedia } from "../components/containment/media-frame";
 import { PagePreviewCard } from "../components/containment/page-preview-card";
@@ -475,6 +476,18 @@ const COLLECTION_PAGES = [
   { id: "commute", name: "Morning commute", meta: "15 min" },
   { id: "weather", name: "Weather + surf", meta: "10 min" },
 ];
+
+function LayersPanelDemo() {
+  const [layers, setLayers] = useState<LayerItem[]>([
+    { id: "temperature", name: "Temperature", meta: "Text · 5×7 · x 2, y 22", bound: true, boundValue: "= 64°" },
+    { id: "background", name: "Background", locked: true },
+  ]);
+  return (
+    <div className="w-full max-w-sm">
+      <LayersPanel layers={layers} onReorder={setLayers} />
+    </div>
+  );
+}
 
 function SortableListDemo() {
   const [pages, setPages] = useState(COLLECTION_PAGES);
@@ -1303,6 +1316,17 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <JsonTree data={JSON_SAMPLE} path="response" defaultExpandedDepth={1} />
     </Frame>
   ),
+  LayerRow: () => (
+    <LayerRow
+      name="Temperature"
+      meta="Text · 5×7 · x 2, y 22"
+      bound
+      boundValue="= 64°"
+      selected
+      className="w-full max-w-sm"
+    />
+  ),
+  LayersPanel: () => <LayersPanelDemo />,
   ListRow: () => (
     <ListRowGroup aria-label="Settings" className="w-full max-w-md">
       <ListRow
