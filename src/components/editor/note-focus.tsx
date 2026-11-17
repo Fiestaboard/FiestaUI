@@ -1,5 +1,6 @@
 "use client";
 
+import { useRender } from "@base-ui/react/use-render";
 import { type ComponentProps, useEffect, useRef } from "react";
 
 import { NOTE_COLS, NOTE_ROWS, resolveDimensions } from "../../lib/board-dimensions";
@@ -39,6 +40,7 @@ export function NoteFocus({
   size = "default",
   labels,
   className,
+  ref,
   ...props
 }: NoteFocusProps) {
   const viewport = useRef<HTMLDivElement>(null);
@@ -65,40 +67,44 @@ export function NoteFocus({
     return () => observer.disconnect();
   }, [value, count, labels]);
 
-  return (
-    <div
-      {...props}
-      ref={viewport}
-      data-slot="note-focus"
-      data-size={size}
-      className={cn("max-w-full overflow-x-auto rounded-[10px]", className)}
-    >
-      {/* Opaque selected tint keeps brand text AA on this muted track. */}
-      <SegmentedControl
-        aria-label={labels?.group ?? "Focus note"}
-        value={value}
-        onValueChange={(next) => {
-          const nextNote = next === "all" ? null : Number(next);
-          onNoteChange(nextNote, getNoteRange(nextNote, notesWide, notesTall));
-        }}
-        disabled={disabled}
-        size={size === "touch" ? "touch" : "md"}
-        wrap={false}
-        className="w-max gap-0.5 rounded-[10px] bg-muted p-[3px]"
-      >
-        <SegmentedControlItem value="all" className="shrink-0 rounded-lg data-[checked]:bg-tint-selected">
-          {labels?.allNotes ?? "All notes"}
-        </SegmentedControlItem>
-        {Array.from({ length: count }, (_, index) => (
-          <SegmentedControlItem
-            key={index + 1}
-            value={String(index + 1)}
-            className="shrink-0 rounded-lg data-[checked]:bg-tint-selected"
+  return useRender({
+    defaultTagName: "div",
+    ref: [viewport, ref ?? null],
+    props: {
+      ...props,
+      "data-slot": "note-focus",
+      "data-size": size,
+      className: cn("max-w-full overflow-x-auto rounded-[10px]", className),
+      children: (
+        <>
+          {/* Opaque selected tint keeps brand text AA on this muted track. */}
+          <SegmentedControl
+            aria-label={labels?.group ?? "Focus note"}
+            value={value}
+            onValueChange={(next) => {
+              const nextNote = next === "all" ? null : Number(next);
+              onNoteChange(nextNote, getNoteRange(nextNote, notesWide, notesTall));
+            }}
+            disabled={disabled}
+            size={size === "touch" ? "touch" : "md"}
+            wrap={false}
+            className="w-max gap-0.5 rounded-[10px] bg-muted p-[3px]"
           >
-            {labels?.note?.(index + 1) ?? `Note ${index + 1}`}
-          </SegmentedControlItem>
-        ))}
-      </SegmentedControl>
-    </div>
-  );
+            <SegmentedControlItem value="all" className="shrink-0 rounded-lg data-[checked]:bg-tint-selected">
+              {labels?.allNotes ?? "All notes"}
+            </SegmentedControlItem>
+            {Array.from({ length: count }, (_, index) => (
+              <SegmentedControlItem
+                key={index + 1}
+                value={String(index + 1)}
+                className="shrink-0 rounded-lg data-[checked]:bg-tint-selected"
+              >
+                {labels?.note?.(index + 1) ?? `Note ${index + 1}`}
+              </SegmentedControlItem>
+            ))}
+          </SegmentedControl>
+        </>
+      ),
+    },
+  });
 }

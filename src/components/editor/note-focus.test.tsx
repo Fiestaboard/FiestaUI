@@ -1,11 +1,50 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
+import { createRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { NoteFocus } from "./note-focus";
 
 describe("NoteFocus", () => {
+  it("exposes the viewport through an object ref and clears it on unmount", () => {
+    const ref = createRef<HTMLDivElement>();
+    const { container, unmount } = render(<NoteFocus ref={ref} note={null} onNoteChange={() => {}} />);
+    const viewport = container.querySelector<HTMLElement>('[data-slot="note-focus"]')!;
+    expect(ref.current).toBe(viewport);
+    ref.current!.scrollLeft = 32;
+    expect(viewport.scrollLeft).toBe(32);
+    unmount();
+    expect(ref.current).toBeNull();
+  });
+
+  it("preserves callback-ref cleanup when the consumer replaces its ref and unmounts", () => {
+    const attached = new Set<HTMLDivElement>();
+    const replacementAttached = new Set<HTMLDivElement>();
+    const ref = (node: HTMLDivElement | null) => {
+      if (!node) throw new Error("React must call the returned cleanup instead of passing null");
+      attached.add(node);
+      return () => {
+        attached.delete(node);
+      };
+    };
+    const nextRef = (node: HTMLDivElement | null) => {
+      if (!node) throw new Error("React must call the returned cleanup instead of passing null");
+      replacementAttached.add(node);
+      return () => {
+        replacementAttached.delete(node);
+      };
+    };
+    const { container, rerender, unmount } = render(<NoteFocus ref={ref} note={null} onNoteChange={() => {}} />);
+    const viewport = container.querySelector<HTMLDivElement>('[data-slot="note-focus"]')!;
+    expect(attached.has(viewport)).toBe(true);
+    rerender(<NoteFocus ref={nextRef} note={4} onNoteChange={() => {}} />);
+    expect(attached.size).toBe(0);
+    expect(replacementAttached.has(viewport)).toBe(true);
+    expect(screen.getByRole("radio", { name: "Note 4" })).toBeChecked();
+    unmount();
+    expect(replacementAttached.size).toBe(0);
+  });
+
   it("reports the selected canvas range while leaving state controlled", async () => {
     const user = userEvent.setup();
     const onNoteChange = vi.fn();
@@ -124,20 +163,22 @@ describe("NoteFocus", () => {
   });
 
   it("scrolls only its own viewport to reveal a controlled selection", () => {
-    const { container, rerender } = render(<NoteFocus note={null} onNoteChange={() => {}} />);
-    const viewport = container.querySelector<HTMLElement>('[data-slot="note-focus"]')!;
+    const ref = createRef<HTMLDivElement>();
+    const { container, rerender } = render(<NoteFocus ref={ref} note={null} onNoteChange={() => {}} />);
+    const viewport = ref.current!;
+    expect(viewport).toBe(container.querySelector('[data-slot="note-focus"]'));
     vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue({ left: 10, right: 110, width: 100 } as DOMRect);
     vi.spyOn(screen.getByRole("radio", { name: "Note 4" }), "getBoundingClientRect").mockReturnValue({
       left: 160,
       right: 220,
     } as DOMRect);
-    rerender(<NoteFocus note={4} onNoteChange={() => {}} />);
+    rerender(<NoteFocus ref={ref} note={4} onNoteChange={() => {}} />);
     expect(viewport.scrollLeft).toBe(113);
     vi.spyOn(screen.getByRole("radio", { name: "All notes" }), "getBoundingClientRect").mockReturnValue({
       left: -90,
       right: -20,
     } as DOMRect);
-    rerender(<NoteFocus note={null} onNoteChange={() => {}} />);
+    rerender(<NoteFocus ref={ref} note={null} onNoteChange={() => {}} />);
     expect(viewport.scrollLeft).toBe(10);
   });
 });
