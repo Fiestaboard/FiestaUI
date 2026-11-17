@@ -79,6 +79,9 @@ export function BoardMinimap({
   const naturalWidth = dims.cols * pitchX - TILE.gutter + seamX(dims.cols) + PADDING * 2;
   const naturalHeight = dims.rows * pitchY - TILE.gutter + seamY(dims.rows) + PADDING * 2;
   const scale = width / naturalWidth;
+  // --touch-target: shallow boards still need a usable pointer surface.
+  const targetHeight = Math.max(44, naturalHeight * scale);
+  const thumbnailTop = (targetHeight - naturalHeight * scale) / 2;
   const columns = clamp(viewport.columns, dims.cols);
   const rows = clamp(viewport.rows, dims.rows);
   const maxColumn = dims.cols - columns + 1;
@@ -111,7 +114,8 @@ export function BoardMinimap({
   const point = (event: PointerEvent<HTMLButtonElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     const pointerScale = box.width / naturalWidth;
-    return { x: (event.clientX - box.left) / pointerScale, y: (event.clientY - box.top) / pointerScale };
+    const insetY = Math.max(0, (box.height - naturalHeight * pointerScale) / 2);
+    return { x: (event.clientX - box.left) / pointerScale, y: (event.clientY - box.top - insetY) / pointerScale };
   };
   // A nearest-grid lookup includes physical Note seams instead of treating those gaps as tiles.
   const closest = (coordinate: number, count: number, origin: (n: number) => number) => {
@@ -187,8 +191,8 @@ export function BoardMinimap({
         data-slot="board-minimap-surface"
         aria-label={labels?.control ?? "Board minimap"}
         aria-describedby={`${id}-range ${id}-hint ${id}-keyboard`}
-        className="focus-ring relative block w-60 max-w-full touch-none overflow-hidden rounded-sm border-0 bg-board-surface-dark p-0 text-left select-none disabled:cursor-not-allowed disabled:opacity-50"
-        style={{ height: naturalHeight * scale }}
+        className="focus-ring relative block w-60 max-w-full touch-none overflow-hidden rounded-sm border-0 bg-transparent p-0 text-left select-none disabled:cursor-not-allowed disabled:opacity-50"
+        style={{ height: targetHeight }}
         onKeyDown={keyDown}
         onClick={(event) => {
           if (event.detail === 0) jump((maxColumn + 1) / 2, (maxRow + 1) / 2);
@@ -226,8 +230,9 @@ export function BoardMinimap({
       >
         <span
           aria-hidden="true"
+          data-slot="board-minimap-thumbnail"
           className="pointer-events-none absolute top-0 left-0 block origin-top-left rounded-md bg-board-surface-dark p-2"
-          style={{ width: naturalWidth, transform: `scale(${scale})` }}
+          style={{ width: naturalWidth, top: thumbnailTop, transform: `scale(${scale})` }}
         >
           <StaticBoardDisplay {...board} size="sm" bezel={false} />
         </span>
@@ -237,7 +242,7 @@ export function BoardMinimap({
           className="pointer-events-none absolute rounded-xs border-2 border-primary"
           style={{
             left: x(column) * scale,
-            top: y(row) * scale,
+            top: thumbnailTop + y(row) * scale,
             width: frameWidth * scale,
             height: frameHeight * scale,
           }}

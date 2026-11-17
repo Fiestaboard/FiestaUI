@@ -22,6 +22,46 @@ function rect() {
 }
 
 describe("BoardMinimap", () => {
+  it.each([
+    { deviceType: "note_array" as const, notesWide: 2, notesTall: 1 },
+    { deviceType: "panel" as const, gridCols: 96, gridRows: 3 },
+  ])("keeps shallow boards inside an accessible hit area: $deviceType", (shallow) => {
+    const { container } = render(
+      <BoardMinimap board={shallow} viewport={{ column: 1, row: 1, columns: 10, rows: 1 }} onJump={vi.fn()} />,
+    );
+    expect(parseFloat(control().style.height)).toBeGreaterThanOrEqual(44);
+    const thumbnail = container.querySelector<HTMLElement>('[data-slot="board-minimap-thumbnail"]')!;
+    expect(parseFloat(thumbnail.style.top)).toBeGreaterThan(0);
+  });
+
+  it("maps the centered shallow thumbnail without treating its padded hit area as board rows", () => {
+    const onJump = vi.fn();
+    render(
+      <BoardMinimap
+        board={{ deviceType: "panel", gridCols: 96, gridRows: 3 }}
+        viewport={{ column: 1, row: 1, columns: 10, rows: 1 }}
+        onJump={onJump}
+      />,
+    );
+    vi.spyOn(control(), "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 240,
+      bottom: 44,
+      width: 240,
+      height: 44,
+      toJSON: () => ({}),
+    });
+    fireEvent.pointerDown(control(), { pointerId: 1, button: 0, clientX: 120, clientY: 22 });
+    expect(onJump).toHaveBeenLastCalledWith({ column: 44, row: 2 });
+    fireEvent.pointerMove(control(), { pointerId: 1, clientX: 120, clientY: 0 });
+    expect(onJump).toHaveBeenLastCalledWith({ column: 44, row: 1 });
+    fireEvent.pointerMove(control(), { pointerId: 1, clientX: 120, clientY: 44 });
+    expect(onJump).toHaveBeenLastCalledWith({ column: 44, row: 3 });
+  });
+
   it("labels the thumbnail as an overview and follows a controlled caret window", () => {
     const { rerender } = render(<BoardMinimap board={board} viewport={viewport} onJump={vi.fn()} />);
     expect(screen.getByText("OVERVIEW · 96 × 24")).toBeInTheDocument();

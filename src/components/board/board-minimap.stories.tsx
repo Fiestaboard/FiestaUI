@@ -70,3 +70,26 @@ export const Narrow: Story = {
   ],
   args: { labels: { hint: "Drag the frame to pan across your board · click anywhere to jump to that region" } },
 };
+
+/** Shallow board thumbnails retain their aspect ratio inside a full touch target. */
+export const ShallowTouchTarget: Story = {
+  args: {
+    board: { deviceType: "panel", gridCols: 96, gridRows: 3, message: "SHALLOW BOARD" },
+    viewport: { column: 1, row: 1, columns: 10, rows: 1 },
+  },
+  play: async ({ canvasElement }) => {
+    const surface = canvasElement.querySelector<HTMLElement>('[data-slot="board-minimap-surface"]')!;
+    const thumbnail = canvasElement.querySelector<HTMLElement>('[data-slot="board-minimap-thumbnail"]')!;
+    const target = surface.getBoundingClientRect();
+    const image = thumbnail.getBoundingClientRect();
+    expect(target.height).toBeGreaterThanOrEqual(44);
+    expect(image.height).toBeLessThan(target.height);
+    expect(Math.abs((image.top + image.bottom) / 2 - (target.top + target.bottom) / 2)).toBeLessThan(1);
+    await userEvent.pointer({
+      target: surface,
+      keys: "[MouseLeft]",
+      coords: { clientX: target.x + target.width / 2, clientY: target.y + target.height / 2 },
+    });
+    expect(within(canvasElement).getByText("Cols 44–53 · Rows 2–2")).toBeInTheDocument();
+  },
+};
