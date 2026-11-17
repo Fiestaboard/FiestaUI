@@ -30,8 +30,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
-export const Light: Story = { globals: { theme: "light" } };
-export const Dark: Story = { globals: { theme: "dark" } };
 export const ThisBrowser: Story = {
   args: {
     name: "Chrome on MacBook Air",
@@ -73,7 +71,7 @@ export const Medium: Story = {
   ],
 };
 export const Mobile: Story = {
-  globals: { viewport: { value: "mobile1", isRotated: false } },
+  globals: { viewport: { value: "mobile", isRotated: false } },
   decorators: [
     (Story) => (
       <div className="w-full max-w-[348px]">

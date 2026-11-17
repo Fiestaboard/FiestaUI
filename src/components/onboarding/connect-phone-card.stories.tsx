@@ -123,10 +123,8 @@ export const Error: Story = {
   args: { state: "error", status: "A code couldn’t be made. Try again.", steps: undefined, footnote: undefined },
 };
 
-export const Light: Story = { globals: { theme: "light" } };
-export const Dark: Story = { globals: { theme: "dark" } };
 export const Mobile: Story = {
-  globals: { viewport: { value: "mobile1", isRotated: false } },
+  globals: { viewport: { value: "mobile", isRotated: false } },
   args: {
     steps: undefined,
     notice: (
