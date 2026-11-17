@@ -187,6 +187,18 @@ export const INVENTORY = [
         summary: "What a display shows now: board, mode badge, page title, countdown, outcome line and actions.",
       },
       {
+        name: "UpNextCard",
+        summary: "Host-supplied upcoming events with localized times, an honest empty state and Schedule actions.",
+      },
+      {
+        name: "OtherDisplaysCard",
+        summary: "Other displays with inert thumbnails, named status and optional host-owned selection.",
+      },
+      {
+        name: "ScheduleModeCard",
+        summary: "Manual Mode's supporting card with a controlled Schedule Mode switch and host-owned outcome copy.",
+      },
+      {
         name: "OutcomeLine",
         summary: "The outcome sentence — “Holds until 9:00 PM, then Schedule resumes” — at dialog and Home scale.",
       },

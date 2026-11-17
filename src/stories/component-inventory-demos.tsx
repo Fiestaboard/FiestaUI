@@ -167,6 +167,7 @@ import { Badge } from "../components/feedback/badge";
 import { Chip } from "../components/feedback/chip";
 import { Countdown } from "../components/feedback/countdown";
 import { EmptyState } from "../components/feedback/empty-state";
+import { OtherDisplaysCard, ScheduleModeCard, UpNextCard } from "../components/feedback/home-supporting-cards";
 import { Note } from "../components/feedback/note";
 import { NowShowingCard } from "../components/feedback/now-showing-card";
 import { Skeleton } from "../components/feedback/skeleton";
@@ -1160,6 +1161,63 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     />
   ),
   OutcomeLine: () => <OutcomeLine>Holds until 9:00 PM, then Schedule resumes. Next: Good night.</OutcomeLine>,
+  UpNextCard: () => (
+    <UpNextCard
+      className="w-full max-w-[274px]"
+      display="Kitchen board"
+      items={[{ id: "next", time: "9:00 PM", title: "Good night", description: "Schedule · Page" }]}
+      actions={
+        <Button size="sm" variant="ghost">
+          View Schedule
+        </Button>
+      }
+    />
+  ),
+  OtherDisplaysCard: () => (
+    <OtherDisplaysCard
+      className="w-full max-w-[274px]"
+      items={[
+        {
+          id: "desk",
+          name: "Desk Pixoo",
+          description: "Collection · Desk agenda",
+          status: "success",
+          statusLabel: "Online",
+          preview: (
+            <span className="block w-[75px]">
+              <DisplayPreview model="divoom_pixoo64" content="sample" />
+            </span>
+          ),
+        },
+      ]}
+      actions={
+        <Button size="sm" variant="ghost">
+          <Monitor aria-hidden="true" />
+          All displays
+        </Button>
+      }
+    />
+  ),
+  ScheduleModeCard: function ScheduleModeDemo() {
+    const [checked, setChecked] = useState(false);
+    return (
+      <ScheduleModeCard
+        className="w-full max-w-[274px]"
+        checked={checked}
+        onCheckedChange={setChecked}
+        description={
+          checked
+            ? "Pages change according to the Schedule."
+            : "Evening commute stays until you change it or turn Schedule Mode back on."
+        }
+        actions={
+          <Button size="sm" variant="ghost">
+            View Schedule
+          </Button>
+        }
+      />
+    );
+  },
   Note: () => (
     <Stack gap="3" className="w-full max-w-lg">
       <Note icon={<Info />}>Transitions are only applied when sending through the local API.</Note>
