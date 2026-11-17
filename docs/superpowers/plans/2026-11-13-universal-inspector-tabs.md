@@ -39,3 +39,10 @@
 Ruling: Base UI intentionally keeps disabled tabs focusable (`focusableWhenDisabled: true`, empty `disabledIndices`) for discovery, while blocking activation. Preserve this established behavior; test aria-disabled and blocked Enter/click instead of native disabled. Removal fallback uses the first enabled tab. Counts include explicit separating whitespace for accessible names. DD-W95/97 cover derived Core states.
 
 Validation ledger: target Vitest9/9, target ESLint, library build and Storybook build pass. Full coverage and duplicate typecheck processes stopped at coordinator request for shared-host load; root serializes remaining gates. Release checks498/499, only pre-existing parser timing1224ms against1000ms. No unrelated production code changed.
+
+## Astra R1 fixes
+
+- Reproduced count and resize scrolling defects with two failing tests (focused History right600 exceeded viewport300/250). Split layout/count updates from actual selection changes; focused tabs stay visible while controlled/uncontrolled selection changes still reveal their tab.
+- Preserve the shared 4px focus ring with 1px transparent viewport bleed (`-m-px p-px`), contained by the visual bar's flow-root. The bar remains38px/default and50px/touch; fades/reveal use its bounds. Interior reveal reserves48px fade plus4px ring. Jev `one_pixel_viewport_bleed` p=.75.
+- Added first/middle/last clipping and fade-clearance browser probes to Focused and FocusedDefault (both theme legs), plus scoped forced-colors important outline. Local browser execution remains unavailable; CI/coordinator must verify these probes before parity approval.
+- Focused Vitest11/11 and inspector source coverage100% lines/branches; targeted ESLint and whole-project typecheck pass. Full suites remain coordinator-owned.

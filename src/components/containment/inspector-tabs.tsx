@@ -57,14 +57,14 @@ function InspectorTabs({
   "aria-labelledby": ariaLabelledBy,
   ...props
 }: InspectorTabsProps) {
+  const barRef = React.useRef<HTMLDivElement>(null);
   const viewportRef = React.useRef<HTMLDivElement>(null);
   const listRef = React.useRef<HTMLDivElement>(null);
   const [edges, setEdges] = React.useState({ left: false, right: false });
 
   const updateEdges = React.useCallback(() => {
-    const viewport = viewportRef.current!;
     const list = listRef.current!;
-    const outer = viewport.getBoundingClientRect();
+    const outer = barRef.current!.getBoundingClientRect();
     const inner = list.getBoundingClientRect();
     const next = { left: inner.left < outer.left - 1, right: inner.right > outer.right + 1 };
     setEdges((previous) => (previous.left === next.left && previous.right === next.right ? previous : next));
@@ -75,13 +75,13 @@ function InspectorTabs({
       if (!tab) return;
       const viewport = viewportRef.current!;
       const list = listRef.current!;
-      const outer = viewport.getBoundingClientRect();
+      const outer = barRef.current!.getBoundingClientRect();
       const inner = list.getBoundingClientRect();
       const target = tab.getBoundingClientRect();
       // Physical coordinates work with both LTR and RTL scrollLeft conventions.
-      // Reserve the 48px fade where content continues beyond this trigger.
-      const leftInset = Math.min(48, Math.max(0, target.left - inner.left));
-      const rightInset = Math.min(48, Math.max(0, inner.right - target.right));
+      // Reserve the 48px fade plus the 4px focus ring where content continues.
+      const leftInset = Math.min(52, Math.max(0, target.left - inner.left));
+      const rightInset = Math.min(52, Math.max(0, inner.right - target.right));
       const left = outer.left + leftInset;
       const right = outer.right - rightInset;
       if (target.left < left) viewport.scrollLeft += target.left - left;
@@ -91,25 +91,47 @@ function InspectorTabs({
     [updateEdges],
   );
 
+  const revealFocusedOrSelected = React.useCallback(() => {
+    const list = listRef.current!;
+    const focus = list.ownerDocument.activeElement;
+    const focusedTab = list.contains(focus) ? focus?.closest<HTMLElement>("[role=tab]") : null;
+    reveal(focusedTab ?? list.querySelector<HTMLElement>("[role=tab][aria-selected=true]"));
+  }, [reveal]);
+
   React.useEffect(() => {
     const viewport = viewportRef.current!;
     const list = listRef.current!;
-    const revealSelection = () => reveal(list.querySelector<HTMLElement>("[role=tab][aria-selected=true]"));
+    let previousSelection = list.querySelector<HTMLElement>("[role=tab][aria-selected=true]");
     const resize = new ResizeObserver(() => {
-      revealSelection();
+      revealFocusedOrSelected();
       updateEdges();
     });
-    const selection = new MutationObserver(revealSelection);
+    // An actual selection change wins over manual focus. Ignore duplicate
+    // attribute mutations so background layout/count updates keep focus visible.
+    const selection = new MutationObserver(() => {
+      const selected = list.querySelector<HTMLElement>("[role=tab][aria-selected=true]");
+      if (selected !== previousSelection) {
+        previousSelection = selected;
+        reveal(selected);
+      }
+    });
     resize.observe(viewport);
     resize.observe(list);
     selection.observe(list, { attributes: true, attributeFilter: ["aria-selected"], subtree: true });
-    revealSelection();
-    updateEdges();
     return () => {
       resize.disconnect();
       selection.disconnect();
     };
-  }, [reveal, updateEdges, tabs, counts, size, value, defaultValue]);
+  }, [reveal, revealFocusedOrSelected, updateEdges]);
+
+  React.useEffect(() => {
+    revealFocusedOrSelected();
+    updateEdges();
+  }, [revealFocusedOrSelected, updateEdges, tabs, counts, size]);
+
+  React.useEffect(() => {
+    reveal(listRef.current!.querySelector<HTMLElement>("[role=tab][aria-selected=true]"));
+  }, [reveal, value, defaultValue]);
 
   return (
     <Tabs
@@ -120,12 +142,14 @@ function InspectorTabs({
       data-size={size}
       className={cn("min-w-0", className)}
     >
-      <div data-slot="inspector-tabs-bar" className="relative rounded-lg bg-muted">
+      <div ref={barRef} data-slot="inspector-tabs-bar" className="relative flow-root rounded-lg bg-muted">
+        {/* p3 + 1px transparent viewport bleed preserves the shared 4px ring.
+            flow-root contains the negative margins; the visible bar stays 38/50px. */}
         <div
           ref={viewportRef}
           data-slot="inspector-tabs-viewport"
           onScroll={updateEdges}
-          className="overflow-x-auto rounded-[inherit] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="-m-px overflow-x-auto rounded-[inherit] p-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <TabsList
             ref={listRef}
@@ -144,7 +168,7 @@ function InspectorTabs({
                   disabled={disabled || tab.disabled}
                   data-slot="inspector-tabs-trigger"
                   className={cn(
-                    "min-w-max flex-1 gap-1.5 rounded-sm data-[disabled]:opacity-50",
+                    "min-w-max flex-1 gap-1.5 rounded-sm data-[disabled]:opacity-50 forced-colors:focus-visible:[outline:2px_solid_Highlight]! forced-colors:focus-visible:outline-offset-2!",
                     size === "touch" && "min-h-(--touch-target)",
                   )}
                 >

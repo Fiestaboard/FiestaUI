@@ -5,7 +5,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { Button } from "../forms/button";
 import { Text } from "../typography/text";
-import { type InspectorTab,InspectorTabs, InspectorTabsContent } from "./inspector-tabs";
+import { type InspectorTab, InspectorTabs, InspectorTabsContent } from "./inspector-tabs";
 
 const phoneTabs: InspectorTab[] = [
   { value: "data", label: "Data" },
@@ -113,11 +113,50 @@ export const Focused: Story = {
   args: { ...Phone.args },
   play: async ({ canvasElement }) => {
     await userEvent.tab();
-    const tab = within(canvasElement).getByRole("tab", { name: "Data" });
-    await expect(tab).toHaveFocus();
-    await waitFor(() => expect(getComputedStyle(tab).boxShadow).not.toBe("none"));
+    const canvas = within(canvasElement);
+    const bar = canvasElement.querySelector<HTMLElement>("[data-slot=inspector-tabs-bar]")!;
+    const viewport = canvasElement.querySelector<HTMLElement>("[data-slot=inspector-tabs-viewport]")!;
+    // Check actual clipping geometry for first, middle, and last keyboard focus.
+    // The runner executes this story in both themes; bounding boxes are browser
+    // measurements, not jsdom class-name assertions.
+    for (const [name, keys] of [
+      ["Data", "{Home}"],
+      ["Page", "{ArrowRight}{ArrowRight}"],
+      ["History", "{End}"],
+    ]) {
+      await userEvent.keyboard(keys);
+      const tab = canvas.getByRole("tab", { name });
+      await expect(tab).toHaveFocus();
+      await waitFor(() => {
+        const visual = bar.getBoundingClientRect();
+        const clip = viewport.getBoundingClientRect();
+        const target = tab.getBoundingClientRect();
+        expect(visual.height).toBe(
+          canvasElement.querySelector("[data-slot=inspector-tabs]")?.getAttribute("data-size") === "touch" ? 50 : 38,
+        );
+        expect(clip.height).toBe(visual.height + 2);
+        expect(target.left - 4).toBeGreaterThanOrEqual(clip.left - 0.5);
+        expect(target.right + 4).toBeLessThanOrEqual(clip.right + 0.5);
+        expect(target.top - 4).toBeGreaterThanOrEqual(clip.top - 0.5);
+        expect(target.bottom + 4).toBeLessThanOrEqual(clip.bottom + 0.5);
+        const style = getComputedStyle(tab);
+        if (matchMedia("(forced-colors: active)").matches) {
+          expect(style.outlineStyle).toBe("solid");
+          expect(style.outlineWidth).toBe("2px");
+          expect(style.outlineOffset).toBe("2px");
+        } else {
+          expect(style.boxShadow).toContain("4px");
+        }
+        const leftFade = canvasElement.querySelector("[data-slot=inspector-tabs-fade-left]");
+        const rightFade = canvasElement.querySelector("[data-slot=inspector-tabs-fade-right]");
+        if (leftFade) expect(target.left - 4).toBeGreaterThanOrEqual(leftFade.getBoundingClientRect().right - 0.5);
+        if (rightFade) expect(target.right + 4).toBeLessThanOrEqual(rightFade.getBoundingClientRect().left + 0.5);
+      });
+    }
   },
 };
+export const FocusedDefault: Story = { play: Focused.play };
+
 export const RightToLeft: Story = {
   args: { ...Phone.args, defaultValue: "history" },
   decorators: [

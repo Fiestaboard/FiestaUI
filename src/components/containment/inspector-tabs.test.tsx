@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { type InspectorTab,InspectorTabs, InspectorTabsContent } from "./inspector-tabs";
+import { type InspectorTab, InspectorTabs, InspectorTabsContent } from "./inspector-tabs";
 
 const tabs: InspectorTab[] = [
   { value: "data", label: "Data" },
@@ -154,6 +154,113 @@ describe("InspectorTabs", () => {
     expect(screen.getByRole("tab", { name: "Data" })).toHaveAttribute("aria-selected", "true");
   });
 
+  it("keeps manual focus visible through count and tab-list updates, but reveals external selection changes", () => {
+    const { container, rerender } = render(
+      <InspectorTabs tabs={tabs} aria-label="Inspector" value="data" counts={{ problems: 2 }} />,
+    );
+    const viewport = container.querySelector<HTMLElement>("[data-slot=inspector-tabs-viewport]")!;
+    const bar = container.querySelector<HTMLElement>("[data-slot=inspector-tabs-bar]")!;
+    const list = screen.getByRole("tablist");
+    let scrollLeft = 0;
+    const rect = (left: number, width: number) => ({
+      x: left,
+      y: 0,
+      left,
+      right: left + width,
+      top: 0,
+      bottom: 38,
+      width,
+      height: 38,
+      toJSON() {},
+    });
+    vi.spyOn(viewport, "getBoundingClientRect").mockImplementation(() => rect(0, 300));
+    vi.spyOn(bar, "getBoundingClientRect").mockImplementation(() => rect(0, 300));
+    vi.spyOn(list, "getBoundingClientRect").mockImplementation(() => rect(-scrollLeft, 600));
+    for (const [index, tab] of screen.getAllByRole("tab").entries())
+      vi.spyOn(tab, "getBoundingClientRect").mockImplementation(() => rect(index * 100 - scrollLeft, 100));
+    Object.defineProperty(viewport, "scrollLeft", {
+      configurable: true,
+      get: () => scrollLeft,
+      set: (value) => {
+        scrollLeft = Math.max(0, Math.min(300, value));
+      },
+    });
+    const history = screen.getByRole("tab", { name: "History" });
+    act(() => history.focus());
+    expect(scrollLeft).toBe(300);
+    rerender(<InspectorTabs tabs={tabs} aria-label="Inspector" value="data" counts={{ problems: 3 }} />);
+    expect(history).toHaveFocus();
+    expect(history.getBoundingClientRect().right).toBeLessThanOrEqual(bar.getBoundingClientRect().right);
+    rerender(<InspectorTabs tabs={[...tabs]} aria-label="Inspector" value="data" counts={{ problems: 3 }} />);
+    expect(scrollLeft).toBe(300);
+    rerender(<InspectorTabs tabs={tabs} aria-label="Inspector" value="logic" counts={{ problems: 3 }} />);
+    expect(history).toHaveFocus();
+    const selected = screen.getByRole("tab", { name: "Logic" }).getBoundingClientRect();
+    expect(selected.left).toBeGreaterThanOrEqual(bar.getBoundingClientRect().left);
+    expect(selected.right).toBeLessThanOrEqual(bar.getBoundingClientRect().right);
+    act(() => history.blur());
+    rerender(<InspectorTabs tabs={tabs} aria-label="Inspector" value="data" counts={{ problems: 4 }} />);
+    expect(scrollLeft).toBe(0);
+  });
+
+  it("keeps the manually focused tab visible when the viewport resizes", () => {
+    const observers: { callback: ResizeObserverCallback; targets: Element[] }[] = [];
+    const originalObserver = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      record: { callback: ResizeObserverCallback; targets: Element[] };
+      constructor(callback: ResizeObserverCallback) {
+        this.record = { callback, targets: [] };
+        observers.push(this.record);
+      }
+      observe(target: Element) {
+        this.record.targets.push(target);
+      }
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    try {
+      const { container } = render(<InspectorTabs tabs={tabs} aria-label="Inspector" value="data" />);
+      const viewport = container.querySelector<HTMLElement>("[data-slot=inspector-tabs-viewport]")!;
+      const bar = container.querySelector<HTMLElement>("[data-slot=inspector-tabs-bar]")!;
+      const list = screen.getByRole("tablist");
+      let scrollLeft = 0;
+      let width = 300;
+      const rect = (left: number, width: number) => ({
+        x: left,
+        y: 0,
+        left,
+        right: left + width,
+        top: 0,
+        bottom: 38,
+        width,
+        height: 38,
+        toJSON() {},
+      });
+      vi.spyOn(viewport, "getBoundingClientRect").mockImplementation(() => rect(0, width));
+      vi.spyOn(bar, "getBoundingClientRect").mockImplementation(() => rect(0, width));
+      vi.spyOn(list, "getBoundingClientRect").mockImplementation(() => rect(-scrollLeft, 600));
+      for (const [index, tab] of screen.getAllByRole("tab").entries())
+        vi.spyOn(tab, "getBoundingClientRect").mockImplementation(() => rect(index * 100 - scrollLeft, 100));
+      Object.defineProperty(viewport, "scrollLeft", {
+        configurable: true,
+        get: () => scrollLeft,
+        set: (value) => {
+          scrollLeft = Math.max(0, Math.min(600 - width, value));
+        },
+      });
+      const history = screen.getByRole("tab", { name: "History" });
+      act(() => history.focus());
+      width = 250;
+      const observer = observers.find((observer) => observer.targets.includes(viewport))!;
+      act(() => observer.callback([], {} as ResizeObserver));
+      expect(history).toHaveFocus();
+      expect(history.getBoundingClientRect().right).toBeLessThanOrEqual(bar.getBoundingClientRect().right);
+      expect(screen.getByRole("tab", { name: "Data" })).toHaveAttribute("aria-selected", "true");
+    } finally {
+      globalThis.ResizeObserver = originalObserver;
+    }
+  });
+
   it("tracks overflow edges and reveals selected and focused tabs without scrolling ancestors", () => {
     const { container, rerender } = render(
       <InspectorTabs tabs={tabs} aria-label="Inspector" value="data" size="touch">
@@ -174,7 +281,9 @@ describe("InspectorTabs", () => {
       y: 0,
       toJSON() {},
     });
-    vi.spyOn(viewport, "getBoundingClientRect").mockImplementation(() => rect(0, 300));
+    vi.spyOn(viewport, "getBoundingClientRect").mockImplementation(() => rect(-1, 302));
+    const bar = container.querySelector<HTMLElement>("[data-slot=inspector-tabs-bar]")!;
+    vi.spyOn(bar, "getBoundingClientRect").mockImplementation(() => rect(0, 300));
     vi.spyOn(list, "getBoundingClientRect").mockImplementation(() => rect(-left, 600));
     Object.defineProperty(viewport, "clientWidth", { value: 300 });
     Object.defineProperty(viewport, "scrollWidth", { value: 600 });
