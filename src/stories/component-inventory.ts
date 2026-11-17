@@ -239,6 +239,7 @@ export const INVENTORY = [
         summary: "Reorder by drag (mouse, pen, touch), keyboard lift or Move up / Move down, with announcements.",
       },
       { name: "Table", summary: "Data table with header, body, row and cell parts." },
+      { name: "InspectorTabs", summary: "Data-driven Inspector tabs, counts, scroll fades and caller-owned panels." },
       { name: "Tabs", summary: "Tab list plus panels." },
     ],
   },
