@@ -447,6 +447,10 @@ export const INVENTORY = [
         summary:
           'The editor\'s toolbar, usable standalone. `size="touch"`: labelled 52 px tools per display (split-flap or LED), pickers in bottom sheets.',
       },
+      {
+        name: "RowBand",
+        summary: "Selectable template gutter band with shared row actions and a composable drag handle.",
+      },
       { name: "EditorTool", summary: "One labelled 52 px tool of the touch editor bar." },
       {
         name: "EditorWarning",

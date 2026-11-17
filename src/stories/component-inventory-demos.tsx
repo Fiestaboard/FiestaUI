@@ -152,6 +152,7 @@ import { EditorTool } from "../components/editor/editor-tool";
 import { EditorWarning, EditorWarningAction } from "../components/editor/editor-warning";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
+import { RowBand } from "../components/editor/row-band";
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
@@ -2044,6 +2045,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <TemplateEditorToolbar editor={null} templateVariables={TEMPLATE_VARIABLES} />
     </Frame>
   ),
+  RowBand: () => <RowBand label="Departures" rows={[3, 10]} meta="Rows 3–10 · FOREACH" selected />,
   EditorTool: () => (
     <Frame className="flex max-w-[200px] border-t border-border bg-card px-1 py-1">
       <EditorTool icon={<Palette />} label="Colors" />

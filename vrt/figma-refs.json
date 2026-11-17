@@ -378,6 +378,82 @@
       },
       "tolerance": {},
       "waivers": []
+    },
+    {
+      "id": "editor-row-band-default",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "108:7302",
+        "waitingOn": "Reference-checkout registration; @2x component set and implementation captures in program/shots/fiestaui-1.11/row-band."
+      },
+      "target": {
+        "story": "editor-rowband--default",
+        "root": "[data-slot=row-band]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": "[data-slot=row-band-bracket]",
+            "property": "background-color",
+            "variable": "var(--muted-foreground)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Label",
+            "selector": "[data-slot=row-band-label]",
+            "measure": "text"
+          }
+        ],
+        "text": [
+          {
+            "node": "Label",
+            "selector": "[data-slot=row-band-label]"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-row-band-selected",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "108:7309",
+        "waitingOn": "Reference-checkout registration; @2x component set and implementation captures in program/shots/fiestaui-1.11/row-band."
+      },
+      "target": {
+        "story": "editor-rowband--selected",
+        "root": "[data-slot=row-band]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": "[data-slot=row-band-bracket]",
+            "property": "background-color",
+            "variable": "var(--primary)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Label",
+            "selector": "[data-slot=row-band-label]",
+            "measure": "text"
+          }
+        ],
+        "text": [
+          {
+            "node": "Label",
+            "selector": "[data-slot=row-band-label]"
+          }
+        ],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
     }
   ]
 }
