@@ -101,7 +101,8 @@ export function GoToCell({
     return () => document.removeEventListener("keydown", focus);
   }, [shortcut, inactive]);
   const go = () => {
-    const position = coordinate(query);
+    const position =
+      query === display ? { row: clamp(value.row, rows), column: clamp(value.column, columns) } : coordinate(query);
     if (position) {
       if (position.row >= 1 && position.row <= rows && position.column >= 1 && position.column <= columns) {
         setError("");
@@ -139,7 +140,10 @@ export function GoToCell({
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}
-          className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0"
+          className={cn(
+            "min-w-0 flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0",
+            size === "default" && "h-7",
+          )}
           onChange={(event) => {
             setQuery(event.target.value);
             setError("");

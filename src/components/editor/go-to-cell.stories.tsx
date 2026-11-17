@@ -27,7 +27,12 @@ export const Mobile: Story = {
     expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   },
 };
-export const Touch: Story = { args: { size: "touch" } };
+export const Touch: Story = {
+  args: { size: "touch" },
+  play: async ({ canvasElement }) => {
+    expect(within(canvasElement).getByRole("textbox").getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+  },
+};
 export const Disabled: Story = { args: { disabled: true } };
 export const ReadOnly: Story = { args: { readOnly: true } };
 export const WithoutShortcut: Story = { args: { shortcut: false } };

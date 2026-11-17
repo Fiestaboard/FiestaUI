@@ -148,4 +148,27 @@ describe("GoToCell", () => {
     expect(control).toHaveAttribute("aria-invalid", "true");
     expect(control.getAttribute("aria-describedby")).toContain("server-error");
   });
+  it.each([false, true])(
+    "navigates localized displayed coordinates, with search resolver %s",
+    async (searchEnabled) => {
+      const onGo = vi.fn();
+      const onSearch = searchEnabled ? vi.fn() : undefined;
+      render(
+        <GoToCell
+          {...base}
+          onGo={onGo}
+          onSearch={onSearch}
+          labels={{ format: (row, column) => `Zeile ${row} · Spalte ${column}` }}
+        />,
+      );
+      await userEvent.click(input());
+      await userEvent.keyboard("{Enter}");
+      expect(onGo).toHaveBeenLastCalledWith({ row: 14, column: 49 });
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      await userEvent.type(input(), "Departures");
+      await userEvent.keyboard("{Escape}{Enter}");
+      expect(onGo).toHaveBeenCalledTimes(2);
+      if (onSearch) expect(onSearch).not.toHaveBeenCalled();
+    },
+  );
 });
