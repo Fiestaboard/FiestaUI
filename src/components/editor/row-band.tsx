@@ -143,7 +143,14 @@ export function RowBand({
         </DropdownMenu>
       )}
       {selected && hasDragHandle && !disabled && (
-        <div data-slot="row-band-drag-handle" className="absolute right-0 bottom-0">
+        <div
+          data-slot="row-band-drag-handle"
+          className="absolute right-0 bottom-0"
+          // The host's child handlers run first. Only stop the touch start
+          // from arming the outer context menu's competing long press;
+          // pointer movement and release still belong to the host.
+          onTouchStart={(event) => event.stopPropagation()}
+        >
           {dragHandle}
         </div>
       )}

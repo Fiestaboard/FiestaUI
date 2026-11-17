@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { SortableList, SortableListHandle } from "../containment/sortable-list";
 import { RowBand } from "./row-band";
 
 const base = { label: "Departures", rows: [3, 10] as const };
@@ -142,6 +143,86 @@ describe("RowBand", () => {
     expect(move).toHaveBeenCalledTimes(1);
     expect(select).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Actions for Departures" })).toBeInTheDocument();
+  });
+
+  it("keeps held drag-handle touches with the host and leaves the separate actions available", async () => {
+    const select = vi.fn();
+    const action = vi.fn();
+    const hostTouchStart = vi.fn();
+    const { container } = render(
+      <SortableList
+        items={[{ id: "departures" }]}
+        getKey={(item) => item.id}
+        getLabel={() => "Departures"}
+        onMove={vi.fn()}
+        renderItem={() => (
+          <RowBand
+            {...base}
+            selected
+            onSelectedChange={select}
+            menu={[{ id: "move", label: "Move", onSelect: action }]}
+            dragHandle={<SortableListHandle onTouchStart={hostTouchStart} />}
+          />
+        )}
+      />,
+    );
+    const handle = container.querySelector("[data-slot=sortable-list-handle]")!;
+    const item = container.querySelector("[data-slot=sortable-list-item]")!;
+    vi.useFakeTimers();
+    try {
+      fireEvent.pointerDown(handle, { button: 0, pointerId: 1, pointerType: "touch", clientX: 10, clientY: 10 });
+      expect(item).toHaveAttribute("data-dragging");
+      fireEvent.touchStart(handle, { touches: [{ clientX: 10, clientY: 10 }] });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(600);
+      });
+      expect(hostTouchStart).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+      expect(item).toHaveAttribute("data-dragging");
+      fireEvent.pointerMove(handle, { pointerId: 1, pointerType: "touch", clientY: 30 });
+      fireEvent.pointerUp(handle, { pointerId: 1, pointerType: "touch" });
+      fireEvent.touchEnd(handle);
+      expect(item).not.toHaveAttribute("data-dragging");
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(select).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Actions for Departures" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Move" }));
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(select).not.toHaveBeenCalled();
+  });
+
+  it("retains ordinary band long press beside a composed drag handle", async () => {
+    const { container } = render(
+      <SortableList
+        items={[{ id: "departures" }]}
+        getKey={(item) => item.id}
+        getLabel={() => "Departures"}
+        onMove={vi.fn()}
+        renderItem={() => (
+          <RowBand
+            {...base}
+            selected
+            dragHandle={<SortableListHandle />}
+            menu={[{ id: "move", label: "Move", onSelect: vi.fn() }]}
+          />
+        )}
+      />,
+    );
+    vi.useFakeTimers();
+    try {
+      const band = screen.getByRole("button", { name: "Departures" });
+      fireEvent.touchStart(band, { touches: [{ clientX: 10, clientY: 10 }] });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(600);
+      });
+      expect(screen.getByRole("menu", { name: "Actions for Departures" })).toBeVisible();
+      expect(container.querySelector("[data-slot=sortable-list-item]")).not.toHaveAttribute("data-dragging");
+      fireEvent.touchEnd(band);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("hides the drag handle until selected, omits empty menus, and forwards root props/ref", () => {
