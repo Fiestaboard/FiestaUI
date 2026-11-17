@@ -1,5 +1,6 @@
 "use client";
 
+import { useDirection } from "@base-ui/react/direction-provider";
 import { Circle, Eraser, Hand, Paintbrush, PaintBucket, Pipette, Square, Type, Undo2 } from "lucide-react";
 import * as React from "react";
 
@@ -81,11 +82,11 @@ export function ToolRail({
   className,
   ...props
 }: ToolRailProps) {
+  const direction = useDirection();
   const [focusedTool, setFocusedTool] = React.useState<ToolRailTool>();
   const enabledTools = disabled ? [] : tools.filter((tool) => !disabledTools.includes(tool));
   // Base UI retains an index when items disappear or become disabled. Keep
   // the entry point by tool identity so those updates cannot strand Tab.
-  // Its arrow navigation still moves focus and updates this entry point.
   const tabStop = enabledTools.find((tool) => tool === focusedTool) ?? enabledTools[0];
   const l = { ...DEFAULT_TOOL_RAIL_LABELS, ...labels };
   const vertical = orientation === "vertical";
@@ -114,6 +115,31 @@ export function ToolRail({
           // ToggleGroup permits deselection; a canvas mode must stay selected.
           const next = tools.find((tool) => tool === values[0]);
           if (next) onSelectedChange(next);
+        }}
+        onKeyDown={(event) => {
+          const forward = vertical ? "ArrowDown" : direction === "rtl" ? "ArrowLeft" : "ArrowRight";
+          const backward = vertical ? "ArrowUp" : direction === "rtl" ? "ArrowRight" : "ArrowLeft";
+          if (![forward, backward, "Home", "End"].includes(event.key)) return;
+          // ToggleGroup's private highlighted index also drifts when a still-
+          // focused tool changes position. Its public event override lets this
+          // dynamic rail navigate the current DOM order without remounting tools
+          // or relying on internal APIs. Toggle still owns native activation.
+          event.preventBaseUIHandler();
+          if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+          const buttons = Array.from(
+            event.currentTarget.querySelectorAll<HTMLButtonElement>('[data-slot="tool-rail-tool"]:not(:disabled)'),
+          );
+          const current = buttons.indexOf(event.target as HTMLButtonElement);
+          if (current < 0) return;
+          const next =
+            event.key === "Home"
+              ? 0
+              : event.key === "End"
+                ? buttons.length - 1
+                : (current + (event.key === forward ? 1 : -1) + buttons.length) % buttons.length;
+          event.preventDefault();
+          event.stopPropagation();
+          buttons[next].focus();
         }}
         className="shrink-0"
       >

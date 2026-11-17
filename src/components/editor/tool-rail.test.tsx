@@ -1,3 +1,4 @@
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
@@ -230,5 +231,171 @@ describe("ToolRail", () => {
     expect(onSelectedChange).not.toHaveBeenCalled();
     await user.keyboard(" ");
     expect(onSelectedChange).toHaveBeenCalledExactlyOnceWith("rectangle");
+  });
+
+  describe.each(["vertical", "horizontal"] as const)("dynamic %s navigation", (orientation) => {
+    const forward = orientation === "vertical" ? "ArrowDown" : "ArrowRight";
+    const backward = orientation === "vertical" ? "ArrowUp" : "ArrowLeft";
+    const cases: { name: string; before: ToolRailTool[]; after: ToolRailTool[]; forward: string; backward: string }[] =
+      [
+        {
+          name: "removing a preceding tool",
+          before: ["pan", "brush", "rectangle"],
+          after: ["brush", "rectangle"],
+          forward: "Brush",
+          backward: "Brush",
+        },
+        {
+          name: "reordering the focused tool",
+          before: ["pan", "brush", "rectangle"],
+          after: ["rectangle", "pan", "brush"],
+          forward: "Pan",
+          backward: "Brush",
+        },
+        {
+          name: "inserting a preceding tool",
+          before: ["pan", "rectangle"],
+          after: ["brush", "pan", "rectangle"],
+          forward: "Brush",
+          backward: "Pan",
+        },
+      ];
+
+    it.each(cases)("uses the new order immediately after $name", async (fixture) => {
+      const user = userEvent.setup();
+      const onSelectedChange = vi.fn();
+      const { rerender } = render(
+        <ToolRail
+          tools={fixture.before}
+          orientation={orientation}
+          selected="rectangle"
+          onSelectedChange={onSelectedChange}
+        />,
+      );
+      const rectangle = screen.getByRole("button", { name: "Rectangle" });
+      await user.click(rectangle);
+      rerender(
+        <ToolRail
+          tools={fixture.after}
+          orientation={orientation}
+          selected="rectangle"
+          onSelectedChange={onSelectedChange}
+        />,
+      );
+      expect(screen.getByRole("button", { name: "Rectangle" })).toBe(rectangle);
+      expect(rectangle).toHaveFocus();
+      await user.keyboard(`{${forward}}`);
+      expect(screen.getByRole("button", { name: fixture.forward })).toHaveFocus();
+      // Reset focus, not selection, to test the very first backward key too.
+      await user.click(rectangle);
+      await user.keyboard(`{${backward}}`);
+      expect(screen.getByRole("button", { name: fixture.backward })).toHaveFocus();
+      expect(rectangle).toHaveAttribute("aria-pressed", "true");
+      expect(onSelectedChange).not.toHaveBeenCalled();
+    });
+
+    it("keeps Home/End, disabled skipping, and Tab re-entry on the current order", async () => {
+      const user = userEvent.setup();
+      const onSelectedChange = vi.fn();
+      const example = (tools: ToolRailTool[]) => (
+        <>
+          <button>Before</button>
+          <ToolRail
+            tools={tools}
+            disabledTools={["brush"]}
+            orientation={orientation}
+            selected="rectangle"
+            onSelectedChange={onSelectedChange}
+          />
+          <button>After</button>
+        </>
+      );
+      const { rerender } = render(example(["pan", "brush", "rectangle"]));
+      await user.click(screen.getByRole("button", { name: "Rectangle" }));
+      rerender(example(["rectangle", "brush", "pan"]));
+      await user.keyboard("{End}");
+      expect(screen.getByRole("button", { name: "Pan" })).toHaveFocus();
+      await user.keyboard("{Home}");
+      expect(screen.getByRole("button", { name: "Rectangle" })).toHaveFocus();
+      await user.keyboard(`{${forward}}`);
+      expect(screen.getByRole("button", { name: "Pan" })).toHaveFocus();
+      await user.tab();
+      expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+      await user.tab({ shift: true });
+      expect(screen.getByRole("button", { name: "Pan" })).toHaveFocus();
+      await user.keyboard(" ");
+      expect(onSelectedChange).toHaveBeenCalledExactlyOnceWith("pan");
+    });
+
+    it.each([forward, backward])("skips a dynamically disabled sibling with %s", async (key) => {
+      const user = userEvent.setup();
+      const onSelectedChange = vi.fn();
+      const { rerender } = render(
+        <ToolRail
+          tools={["pan", "brush", "rectangle"]}
+          orientation={orientation}
+          selected="rectangle"
+          onSelectedChange={onSelectedChange}
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Rectangle" }));
+      rerender(
+        <ToolRail
+          tools={["pan", "brush", "rectangle"]}
+          disabledTools={["brush"]}
+          orientation={orientation}
+          selected="rectangle"
+          onSelectedChange={onSelectedChange}
+        />,
+      );
+      await user.keyboard(`{${key}}`);
+      expect(screen.getByRole("button", { name: "Pan" })).toHaveFocus();
+      expect(onSelectedChange).not.toHaveBeenCalled();
+    });
+  });
+
+  it("follows RTL arrow direction after reordering without changing selection", async () => {
+    const user = userEvent.setup();
+    const onSelectedChange = vi.fn();
+    const example = (tools: ToolRailTool[]) => (
+      <DirectionProvider direction="rtl">
+        <ToolRail tools={tools} orientation="horizontal" selected="rectangle" onSelectedChange={onSelectedChange} />
+      </DirectionProvider>
+    );
+    const { rerender } = render(example(["pan", "brush", "rectangle"]));
+    await user.click(screen.getByRole("button", { name: "Rectangle" }));
+    rerender(example(["rectangle", "pan", "brush"]));
+    await user.keyboard("{ArrowLeft}");
+    expect(screen.getByRole("button", { name: "Pan" })).toHaveFocus();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("button", { name: "Rectangle" })).toHaveFocus();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("button", { name: "Brush" })).toHaveFocus();
+    expect(onSelectedChange).not.toHaveBeenCalled();
+  });
+
+  it("does not claim modified keys, the other axis, or a prevented keyboard event", async () => {
+    const user = userEvent.setup();
+    const onSelectedChange = vi.fn();
+    render(
+      <ToolRail
+        tools={["pan", "rectangle"]}
+        orientation="horizontal"
+        selected="rectangle"
+        onSelectedChange={onSelectedChange}
+        onKeyDownCapture={(event) => {
+          if (event.key === "Home") event.preventDefault();
+        }}
+      />,
+    );
+    const rectangle = screen.getByRole("button", { name: "Rectangle" });
+    await user.click(rectangle);
+    for (const modifier of ["altKey", "ctrlKey", "metaKey", "shiftKey"]) {
+      expect(fireEvent.keyDown(rectangle, { key: "ArrowRight", [modifier]: true })).toBe(true);
+      expect(rectangle).toHaveFocus();
+    }
+    await user.keyboard("{ArrowDown}{ArrowUp}{Home}");
+    expect(rectangle).toHaveFocus();
+    expect(onSelectedChange).not.toHaveBeenCalled();
   });
 });
