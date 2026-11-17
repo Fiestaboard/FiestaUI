@@ -29,6 +29,7 @@ export * from "./components/forms/choice-card";
 export * from "./components/forms/combobox";
 export * from "./components/forms/copy-button";
 export * from "./components/forms/copyable-code";
+export * from "./components/forms/data-source-switch";
 export * from "./components/forms/duration-chip-group";
 export * from "./components/forms/field";
 export * from "./components/forms/input";

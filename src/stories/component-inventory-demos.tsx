@@ -175,6 +175,7 @@ import { ChoiceCard, ChoiceCardGroup, ChoiceCardPreview } from "../components/fo
 import { Combobox, type ComboboxOption } from "../components/forms/combobox";
 import { CopyButton } from "../components/forms/copy-button";
 import { CopyableCode } from "../components/forms/copyable-code";
+import { DataSourceSwitch } from "../components/forms/data-source-switch";
 import { buildDurationOptions, DurationChipGroup, OutcomeLine } from "../components/forms/duration-chip-group";
 import { Field } from "../components/forms/field";
 import { Input } from "../components/forms/input";
@@ -818,6 +819,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <SecretInput id="inv-secret" defaultValue="fb_live_2f9c41" />
     </Stack>
   ),
+  DataSourceSwitch: () => <DataSourceSwitch aria-label="Preview data" />,
   SegmentedControl: () => (
     <SegmentedControl aria-label="Board animations" defaultValue="subtle">
       <SegmentedControlItem value="off">Off</SegmentedControlItem>
