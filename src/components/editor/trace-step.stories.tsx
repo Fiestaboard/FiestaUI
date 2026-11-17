@@ -35,8 +35,6 @@ export const Nested: Story = {
     </div>
   ),
 };
-export const Light: Story = { globals: { theme: "light" } };
-export const Dark: Story = { globals: { theme: "dark" } };
 export const Mobile: Story = {
   globals: { viewport: { value: "mobile", isRotated: false } },
   args: { expression: "COALESCE(weather.temperature, fallback.temperature)", value: "Unavailable", depth: 2 },
