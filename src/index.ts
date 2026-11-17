@@ -423,4 +423,5 @@ export * from "./components/ai/tool";
 export * from "./components/board/preview-slot";
 export * from "./components/editor/edit-state-chip";
 export * from "./components/editor/preview-status";
+export * from "./components/editor/trace-step";
 export * from "./components/onboarding/hub-discovery-row";
