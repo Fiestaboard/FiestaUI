@@ -52,15 +52,24 @@ export async function checkChoiceChip(page: Page, id: string) {
         selector: '[data-slot="choice-chip-label"]',
       });
       const { fonts } = await session.send("CSS.getPlatformFontsForNode", { nodeId });
-      const { arguments: launchArguments } = await session.send("Browser.getBrowserCommandLine");
-      return {
-        fonts,
-        renderingFlags: launchArguments.filter((argument) =>
-          /^--(?:headless|font-render-hinting|disable-font-subpixel-positioning|force-device-scale-factor|force-color-profile)(?:=|$)/.test(
-            argument,
+      // Storybook's runner may omit --enable-automation. That only prevents
+      // optional command-line diagnostics; font and geometry checks still run.
+      const renderingFlags = await session
+        .send("Browser.getBrowserCommandLine")
+        .then(({ arguments: launchArguments }) =>
+          launchArguments.filter((argument) =>
+            /^--(?:headless|font-render-hinting|disable-font-subpixel-positioning|force-device-scale-factor|force-color-profile)(?:=|$)/.test(
+              argument,
+            ),
           ),
-        ),
-      };
+        )
+        .catch((error: unknown) => {
+          if (error instanceof Error && error.message.includes("--enable-automation not set")) {
+            return "unavailable: --enable-automation not set";
+          }
+          throw error;
+        });
+      return { fonts, renderingFlags };
     } finally {
       await session.detach();
     }
