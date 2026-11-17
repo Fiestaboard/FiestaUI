@@ -119,3 +119,17 @@ export const LedIconPopover: Story = {
     await userEvent.click(await within(canvasElement).findByRole("button", { name: "Icon" }));
   },
 };
+
+export const LedTextColorPopover: Story = {
+  args: { led: true, forcePopover: true },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(await within(canvasElement).findByRole("button", { name: "Text color" }));
+  },
+};
+
+export const ColorPopover: Story = {
+  args: { forcePopover: true },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(await within(canvasElement).findByRole("button", { name: "Colors" }));
+  },
+};
