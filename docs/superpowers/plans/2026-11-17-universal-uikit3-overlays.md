@@ -44,3 +44,11 @@ Host Chromium launch is blocked by the Mac sandbox before rendering. Root will
 serialize browser checks in a permitted shared fb-dev-browser container when
 available, or report the explicit limitation alongside hosted CI evidence.
 No task containers/images/volumes may be created beyond the three shared roles.
+
+## Hosted acceptance follow-up
+
+Actual desktop confirmation images exposed an inherited responsive horizontal margin on the first stacked action. Match the confirmation spacing override at the `sm` breakpoint and assert equal left and right button edges at 320, 390 and 900px. This preserves the default sheet recipe.
+
+Storybook freezes entrance animations at their reversed final frame. Geometry checks now wait only while the surface animation is running, with a bounded wait; they do not await a paused animation's unfinished promise. Current mobile snackbar captures establish a 359px toast in the 375px layout area of a 390px screenshot. Keep that width contract and include concrete viewport, containing-block and toast-state diagnostics for the still-unexplained 320px assertion. No speculative toast sizing change is included.
+
+The production repair passed the full local suite (3,379 passed, 33 skipped), all three changed-source coverage gates, static checks, library/Storybook builds and release checks. Hosted browser acceptance must execute again at the new head.

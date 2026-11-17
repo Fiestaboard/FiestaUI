@@ -523,7 +523,7 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sheet-footer"
       className={cn(
-        "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 group-data-[variant=confirmation]/sheet:flex-col group-data-[variant=confirmation]/sheet:gap-2 group-data-[variant=confirmation]/sheet:space-x-0",
+        "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 group-data-[variant=confirmation]/sheet:flex-col group-data-[variant=confirmation]/sheet:gap-2 group-data-[variant=confirmation]/sheet:space-x-0 sm:group-data-[variant=confirmation]/sheet:space-x-0",
         className,
       )}
       {...props}

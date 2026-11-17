@@ -59,7 +59,11 @@ export const WideDialog: Story = {
     await waitFor(() =>
       expect(Math.abs(dialog.getBoundingClientRect().width - Math.min(560, layoutWidth - 32))).toBeLessThan(1),
     );
-    await Promise.all(dialog.getAnimations().map((animation) => animation.finished.catch(() => {})));
+    // Storybook freezes the final entrance frame; paused animations cannot
+    // resolve finished. Normal interactive stories still wait for motion.
+    await waitFor(() =>
+      expect(dialog.getAnimations().every((animation) => animation.playState !== "running")).toBe(true),
+    );
     const title = body.getByRole("heading").getBoundingClientRect();
     const close = body.getByRole("button", { name: "Close" }).getBoundingClientRect();
     expect(title.right).toBeLessThanOrEqual(close.left);
