@@ -30,7 +30,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 /** Figma109:30655, complete24-row overview. */
 export const Default: Story = {};
-export const Dark: Story = { globals: { theme: "dark" } };
+/** The toolbar and CI theme matrix control the palette for this named story. */
+export const Dark: Story = {};
 export const Mobile: Story = { args: { onJump: fn() }, globals: { viewport: { value: "mobile1", isRotated: false } } };
 export const Empty: Story = { args: { lines: [] } };
 export const LargeOverflow: Story = {

@@ -38,7 +38,8 @@ export const NoteArray: Story = {
     ],
   },
 };
-export const Dark: Story = { globals: { theme: "dark" } };
+/** The toolbar and CI theme matrix control the palette for this named story. */
+export const Dark: Story = {};
 export const Mobile: Story = {
   globals: { viewport: { value: "mobile1", isRotated: false } },
   args: { visibleRange: { start: 41, end: 56 } },
