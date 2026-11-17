@@ -119,7 +119,6 @@ export function GoToCell({
         className={cn(
           "flex min-h-9 items-center gap-2 rounded-md border border-input bg-card pl-2.5 pr-1.5 transition-[border-color,box-shadow] focus-within:border-ring focus-within:shadow-[var(--focus-ring-shadow)] coarse:min-h-touch",
           size === "touch" && "min-h-touch",
-          inactive && "opacity-50",
           error && "border-destructive focus-within:border-destructive",
         )}
       >
