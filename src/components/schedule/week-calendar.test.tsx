@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import * as React from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { WeekCalendar, type WeekCalendarDay, type WeekCalendarEntry } from "./week-calendar";
@@ -406,6 +407,275 @@ describe("WeekCalendar", () => {
       fireEvent.pointerUp(column, { pointerType: "mouse", clientY: 230, pointerId: 1 });
       // y 130 → 229 min → 9:49 → 9:30; end = 9:30 + 30.
       expect(onCreate).toHaveBeenLastCalledWith({ day: 1, start: 540, end: 600 });
+    });
+  });
+
+  describe("move and resize (pointer only, 1.9d)", () => {
+    /** Three 80px columns side by side, each 612px tall (6 AM–11 PM at 36px/h). */
+    function layOutWeek() {
+      const columns = Array.from(document.querySelectorAll<HTMLElement>('[data-slot="week-calendar-day"]'));
+      columns.forEach((column, i) => {
+        column.getBoundingClientRect = () =>
+          ({
+            top: 100,
+            left: i * 80,
+            right: (i + 1) * 80,
+            bottom: 712,
+            width: 80,
+            height: 612,
+            x: i * 80,
+            y: 100,
+            toJSON() {},
+          }) as DOMRect;
+      });
+    }
+    const block = (name: string) => screen.getByRole("button", { name });
+    const change = (container: HTMLElement) =>
+      container.querySelector('[data-slot="week-calendar-change"]') as HTMLElement | null;
+
+    it("is off without onEntryChange: no handle, no drag", () => {
+      const { container } = setup();
+      layOutWeek();
+      const market = block("Market open");
+      expect(market).not.toHaveAttribute("data-movable");
+      expect(market.querySelector('[data-slot="week-calendar-entry-resize"]')).toBeNull();
+      fireEvent.pointerDown(market, { pointerType: "mouse", button: 0, clientX: 40, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 300, pointerId: 1 });
+      expect(change(container)).toBeNull();
+    });
+
+    it("only scheduled entries move; gaps and silence stay fixed", () => {
+      setup({ onEntryChange: vi.fn(), hourHeight: 36 });
+      expect(block("Market open")).toHaveAttribute("data-movable", "");
+      expect(block("Market open").querySelector('[data-slot="week-calendar-entry-resize"]')).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+      expect(block("Gap · Good morning, Maya")).not.toHaveAttribute("data-movable");
+      expect(block("Silence")).not.toHaveAttribute("data-movable");
+    });
+
+    it("a mouse drag moves the block in 15-minute steps, keeps its length and reports once on release", () => {
+      const onEntryChange = vi.fn();
+      const { container, onSelect } = setup({ onEntryChange, hourHeight: 36 });
+      layOutWeek();
+      const market = block("Market open"); // 9:00–12:00 on Monday
+      // Press at y = 250 (10:10), drag down 40px = 66.7 min → start 9:00 + 66.7 → snaps to 10:00.
+      fireEvent.pointerDown(market, { pointerType: "mouse", button: 0, clientX: 40, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 290, pointerId: 1 });
+      const preview = change(container)!;
+      expect(preview).toHaveAttribute("aria-hidden", "true");
+      expect(preview).toHaveAttribute("data-mode", "move");
+      expect(preview).toHaveTextContent("10:00 AM – 1:00 PM");
+      expect(market).toHaveAttribute("data-changing", "");
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 40, clientY: 290, pointerId: 1 });
+      fireEvent.click(market);
+      expect(onEntryChange).toHaveBeenCalledTimes(1);
+      expect(onEntryChange).toHaveBeenCalledWith(expect.objectContaining({ id: "mon-market" }), {
+        day: 0,
+        start: 600,
+        end: 780,
+      });
+      // The click that ends a drag is not a tap.
+      expect(onSelect).not.toHaveBeenCalled();
+      expect(change(container)).toBeNull();
+      // The next real click selects again.
+      fireEvent.click(market);
+      expect(onSelect).toHaveBeenCalledTimes(1);
+    });
+
+    it("moves across days by the column under the pointer, and a pen drags too", () => {
+      const onEntryChange = vi.fn();
+      setup({ onEntryChange, hourHeight: 36 });
+      layOutWeek();
+      const brunch = block("Brunch"); // Wednesday 10:00–11:00
+      fireEvent.pointerDown(brunch, { pointerType: "pen", button: 0, clientX: 200, clientY: 250, pointerId: 4 });
+      fireEvent.pointerMove(brunch, { pointerType: "pen", clientX: 100, clientY: 250, pointerId: 4 });
+      fireEvent.pointerUp(brunch, { pointerType: "pen", clientX: 100, clientY: 250, pointerId: 4 });
+      expect(onEntryChange).toHaveBeenCalledWith(expect.objectContaining({ id: "wed-market" }), {
+        day: 1,
+        start: 600,
+        end: 660,
+      });
+      // Off the side of the grid: the block stays on its own day.
+      fireEvent.pointerDown(brunch, { pointerType: "mouse", button: 0, clientX: 200, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(brunch, { pointerType: "mouse", clientX: 900, clientY: 286, pointerId: 1 });
+      fireEvent.pointerUp(brunch, { pointerType: "mouse", clientX: 900, clientY: 286, pointerId: 1 });
+      expect(onEntryChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: "wed-market" }), {
+        day: 2,
+        start: 660,
+        end: 720,
+      });
+    });
+
+    it("keeps a moved block inside the visible hours", () => {
+      const onEntryChange = vi.fn();
+      setup({ onEntryChange, hourHeight: 36 });
+      layOutWeek();
+      const market = block("Market open");
+      fireEvent.pointerDown(market, { pointerType: "mouse", button: 0, clientX: 40, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: -900, pointerId: 1 });
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 40, clientY: -900, pointerId: 1 });
+      expect(onEntryChange).toHaveBeenLastCalledWith(expect.anything(), { day: 0, start: 360, end: 540 });
+      fireEvent.pointerDown(market, { pointerType: "mouse", button: 0, clientX: 40, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 5000, pointerId: 1 });
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 40, clientY: 5000, pointerId: 1 });
+      // 11 PM grid end − 3 h.
+      expect(onEntryChange).toHaveBeenLastCalledWith(expect.anything(), { day: 0, start: 1200, end: 1380 });
+    });
+
+    it("dragging the bottom edge resizes the end, snapped, at least one step long, never past the grid", () => {
+      const onEntryChange = vi.fn();
+      const { container } = setup({ onEntryChange, hourHeight: 36 });
+      layOutWeek();
+      const market = block("Market open");
+      const handle = market.querySelector('[data-slot="week-calendar-entry-resize"]') as HTMLElement;
+      // y = 100 + 6.5 h × 36 = 334 → 12:30 PM.
+      fireEvent.pointerDown(handle, { pointerType: "mouse", button: 0, clientX: 40, clientY: 316, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 334, pointerId: 1 });
+      expect(change(container)).toHaveAttribute("data-mode", "resize");
+      expect(change(container)).toHaveTextContent("9:00 AM – 12:30 PM");
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 40, clientY: 334, pointerId: 1 });
+      expect(onEntryChange).toHaveBeenLastCalledWith(expect.anything(), { day: 0, start: 540, end: 750 });
+      // Up past the start: one 15-minute step remains. Sideways never changes the day.
+      fireEvent.pointerDown(handle, { pointerType: "mouse", button: 0, clientX: 40, clientY: 316, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 200, clientY: 0, pointerId: 1 });
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 200, clientY: 0, pointerId: 1 });
+      expect(onEntryChange).toHaveBeenLastCalledWith(expect.anything(), { day: 0, start: 540, end: 555 });
+      fireEvent.pointerDown(handle, { pointerType: "mouse", button: 0, clientX: 40, clientY: 316, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 5000, pointerId: 1 });
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 40, clientY: 5000, pointerId: 1 });
+      expect(onEntryChange).toHaveBeenLastCalledWith(expect.anything(), { day: 0, start: 540, end: 1380 });
+    });
+
+    it("a press that travels under 4px is a click; a drag back to the start reports nothing", () => {
+      const onEntryChange = vi.fn();
+      const { container, onSelect } = setup({ onEntryChange, hourHeight: 36 });
+      layOutWeek();
+      const market = block("Market open");
+      fireEvent.pointerDown(market, { pointerType: "mouse", button: 0, clientX: 40, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 42, clientY: 253, pointerId: 1 });
+      expect(change(container)).toBeNull();
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 42, clientY: 253, pointerId: 1 });
+      fireEvent.click(market);
+      expect(onSelect).toHaveBeenCalledTimes(1);
+      expect(onEntryChange).not.toHaveBeenCalled();
+      fireEvent.pointerDown(market, { pointerType: "mouse", button: 0, clientX: 40, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 290, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 291, pointerId: 1 });
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 40, clientY: 250, pointerId: 1 });
+      expect(onEntryChange).not.toHaveBeenCalled();
+    });
+
+    it("never drags from touch or a secondary button, ignores other pointers, and Escape or cancel drops it", () => {
+      const onEntryChange = vi.fn();
+      const { container } = setup({ onEntryChange, hourHeight: 36 });
+      layOutWeek();
+      const market = block("Market open");
+      fireEvent.pointerDown(market, { pointerType: "touch", button: 0, clientX: 40, clientY: 250, pointerId: 3 });
+      fireEvent.pointerMove(market, { pointerType: "touch", clientX: 40, clientY: 320, pointerId: 3 });
+      fireEvent.pointerDown(market, { pointerType: "mouse", button: 2, clientX: 40, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 320, pointerId: 1 });
+      expect(change(container)).toBeNull();
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 320, pointerId: 1 });
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 40, clientY: 320, pointerId: 1 });
+
+      fireEvent.pointerDown(market, { pointerType: "mouse", button: 0, clientX: 40, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 320, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 400, pointerId: 9 });
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 40, clientY: 400, pointerId: 9 });
+      fireEvent.pointerCancel(market, { pointerId: 9 });
+      expect(change(container)).not.toBeNull();
+      act(() => {
+        fireEvent.keyDown(window, { key: "a" });
+      });
+      expect(change(container)).not.toBeNull();
+      act(() => {
+        fireEvent.keyDown(window, { key: "Escape" });
+      });
+      expect(change(container)).toBeNull();
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 40, clientY: 320, pointerId: 1 });
+
+      fireEvent.pointerDown(market, { pointerType: "mouse", button: 0, clientX: 40, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 320, pointerId: 1 });
+      fireEvent.pointerCancel(market, { pointerId: 1 });
+      expect(change(container)).toBeNull();
+      fireEvent.pointerDown(market, { pointerType: "mouse", button: 0, clientX: 40, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 320, pointerId: 1 });
+      fireEvent.lostPointerCapture(market, { pointerId: 2 });
+      expect(change(container)).not.toBeNull();
+      fireEvent.lostPointerCapture(market, { pointerId: 1 });
+      expect(change(container)).toBeNull();
+      expect(onEntryChange).not.toHaveBeenCalled();
+    });
+
+    it("a block the visible hours clip stays fixed", () => {
+      const onEntryChange = vi.fn();
+      const { container } = setup({
+        onEntryChange,
+        hourHeight: 36,
+        entries: [
+          { id: "early", day: 1, start: 240, end: 480, title: "Early bird" },
+          { id: "late", day: 2, start: 1320, end: 1440, title: "Late show" },
+        ],
+      });
+      layOutWeek();
+      for (const name of ["Early bird", "Late show"]) {
+        const clipped = block(name);
+        expect(clipped).not.toHaveAttribute("data-movable");
+        expect(clipped.querySelector('[data-slot="week-calendar-entry-resize"]')).toBeNull();
+        fireEvent.pointerDown(clipped, { pointerType: "mouse", button: 0, clientX: 100, clientY: 120, pointerId: 1 });
+        fireEvent.pointerMove(clipped, { pointerType: "mouse", clientX: 100, clientY: 300, pointerId: 1 });
+        expect(change(container)).toBeNull();
+        fireEvent.pointerUp(clipped, { pointerType: "mouse", clientX: 100, clientY: 300, pointerId: 1 });
+      }
+      expect(onEntryChange).not.toHaveBeenCalled();
+    });
+
+    it("after a host moves a block to another day, the next click on any block still selects", async () => {
+      const onSelect = vi.fn();
+      function Host() {
+        const [entries, setEntries] = React.useState(ENTRIES);
+        return (
+          <WeekCalendar
+            aria-label="Week"
+            days={DAYS}
+            entries={entries}
+            hourHeight={36}
+            onSelect={onSelect}
+            onEntryChange={(entry, range) =>
+              setEntries((list) => list.map((e) => (e.id === entry.id ? { ...e, ...range } : e)))
+            }
+          />
+        );
+      }
+      render(<Host />);
+      layOutWeek();
+      const brunch = block("Brunch");
+      fireEvent.pointerDown(brunch, { pointerType: "mouse", button: 0, clientX: 200, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(brunch, { pointerType: "mouse", clientX: 100, clientY: 250, pointerId: 1 });
+      fireEvent.pointerUp(brunch, { pointerType: "mouse", clientX: 100, clientY: 250, pointerId: 1 });
+      // The browser's click lands on the old node, which React has replaced: nothing selects.
+      fireEvent.click(brunch);
+      expect(screen.getByRole("group", { name: "Tuesday, November 10" })).toContainElement(block("Brunch"));
+      await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+      fireEvent.click(block("Market open"));
+      expect(onSelect).toHaveBeenCalledTimes(1);
+      expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "mon-market" }));
+    });
+
+    it("a press on a block does not start a create draft, even with both turned on", () => {
+      const onCreate = vi.fn();
+      const onEntryChange = vi.fn();
+      const { container } = setup({ onCreate, onEntryChange, hourHeight: 36 });
+      layOutWeek();
+      const market = block("Market open");
+      fireEvent.pointerDown(market, { pointerType: "mouse", button: 0, clientX: 40, clientY: 250, pointerId: 1 });
+      fireEvent.pointerMove(market, { pointerType: "mouse", clientX: 40, clientY: 290, pointerId: 1 });
+      expect(container.querySelector('[data-slot="week-calendar-draft"]')).toBeNull();
+      fireEvent.pointerUp(market, { pointerType: "mouse", clientX: 40, clientY: 290, pointerId: 1 });
+      expect(onCreate).not.toHaveBeenCalled();
+      expect(onEntryChange).toHaveBeenCalledTimes(1);
     });
   });
 });
