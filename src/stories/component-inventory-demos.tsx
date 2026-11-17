@@ -152,6 +152,8 @@ import { EditorTool } from "../components/editor/editor-tool";
 import { EditorWarning, EditorWarningAction } from "../components/editor/editor-warning";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
+import { NoteFocus } from "../components/editor/note-focus";
+import { NoteSeams } from "../components/editor/note-seams";
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
@@ -383,6 +385,11 @@ const SeeItsOwnStory = ({ storyPath, why }: { storyPath: string; why: string }) 
 /* ------------------------------------------------------------------ *
  * Controlled components need an owner
  * ------------------------------------------------------------------ */
+
+function NoteFocusDemo() {
+  const [note, setNote] = useState<number | null>(null);
+  return <NoteFocus note={note} onNoteChange={setNote} />;
+}
 
 function BoardPreviewModeToggleDemo() {
   const [mode, setMode] = useState<"fit" | "actual">("actual");
@@ -2029,6 +2036,22 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
 
   /* ---- Template editor ---- */
   TemplateEditor: TemplateEditorDemo,
+  NoteFocus: () => <NoteFocusDemo />,
+  NoteSeams: () => (
+    <div className="max-w-full overflow-x-auto">
+      <div className="relative w-[483px]">
+        <StaticBoardDisplay
+          deviceType="note_array"
+          notesWide={2}
+          notesTall={2}
+          size="sm"
+          bezel={false}
+          message="ONE CANVAS"
+        />
+        <NoteSeams note={2} />
+      </div>
+    </div>
+  ),
   EditorPreview: () => (
     <EditorPreview
       className="static w-full max-w-md"

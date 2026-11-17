@@ -456,6 +456,8 @@ export const INVENTORY = [
         name: "EditorPreview",
         summary: "The editor's always-visible live preview: a sticky pane or a phone dock, with the mirror switch.",
       },
+      { name: "NoteFocus", summary: "Select one physical Note or the whole array while keeping one canvas." },
+      { name: "NoteSeams", summary: "Shared Note boundary and focus overlays aligned to the existing board renderer." },
       { name: "ToolbarDropdown", summary: "The popover shell the toolbar's pickers are mounted in." },
       { name: "VariablePickerContent", summary: "Plugin variables, grouped by plugin with previews." },
       {
