@@ -61,7 +61,7 @@ export function FormulaAtom({
       className={cn(
         "min-w-0 max-w-full shrink gap-1.5 rounded-[4px] border-0 py-0.5 pl-1.5 pr-[3px] align-baseline font-mono text-xs leading-4 font-normal",
         kind === "variable" ? "text-tag-variable" : "text-tag-formula",
-        error && "border border-destructive bg-tint-destructive text-destructive",
+        error && "border border-destructive bg-tint-danger text-destructive",
         className,
       )}
     >

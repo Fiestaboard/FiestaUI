@@ -56,3 +56,11 @@ Files: `formula-atom.stories.tsx`, additive `src/index.ts`, `src/stories/compone
 - TDD: missing import observed first; null implementation then produced 18/18 behavior failures. Badge implementation passed 18/18. Final focused FormulaAtom + Badge: 30/30. Targeted inventory cases: 4 pass, 313 skipped by name filter.
 - Static validation: typecheck, lint, format:check and build pass. First lint found one import-order error; fixed with ESLint. Build reports existing token gamut clipping.
 - All six parity story IDs verified using Storybook toId/storyNameFromExport. Hosted geometry/axe, implementation screenshots, coverage and full release guards remain pending.
+
+### R1 review correction
+
+- Independent review `program/reviews/ui111a-formula-atom-astra.md` at `42fc3bd5` found M1: the kit names Figma's tint/destructive token `tint-danger`; the nonexistent `bg-tint-destructive` utility left both error kinds without a background after Badge class merging.
+- Added a browser play assertion before the fix. It resolves `--tint-danger` in each error atom's theme scope and compares the actual computed background; all error stories inherit it, including formula/error and variable/error in both CI theme legs. Added matching root-background parity probes for both canonical errors.
+- Test-first compiler evidence: actual server-rendered FormulaAtom/Badge classes plus the installed Tailwind compiler produced no background for either error kind before the fix (red), and `background-color: var(--tint-danger)` for both after the one-class correction (green). Evidence script and red/green logs are in the family shots folder. This proves class generation/composition, not browser pixels.
+- R1 validation: FormulaAtom + Badge **30/30**, typecheck, lint, format check, diff check and Storybook build pass. No full-suite rerun for this token-only correction, per coordinator instruction. Coordinator logs at the prior head show **3392 passed / 33 skipped**, all four changed source files **100% lines and branches**, release guards **499/499**, Storybook build pass.
+- Hosted browser execution/axe, implementation screenshot pairs, VRT counts and exact-new-head R2 review remain pending.

@@ -446,6 +446,11 @@
       "probes": {
         "tokens": [
           {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--tint-danger)"
+          },
+          {
             "selector": "[data-slot=formula-atom-source]",
             "property": "color",
             "variable": "var(--destructive)"
@@ -601,6 +606,11 @@
       },
       "probes": {
         "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--tint-danger)"
+          },
           {
             "selector": "[data-slot=formula-atom-source]",
             "property": "color",

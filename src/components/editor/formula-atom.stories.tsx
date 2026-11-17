@@ -44,6 +44,22 @@ const meta = {
       await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(bounds.right);
       await expect(atom.tabIndex).toBe(-1);
       await expect(atom.scrollWidth).toBeLessThanOrEqual(atom.clientWidth);
+      if (atom.dataset.state === "error") {
+        // Resolve the semantic surface through the browser in this atom's
+        // theme scope. A nonexistent utility otherwise silently leaves it
+        // transparent after cn removes Badge's kind background (R1 M1).
+        const tint = document.createElement("span");
+        tint.setAttribute("aria-hidden", "true");
+        tint.style.cssText = "position:absolute;visibility:hidden;width:0;height:0;background-color:var(--tint-danger)";
+        atom.appendChild(tint);
+        try {
+          const expectedTint = getComputedStyle(tint).backgroundColor;
+          await expect(expectedTint).not.toBe("rgba(0, 0, 0, 0)");
+          await expect(getComputedStyle(atom).backgroundColor).toBe(expectedTint);
+        } finally {
+          tint.remove();
+        }
+      }
     }
   },
 } satisfies Meta<typeof FormulaAtom>;
