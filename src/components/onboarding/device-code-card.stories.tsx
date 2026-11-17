@@ -72,7 +72,11 @@ const phoneReference: Story = {
       expect(icon.width).toBe(28);
       expect(icon.height).toBe(28);
       expect(getComputedStyle(result).columnGap).toBe("12px");
-      expect(body.left - frame.left).toBeCloseTo(81, 1);
+      // The fixed phone frame also runs inside the runner's wide viewport;
+      // the existing card inset follows that viewport, not the frame width.
+      const cardInset = matchMedia("(min-width: 640px)").matches ? 32 : 24;
+      expect(getComputedStyle(card).paddingLeft).toBe(`${cardInset}px`);
+      expect(body.left - frame.left).toBeCloseTo(16 + 1 + cardInset + 28 + 12, 1);
     }
     for (const button of card.querySelectorAll("button")) {
       expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
