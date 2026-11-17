@@ -186,6 +186,14 @@ export const INVENTORY = [
         name: "OutcomeLine",
         summary: "The outcome sentence — “Holds until 9:00 PM, then Schedule resumes” — at dialog and Home scale.",
       },
+      {
+        name: "ProblemItem",
+        summary: "Plain-language problem, source jump and fixes as an inspector row, console row or save card.",
+      },
+      {
+        name: "SentLog",
+        summary: "The last twenty shown, held or paused outcomes, as a list or compact console summary.",
+      },
       { name: "Skeleton", summary: "Loading placeholder block." },
       { name: "Spinner", summary: "Indeterminate progress at three sizes, with an accessible label." },
       {

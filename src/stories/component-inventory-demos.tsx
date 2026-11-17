@@ -165,6 +165,8 @@ import { Countdown } from "../components/feedback/countdown";
 import { EmptyState } from "../components/feedback/empty-state";
 import { Note } from "../components/feedback/note";
 import { NowShowingCard } from "../components/feedback/now-showing-card";
+import { ProblemItem } from "../components/feedback/problem-item";
+import { SentLog } from "../components/feedback/sent-log";
 import { Skeleton } from "../components/feedback/skeleton";
 import { Spinner } from "../components/feedback/spinner";
 import { StatusBanner, StatusBannerAction } from "../components/feedback/status-banner";
@@ -940,6 +942,10 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
 
   /* ---- Feedback ---- */
+  ProblemItem: () => (
+    <ProblemItem severity="error" message="#REF · Row 12" detail="muni.next doesn’t exist" onJump={() => {}} />
+  ),
+  SentLog: () => <SentLog items={[{ id: "last", at: "7:41 AM", outcome: "shown", message: "to Den TV" }]} />,
   Alert: () => (
     <Stack gap="3" className="w-full max-w-lg">
       <Alert>
