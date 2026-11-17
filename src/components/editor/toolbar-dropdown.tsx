@@ -7,6 +7,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalSto
 
 import { cn } from "../../lib/utils";
 import { Box } from "../layout/box";
+import { Popover, PopoverContent, PopoverTrigger } from "../overlays/popover";
 import { Sheet, SheetContent, type SheetDetent, SheetHeader, SheetTitle } from "../overlays/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
 import { Text } from "../typography/text";
@@ -34,13 +35,14 @@ export const DEFAULT_TOOLBAR_DROPDOWN_LABELS: ToolbarDropdownLabels = {
  * - `sheet`: the panel is a non-modal bottom sheet with a grabber and no scrim,
  *   so the board preview above it stays visible and live (WEB-05, 07c).
  * - `auto`: `sheet` below 768px (48rem, Tailwind `md`) **or** on a coarse
- *   pointer, `popover` otherwise. This is the same rule as the touch editor
- *   toolbar (MASTER-PLAN 2.5), so a touch-sized toolbar never opens a popover.
+ *   pointer, `popover` otherwise. This legacy rule is independent of host
+ *   sheet breakpoints; select sheet/popover explicitly for a 640px policy.
  *
  * In sheet mode, dismissal follows Base UI's non-modal dialog: Esc, the close
  * button, an outside press, and also Tab moving focus out of the sheet, all
  * unless `closeOnOutsideClick={false}`. The popover only closes on an outside
- * mousedown and Esc.
+ * mousedown and Esc. Touch popovers use the shared non-modal Popover, which
+ * restores focus on Escape while insertions keep the editor caret focused.
  */
 export type ToolbarDropdownPresentation = "auto" | "popover" | "sheet";
 
@@ -69,7 +71,8 @@ export interface ToolbarDropdownProps {
   /** Trigger's accessible name and tooltip copy. Already caller-supplied — localize it app-side. */
   label: string;
   icon?: React.ReactNode;
-  children: React.ReactNode | ((close: () => void) => React.ReactNode);
+  /** A picker body can adapt its help text to the resolved presentation. */
+  children: React.ReactNode | ((close: () => void, presentation: "popover" | "sheet") => React.ReactNode);
   className?: string;
   onClose?: () => void;
   /** When false, clicking outside will NOT close the dropdown. Default: true */
@@ -79,11 +82,13 @@ export interface ToolbarDropdownProps {
   labels?: Partial<ToolbarDropdownLabels>;
   /** How the panel is presented. Default: `"popover"`. */
   presentation?: ToolbarDropdownPresentation;
+  /** Touch popovers only: portal host outside the toolbar scroll row. Defaults to body. */
+  container?: Element | null;
   /**
    * `touch` renders the trigger as a labelled 52 px {@link EditorTool}
    * (slice 1.6b, Figma 07 `315:99828`): the label is visible, so there is no
    * tooltip, and the tool fills `accent` while its panel is open. Pair it
-   * with `presentation="sheet"`. Default: `"default"`, today's icon button.
+   * with either sheet or a portalled, collision-aware popover. Default: `"default"`, today's icon button.
    */
   size?: "default" | "touch";
   /**
@@ -114,6 +119,7 @@ export function ToolbarDropdown({
   disabled = false,
   labels,
   presentation = "popover",
+  container,
   size = "default",
   detents,
   defaultDetent,
@@ -132,8 +138,10 @@ export function ToolbarDropdown({
   }, [isOpen]);
   const narrow = useNarrowViewport(presentation === "auto");
   const asSheet = presentation === "sheet" || (presentation === "auto" && narrow);
+  const touchPopover = size === "touch" && !asSheet;
   const dropdownRef = useRef<HTMLElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const [restoreTouchFocus, setRestoreTouchFocus] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
   const [panelShift, setPanelShift] = useState(0);
 
@@ -148,7 +156,7 @@ export function ToolbarDropdown({
   // Dropping it removes a setState from the effect body
   // (react-hooks/set-state-in-effect, issue #1568).
   useLayoutEffect(() => {
-    if (!isOpen || asSheet) {
+    if (!isOpen || asSheet || touchPopover) {
       return;
     }
     const clamp = () => {
@@ -180,7 +188,7 @@ export function ToolbarDropdown({
       observer.disconnect();
       window.removeEventListener("resize", clamp);
     };
-  }, [isOpen, asSheet]);
+  }, [isOpen, asSheet, touchPopover]);
 
   // Report the sheet's height while it is open. Base UI mounts the popup in a
   // portal after the open commit, so look for it on the next frames.
@@ -208,6 +216,8 @@ export function ToolbarDropdown({
   }, [onSheetHeightChange, asSheet, isOpen, sheetId]);
 
   const handleClose = () => {
+    // A committed picker action owns the resulting editor focus.
+    setRestoreTouchFocus(false);
     setIsOpen(false);
     onClose?.();
   };
@@ -221,7 +231,7 @@ export function ToolbarDropdown({
   // Close dropdown when clicking outside (only if closeOnOutsideClick is true).
   // The sheet presentation gets both of these from Base UI instead.
   useEffect(() => {
-    if (!isOpen || !closeOnOutsideClick || asSheet) return;
+    if (!isOpen || !closeOnOutsideClick || asSheet || touchPopover) return;
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -230,11 +240,11 @@ export function ToolbarDropdown({
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, closeOnOutsideClick, onClose, asSheet]);
+  }, [isOpen, closeOnOutsideClick, onClose, asSheet, touchPopover]);
 
   // Always close on Escape
   useEffect(() => {
-    if (!isOpen || asSheet) return;
+    if (!isOpen || asSheet || touchPopover) return;
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.stopPropagation();
@@ -244,9 +254,9 @@ export function ToolbarDropdown({
     }
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [isOpen, onClose, asSheet]);
+  }, [isOpen, onClose, asSheet, touchPopover]);
 
-  const content = typeof children === "function" ? children(handleClose) : children;
+  const content = typeof children === "function" ? children(handleClose, asSheet ? "sheet" : "popover") : children;
 
   // A sheet opened by a finger keeps focus on itself, as a touch-opened
   // Base UI dialog does (1.3): moving focus into the first control would
@@ -257,121 +267,164 @@ export function ToolbarDropdown({
 
   const toggle = () => {
     if (disabled) return;
+    // Sheet openings bypass Popover.onOpenChange; never inherit a prior Escape.
+    setRestoreTouchFocus(false);
     setIsOpen(!isOpen);
   };
 
   return (
-    <TooltipProvider>
-      <Box ref={dropdownRef} className={cn("relative", size === "touch" && "flex min-w-fit flex-[1_0_auto]")}>
-        {size === "touch" ? (
-          <EditorTool
-            ref={triggerRef}
-            icon={icon}
-            label={label || l.menu}
-            active={isOpen}
-            disabled={disabled}
-            data-testid={dataTestId}
-            onClick={toggle}
-            onPointerDown={notePointer}
-            onKeyDown={() => setOpenedByTouch(false)}
-            aria-expanded={isOpen}
-            aria-haspopup={asSheet ? "dialog" : "true"}
-            className={className}
-          />
-        ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
+    <Popover
+      open={touchPopover && isOpen}
+      closeOnOutsideClick={closeOnOutsideClick}
+      onOpenChange={(open, details) => {
+        if (!touchPopover) return;
+        // Editor insertions deliberately focus the caret while a multi-pick
+        // palette stays open. Match the existing popover dismissal contract.
+        if (details.reason === "focus-out") {
+          details.cancel();
+          return;
+        }
+        setRestoreTouchFocus(details.reason === "escape-key");
+        openRef.current = open;
+        setIsOpen(open);
+        // Preserve the toolbar contract: trigger toggles are not onClose.
+        if (!open && details.reason !== "trigger-press") onClose?.();
+      }}
+    >
+      <TooltipProvider>
+        <Box ref={dropdownRef} className={cn("relative", size === "touch" && "flex min-w-fit flex-[1_0_auto]")}>
+          {size === "touch" ? (
+            <PopoverTrigger asChild data-slot="editor-tool">
+              <EditorTool
                 ref={triggerRef}
-                type="button"
+                icon={icon}
+                label={label || l.menu}
+                active={isOpen}
                 disabled={disabled}
                 data-testid={dataTestId}
-                onClick={toggle}
+                onClick={asSheet ? toggle : undefined}
                 onPointerDown={notePointer}
                 onKeyDown={() => setOpenedByTouch(false)}
-                className={cn(
-                  "flex items-center justify-center p-1.5 rounded-md",
-                  "hover:bg-muted/50 transition-colors",
-                  "border border-transparent",
-                  isOpen && "bg-muted/70 border-border",
-                  disabled && "opacity-60 cursor-not-allowed",
-                  className,
-                )}
                 aria-expanded={isOpen}
-                aria-haspopup={asSheet ? "dialog" : "true"}
-                aria-label={label || l.menu}
-              >
-                {icon && (
-                  <Text as="span" className="w-4 h-4">
-                    {icon}
-                  </Text>
-                )}
-                {label && (
-                  <Text as="span" className="sr-only">
-                    {label}
-                  </Text>
-                )}
-              </button>
-            </TooltipTrigger>
-            {label && (
-              <TooltipContent>
-                <Text>{label}</Text>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        )}
+                aria-haspopup="dialog"
+                className={className}
+              />
+            </PopoverTrigger>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  ref={triggerRef}
+                  type="button"
+                  disabled={disabled}
+                  data-testid={dataTestId}
+                  onClick={toggle}
+                  onPointerDown={notePointer}
+                  onKeyDown={() => setOpenedByTouch(false)}
+                  className={cn(
+                    "flex items-center justify-center p-1.5 rounded-md",
+                    "hover:bg-muted/50 transition-colors",
+                    "border border-transparent",
+                    isOpen && "bg-muted/70 border-border",
+                    disabled && "opacity-60 cursor-not-allowed",
+                    className,
+                  )}
+                  aria-expanded={isOpen}
+                  aria-haspopup={asSheet ? "dialog" : "true"}
+                  aria-label={label || l.menu}
+                >
+                  {icon && (
+                    <Text as="span" className="w-4 h-4">
+                      {icon}
+                    </Text>
+                  )}
+                  {label && (
+                    <Text as="span" className="sr-only">
+                      {label}
+                    </Text>
+                  )}
+                </button>
+              </TooltipTrigger>
+              {label && (
+                <TooltipContent>
+                  <Text>{label}</Text>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          )}
 
-        {asSheet && (
-          <Sheet
-            open={isOpen}
-            modal={false}
-            disablePointerDismissal={!closeOnOutsideClick}
-            onOpenChange={(open, details) => {
-              if (open) return;
-              // A press on our own trigger reads as "outside" to Base UI; the
-              // trigger's click toggles the sheet itself, so ignore it here.
-              const event = details.event as (Event & { relatedTarget?: EventTarget | null }) | undefined;
-              const fromTrigger = [event?.target, event?.relatedTarget].some(
-                (node) => node instanceof Node && triggerRef.current?.contains(node),
-              );
-              if (fromTrigger) return;
-              closeFromSheet();
-            }}
-          >
-            <SheetContent
-              id={sheetId}
-              side="bottom"
-              // The sheet is a container: when a tap focuses it (above),
-              // it takes no ring of its own; its controls keep theirs.
-              className="outline-none"
-              style={sheetStyle}
-              grabber
-              scrim={false}
-              finalFocus={triggerRef}
-              labels={{ close: l.close }}
-              detents={detents}
-              defaultDetent={defaultDetent}
-              initialFocus={openedByTouch ? () => document.getElementById(sheetId) : undefined}
+          {asSheet && (
+            <Sheet
+              open={isOpen}
+              modal={false}
+              disablePointerDismissal={!closeOnOutsideClick}
+              onOpenChange={(open, details) => {
+                if (open) return;
+                // A press on our own trigger reads as "outside" to Base UI; the
+                // trigger's click toggles the sheet itself, so ignore it here.
+                const event = details.event as (Event & { relatedTarget?: EventTarget | null }) | undefined;
+                const fromTrigger = [event?.target, event?.relatedTarget].some(
+                  (node) => node instanceof Node && triggerRef.current?.contains(node),
+                );
+                if (fromTrigger) return;
+                closeFromSheet();
+              }}
             >
-              <SheetHeader className="min-h-12 justify-center pr-12 text-left sm:text-left">
-                <SheetTitle className="text-lg">{label || l.menu}</SheetTitle>
-              </SheetHeader>
-              {content}
-            </SheetContent>
-          </Sheet>
-        )}
+              <SheetContent
+                id={sheetId}
+                side="bottom"
+                // The sheet is a container: when a tap focuses it (above),
+                // it takes no ring of its own; its controls keep theirs.
+                className="outline-none"
+                style={sheetStyle}
+                grabber
+                scrim={false}
+                finalFocus={triggerRef}
+                labels={{ close: l.close }}
+                detents={detents}
+                defaultDetent={defaultDetent}
+                initialFocus={openedByTouch ? () => document.getElementById(sheetId) : undefined}
+              >
+                <SheetHeader className="min-h-12 justify-center pr-12 text-left sm:text-left">
+                  <SheetTitle className="text-lg">{label || l.menu}</SheetTitle>
+                </SheetHeader>
+                {content}
+              </SheetContent>
+            </Sheet>
+          )}
 
-        {isOpen && !asSheet && (
-          <Box
-            ref={panelRef}
-            data-testid="toolbar-dropdown-panel"
-            className={PANEL_CLASS}
-            style={{ transform: panelShift ? `translateX(${panelShift}px)` : undefined }}
-          >
-            {content}
-          </Box>
-        )}
-      </Box>
-    </TooltipProvider>
+          {touchPopover && (
+            <PopoverContent
+              // The existing toolbar host accepts Element; Base UI forwards its
+              // container to ReactDOM.createPortal without requiring HTML-only APIs.
+              container={container ? (container as HTMLElement) : undefined}
+              anchor={triggerRef}
+              label={label || l.menu}
+              side="top"
+              align="start"
+              data-testid="toolbar-dropdown-panel"
+              // Keep the touch bodies' spacing, clamp long lists to the available
+              // viewport, and use the shared portal to escape overflow-x-auto.
+              className="w-max max-w-[min(24rem,var(--available-width))] p-4 shadow-lg"
+              initialFocus={false}
+              finalFocus={restoreTouchFocus ? triggerRef : false}
+            >
+              {content}
+            </PopoverContent>
+          )}
+
+          {isOpen && !asSheet && !touchPopover && (
+            <Box
+              ref={panelRef}
+              data-testid="toolbar-dropdown-panel"
+              className={PANEL_CLASS}
+              style={{ transform: panelShift ? `translateX(${panelShift}px)` : undefined }}
+            >
+              {content}
+            </Box>
+          )}
+        </Box>
+      </TooltipProvider>
+    </Popover>
   );
 }
