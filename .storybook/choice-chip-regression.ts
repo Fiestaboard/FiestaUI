@@ -14,6 +14,57 @@ export async function checkChoiceChip(page: Page, id: string) {
     return faces.map((face) => ({ family: face.family, weight: face.weight, status: face.status }));
   });
   assert.ok(loadedFaces.length > 0, `${id}: Archivo Variable face must be registered and loaded`);
+  // Measure the font and outline independently of the component's layout.
+  // These are diagnostics while investigating the hosted browser's 29px
+  // label and 1px computed outline versus Figma's 30px / authored 1.5px.
+  const browserReference = await page.evaluate(() => {
+    const reference = document.createElement("span");
+    reference.textContent = "Chip";
+    reference.style.cssText =
+      'all: initial; position: fixed; left: -10000px; display: inline-block; font: 500 14px/20px "Archivo Variable"; letter-spacing: 0; outline: 1.5px solid black; outline-offset: -1.5px;';
+    document.body.append(reference);
+    try {
+      const style = getComputedStyle(reference);
+      const canvas = document.createElement("canvas").getContext("2d")!;
+      canvas.font = '500 14px "Archivo Variable"';
+      return {
+        devicePixelRatio: window.devicePixelRatio,
+        viewportScale: window.visualViewport?.scale,
+        textWidth: reference.getBoundingClientRect().width,
+        canvasTextWidth: canvas.measureText("Chip").width,
+        font: style.font,
+        outlineWidth: style.outlineWidth,
+        outlineOffset: style.outlineOffset,
+      };
+    } finally {
+      reference.remove();
+    }
+  });
+  const chromiumEvidence = await (async () => {
+    if (page.context().browser()?.browserType().name() !== "chromium") return null;
+    const session = await page.context().newCDPSession(page);
+    try {
+      await session.send("DOM.enable");
+      await session.send("CSS.enable");
+      const { root } = await session.send("DOM.getDocument");
+      const { nodeId } = await session.send("DOM.querySelector", {
+        nodeId: root.nodeId,
+        selector: '[data-slot="choice-chip-label"]',
+      });
+      const { fonts } = await session.send("CSS.getPlatformFontsForNode", { nodeId });
+      const { arguments: launchArguments } = await session.send("Browser.getBrowserCommandLine");
+      return {
+        fonts,
+        renderingFlags: launchArguments.filter((argument) =>
+          /^--(?:headless|font-render-hinting|disable-font-subpixel-positioning|force-device-scale-factor|force-color-profile)(?:=|$)/.test(
+            argument,
+          ),
+        ),
+      };
+    } finally {
+      await session.detach();
+    }
+  })();
   const geometry = await page.locator('[data-slot="choice-chip"]').evaluate((root) => {
     const pill = root.querySelector<HTMLElement>('[data-slot="choice-chip-pill"]')!;
     const label = root.querySelector<HTMLElement>('[data-slot="choice-chip-label"]')!;
@@ -39,7 +90,7 @@ export async function checkChoiceChip(page: Page, id: string) {
       checkWidth: checkBox.width,
     };
   });
-  const diagnostic = JSON.stringify({ geometry, loadedFaces });
+  const diagnostic = JSON.stringify({ geometry, loadedFaces, browserReference, chromiumEvidence });
   process.stdout.write(`[ChoiceChip geometry] ${id}: ${diagnostic}\n`);
   assert.equal(geometry.text, "Chip", `${id}: Figma sample label`);
   assert.match(geometry.fontFamily, /^"?Archivo Variable"?(?:,|$)/, `${id}: expected family; ${diagnostic}`);
