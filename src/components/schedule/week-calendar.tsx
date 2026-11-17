@@ -30,8 +30,20 @@ import { cn } from "../../lib/utils";
  * steps; releasing reports `{ day, start, end }`. A click with no drag
  * proposes one hour. Touch never drags (the 08 rule: "touch never drags
  * blocks") — on a touch screen the host's "Add entry" action creates. Escape
- * or a cancelled pointer drops the draft. Moving and resizing existing
- * blocks is not part of this slice (MASTER-PLAN row 1.9d).
+ * or a cancelled pointer drops the draft.
+ *
+ * MOVE AND RESIZE, POINTER ONLY (slice 1.9d, 08 P8: "the web calendar keeps
+ * drag for mouse users"). With `onEntryChange`, a mouse or pen drag on a
+ * scheduled block (`kind: "entry"`) moves it — to another time, or across to
+ * another day — keeping its length, and a drag on its bottom edge resizes its
+ * end. Both snap to `snapMinutes` on the grid and stay inside the visible
+ * hours. Releasing reports the new `{ day, start, end }` once, only when it
+ * differs; the host owns the data, so the block moves when `entries` does.
+ * The preview is the drag draft's recipe (DD-W20). A press that does not
+ * travel 4px is still a click (`onSelect`). Gaps and the silence schedule are
+ * read-only and stay fixed. Touch never drags, and the keyboard alternative
+ * is the host's entry form (Enter opens it through `onSelect`). Escape or a
+ * cancelled pointer drops the change.
  *
  * PAINT ORDER. Blocks in a day are drawn in start order, so an entry that
  * starts later paints over one that starts earlier — 07d draws Happy
@@ -83,6 +95,9 @@ export interface WeekCalendarCreateRange {
   end: number;
 }
 
+/** The new place of an entry dragged with `onEntryChange`. */
+export type WeekCalendarEntryRange = WeekCalendarCreateRange;
+
 export interface WeekCalendarLabels {
   /** Appended to a conflicting block's description. Default "Overlaps another entry". */
   conflict: string;
@@ -106,13 +121,18 @@ export type WeekCalendarProps = Omit<React.ComponentProps<"div">, "onSelect" | "
   onSelect?: (entry: WeekCalendarEntry) => void;
   /** Turns on pointer drag-to-create. */
   onCreate?: (range: WeekCalendarCreateRange) => void;
+  /**
+   * Turns on pointer move and end-resize of scheduled blocks (`kind: "entry"`).
+   * Called once on release with the entry and its new range, only if it changed.
+   */
+  onEntryChange?: (entry: WeekCalendarEntry, range: WeekCalendarEntryRange) => void;
   /** First hour shown. Default 6 (6 AM). */
   startHour?: number;
   /** Hour the grid ends at. Default 23 (11 PM), as 07d draws it; pass 24 to reach midnight. */
   endHour?: number;
   /** Pixels per hour. Default 34 (07d). */
   hourHeight?: number;
-  /** Drag-to-create step in minutes. Default 15. */
+  /** Drag-to-create, move and resize step in minutes. Default 15. */
   snapMinutes?: number;
   /** Draws the now line on that day at that minute. */
   now?: { day: number; minute: number } | null;
@@ -125,6 +145,8 @@ export type WeekCalendarProps = Omit<React.ComponentProps<"div">, "onSelect" | "
 
 const GUTTER = "3.5rem"; // 56px (07d `322:14091`)
 const CLICK_MINUTES = 60;
+/** How far a press on a block travels before it is a drag, not a click. */
+const DRAG_THRESHOLD_PX = 4;
 
 function twelveHour(hour24: number) {
   const h = ((hour24 % 24) + 24) % 24;
@@ -149,6 +171,19 @@ interface PlacedEntry {
   height: number;
 }
 
+interface Change {
+  entry: WeekCalendarEntry;
+  mode: "move" | "resize";
+  pointerId: number;
+  originX: number;
+  originY: number;
+  /** Unsnapped minute under the press, read from the block's day column. */
+  pressMinute: number;
+  /** Past the drag threshold: previewing, and the click that follows is swallowed. */
+  active: boolean;
+  range: WeekCalendarEntryRange;
+}
+
 interface Draft {
   day: number;
   pointerId: number;
@@ -171,6 +206,7 @@ function WeekCalendar({
   selectedId = null,
   onSelect,
   onCreate,
+  onEntryChange,
   startHour = 6,
   endHour = 23,
   hourHeight = 34,
@@ -288,6 +324,116 @@ function WeekCalendar({
     return { day: d.day, start, end };
   };
 
+  // ---- move and resize (1.9d) ------------------------------------------
+  const [change, setChangeState] = React.useState<Change | null>(null);
+  const changeRef = React.useRef<Change | null>(null);
+  const swallowClickRef = React.useRef(false);
+  const columnRefs = React.useRef(new Map<number, HTMLDivElement>());
+  const setChange = React.useCallback((next: Change | null) => {
+    changeRef.current = next;
+    setChangeState(next);
+  }, []);
+  const isMovable = (entry: WeekCalendarEntry) => onEntryChange != null && (entry.kind ?? "entry") === "entry";
+
+  const snap = (minute: number) => Math.round(minute / snapMinutes) * snapMinutes;
+  const rawMinuteAt = (column: HTMLElement, clientY: number) =>
+    startMinute + ((clientY - column.getBoundingClientRect().top) / hourHeight) * 60;
+
+  const dayAt = (clientX: number, fallback: number) => {
+    for (const [day, column] of columnRefs.current) {
+      const rect = column.getBoundingClientRect();
+      if (clientX >= rect.left && clientX < rect.right) return day;
+    }
+    return fallback;
+  };
+
+  const changeRangeAt = (c: Change, clientX: number, clientY: number): WeekCalendarEntryRange => {
+    const { entry } = c;
+    const column = columnRefs.current.get(entry.day);
+    const minute = column ? rawMinuteAt(column, clientY) : c.pressMinute;
+    if (c.mode === "resize") {
+      const floor = Math.min(entry.start + snapMinutes, endMinute);
+      const end = Math.min(Math.max(snap(minute), floor), endMinute);
+      return { day: entry.day, start: entry.start, end };
+    }
+    const length = entry.end - entry.start;
+    const latest = Math.max(endMinute - length, startMinute);
+    const start = Math.min(Math.max(snap(entry.start + minute - c.pressMinute), startMinute), latest);
+    return { day: dayAt(clientX, entry.day), start, end: start + length };
+  };
+
+  const entryHandlers = (entry: WeekCalendarEntry) => {
+    if (!isMovable(entry)) return {};
+    return {
+      onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => {
+        // Pointer only, primary button only: touch taps, never drags.
+        if (event.pointerType === "touch" || event.button !== 0) return;
+        const column = columnRefs.current.get(entry.day);
+        if (!column) return;
+        const block = event.currentTarget;
+        try {
+          block.setPointerCapture(event.pointerId);
+        } catch {
+          /* not capturable */
+        }
+        const resize = (event.target as HTMLElement).closest('[data-slot="week-calendar-entry-resize"]') != null;
+        setChange({
+          entry,
+          mode: resize ? "resize" : "move",
+          pointerId: event.pointerId,
+          originX: event.clientX,
+          originY: event.clientY,
+          pressMinute: rawMinuteAt(column, event.clientY),
+          active: false,
+          range: { day: entry.day, start: entry.start, end: entry.end },
+        });
+      },
+      onPointerMove: (event: React.PointerEvent<HTMLButtonElement>) => {
+        const current = changeRef.current;
+        if (!current || current.pointerId !== event.pointerId) return;
+        const travelled = Math.max(
+          Math.abs(event.clientX - current.originX),
+          Math.abs(event.clientY - current.originY),
+        );
+        if (!current.active && travelled < DRAG_THRESHOLD_PX) return;
+        const range = changeRangeAt(current, event.clientX, event.clientY);
+        const same =
+          current.active &&
+          range.day === current.range.day &&
+          range.start === current.range.start &&
+          range.end === current.range.end;
+        if (!same) setChange({ ...current, active: true, range });
+      },
+      onPointerUp: (event: React.PointerEvent<HTMLButtonElement>) => {
+        const current = changeRef.current;
+        if (!current || current.pointerId !== event.pointerId) return;
+        setChange(null);
+        if (!current.active) return; // a click: onClick selects
+        swallowClickRef.current = true;
+        const range = changeRangeAt(current, event.clientX, event.clientY);
+        const { entry: from } = current;
+        if (range.day !== from.day || range.start !== from.start || range.end !== from.end) {
+          onEntryChange?.(from, range);
+        }
+      },
+      onPointerCancel: (event: React.PointerEvent<HTMLButtonElement>) => {
+        if (changeRef.current?.pointerId === event.pointerId) setChange(null);
+      },
+      onLostPointerCapture: (event: React.PointerEvent<HTMLButtonElement>) => {
+        if (changeRef.current?.pointerId === event.pointerId) setChange(null);
+      },
+    };
+  };
+
+  React.useEffect(() => {
+    if (!change) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setChange(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [change, setChange]);
+
   React.useEffect(() => {
     if (!draft) return;
     const onKey = (event: KeyboardEvent) => {
@@ -342,6 +488,7 @@ function WeekCalendar({
   // ---- render -------------------------------------------------------------
   const columns = `${GUTTER} repeat(${days.length}, minmax(0, 1fr))`;
   const draftRange = draft ? rangeOf(draft) : null;
+  const changeRange = change?.active ? change.range : null;
   const nowVisible = now != null && now.minute >= startMinute && now.minute <= endMinute && days[now.day] != null;
 
   return (
@@ -410,6 +557,10 @@ function WeekCalendar({
             aria-label={day.name}
             data-slot="week-calendar-day"
             data-day-id={day.id}
+            ref={(node) => {
+              if (node) columnRefs.current.set(dayIndex, node);
+              else columnRefs.current.delete(dayIndex);
+            }}
             {...(onCreate ? { "data-creatable": "" } : {})}
             className={cn("relative", onCreate && "cursor-cell select-none")}
             {...columnHandlers(dayIndex)}
@@ -417,6 +568,7 @@ function WeekCalendar({
             {byDay[dayIndex].map(({ entry, top, height }) => {
               const kind = entry.kind ?? "entry";
               const selected = entry.id === selectedId;
+              const movable = isMovable(entry);
               const titleId = `${id}-${entry.id}-title`;
               const descriptionId = `${id}-${entry.id}-description`;
               const description = [
@@ -441,12 +593,22 @@ function WeekCalendar({
                   {...(entry.conflict ? { "data-conflict": "" } : {})}
                   {...(entry.off ? { "data-off": "" } : {})}
                   {...(selected ? { "data-selected": "", "aria-current": "true" as const } : {})}
+                  {...(movable ? { "data-movable": "" } : {})}
+                  {...(change?.active && change.entry.id === entry.id ? { "data-changing": "" } : {})}
                   aria-labelledby={titleId}
                   aria-describedby={descriptionId}
                   tabIndex={entry.id === tabStopId ? 0 : -1}
                   onFocus={() => setActiveId(entry.id)}
-                  onClick={() => onSelect?.(entry)}
+                  onClick={() => {
+                    // The click that ends a move or resize is not a tap.
+                    if (swallowClickRef.current) {
+                      swallowClickRef.current = false;
+                      return;
+                    }
+                    onSelect?.(entry);
+                  }}
                   onKeyDown={handleKeyDown(entry)}
+                  {...entryHandlers(entry)}
                   className={cn(
                     // 07d `322:14175`: radius 6, pt 3 / px 5, 12/16 type, 1px between lines.
                     "absolute inset-x-0.75 flex cursor-pointer flex-col items-start gap-px overflow-hidden rounded-sm px-1.25 pt-0.75 text-left text-xs leading-4",
@@ -465,6 +627,7 @@ function WeekCalendar({
                     // and the title goes muted. Opacity on the whole block
                     // would take the text under 4.5:1.
                     entry.off && "border-border/50 bg-card",
+                    movable && "cursor-grab select-none active:cursor-grabbing",
                   )}
                   style={{ top: `${top}px`, height: `${height}px` }}
                 >
@@ -486,6 +649,14 @@ function WeekCalendar({
                   <span id={descriptionId} className="sr-only">
                     {description}
                   </span>
+                  {movable ? (
+                    <span
+                      data-slot="week-calendar-entry-resize"
+                      aria-hidden="true"
+                      // The bottom edge: a 6px strip that resizes the end.
+                      className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize"
+                    />
+                  ) : null}
                 </button>
               );
             })}
@@ -501,6 +672,22 @@ function WeekCalendar({
                 }}
               >
                 {formatTime(draftRange.start)} – {formatTime(draftRange.end)}
+              </span>
+            ) : null}
+
+            {changeRange && changeRange.day === dayIndex ? (
+              <span
+                data-slot="week-calendar-change"
+                data-mode={change?.mode}
+                aria-hidden="true"
+                // The drag draft's recipe (DD-W20): dashed primary over the selected tint.
+                className="pointer-events-none absolute inset-x-0.75 z-30 overflow-hidden rounded-sm border-2 border-dashed border-primary bg-tint-selected px-1.25 pt-0.75 text-xs leading-4 text-foreground"
+                style={{
+                  top: `${toPx(Math.max(changeRange.start, startMinute)) + 1}px`,
+                  height: `${toPx(Math.min(changeRange.end, endMinute)) - toPx(Math.max(changeRange.start, startMinute)) - 3}px`,
+                }}
+              >
+                {formatTime(changeRange.start)} – {formatTime(changeRange.end)}
               </span>
             ) : null}
 
