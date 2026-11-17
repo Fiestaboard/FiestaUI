@@ -558,6 +558,8 @@ function TemplateEditorDemo() {
  * The demos
  * ------------------------------------------------------------------ */
 
+const rulerViewportClass = "max-w-full overflow-x-auto focus-ring";
+
 export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   HubDiscoveryRow: () => (
     <ListRowGroup aria-label="Discovered hubs" className="w-full max-w-md">
@@ -2032,7 +2034,9 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   /* ---- Template editor ---- */
   TemplateEditor: TemplateEditorDemo,
   ColumnRuler: () => (
-    <div className="max-w-full overflow-x-auto">
+    // The overflow viewport is the keyboard target for this read-only diagram.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+    <div role="region" aria-label="Column ruler viewport" tabIndex={0} className={rulerViewportClass}>
       <ColumnRuler columns={29} marks={[{ id: "cut", type: "cut", column: 29 }]} />
     </div>
   ),
