@@ -388,7 +388,7 @@
         "waitingOn": "versioned design-refs checkout; live MCP export saved in program/shots/fiestaui-1.11/ui111a-trace-step"
       },
       "target": {
-        "story": "editor-trace-step--ok",
+        "story": "editor-tracestep--ok",
         "root": "[data-slot=trace-step]"
       },
       "probes": {
@@ -409,7 +409,7 @@
         "waitingOn": "versioned design-refs checkout; live MCP export saved in program/shots/fiestaui-1.11/ui111a-trace-step"
       },
       "target": {
-        "story": "editor-trace-step--error",
+        "story": "editor-tracestep--error",
         "root": "[data-slot=trace-step]"
       },
       "probes": {
@@ -430,7 +430,7 @@
         "waitingOn": "versioned design-refs checkout; live MCP export saved in program/shots/fiestaui-1.11/ui111a-trace-step"
       },
       "target": {
-        "story": "editor-trace-step--skipped",
+        "story": "editor-tracestep--skipped",
         "root": "[data-slot=trace-step]"
       },
       "probes": {
