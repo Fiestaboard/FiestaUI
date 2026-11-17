@@ -204,6 +204,8 @@ export interface TemplateEditorToolbarLabels {
   clipboard: string;
   /** Under the Colors sheet (07 `57:65460`). */
   colorsHint: string;
+  /** Under the Colors popover; optional for compatibility with existing label dictionaries. */
+  colorsPopoverHint?: string;
   /** Under the Formatting sheet (07c `306:36342`). */
   formattingHint: string;
 }
@@ -264,6 +266,8 @@ export const DEFAULT_TEMPLATE_EDITOR_TOOLBAR_LABELS: TemplateEditorToolbarLabels
   clipboard: "Clipboard",
   colorsHint:
     "Tap a color to insert a tile at the cursor. The sheet stays open so you can add several; swipe down, tap ✕ or press Esc to close.",
+  colorsPopoverHint:
+    "Pick a color to insert a tile at the cursor. Keep picking to add more; press Esc or tap outside to close.",
   formattingHint:
     "Fill space pushes the rest of the line to the right edge; Wrap lets a long value continue on the next line. Applies at the cursor.",
 };
@@ -361,7 +365,7 @@ export interface TemplateEditorToolbarProps {
   drawCharPickerLabels?: Partial<DrawCharPickerLabels>;
   /**
    * `touch` (slice 1.6b, Figma 07 `315:99828`, WEB-04): a 60 px bar of
-   * labelled 52 px tools whose pickers are bottom sheets. Split-flap:
+   * labelled 52 px tools whose pickers default to bottom sheets. Split-flap:
    * Variables · Colors · Formatting · Formula │ Undo · Redo · More. LED:
    * Variables · Text color · Icon · Size · Formula · More. The bar keeps its
    * tools when nothing is available (they disable), so the owner's "visible
@@ -374,8 +378,12 @@ export interface TemplateEditorToolbarProps {
    */
   capabilities?: EditorToolbarCapabilities;
   /**
-   * How the default-size toolbar presents its pickers (1.3). Default
-   * `"popover"`. A touch toolbar always uses sheets.
+   * Picker presentation for either toolbar size. Omitted: `"popover"` for
+   * default size, `"sheet"` for touch. Explicit `"popover"` escapes the touch
+   * row's scroll clipping and prefers above the trigger.
+   * `"auto"` retains the legacy below 48rem OR coarse-pointer sheet rule.
+   * Hosts with a 640px sheet breakpoint should choose sheet/popover explicitly,
+   * independently of their touch-tool and docking breakpoints.
    */
   pickerPresentation?: ToolbarDropdownPresentation;
   /**
@@ -405,6 +413,7 @@ export interface TemplateEditorToolbarProps {
   /**
    * Touch only: render the bar into this element (a portal), for a host that
    * places it in its own chrome while the editor keeps feeding it state.
+   * Touch popovers use this same portal host; sheets keep their existing portal.
    */
   container?: Element | null;
 }
@@ -445,7 +454,7 @@ function TemplateEditorToolbarImpl({
   drawCharPickerLabels,
   size = "default",
   capabilities,
-  pickerPresentation = "popover",
+  pickerPresentation,
   moreContent,
   trailing,
   renderSizePicker,
@@ -728,6 +737,7 @@ function TemplateEditorToolbarImpl({
           layout={layout}
           className={className}
           container={container}
+          pickerPresentation={pickerPresentation}
           canUndo={canUndo}
           canRedo={canRedo}
           hasSelection={hasSelection}
