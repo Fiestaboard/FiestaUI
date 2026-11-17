@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Square } from "lucide-react";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 
+import { Button } from "../forms/button";
 import { type LayerItem, LayerRow, type LayerRowProps, LayersPanel } from "./layer-row";
 
 const meta = {
@@ -128,4 +129,72 @@ export const Panel: Story = {
 export const Mobile: Story = {
   globals: { viewport: { value: "mobile", isRotated: false } },
   render: () => <PanelDemo size="touch" />,
+};
+
+function LifecycleDemo() {
+  const [layers, setLayers] = useState<LayerItem[]>([
+    { id: "alpha", name: "Alpha" },
+    { id: "beta", name: "Beta" },
+    { id: "gamma", name: "Gamma" },
+  ]);
+  const [disabled, setDisabled] = useState(false);
+  const [moves, setMoves] = useState(0);
+  return (
+    <>
+      <LayersPanel
+        layers={layers}
+        disabled={disabled}
+        onReorder={(next) => {
+          setLayers(next);
+          setMoves((count) => count + 1);
+        }}
+      />
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button size="sm" onClick={() => setLayers((items) => items.filter((item) => item.id !== "alpha"))}>
+          Remove Alpha
+        </Button>
+        <Button size="sm" onClick={() => setDisabled((value) => !value)}>
+          {disabled ? "Enable layers" : "Disable layers"}
+        </Button>
+      </div>
+      <p className="mt-2 text-xs">Reorders: {moves}</p>
+    </>
+  );
+}
+
+/** The host can remove layers or disable the canvas while a captured pointer is down. */
+export const HostChangesDuringDrag: Story = {
+  render: () => <LifecycleDemo />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const begin = (from: number, to: number, pointerId: number) => {
+      const rows = canvas.getAllByRole("listitem");
+      const row = rows[from];
+      const grip = row.querySelector<HTMLElement>("[data-slot=sortable-list-handle]")!;
+      const source = row.getBoundingClientRect();
+      const target = rows[to].getBoundingClientRect();
+      const init = { bubbles: true, cancelable: true, pointerId, button: 0, clientX: source.left + 12 };
+      grip.dispatchEvent(new PointerEvent("pointerdown", { ...init, clientY: source.top + source.height / 2 }));
+      grip.dispatchEvent(
+        new PointerEvent("pointermove", { ...init, clientY: target.top + target.height / 2 + (to > from ? 2 : -2) }),
+      );
+      return grip;
+    };
+    const gamma = begin(2, 0, 21);
+    await waitFor(() => expect(canvasElement.querySelector("[data-dragging]")).not.toBeNull());
+    await userEvent.click(canvas.getByRole("button", { name: "Remove Alpha" }));
+    gamma.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 21 }));
+    await expect(canvasElement.querySelector("[data-dragging]")).toBeNull();
+    await expect(canvas.getAllByRole("listitem")).toHaveLength(2);
+    await expect(canvas.getByText("Reorders: 0")).toBeVisible();
+
+    const beta = begin(0, 1, 22);
+    await waitFor(() => expect(canvasElement.querySelector("[data-dragging]")).not.toBeNull());
+    await userEvent.click(canvas.getByRole("button", { name: "Disable layers" }));
+    await expect(canvasElement.querySelector("[data-dragging]")).toBeNull();
+    await userEvent.click(canvas.getByRole("button", { name: "Enable layers" }));
+    beta.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 22 }));
+    await expect(canvas.getByText("Reorders: 0")).toBeVisible();
+    await expect(canvas.getAllByRole("listitem")[0]).toHaveTextContent("Beta");
+  },
 };

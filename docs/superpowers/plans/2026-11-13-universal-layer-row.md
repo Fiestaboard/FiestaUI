@@ -45,3 +45,18 @@
 
 - Jev `sibling_controls` p=0.56 (confidence 0.47), no contradicted requirements: keeps the inline formula action and avoids nested buttons/listbox complexity.
 - Glyph-only Figma controls require larger interactive hit areas. Compact controls use 24px, touch controls 44px; undrawn themes and interaction states use existing tokens. No rendered parity claim until CI evidence arrives.
+
+### Task 2: Review R1 reorder lifecycle correction
+
+**Files:** Extend `src/components/containment/sortable-list.tsx`; add `layer-row-lifecycle.test.tsx`; extend family stories and changeset.
+
+**Interfaces:** No public API change. Existing SortableList cancels active pointer gestures when ordered keys change or disabled becomes true. Keyboard lifts survive exact acknowledged controlled moves, but stop on external structural changes or disabling. Metadata-only updates preserve gestures. No component is remounted to reset state.
+
+- [x] Reproduce source-index corruption and disabled pointer-up commits through LayersPanel using real pointer sequences; add insertion/removal/external-order, metadata, cancellation, focus, keyboard and re-enable cases.
+- [x] Observe RED: 16 failures / 6 passes across 22 lifecycle cases.
+- [x] Guard current source identity, source/destination bounds and disabled state; invalidate stale gestures before paint while preserving existing DOM/focus.
+- [x] Verify all 84 focused tests, then the full suite after the shared source correction: 3417 passed /33 skipped.
+- [x] Check coverage: SortableList100% lines/94.36% branches; the four original source files100%/100%.
+- [x] Complete static/package/Storybook checks, normal-push updated PR, and hand to root for review round2. Browser parity remains pending.
+
+**Ruling:** A shared correction was necessary: SortableList owns private drag/lift state and has no cancellation API. An adapter-only guard leaves stale state; synthetic cancellation is brittle; remounting breaks DOM/focus continuity. Jev `shared_lifecycle` p=0.91 (confidence0.89), all requirements supported; root reserved the shared source for this branch.

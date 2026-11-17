@@ -39,6 +39,9 @@ import { Button } from "../forms/button";
  * `items` (use {@link arrayMove}). During a keyboard lift every step is a
  * real move, so Escape is one more `onMove` back to the start. A pointer
  * drag calls `onMove` once, on drop. Focus follows the moved row.
+ * Changing ordered item keys externally or disabling the list interrupts
+ * active gestures without another move. Metadata-only updates preserve a
+ * gesture; acknowledged keyboard moves preserve the lift and Escape origin.
  *
  * **Reduced motion.** Nothing animates on its own. The dragged row tracks
  * the pointer (direct manipulation), and the lift's shadow and scale are
@@ -82,6 +85,11 @@ function arrayMove<T>(items: readonly T[], from: number, to: number): T[] {
   const [item] = next.splice(from, 1);
   next.splice(to, 0, item);
   return next;
+}
+
+/** Compare order, not item object identity: live metadata updates do not interrupt a gesture. */
+function sameKeys(left: readonly React.Key[], right: readonly React.Key[]) {
+  return left.length === right.length && left.every((key, index) => key === right[index]);
 }
 
 interface SortableItemContextValue {
@@ -174,12 +182,45 @@ function SortableList<T>({
   // keyed children can move the focused node, which blurs it.
   const pendingFocus = React.useRef<{ key: React.Key; element: HTMLElement | null } | null>(null);
   const total = items.length;
+  const keys = items.map(getKey);
+  const previousKeys = React.useRef(keys);
+  // Keyboard moves are controlled and legitimately change the order on every
+  // arrow. Only the exact requested order may preserve that same row's lift.
+  const expectedMove = React.useRef<{ key: React.Key; keys: React.Key[] } | null>(null);
 
   const indexOfKey = (key: React.Key) => items.findIndex((item) => getKey(item) === key);
   const labelOfKey = (key: React.Key) => {
     const i = indexOfKey(key);
     return i === -1 ? "" : getLabel(items[i]);
   };
+
+  // Inspect every committed render, including a host that mutates the same
+  // array. Clearing the gesture/ref below makes the resulting render a no-op.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Guarded cancellation settles after one state update.
+  React.useLayoutEffect(() => {
+    const changed = !sameKeys(previousKeys.current, keys);
+    const expected = expectedMove.current;
+    const acknowledged = expected != null && sameKeys(expected.keys, keys);
+    previousKeys.current = keys;
+    if (acknowledged || changed || disabled) expectedMove.current = null;
+
+    // Pointer geometry belongs to the original ordered IDs. Even an append
+    // invalidates the measured slots. External changes also end a keyboard
+    // lift; our own acknowledged step keeps its original Escape destination.
+    const interruptedDrag = dragRef.current != null && (disabled || changed);
+    const interruptedLift = lifted != null && (disabled || (changed && !(acknowledged && expected.key === lifted.key)));
+    if (!interruptedDrag && !interruptedLift) return;
+    const key = dragRef.current?.key ?? lifted!.key;
+    if (interruptedDrag) setDrag(null);
+    if (interruptedLift) setLifted(null);
+    const index = indexOfKey(key);
+    setMessage(index === -1 ? "" : labels.cancelled(getLabel(items[index]), index + 1, total));
+    // Keep surviving DOM nodes and focus. In particular, do not key/remount
+    // the list to clear private gesture state when the host inserts a layer.
+    const row = rowRefs.current.get(key);
+    const active = document.activeElement as HTMLElement | null;
+    pendingFocus.current = !disabled && row ? { key, element: active && row.contains(active) ? active : row } : null;
+  });
 
   React.useLayoutEffect(() => {
     const pending = pendingFocus.current;
@@ -192,7 +233,9 @@ function SortableList<T>({
   });
 
   const move = (key: React.Key, from: number, to: number, keepFocus: HTMLElement | null) => {
-    if (to < 0 || to >= total || to === from) return false;
+    if (disabled || from < 0 || from >= total || getKey(items[from]) !== key || to < 0 || to >= total || to === from)
+      return false;
+    expectedMove.current = { key, keys: arrayMove(keys, from, to) };
     pendingFocus.current = { key, element: keepFocus };
     onMove(from, to);
     return true;
