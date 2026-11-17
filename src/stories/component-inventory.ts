@@ -134,6 +134,10 @@ export const INVENTORY = [
           "One alert, why it fires and its own switch; blocked or needs-HTTPS permission turns it off and says why.",
       },
       { name: "SecretInput", summary: "Password input with a reveal toggle." },
+      {
+        name: "DataSourceSwitch",
+        summary: "Live, Sample and Missing preview inputs with radio semantics and a tab appearance.",
+      },
       { name: "SegmentedControl", summary: "Pill group for a small set of mutually exclusive options." },
       { name: "Select", summary: "Listbox-backed dropdown with grouping and separators." },
       { name: "Slider", summary: "Range control over a continuous value." },
@@ -187,8 +191,28 @@ export const INVENTORY = [
         summary: "What a display shows now: board, mode badge, page title, countdown, outcome line and actions.",
       },
       {
+        name: "UpNextCard",
+        summary: "Host-supplied upcoming events with localized times, an honest empty state and Schedule actions.",
+      },
+      {
+        name: "OtherDisplaysCard",
+        summary: "Other displays with inert thumbnails, named status and optional host-owned selection.",
+      },
+      {
+        name: "ScheduleModeCard",
+        summary: "Manual Mode's supporting card with a controlled Schedule Mode switch and host-owned outcome copy.",
+      },
+      {
         name: "OutcomeLine",
         summary: "The outcome sentence — “Holds until 9:00 PM, then Schedule resumes” — at dialog and Home scale.",
+      },
+      {
+        name: "ProblemItem",
+        summary: "Plain-language problem, source jump and fixes as an inspector row, console row or save card.",
+      },
+      {
+        name: "SentLog",
+        summary: "The last twenty shown, held or paused outcomes, as a list or compact console summary.",
       },
       { name: "Skeleton", summary: "Loading placeholder block." },
       { name: "Spinner", summary: "Indeterminate progress at three sizes, with an accessible label." },
@@ -223,6 +247,11 @@ export const INVENTORY = [
         name: "IconTile",
         summary: "Rounded square that centres one icon; three sizes, muted or board-black ground, decorative.",
       },
+      { name: "LayerRow", summary: "Canvas layer with selection, visibility, bound value and protected-text status." },
+      {
+        name: "LayersPanel",
+        summary: "Controlled canvas layer order with pointer, keyboard and move-button reordering.",
+      },
       { name: "JsonTree", summary: "Expandable JSON viewer with per-type colouring and path selection." },
       {
         name: "ListRow",
@@ -239,6 +268,7 @@ export const INVENTORY = [
         summary: "Reorder by drag (mouse, pen, touch), keyboard lift or Move up / Move down, with announcements.",
       },
       { name: "Table", summary: "Data table with header, body, row and cell parts." },
+      { name: "InspectorTabs", summary: "Data-driven Inspector tabs, counts, scroll fades and caller-owned panels." },
       { name: "Tabs", summary: "Tab list plus panels." },
     ],
   },
@@ -325,6 +355,10 @@ export const INVENTORY = [
       { name: "StaticBoardDisplay", summary: "The unscaled primitive — a real tile grid at sm/md/lg." },
       { name: "ScaledBoardDisplay", summary: "StaticBoardDisplay scaled to fit a slot narrower than the board." },
       {
+        name: "BoardMinimap",
+        summary: "Labeled board overview with a controlled viewport, drag, jump and keyboard panning.",
+      },
+      {
         name: "BoardViewport",
         summary:
           "A board wider than its slot scrolls in its bezel — edge fade, snap per Note, “Note 1 of 3”, Fit overview.",
@@ -402,6 +436,14 @@ export const INVENTORY = [
           "One agenda row — entry, now, gap or conflict — written in words: title, time · detail, a status word.",
       },
       {
+        name: "ColumnRuler",
+        summary: "Column numbers and cut, zone and Note-seam marks aligned to a controlled viewport.",
+      },
+      {
+        name: "TruncationMap",
+        summary: "Compact line lengths with accessible jumps to overflowing rows and columns.",
+      },
+      {
         name: "WeekStrip",
         summary: "The day picker: touch-size SegmentedControl pills on one scrolling line.",
       },
@@ -444,6 +486,11 @@ export const INVENTORY = [
     entries: [
       { name: "TraceStep", summary: "One formula evaluation step, with value, error/skipped cues and depth." },
       {
+        name: "InspectorRow",
+        summary:
+          "A full-row Inspector action with optional detail, value and chevron; wraps for narrow panes and large text.",
+      },
+      {
         name: "TemplateEditor",
         summary: "The editor: line gutter, variable/colour nodes, alignment and wrap controls.",
       },
@@ -452,15 +499,43 @@ export const INVENTORY = [
         summary:
           'The editor\'s toolbar, usable standalone. `size="touch"`: labelled 52 px tools per display (split-flap or LED), pickers in bottom sheets.',
       },
+      {
+        name: "RowBand",
+        summary: "Selectable template gutter band with shared row actions and a composable drag handle.",
+      },
       { name: "EditorTool", summary: "One labelled 52 px tool of the touch editor bar." },
+      {
+        name: "GoToCell",
+        summary: "Inline coordinate navigation with Mod+J, bounded validation and host-owned band/search resolution.",
+      },
+      {
+        name: "ZoomControl",
+        summary: "Fit overview and tile zoom steps with a minimum size, touch targets and a minimap action.",
+      },
       {
         name: "EditorWarning",
         summary: "What the board will drop: the line-limit box, or a validated line-overflow card with fixes.",
       },
       {
+        name: "RevisionRow",
+        summary: "Revision overview and metadata with Compare and Restore-to-new-draft actions.",
+      },
+      {
+        name: "RevisionDiff",
+        summary: "Labeled before/after overviews, change regions and a Restore-to-new-draft request.",
+      },
+      {
         name: "EditorPreview",
         summary: "The editor's always-visible live preview: a sticky pane or a phone dock, with the mirror switch.",
       },
+      { name: "PreviewStatus", summary: "Display and edit status with a touch-friendly Problems action." },
+      { name: "EditStateChip", summary: "Independent unsaved, draft, testing and saved edit state." },
+      {
+        name: "FormulaAtom",
+        summary: "Formula or variable source with its current value, error tag or fallback hint.",
+      },
+      { name: "NoteFocus", summary: "Select one physical Note or the whole array while keeping one canvas." },
+      { name: "NoteSeams", summary: "Shared Note boundary and focus overlays aligned to the existing board renderer." },
       { name: "ToolbarDropdown", summary: "The popover shell the toolbar's pickers are mounted in." },
       { name: "VariablePickerContent", summary: "Plugin variables, grouped by plugin with previews." },
       {

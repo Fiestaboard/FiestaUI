@@ -3,8 +3,11 @@ import { checkA11y, configureAxe, injectAxe } from "axe-playwright";
 
 import { checkCanvasEditing } from "./canvas-editor-regression";
 import { checkChoiceChip } from "./choice-chip-regression";
+import { checkDataSourceSwitch } from "./data-source-switch-regression";
 import { checkEditorPreviewNeverCollapses } from "./editor-preview-regression";
 import { checkTouchToolbarGeometry } from "./editor-toolbar-regression";
+import { checkFlowShellGeometry } from "./flow-shell-regression";
+import { checkInspectorRowForcedColors } from "./inspector-row-regression";
 import { checkSpinnerMotion } from "./spinner-regression";
 
 /**
@@ -105,10 +108,13 @@ const config: TestRunnerConfig = {
     }
 
     await checkCanvasEditing(page, context.id);
+    await checkDataSourceSwitch(page, context.id);
     await checkChoiceChip(page, context.id);
     await checkSpinnerMotion(page, context.id);
     await checkEditorPreviewNeverCollapses(page, context.id);
     await checkTouchToolbarGeometry(page, context.id);
+    await checkFlowShellGeometry(page, context.id);
+    await checkInspectorRowForcedColors(page, context.id);
 
     await configureAxe(page, {
       rules: [
@@ -129,7 +135,10 @@ const config: TestRunnerConfig = {
     //
     // Scoped to this one selector on purpose. Anything else that trips
     // color-contrast is a real failure and still fails the build.
-    await checkA11y(page, { include: "#storybook-root", exclude: ".logo-fiesta-text" } as never, {
+    // Flow-shell fixtures portal their actual dialogs/sheets to body. Checking
+    // only the canvas would test the inert background and miss every control.
+    const a11yRoot = context.id.startsWith("overlays-flowshells--") ? "body" : "#storybook-root";
+    await checkA11y(page, { include: a11yRoot, exclude: ".logo-fiesta-text" } as never, {
       detailedReport: true,
       detailedReportOptions: {
         html: true,
