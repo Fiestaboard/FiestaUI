@@ -5,7 +5,7 @@ import type { Page } from "playwright";
 const INPUT = '[data-slot="device-code-input"] input';
 const CELL = '[data-slot="device-code-cell"]';
 
-/** Native hit testing complements the story's simulated selection/paste checks. */
+/** Native hit testing and range editing complement the story's geometry/paste checks. */
 export async function checkDeviceCodeNativeEditing(page: Page, id: string) {
   if (id !== "app-onboarding-devicecodeinput--rtl-host") return;
 
