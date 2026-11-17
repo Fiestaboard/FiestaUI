@@ -158,6 +158,7 @@ import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../compone
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
 import { TraceStep } from "../components/editor/trace-step";
 import { createLucideIconResolver, VariablePickerContent } from "../components/editor/variable-picker-content";
+import { ZoomControl, type ZoomValue } from "../components/editor/zoom-control";
 import FadeContent from "../components/effects/react-bits/fade-content";
 import { Alert, AlertDescription, AlertTitle } from "../components/feedback/alert";
 import { Badge } from "../components/feedback/badge";
@@ -390,6 +391,12 @@ const SeeItsOwnStory = ({ storyPath, why }: { storyPath: string; why: string }) 
 function BoardPreviewModeToggleDemo() {
   const [mode, setMode] = useState<"fit" | "actual">("actual");
   return <BoardPreviewModeToggle mode={mode} onModeChange={setMode} />;
+}
+
+function ZoomControlDemo() {
+  const [value, setValue] = useState<ZoomValue>("sm");
+  const [open, setOpen] = useState(false);
+  return <ZoomControl value={value} onValueChange={setValue} minimapOpen={open} onMinimapOpenChange={setOpen} />;
 }
 
 function CountdownDemo() {
@@ -1948,6 +1955,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
     </div>
   ),
   BoardPreviewModeToggle: () => <BoardPreviewModeToggleDemo />,
+  ZoomControl: () => <ZoomControlDemo />,
   PreviewSlot: () => (
     <PreviewSlot className="w-full max-w-[320px]">
       <StaticBoardDisplay message={BOARD_MESSAGE} size="sm" />
