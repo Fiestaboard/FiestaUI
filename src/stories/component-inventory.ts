@@ -501,6 +501,10 @@ export const INVENTORY = [
       },
       { name: "EditorTool", summary: "One labelled 52 px tool of the touch editor bar." },
       {
+        name: "GoToCell",
+        summary: "Inline coordinate navigation with Mod+J, bounded validation and host-owned band/search resolution.",
+      },
+      {
         name: "ZoomControl",
         summary: "Fit overview and tile zoom steps with a minimum size, touch targets and a minimap action.",
       },

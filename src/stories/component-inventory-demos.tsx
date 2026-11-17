@@ -158,6 +158,7 @@ import { EditorWarning, EditorWarningAction } from "../components/editor/editor-
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
 import { FormulaAtom } from "../components/editor/formula-atom";
+import { GoToCell } from "../components/editor/go-to-cell";
 import { InspectorRow } from "../components/editor/inspector-row";
 import { NoteFocus } from "../components/editor/note-focus";
 import { NoteSeams } from "../components/editor/note-seams";
@@ -2206,6 +2207,10 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
 
   /* ---- Template editor ---- */
+  GoToCell: function GoToCellDemo() {
+    const [value, setValue] = useState({ row: 14, column: 49 });
+    return <GoToCell columns={96} rows={24} value={value} onGo={setValue} />;
+  },
   TemplateEditor: TemplateEditorDemo,
   RevisionRow: () => (
     <RevisionRow
