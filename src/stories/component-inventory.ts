@@ -456,6 +456,8 @@ export const INVENTORY = [
         name: "EditorPreview",
         summary: "The editor's always-visible live preview: a sticky pane or a phone dock, with the mirror switch.",
       },
+      { name: "PreviewStatus", summary: "Display and edit status with a touch-friendly Problems action." },
+      { name: "EditStateChip", summary: "Independent unsaved, draft, testing and saved edit state." },
       { name: "ToolbarDropdown", summary: "The popover shell the toolbar's pickers are mounted in." },
       { name: "VariablePickerContent", summary: "Plugin variables, grouped by plugin with previews." },
       {

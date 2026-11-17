@@ -421,4 +421,6 @@ export * from "./components/ai/suggestion";
 export * from "./components/ai/task";
 export * from "./components/ai/tool";
 export * from "./components/board/preview-slot";
+export * from "./components/editor/edit-state-chip";
+export * from "./components/editor/preview-status";
 export * from "./components/onboarding/hub-discovery-row";

@@ -378,6 +378,135 @@
       },
       "tolerance": {},
       "waivers": []
+    },
+    {
+      "id": "editor-preview-status-live",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "171:163148",
+        "waitingOn": "C29 ref export into the refs checkout; local PNG evidence is in program/shots/fiestaui-1.11/ui111a-preview-status"
+      },
+      "target": {
+        "story": "editor-previewstatus--live",
+        "root": "[data-slot=preview-status]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "column-gap",
+            "variable": "calc(var(--spacing) * 2)"
+          },
+          {
+            "selector": "[data-slot=preview-status-message]",
+            "property": "color",
+            "variable": "var(--muted-foreground)"
+          },
+          {
+            "selector": "[data-slot=preview-status-problems]",
+            "property": "color",
+            "variable": "var(--destructive)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Badge",
+            "selector": "[data-slot=preview-status-display]",
+            "measure": "box"
+          }
+        ],
+        "text": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-preview-status-not-scheduled",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "171:163168",
+        "waitingOn": "C29 ref export into the refs checkout; local PNG evidence is in program/shots/fiestaui-1.11/ui111a-preview-status"
+      },
+      "target": {
+        "story": "editor-previewstatus--not-scheduled",
+        "root": "[data-slot=preview-status]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "column-gap",
+            "variable": "calc(var(--spacing) * 2)"
+          },
+          {
+            "selector": "[data-slot=preview-status-message]",
+            "property": "color",
+            "variable": "var(--muted-foreground)"
+          },
+          {
+            "selector": "[data-slot=preview-status-problems]",
+            "property": "color",
+            "variable": "var(--destructive)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Badge",
+            "selector": "[data-slot=preview-status-display]",
+            "measure": "box"
+          }
+        ],
+        "text": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
+    },
+    {
+      "id": "editor-preview-status-scheduled",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "186:179665",
+        "waitingOn": "C29 ref export into the refs checkout; local PNG evidence is in program/shots/fiestaui-1.11/ui111a-preview-status"
+      },
+      "target": {
+        "story": "editor-previewstatus--scheduled",
+        "root": "[data-slot=preview-status]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "column-gap",
+            "variable": "calc(var(--spacing) * 2)"
+          },
+          {
+            "selector": "[data-slot=preview-status-message]",
+            "property": "color",
+            "variable": "var(--muted-foreground)"
+          },
+          {
+            "selector": "[data-slot=preview-status-problems]",
+            "property": "color",
+            "variable": "var(--destructive)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Badge",
+            "selector": "[data-slot=preview-status-display]",
+            "measure": "box"
+          }
+        ],
+        "text": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
     }
   ]
 }

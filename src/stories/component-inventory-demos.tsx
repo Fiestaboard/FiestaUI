@@ -147,11 +147,13 @@ import { BarList } from "../components/data/bar-list";
 import { StatStrip, StatStripItem } from "../components/data/stat-strip";
 import { ColorPickerContent } from "../components/editor/color-picker-content";
 import { DrawCharPickerContent } from "../components/editor/draw-char-picker-content";
+import { EditStateChip } from "../components/editor/edit-state-chip";
 import { EditorPreview } from "../components/editor/editor-preview";
 import { EditorTool } from "../components/editor/editor-tool";
 import { EditorWarning, EditorWarningAction } from "../components/editor/editor-warning";
 import { FilterPickerContent } from "../components/editor/filter-picker-content";
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
+import { PreviewStatus } from "../components/editor/preview-status";
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
@@ -2029,6 +2031,24 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
 
   /* ---- Template editor ---- */
   TemplateEditor: TemplateEditorDemo,
+  PreviewStatus: () => (
+    <PreviewStatus
+      display="live"
+      editState="testing"
+      message="Showing on Den TV now"
+      problems={2}
+      onOpenProblems={() => {}}
+      size="touch"
+    />
+  ),
+  EditStateChip: () => (
+    <div className="flex flex-wrap gap-2">
+      <EditStateChip state="unsaved" />
+      <EditStateChip state="draft" />
+      <EditStateChip state="testing" />
+      <EditStateChip state="saved" label="Saved 2 min ago" />
+    </div>
+  ),
   EditorPreview: () => (
     <EditorPreview
       className="static w-full max-w-md"
