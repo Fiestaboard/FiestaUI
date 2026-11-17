@@ -1,7 +1,7 @@
 "use client";
 
 import { Circle, Eraser, Hand, Paintbrush, PaintBucket, Pipette, Square, Type, Undo2 } from "lucide-react";
-import type * as React from "react";
+import * as React from "react";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../forms/button";
@@ -81,6 +81,12 @@ export function ToolRail({
   className,
   ...props
 }: ToolRailProps) {
+  const [focusedTool, setFocusedTool] = React.useState<ToolRailTool>();
+  const enabledTools = disabled ? [] : tools.filter((tool) => !disabledTools.includes(tool));
+  // Base UI retains an index when items disappear or become disabled. Keep
+  // the entry point by tool identity so those updates cannot strand Tab.
+  // Its arrow navigation still moves focus and updates this entry point.
+  const tabStop = enabledTools.find((tool) => tool === focusedTool) ?? enabledTools[0];
   const l = { ...DEFAULT_TOOL_RAIL_LABELS, ...labels };
   const vertical = orientation === "vertical";
   const hasHistory = Boolean(onUndo || onRedo);
@@ -119,6 +125,8 @@ export function ToolRail({
               value={tool}
               size="icon-touch"
               disabled={disabledTools.includes(tool)}
+              tabIndex={tool === tabStop ? 0 : -1}
+              onFocus={() => setFocusedTool(tool)}
               aria-label={l[tool]}
               title={l[tool]}
               data-slot="tool-rail-tool"

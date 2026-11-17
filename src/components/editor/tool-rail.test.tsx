@@ -171,4 +171,64 @@ describe("ToolRail", () => {
     await user.keyboard("{Enter}");
     expect(onSelectedChange).toHaveBeenCalledExactlyOnceWith("pan");
   });
+
+  it.each(["removed", "disabled"] as const)(
+    "restores keyboard entry after the last focused tool is %s without changing selection",
+    async (change) => {
+      const user = userEvent.setup();
+      const onSelectedChange = vi.fn();
+      const example = (changed: boolean) => (
+        <>
+          <button>Before</button>
+          <ToolRail
+            tools={changed && change === "removed" ? ["pan"] : ["pan", "brush"]}
+            disabledTools={changed && change === "disabled" ? ["brush"] : []}
+            selected="brush"
+            onSelectedChange={onSelectedChange}
+          />
+          <button>After</button>
+        </>
+      );
+      const { rerender } = render(example(false));
+      await user.click(screen.getByRole("button", { name: "Brush" }));
+      expect(screen.getByRole("button", { name: "Brush" })).toHaveFocus();
+      rerender(example(true));
+      expect(onSelectedChange).not.toHaveBeenCalled();
+      if (change === "disabled") {
+        expect(screen.getByRole("button", { name: "Brush" })).toHaveAttribute("aria-pressed", "true");
+      }
+      screen.getByRole("button", { name: "Before" }).focus();
+      await user.tab();
+      expect(screen.getByRole("button", { name: "Pan" })).toHaveFocus();
+      await user.keyboard("{Enter}");
+      expect(onSelectedChange).toHaveBeenCalledExactlyOnceWith("pan");
+      await user.tab();
+      expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+    },
+  );
+
+  it("preserves a still-enabled focused tool when another tool is disabled", async () => {
+    const user = userEvent.setup();
+    const onSelectedChange = vi.fn();
+    const { rerender } = render(
+      <ToolRail tools={["pan", "brush", "rectangle"]} selected="brush" onSelectedChange={onSelectedChange} />,
+    );
+    const pan = screen.getByRole("button", { name: "Pan" });
+    pan.focus();
+    rerender(
+      <ToolRail
+        tools={["pan", "brush", "rectangle"]}
+        disabledTools={["brush"]}
+        selected="brush"
+        onSelectedChange={onSelectedChange}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Pan" })).toBe(pan);
+    expect(pan).toHaveFocus();
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("button", { name: "Rectangle" })).toHaveFocus();
+    expect(onSelectedChange).not.toHaveBeenCalled();
+    await user.keyboard(" ");
+    expect(onSelectedChange).toHaveBeenCalledExactlyOnceWith("rectangle");
+  });
 });

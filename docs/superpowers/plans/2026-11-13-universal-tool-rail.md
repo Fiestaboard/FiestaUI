@@ -50,3 +50,10 @@
 
 - Build and Storybook build passed locally; focused tests 10/10 passed. Full coverage/static checks remain active. Browser launch is blocked by the macOS sandbox; coordinator owns CI captures/parity review.
 - Jev failure classification: timing contention for LED budget (0.82), schedule timeouts (0.70), release cadence (0.90); cascading async for charset act failures (0.86). Advisory; preserve full logs and retry affected files serially.
+
+### Review round 1: restore keyboard re-entry after tool changes
+
+- Reviewer reproduced the installed ToggleGroup retaining its highlighted index after the last focused tool is removed or disabled. Added both exact regressions: focus Brush, change the tools/disabledTools, leave for a preceding button, Tab back to Pan, and activate Pan with Enter. Both failed before the fix; the previous removal test had not focused the removed tool.
+- Jev `declarative_tabstop` p=0.88 (DOM repair0.05; keyed remount0.04). Track the last focused tool by identity locally and derive an enabled tab stop, falling back to the first enabled tool. Base UI still owns arrow navigation; controlled selection is unchanged, and no shared primitive is modified.
+- Added a guard that disabling another tool preserves the focused element and leaves arrow/Space selection working. All13 focused tests pass; ToolRail coverage is100% lines and96.66% branches, meeting the changed-source gate.
+- Coordinator serial retry of the initial eight failing files passed233/233; the release cascade retry passed3/3. No full-suite repeat for this scoped fix; final full verification and rendered parity remain coordinator-owned.
