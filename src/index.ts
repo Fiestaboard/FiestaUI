@@ -370,6 +370,7 @@ export * from "./components/editor/formula-atom";
 export * from "./components/editor/inspector-row";
 export * from "./components/editor/revision-diff";
 export * from "./components/editor/revision-row";
+export * from "./components/editor/row-band";
 export * from "./components/editor/template-editor";
 export * from "./components/editor/template-editor-toolbar";
 export * from "./components/editor/toolbar-dropdown";

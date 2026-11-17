@@ -161,6 +161,7 @@ import { InspectorRow } from "../components/editor/inspector-row";
 import { PreviewStatus } from "../components/editor/preview-status";
 import { RevisionDiff } from "../components/editor/revision-diff";
 import { RevisionRow } from "../components/editor/revision-row";
+import { RowBand } from "../components/editor/row-band";
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
@@ -2244,6 +2245,7 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
       <TemplateEditorToolbar editor={null} templateVariables={TEMPLATE_VARIABLES} />
     </Frame>
   ),
+  RowBand: () => <RowBand label="Departures" rows={[3, 10]} meta="Rows 3–10 · FOREACH" selected />,
   EditorTool: () => (
     <Frame className="flex max-w-[200px] border-t border-border bg-card px-1 py-1">
       <EditorTool icon={<Palette />} label="Colors" />
