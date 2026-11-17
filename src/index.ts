@@ -12,6 +12,7 @@ export * from "./components/containment/avatar";
 export * from "./components/containment/card";
 export * from "./components/containment/collapsible";
 export * from "./components/containment/icon-tile";
+export * from "./components/containment/inspector-tabs";
 export * from "./components/containment/json-tree";
 export * from "./components/containment/list-row";
 export * from "./components/containment/media-frame";

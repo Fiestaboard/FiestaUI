@@ -130,6 +130,7 @@ import { Avatar } from "../components/containment/avatar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/containment/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/containment/collapsible";
 import { IconTile } from "../components/containment/icon-tile";
+import { InspectorTabs, InspectorTabsContent } from "../components/containment/inspector-tabs";
 import { JsonTree } from "../components/containment/json-tree";
 import { ListRow, ListRowGroup } from "../components/containment/list-row";
 import { MediaFrame, MediaFrameBar, MediaFrameMedia } from "../components/containment/media-frame";
@@ -1381,6 +1382,34 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
         </TableBody>
       </Table>
     </Frame>
+  ),
+  InspectorTabs: () => (
+    <InspectorTabs
+      aria-label="Inspector"
+      tabs={[
+        { value: "data", label: "Data" },
+        { value: "logic", label: "Logic" },
+        { value: "page", label: "Page" },
+      ]}
+      defaultValue="data"
+      className="w-full max-w-lg"
+    >
+      <InspectorTabsContent value="data">
+        <Text size="sm" tone="muted">
+          Data sources and variables.
+        </Text>
+      </InspectorTabsContent>
+      <InspectorTabsContent value="logic">
+        <Text size="sm" tone="muted">
+          Page formulas.
+        </Text>
+      </InspectorTabsContent>
+      <InspectorTabsContent value="page">
+        <Text size="sm" tone="muted">
+          Page settings.
+        </Text>
+      </InspectorTabsContent>
+    </InspectorTabs>
   ),
   Tabs: () => (
     <Tabs defaultValue="inv-tab-overview" className="w-full max-w-lg">

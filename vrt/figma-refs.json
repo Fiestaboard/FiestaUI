@@ -378,6 +378,44 @@
       },
       "tolerance": {},
       "waivers": []
+    },
+    {
+      "id": "containment-inspector-tabs-desktop",
+      "kind": "component",
+      "pendingRef": {
+        "fileKey": "ZQ8RMELCO6qEOFZUnQu36e",
+        "figmaNode": "184:162235",
+        "waitingOn": "Isolated desktop C28 ref; web in-context 184:159319 is the Core target. Mobile native skins remain kit references."
+      },
+      "target": {
+        "story": "containment-inspectortabs--desktop",
+        "root": "[data-slot=inspector-tabs-bar]"
+      },
+      "probes": {
+        "tokens": [
+          {
+            "selector": ":scope",
+            "property": "background-color",
+            "variable": "var(--muted)"
+          },
+          {
+            "selector": "[role=tab][aria-selected=true]",
+            "property": "background-color",
+            "variable": "var(--background)"
+          }
+        ],
+        "geometry": [
+          {
+            "node": "Tabs · Data | Logic | Page | Shows on | History",
+            "selector": ":scope",
+            "measure": "box"
+          }
+        ],
+        "text": [],
+        "colors": []
+      },
+      "tolerance": {},
+      "waivers": []
     }
   ]
 }
