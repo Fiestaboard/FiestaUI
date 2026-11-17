@@ -154,6 +154,7 @@ import { FilterPickerContent } from "../components/editor/filter-picker-content"
 import { FormattingPickerContent } from "../components/editor/formatting-picker-content";
 import { TemplateEditor } from "../components/editor/template-editor";
 import { TemplateEditorToolbar, type ToolbarTemplateVariables } from "../components/editor/template-editor-toolbar";
+import { ToolRail, type ToolRailTool } from "../components/editor/tool-rail";
 import { ToolbarDropdown } from "../components/editor/toolbar-dropdown";
 import { createLucideIconResolver, VariablePickerContent } from "../components/editor/variable-picker-content";
 import FadeContent from "../components/effects/react-bits/fade-content";
@@ -2028,6 +2029,17 @@ export const DEMOS: Record<InventoryName, () => React.ReactNode> = {
   ),
 
   /* ---- Template editor ---- */
+  ToolRail: function ToolRailDemo() {
+    const [selected, setSelected] = useState<ToolRailTool>("brush");
+    return (
+      <ToolRail
+        tools={["pan", "brush", "eraser", "rectangle"]}
+        orientation="horizontal"
+        selected={selected}
+        onSelectedChange={setSelected}
+      />
+    );
+  },
   TemplateEditor: TemplateEditorDemo,
   EditorPreview: () => (
     <EditorPreview

@@ -449,6 +449,10 @@ export const INVENTORY = [
       },
       { name: "EditorTool", summary: "One labelled 52 px tool of the touch editor bar." },
       {
+        name: "ToolRail",
+        summary: "Canvas tools with 44 px targets, keyboard selection and optional Undo/Redo; vertical or horizontal.",
+      },
+      {
         name: "EditorWarning",
         summary: "What the board will drop: the line-limit box, or a validated line-overflow card with fixes.",
       },

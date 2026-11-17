@@ -361,6 +361,7 @@ export * from "./components/editor/editor-tool";
 export * from "./components/editor/editor-warning";
 export * from "./components/editor/template-editor";
 export * from "./components/editor/template-editor-toolbar";
+export * from "./components/editor/tool-rail";
 export * from "./components/editor/toolbar-dropdown";
 // Pickers — rendered by the toolbar, exported so an app can host them standalone.
 export * from "./components/editor/color-picker-content";
