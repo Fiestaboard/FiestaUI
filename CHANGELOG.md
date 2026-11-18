@@ -1,5 +1,62 @@
 # @fiestaboard/ui
 
+## 8.17.0-alpha.3
+
+### Minor Changes
+
+- [#420](https://github.com/Fiestaboard/FiestaUI/pull/420) [`ebde502`](https://github.com/Fiestaboard/FiestaUI/commit/ebde502eca3a2d245d63dd8710e52cb820828d91) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add BoardMinimap, a labeled static board overview with a controlled viewport frame, pointer jump and drag, and keyboard panning. Reuses the board renderer and supports caret-following through the viewport prop.
+
+- [#413](https://github.com/Fiestaboard/FiestaUI/pull/413) [`301002f`](https://github.com/Fiestaboard/FiestaUI/commit/301002f91a2ffda24c4df865156ae81546560388) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add ChoiceChip and ChoiceChipGroup for compact choices and filter toggles, with accessible radio-group keyboard navigation, controlled standalone selection, and a 44px touch target around the 32px visual pill.
+
+- [#424](https://github.com/Fiestaboard/FiestaUI/pull/424) [`7f508c2`](https://github.com/Fiestaboard/FiestaUI/commit/7f508c23490629939af1ebcb75c54e904b3f07eb) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add ColumnRuler with configurable column and seam geometry, plus TruncationMap with accessible overflow jump actions and data-driven line lengths.
+
+- [#412](https://github.com/Fiestaboard/FiestaUI/pull/412) [`9e25c9a`](https://github.com/Fiestaboard/FiestaUI/commit/9e25c9a30c0f1acb175ed9afef28efe7f24f17e3) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add DataSourceSwitch for Live, Sample and Missing preview modes, with radio keyboard/form semantics, the shared tabs appearance, localized choices and touch sizing.
+
+- [#421](https://github.com/Fiestaboard/FiestaUI/pull/421) [`f3881ff`](https://github.com/Fiestaboard/FiestaUI/commit/f3881ff1e52f998b7985611e077701fdc97c3324) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add FormulaAtom for compact formula and variable source previews with caller-provided value hints, actual error tags, and fallback status. The Badge-based component uses semantic colors in both themes and preserves full text when a narrow layout truncates it.
+
+- [#422](https://github.com/Fiestaboard/FiestaUI/pull/422) [`ea390e0`](https://github.com/Fiestaboard/FiestaUI/commit/ea390e0f7dbc09c05f9a4031453a49c79442d507) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add InspectorRow, a native action row composed from ListRow with optional detail, trailing value and chevron, a 48px minimum height, and wrapping for narrow inspectors and enlarged text.
+
+- [#425](https://github.com/Fiestaboard/FiestaUI/pull/425) [`37ff508`](https://github.com/Fiestaboard/FiestaUI/commit/37ff508e77a348dc60f6814b2897162759a5b57e) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add NoteFocus and NoteSeams for Note-array editors. The controlled selector uses shared radio controls and reports each Note's canvas range; decorative seams and focus outlines align with the existing board renderer. Export reusable Note-array geometry for host-owned scrolling, cropping and range highlighting without splitting the template.
+
+- [#418](https://github.com/Fiestaboard/FiestaUI/pull/418) [`ca31d3d`](https://github.com/Fiestaboard/FiestaUI/commit/ca31d3d04e80dceb55274cb7898aadb27fcea639) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add PreviewStatus and EditStateChip for creator IDE previews. Display state stays independent from unsaved, draft, testing and saved edits; the Problems action supports localization, keyboard navigation and 44 px touch targets. Status text wraps at narrow widths and large text sizes.
+
+- [#426](https://github.com/Fiestaboard/FiestaUI/pull/426) [`657250f`](https://github.com/Fiestaboard/FiestaUI/commit/657250f8f9aa895d476d5df590ee7ddfe92a8e69) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add ProblemItem for inspector and console diagnostics, one-tap fixes, source jumps, and save warning cards. Add SentLog for the last twenty shown, held, or paused outcomes, with localizable copy and caller-formatted timestamps.
+
+- [#428](https://github.com/Fiestaboard/FiestaUI/pull/428) [`f106b9e`](https://github.com/Fiestaboard/FiestaUI/commit/f106b9e5c7f79849504d87572dd826bd91328b38) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add GoToCell, an inline coordinate field with bounded navigation, Mod+J focus, Escape reset, localized validation, touch sizing and host-owned band or search resolution.
+
+- [#427](https://github.com/Fiestaboard/FiestaUI/pull/427) [`ab382d9`](https://github.com/Fiestaboard/FiestaUI/commit/ab382d95a40c6d7e08c5f7af5c8e8f183591e647) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add RevisionRow and RevisionDiff with shared overview scaling, revision metadata, comparison modes, change-region outlines, and explicit Restore-to-new-draft requests.
+
+- [#410](https://github.com/Fiestaboard/FiestaUI/pull/410) [`1aacc6b`](https://github.com/Fiestaboard/FiestaUI/commit/1aacc6b11adb229b1d7d4f0ae2e4d7bd093301e9) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add SessionRow, DeviceCodeCard and DeviceCodeInput for signed-in devices and TV activation. SessionRow keeps connection and panel timestamps distinct and suppresses sign out for the current browser. DeviceCodeInput presents eight cells while preserving one native text field, paste, keyboard selection and form semantics, with an explicit compact size for terminal code strips. Visible code cells use the shared semibold body font; the invisible native field retains its independent editing metrics. DeviceCodeCard action floors follow the 40px desktop and 44px narrow/coarse control sizes.
+
+  Extend ConnectPhoneCard with claimed, loading and error states and localized lifecycle announcements. Every inactive state removes the actual pairing QR from the DOM; expired codes no longer remain under a visual opacity mask. Existing live defaults and loopback refusal remain unchanged.
+
+- [#414](https://github.com/Fiestaboard/FiestaUI/pull/414) [`972d9da`](https://github.com/Fiestaboard/FiestaUI/commit/972d9da680bb15e7cd072789e34c6573cd6c5451) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add InspectorTabs and InspectorTabsContent: host-supplied tab lists, optional counts, controlled or uncontrolled selection, horizontal scrolling with overflow fades, and touch sizing. Composes the existing Tabs primitives with Core styling; apps own the responsive tab list and panel content.
+
+- [#416](https://github.com/Fiestaboard/FiestaUI/pull/416) [`6bfceaf`](https://github.com/Fiestaboard/FiestaUI/commit/6bfceaf2adbef5db605da718431146cb84b85b75) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add ToolRail for canvas tool selection with vertical and horizontal layouts, 44 px touch targets, keyboard navigation, localized labels, and optional Undo/Redo actions.
+
+- [#411](https://github.com/Fiestaboard/FiestaUI/pull/411) [`899926c`](https://github.com/Fiestaboard/FiestaUI/commit/899926cc83e35f0a4de45fa6ece04fd6b4122842) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Honor `pickerPresentation` for the touch editor toolbar through the existing `TemplateEditor.toolbarProps` integration. Explicit touch popovers use the shared overlay portal and collision positioning, including a host container, while omitted presentation keeps sheets and `auto` keeps the legacy below 48rem/coarse-pointer policy. Add presentation-aware color help and an optional `PopoverContent` portal container.
+
+  Keep touch palette and icon choices at least 48px wide at the default text size, and preserve the Brush picker's 44px stamp cells. Matching minimum grid tracks retain enlarged targets and their keyboard order inside scrollable popovers.
+
+- [#419](https://github.com/Fiestaboard/FiestaUI/pull/419) [`ec38f0a`](https://github.com/Fiestaboard/FiestaUI/commit/ec38f0abf331396d1a05d3da14d99678dcf505c1) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add TraceStep for formula evaluation traces, with evaluated/error/skipped cues, current values, nested indentation and responsive text.
+
+- [#408](https://github.com/Fiestaboard/FiestaUI/pull/408) [`5dcbc44`](https://github.com/Fiestaboard/FiestaUI/commit/5dcbc44863262936ca64696153790483d307b725) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add UpNextCard, OtherDisplaysCard and ScheduleModeCard for Home supporting content. Compose shared card, list, status and switch primitives; support localized copy, authoritative upcoming events, inert peer previews, optional display selection and a controlled Schedule Mode toggle. Schedule computation, navigation and responsive pane placement remain host-owned.
+
+- [#409](https://github.com/Fiestaboard/FiestaUI/pull/409) [`26a9426`](https://github.com/Fiestaboard/FiestaUI/commit/26a94261785c1f637a20b37aaf7a7519909bde31) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add a wide Dialog surface, a bottom Sheet confirmation recipe, and a reference
+  snackbar variant for Toaster. Hosts can localize dialog dismissal and configure
+  toast edge offsets to clear headers or editor docks while retaining the existing
+  overlay engines and default appearances.
+
+- [#423](https://github.com/Fiestaboard/FiestaUI/pull/423) [`e0dd36c`](https://github.com/Fiestaboard/FiestaUI/commit/e0dd36c14a0434370c129b24c2da3599b1b3b354) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add LayerRow and LayersPanel for canvas layers, with controlled selection, visibility, formula inspection, protected-text status and accessible pointer/keyboard reordering.
+
+  Cancel active SortableList gestures when controlled item identities/order change or the list becomes disabled, preserving row identity and ordinary controlled keyboard moves.
+
+- [#417](https://github.com/Fiestaboard/FiestaUI/pull/417) [`8e64efa`](https://github.com/Fiestaboard/FiestaUI/commit/8e64efae2cb8d50efccd5f743ba88d0451d28064) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add RowBand, a selectable template gutter bracket with controlled selection, localized metadata, shared click and context actions, and a composable drag handle. Includes light, dark, mobile, keyboard, and SortableList examples.
+
+- [#430](https://github.com/Fiestaboard/FiestaUI/pull/430) [`ca1ca4e`](https://github.com/Fiestaboard/FiestaUI/commit/ca1ca4eeca5cd916d626f0b7ffa8714435546658) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add pointer move and end-resize to WeekCalendar with `onEntryChange`: a mouse or pen drag moves a scheduled block (to another time or day, keeping its length) or stretches its end, in `snapMinutes` steps inside the visible hours, and reports the new `{ day, start, end }` once on release. Gaps and the silence schedule stay fixed, touch never drags, and a press under 4px is still a click.
+
+- [#415](https://github.com/Fiestaboard/FiestaUI/pull/415) [`aaa1518`](https://github.com/Fiestaboard/FiestaUI/commit/aaa1518dde672de55b238ec4df9bf4bf98b5eb8a) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Add the controlled ZoomControl with Fit overview, three tile sizes, a configurable minimum tile size, scoped keyboard shortcuts, touch sizing and a controlled minimap action.
+
 ## 8.17.0-alpha.2
 
 ### Minor Changes
