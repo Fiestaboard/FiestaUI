@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { Tabs, TabsList, TabsTrigger } from "../containment/tabs";
 import { Chip } from "../feedback/chip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../overlays/dropdown-menu";
 import { Button } from "./button";
@@ -258,6 +259,20 @@ describe("fui-coarse (W2)", () => {
     expect(classTokens(screen.getByRole("switch", { name: "Live" }))).toContain("coarse:before:min-h-touch");
     expect(classTokens(screen.getByRole("button", { name: "Red" }))).toContain("coarse:min-h-touch");
     expect(classTokens(screen.getByRole("radio", { name: "Fit" }))).toContain("coarse:min-h-touch");
+  });
+
+  it("gives tabs a 44px floor under the coarse variant (FiestaBoard BB-A-15)", () => {
+    render(
+      <Tabs defaultValue="a">
+        <TabsList>
+          <TabsTrigger value="a">Overview</TabsTrigger>
+        </TabsList>
+      </Tabs>,
+    );
+    const tab = screen.getByRole("tab", { name: "Overview" });
+    expect(classTokens(tab)).toContain("coarse:min-h-touch");
+    // The 40px list would clip a 44px tab; it grows with it instead.
+    expect(classTokens(tab.parentElement!)).toContain("coarse:h-auto");
   });
 
   it.each([
