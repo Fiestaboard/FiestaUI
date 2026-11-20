@@ -1,7 +1,8 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Ellipsis, Menu, Settings, Sparkles, X } from "lucide-react";
-import { Fragment, memo, useEffect, useId, useRef, useState } from "react";
+import { Fragment, memo, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 
 import { isDevBuild } from "../../lib/dev";
 import { cn } from "../../lib/utils";
@@ -477,6 +478,24 @@ export interface SidebarProps {
    * MainContent so its padding switches on the same pixel.
    */
   railBreakpoint?: "lg" | "md";
+}
+
+const noSubscribe = () => () => {};
+
+/**
+ * The tab bar is fixed over the bottom of the page, so it is read and tabbed
+ * after the page, not before it (FiestaBoard BB-A-22: Skip link, header,
+ * main content, then the bar). It renders at the end of `<body>` once on the
+ * client; the server markup (and the first hydrating render) keeps it in
+ * place, so hydration matches.
+ */
+function BottomNavPortal({ children }: { children: React.ReactNode }) {
+  const client = useSyncExternalStore(
+    noSubscribe,
+    () => true,
+    () => false,
+  );
+  return client && typeof document !== "undefined" ? createPortal(children, document.body) : <>{children}</>;
 }
 
 export const Sidebar = memo(function Sidebar({
@@ -1259,10 +1278,12 @@ export const Sidebar = memo(function Sidebar({
           away, where a thumb reaches. Named like the rail's nav — at any one
           width only one of the two is shown. */}
       {bottomNav && (
-        <nav data-slot="sidebar-bottom-nav" aria-label={labels.primaryNavigation} className={chrome.bottomNav}>
-          {barItems.map(renderBottomNavItem)}
-          {moreButton()}
-        </nav>
+        <BottomNavPortal>
+          <nav data-slot="sidebar-bottom-nav" aria-label={labels.primaryNavigation} className={chrome.bottomNav}>
+            {barItems.map(renderBottomNavItem)}
+            {moreButton()}
+          </nav>
+        </BottomNavPortal>
       )}
 
       {/* Desktop Sidebar */}
