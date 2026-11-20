@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
 
 import { TooltipProvider } from "../overlays/tooltip";
 import { BoardSelector, type BoardSelectorHubStatus } from "./board-selector";
@@ -145,6 +146,38 @@ export const WithStatus: Story = {
   },
   render: function Render(args) {
     return <ControlledBoardSelector key={args.value} {...args} />;
+  },
+};
+
+/**
+ * FiestaBoard BB-A-11 (07a `310:34278`): each display's "Type W×H · <page>"
+ * under its name, as the option's description; an errored display adds its
+ * `boardError` description. The list is portaled, so VRT (which shoots
+ * `#storybook-root`) does not capture it; `play` holds the contract.
+ */
+export const WithDetail: Story = {
+  args: {
+    boards: [
+      { id: "kitchen", name: "Kitchen board", description: "Flagship 22 × 6 · Dinner note" },
+      { id: "fridge", name: "Fridge note", description: "Note 15 × 3 · Grocery list" },
+      { id: "den", name: "Den TV", description: "FiestaPanel 34 × 14 · Family board", status: "error" as const },
+    ],
+    value: "kitchen",
+    onChange: () => {},
+    labels: LABELS,
+    variant: "sidebar",
+  },
+  render: function Render(args) {
+    return <ControlledBoardSelector key={args.value} {...args} />;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("combobox"));
+    const list = within(await within(document.body).findByRole("listbox"));
+    await expect(list.getByRole("option", { name: "Kitchen board" })).toHaveAccessibleDescription(
+      "Flagship 22 × 6 · Dinner note",
+    );
+    await expect(list.getByRole("option", { name: "Den TV" })).toHaveAccessibleDescription(/FiestaPanel 34 × 14/);
   },
 };
 
