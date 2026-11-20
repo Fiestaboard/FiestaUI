@@ -363,6 +363,7 @@ describe("Toaster · snackbar actions (C18, 07a Web / Toast 297:7793)", () => {
     await screen.findByText("Saved");
     const el = document.querySelector<HTMLElement>("[data-sonner-toast]")!;
     expect(el.className).toMatch(/(^|\s)!shadow-lg(\s|$)/);
-    expect(el.className).toMatch(/(^|\s)!leading-4\.5(\s|$)/);
+    expect(el.querySelector("[data-title]")!.className).toMatch(/(^|\s)!leading-4\.5(\s|$)/);
+    expect(el.querySelector("[data-description]")!.className).toMatch(/(^|\s)!leading-4\.5(\s|$)/);
   });
 });

@@ -114,9 +114,12 @@ const SECONDARY_ACTION_CLASS = cn(
 );
 const TOAST_CLASSNAMES = {
   toast:
-    "group/toast font-sans !shadow-lg !leading-4.5 has-[[data-button]]:flex-wrap has-[[data-button]]:!items-start has-[[data-button]]:!gap-3",
+    "group/toast font-sans !shadow-lg has-[[data-button]]:flex-wrap has-[[data-button]]:!items-start has-[[data-button]]:!gap-3",
   content: "group-has-[[data-button]]/toast:!basis-[calc(100%-2.25rem)]",
-  description: "!text-muted-foreground",
+  // Toast `40:61`: 13/18 title and description (Sonner's own rules set 1.5,
+  // which a plain class loses to); the snackbar sets its own type below.
+  title: "!leading-4.5",
+  description: "!text-muted-foreground !leading-4.5",
   actionButton: PRIMARY_ACTION_CLASS,
   cancelButton: SECONDARY_ACTION_CLASS,
 };
@@ -125,7 +128,7 @@ const SNACKBAR_CLASSNAMES = {
   ...TOAST_CLASSNAMES,
   toast: cn(TOAST_CLASSNAMES.toast, "!py-3.5 !pl-4 !pr-3"),
   title: "!text-sm !font-semibold",
-  description: cn(TOAST_CLASSNAMES.description, "!text-xs"),
+  description: "!text-muted-foreground !text-xs",
   content: cn(TOAST_CLASSNAMES.content, "group-has-[[data-close-button]]/toast:pr-9"),
   closeButton:
     "!left-auto !right-3 !top-3.5 !transform-none !size-5 !rounded-md !border-0 !bg-transparent before:absolute before:-inset-3 before:rounded-full focus-ring",
