@@ -143,7 +143,9 @@ describe("split-flap animation scheduling", () => {
   });
 
   it("hands loading over to the latest target and releases the shared clock", () => {
-    const { container, rerender } = render(<BoardDisplay deviceType="note" message="A" isLoading />);
+    // A board that has shown content, then reloads (a first load snaps; see below).
+    const { container, rerender } = render(<BoardDisplay deviceType="note" message="A" />);
+    rerender(<BoardDisplay deviceType="note" message="A" isLoading />);
     act(() => vi.advanceTimersByTime(80));
     rerender(<BoardDisplay deviceType="note" message="E" />);
     expect(tiles(container)[0].dataset.currentChar).toBe("C");
@@ -151,6 +153,37 @@ describe("split-flap animation scheduling", () => {
     act(() => vi.advanceTimersByTime(160));
     expect(tiles(container)[0].dataset.currentChar).toBe("E");
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  // The board shows what is on it now: opening a screen or switching display
+  // is not a change, so the first content a board paints never cascades from
+  // blank. Only a later change does.
+  describe("first paint", () => {
+    it("lands the first content after loading at once, with no cascade", () => {
+      const { container, rerender } = render(<BoardDisplay deviceType="note" isLoading />);
+      act(() => vi.advanceTimersByTime(240));
+      rerender(<BoardDisplay deviceType="note" message="E" />);
+      expect(tiles(container)[0].dataset.currentChar).toBe("E");
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it("lands the first message after an empty mount at once", () => {
+      const { container, rerender } = render(<BoardDisplay deviceType="note" message={null} />);
+      rerender(<BoardDisplay deviceType="note" message={'12" PIZZA'} />);
+      expect(tiles(container)[0].dataset.currentChar).toBe("1");
+      expect(tiles(container)[2].dataset.currentChar).toBe('"');
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it("still cascades a real change after the first paint", () => {
+      const { container, rerender } = render(<BoardDisplay deviceType="note" message={null} />);
+      rerender(<BoardDisplay deviceType="note" message="B" />);
+      rerender(<BoardDisplay deviceType="note" message="E" />);
+      expect(tiles(container)[0].dataset.currentChar).toBe("C");
+      expect(vi.getTimerCount()).toBe(1);
+      act(() => vi.advanceTimersByTime(160));
+      expect(tiles(container)[0].dataset.currentChar).toBe("E");
+    });
   });
 
   it("does not schedule loading or transitions under reduced motion", () => {

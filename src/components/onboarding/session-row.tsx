@@ -5,7 +5,7 @@ import * as React from "react";
 
 import { cn } from "../../lib/utils";
 import { IconTile } from "../containment/icon-tile";
-import { ListRow } from "../containment/list-row";
+import { ListRow, ListRowItem } from "../containment/list-row";
 import { Badge } from "../feedback/badge";
 import { Button } from "../forms/button";
 
@@ -56,7 +56,7 @@ function SessionRow({
 }: SessionRowProps) {
   const Icon = icons[kind];
   return (
-    <li
+    <ListRowItem
       {...props}
       data-slot="session-row"
       data-compact={compact || undefined}
@@ -129,7 +129,7 @@ function SessionRow({
             "@min-[30rem]/session:grid-cols-[2rem_minmax(0,1fr)_auto] @min-[30rem]/session:[&_[data-slot=list-row-trailing]]:col-start-3 @min-[30rem]/session:[&_[data-slot=list-row-trailing]]:row-start-1",
         )}
       />
-    </li>
+    </ListRowItem>
   );
 }
 

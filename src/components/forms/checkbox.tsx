@@ -19,6 +19,9 @@ function Checkbox({ className, ...props }: CheckboxProps) {
         // visual box. The pseudo-element is transparent and absolutely
         // positioned, so it costs no layout and paints nothing (issue #164).
         "before:absolute before:top-1/2 before:left-1/2 before:size-6 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']",
+        // ...and 44x44 (--touch-target) under the opted-in coarse layer (W2),
+        // where a 24px target is still a miss for a thumb (BB-C-26).
+        "coarse:before:min-h-touch coarse:before:min-w-touch",
         // A native (appearance:auto) checkbox ignores `border`, so hover and
         // invalid have to speak in rings — the same vocabulary the Slider
         // thumb already uses (issues #165, #163).

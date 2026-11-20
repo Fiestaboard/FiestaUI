@@ -227,7 +227,23 @@ function SelectLabel({ className, ...props }: React.ComponentProps<typeof Select
   );
 }
 
-function SelectItem({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Item>) {
+function SelectItem({
+  className,
+  children,
+  description,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Item> & {
+  /**
+   * A second, muted line under the item's text, e.g. "Flagship 22 × 6 · Dinner
+   * note". It DESCRIBES the option (its name stays the item text) and, being
+   * outside `ItemText`, is never mirrored into the trigger.
+   */
+  description?: React.ReactNode;
+}) {
+  const nameId = React.useId();
+  const descriptionId = React.useId();
+  const describedBy =
+    [description ? descriptionId : undefined, props["aria-describedby"]].filter(Boolean).join(" ") || undefined;
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -236,6 +252,8 @@ function SelectItem({ className, children, ...props }: React.ComponentProps<type
         className,
       )}
       {...props}
+      aria-labelledby={props["aria-labelledby"] ?? (description ? nameId : undefined)}
+      aria-describedby={describedBy}
     >
       <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
@@ -243,7 +261,22 @@ function SelectItem({ className, children, ...props }: React.ComponentProps<type
         </SelectPrimitive.ItemIndicator>
       </span>
 
-      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      {description ? (
+        <div className="flex min-w-0 flex-1 flex-col">
+          <SelectPrimitive.ItemText id={nameId} className="truncate">
+            {children}
+          </SelectPrimitive.ItemText>
+          <span
+            id={descriptionId}
+            data-slot="select-item-description"
+            className="truncate text-xs text-muted-foreground"
+          >
+            {description}
+          </span>
+        </div>
+      ) : (
+        <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      )}
     </SelectPrimitive.Item>
   );
 }

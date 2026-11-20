@@ -809,3 +809,55 @@ test("T4: every tint reads as a tint, distinct from the --card it is blended ove
   }
   assert.deepEqual(flat, []);
 });
+
+/* ------------------------------------------------------------------ *
+ * 7. BB-C-27 — the Switch's off track in dark
+ *
+ * The off track was `bg-muted` in both themes. In dark, --muted (L 0.235) on
+ * a --card (L 0.195) is 1.10:1, so on a settings card an off switch read as
+ * a floating thumb with a 1px hairline: the TRACK — the part that says "this
+ * is a switch, and it is off" — had vanished. SC 1.4.11 asks 3:1 of the
+ * graphics needed to identify a control's state, so the dark off track is
+ * measured here as a non-text component, on every surface a Switch sits on.
+ * ------------------------------------------------------------------ */
+
+const switchSource = sources.get("src/components/forms/switch.tsx");
+const darkOffTrack = switchSource?.match(/dark:data-\[unchecked\]:bg-([\w-]+)(?![\w/])/)?.[1];
+const SWITCH_SURFACES = ["--background", "--card", "--popover"];
+
+/** A token's paint over a surface: opaque, or `color-mix(in oklch, var(--x) N%, transparent)`. */
+function paintOver(name, surface, tokens) {
+  const value = resolve(name, tokens);
+  const over = toRgb(resolve(surface, tokens));
+  const alpha = value.match(/^color-mix\(\s*in oklch\s*,\s*var\((--[\w-]+)\)\s+([\d.]+)%\s*,\s*transparent\s*\)$/);
+  const rgb = alpha ? composite(toRgb(resolve(alpha[1], tokens)), Number(alpha[2]) / 100, over) : toRgb(value);
+  // A re-spelled token this parser does not understand would yield NaN, and
+  // every `< 3` comparison below would then pass vacuously.
+  assert.ok(rgb.every(Number.isFinite), `${name} over ${surface} did not resolve to a colour: ${value}`);
+  return rgb;
+}
+
+test("BB-C-27: the dark off-track fill is readable out of switch.tsx", () => {
+  assert.ok(switchSource, "switch.tsx moved — repoint this section");
+  assert.ok(darkOffTrack, "the Switch declares no `dark:data-[unchecked]:bg-*` off-track fill");
+  assert.ok(darkTokens.has(`--${darkOffTrack}`), `bg-${darkOffTrack} is not a theme token`);
+});
+
+test("BB-C-27: an off Switch's track clears 3:1 on every dark surface, and its thumb still reads on it", () => {
+  const failures = [];
+  const thumb = toRgb(resolve("--foreground", darkTokens)); // `dark:bg-foreground`
+  for (const surface of SWITCH_SURFACES) {
+    const track = paintOver(`--${darkOffTrack}`, surface, darkTokens);
+    const ground = toRgb(resolve(surface, darkTokens));
+    const trackRatio = contrast(track, ground);
+    const thumbRatio = contrast(thumb, track);
+    if (trackRatio < 3) failures.push(`track on ${surface}: ${trackRatio.toFixed(2)}:1`);
+    if (thumbRatio < 3) failures.push(`thumb on track over ${surface}: ${thumbRatio.toFixed(2)}:1`);
+  }
+  assert.deepEqual(
+    failures,
+    [],
+    "An off Switch is identified by its track (SC 1.4.11, 3:1). A track that matches the card leaves only the " +
+      "thumb, which is the BB-C-27 report: on a dark settings card the off switches looked like stray dots.",
+  );
+});

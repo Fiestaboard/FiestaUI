@@ -67,3 +67,41 @@ describe("Select", () => {
     expect(screen.getByRole("combobox", { name: "Board" })).toHaveAttribute("data-size", "default");
   });
 });
+
+describe("SelectItem description", () => {
+  function Described({ labelledBy }: { labelledBy?: string }) {
+    return (
+      <>
+        <span id="external-name">Kitchen display</span>
+        <Select defaultValue="kitchen">
+          <SelectTrigger aria-label="Board">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="kitchen" description="Flagship 22 × 6" aria-labelledby={labelledBy}>
+              Kitchen
+            </SelectItem>
+            <SelectItem value="office">Office</SelectItem>
+          </SelectContent>
+        </Select>
+      </>
+    );
+  }
+
+  it("describes the option without joining its name or the trigger", async () => {
+    render(<Described />);
+    expect(screen.getByRole("combobox", { name: "Board" })).toHaveTextContent("Kitchen");
+    expect(screen.getByRole("combobox", { name: "Board" })).not.toHaveTextContent("Flagship");
+    await userEvent.setup().click(screen.getByRole("combobox", { name: "Board" }));
+    const option = await screen.findByRole("option", { name: "Kitchen" });
+    expect(option).toHaveAccessibleDescription("Flagship 22 × 6");
+  });
+
+  it("keeps a caller's aria-labelledby", async () => {
+    render(<Described labelledBy="external-name" />);
+    await userEvent.setup().click(screen.getByRole("combobox", { name: "Board" }));
+    expect(await screen.findByRole("option", { name: "Kitchen display" })).toHaveAccessibleDescription(
+      "Flagship 22 × 6",
+    );
+  });
+});

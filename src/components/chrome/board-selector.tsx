@@ -21,6 +21,12 @@ export interface BoardOption {
    * then DESCRIBED by (`aria-describedby`). Omit for a healthy board.
    */
   status?: "error";
+  /**
+   * A second line under the name in the list, e.g. "Flagship 22 × 6 · Dinner
+   * note" (07a `310:34278`; FiestaBoard BB-A-11). It describes the option; the
+   * trigger shows the name alone.
+   */
+  description?: string;
 }
 
 export interface BoardSelectorLabels {
@@ -145,7 +151,12 @@ export const BoardSelector = memo(function BoardSelector({
         const name = board.name || labels.unnamedBoard;
         const errored = board.status === "error";
         return (
-          <SelectItem key={board.id} value={board.id} aria-describedby={errored ? describedBy : undefined}>
+          <SelectItem
+            key={board.id}
+            value={board.id}
+            aria-describedby={errored ? describedBy : undefined}
+            description={board.description}
+          >
             {errored ? (
               // The dot is DECORATIVE (StatusDot's default, aria-hidden): the
               // meaning is carried by the description above, so the colour is
