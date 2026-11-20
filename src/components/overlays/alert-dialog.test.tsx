@@ -16,8 +16,8 @@ import {
 
 /*
  * jsdom runs no stylesheet, so these hold the class contract the stylesheet
- * keys off. The inset geometry itself is asserted in a real browser by the
- * `MobileDestructive` story's play function.
+ * keys off. The inset geometry itself is measured in a real browser at
+ * 320-900px by .storybook/dialog-inset-regression.ts.
  */
 function classTokens(element: Element): string[] {
   return (element.getAttribute("class") ?? "").split(/\s+/);

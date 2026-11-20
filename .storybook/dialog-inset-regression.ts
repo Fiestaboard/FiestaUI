@@ -8,14 +8,17 @@ import type { Page } from "playwright";
  * so the play functions cannot see a phone; this resizes the page itself, the
  * way flow-shell-regression.ts does, and restores it afterwards.
  */
-const STORIES: Record<string, string> = {
-  "overlays-alertdialog--mobile-destructive": '[data-slot="alert-dialog-content"]',
-  "overlays-dialog--mobile-open": '[data-slot="dialog-content"]',
+const STORIES: Record<string, [surface: string, backdrop: string]> = {
+  "overlays-alertdialog--mobile-destructive": [
+    '[data-slot="alert-dialog-content"]',
+    '[data-slot="alert-dialog-overlay"]',
+  ],
+  "overlays-dialog--mobile-open": ['[data-slot="dialog-content"]', '[data-slot="dialog-overlay"]'],
 };
 
 export async function checkDialogInsetGeometry(page: Page, id: string) {
-  const selector = STORIES[id];
-  if (!selector) return;
+  const selectors = STORIES[id];
+  if (!selectors) return;
   const original = page.viewportSize();
   try {
     for (const width of [320, 360, 390, 412, 900]) {
@@ -23,26 +26,43 @@ export async function checkDialogInsetGeometry(page: Page, id: string) {
       await page.evaluate(
         () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
       );
-      const box = await page.evaluate((sel) => {
-        const surface = document.querySelector<HTMLElement>(sel);
-        if (!surface) return null;
+      // Storybook freezes entrance animations on their final frame; a live
+      // story still waits for a running zoom-in before measuring.
+      await page.waitForFunction(
+        (sel) => {
+          const surface = document.querySelector<HTMLElement>(sel);
+          return !!surface && surface.getAnimations().every((animation) => animation.playState !== "running");
+        },
+        selectors[0],
+        { timeout: 2000 },
+      );
+      // Measured against the fixed, inset-0 backdrop rather than
+      // window.innerWidth: a runner with classic scrollbars (CI's Linux
+      // Chromium) gives fixed boxes a containing block 15px narrower than the
+      // window.
+      const box = await page.evaluate(([surfaceSel, backdropSel]) => {
+        const surface = document.querySelector<HTMLElement>(surfaceSel);
+        const backdrop = document.querySelector<HTMLElement>(backdropSel);
+        if (!surface || !backdrop) return null;
         const rect = surface.getBoundingClientRect();
+        const frame = backdrop.getBoundingClientRect();
         const style = getComputedStyle(surface);
         return {
-          left: rect.left,
-          right: document.documentElement.clientWidth - rect.right,
+          frame: frame.width,
+          left: rect.left - frame.left,
+          right: frame.right - rect.right,
           width: rect.width,
-          top: rect.top,
-          bottom: window.innerHeight - rect.bottom,
+          top: rect.top - frame.top,
+          bottom: frame.bottom - rect.bottom,
           radius: parseFloat(style.borderTopLeftRadius),
           bottomRadius: parseFloat(style.borderBottomRightRadius),
         };
-      }, selector);
-      assert.ok(box, `${id} at ${width}px: no ${selector}`);
+      }, selectors);
+      assert.ok(box, `${id} at ${width}px: no ${selectors.join(" / ")}`);
       const detail = `${id} at ${width}px: ${JSON.stringify(box)}`;
-      // max-w-lg (512px) wins from 544px up; below that the card is the
-      // viewport minus a 16px gutter on each side.
-      const expected = Math.min(512, width - 32);
+      // max-w-lg (512px) wins from a 544px frame up; below that the card is
+      // the frame minus a 16px gutter on each side.
+      const expected = Math.min(512, box.frame - 32);
       assert.ok(Math.abs(box.width - expected) < 1, `${detail}: width should be ${expected}`);
       assert.ok(Math.abs(box.left - box.right) < 1 && box.left >= 15.5, `${detail}: not inset 16px on both sides`);
       assert.ok(box.radius > 0 && box.bottomRadius > 0, `${detail}: square corners`);
