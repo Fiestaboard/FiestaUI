@@ -208,7 +208,8 @@ export const CompactPhoneSheet: Story = {
   render: (args) => <PhoneSheet {...args} />,
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
-    const more = body.getByRole("button", { name: "More options" });
+    // The sheet portals in after its open transition starts; wait for it.
+    const more = await body.findByRole("button", { name: "More options" });
     await expect(more).toHaveAttribute("aria-expanded", "false");
     await expect(body.getByLabelText("Start time")).toHaveValue("09:00");
     await expect(body.getByLabelText("End time")).toHaveValue("13:00");
