@@ -95,5 +95,6 @@ describe("AlertDialog (BB-C-12)", () => {
 
     expect(screen.getByRole("alertdialog", { name: "Delete Kitchen?" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("h-10");
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveAttribute("data-size", "lg");
   });
 });

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, waitFor, within } from "storybook/test";
+import { expect, within } from "storybook/test";
 
 import { Button } from "../forms/button";
 import {
@@ -122,6 +122,11 @@ export const DestructiveAction = () => (
  * below `sm`), and the confirming action wears the destructive fill.
  */
 export const MobileDestructive: Story = {
+  // Fullscreen, so VRT's #storybook-root capture is the whole 390×844 frame
+  // and not a centred sliver of the dialog.
+  parameters: { layout: "fullscreen" },
+  // A full-height root, so the VRT capture of #storybook-root is the frame.
+  decorators: [(Story) => <div className="min-h-dvh">{Story()}</div>],
   globals: { viewport: { value: "mobile", isRotated: false } },
   args: {
     defaultOpen: true,
@@ -145,15 +150,10 @@ export const MobileDestructive: Story = {
     const body = within(canvasElement.ownerDocument.body);
     const dialog = await body.findByRole("alertdialog", { name: "Switch to Stable?" });
     const view = canvasElement.ownerDocument.defaultView!;
-    // The runner does not resize to the story's viewport global, so this holds
-    // at whatever width it runs: never closer than 16px to either edge. VRT
-    // captures the 390px frame.
-    await waitFor(() => {
-      const box = dialog.getBoundingClientRect();
-      expect(box.left).toBeGreaterThanOrEqual(15.5);
-      expect(view.innerWidth - box.right).toBeGreaterThanOrEqual(15.5);
-    });
-    expect(parseFloat(view.getComputedStyle(dialog).borderTopLeftRadius)).toBeGreaterThan(0);
+    // The inset and radius at 320–900px are asserted by
+    // .storybook/dialog-inset-regression.ts, which resizes the page: the
+    // runner does not apply this story's viewport global. This play holds the
+    // destructive action at whatever width it runs.
     // The confirming action paints --destructive, measured against a probe
     // painted with the token itself rather than against a class name.
     const action = body.getByRole("button", { name: "Switch channel" });

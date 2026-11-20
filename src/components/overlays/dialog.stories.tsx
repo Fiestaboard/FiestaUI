@@ -103,6 +103,20 @@ export const Open: Story = {
   },
 };
 
+/**
+ * BB-C-12: the default dialog on a phone, inset 16px with its corner radius
+ * (it was a full-bleed, square strip below `sm`). Fullscreen so VRT captures
+ * the whole frame; .storybook/dialog-inset-regression.ts measures the inset
+ * at 320–900px.
+ */
+export const MobileOpen: Story = {
+  ...Open,
+  parameters: { layout: "fullscreen" },
+  // A full-height root, so the VRT capture of #storybook-root is the frame.
+  decorators: [(Story) => <div className="min-h-dvh">{Story()}</div>],
+  globals: { viewport: { value: "mobile", isRotated: false } },
+};
+
 export const ShareDialog = () => (
   <Dialog>
     <DialogTrigger asChild>

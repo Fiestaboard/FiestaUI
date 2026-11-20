@@ -113,6 +113,7 @@ function AlertDialogAction({ className, variant = "default", size = "default", .
       data-slot="alert-dialog-action"
       data-testid="alert-dialog-action"
       data-variant={variant}
+      data-size={size}
       className={cn(buttonVariants({ variant, size }), className)}
       {...props}
     />
