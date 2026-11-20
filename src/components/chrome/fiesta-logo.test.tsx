@@ -21,6 +21,12 @@ describe("FiestaLogo", () => {
     expect(screen.queryByText("Fiesta")).toBeInTheDocument();
   });
 
+  it("never renders a nameless image", () => {
+    render(<FiestaLogo label="" />);
+
+    expect(screen.getByRole("img", { name: "FiestaBoard" })).toBeInTheDocument();
+  });
+
   it("takes a localized name", () => {
     render(<FiestaLogo label="FiestaBoard Startseite" />);
 

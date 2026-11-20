@@ -830,8 +830,11 @@ function paintOver(name, surface, tokens) {
   const value = resolve(name, tokens);
   const over = toRgb(resolve(surface, tokens));
   const alpha = value.match(/^color-mix\(\s*in oklch\s*,\s*var\((--[\w-]+)\)\s+([\d.]+)%\s*,\s*transparent\s*\)$/);
-  if (!alpha) return toRgb(value);
-  return composite(toRgb(resolve(alpha[1], tokens)), Number(alpha[2]) / 100, over);
+  const rgb = alpha ? composite(toRgb(resolve(alpha[1], tokens)), Number(alpha[2]) / 100, over) : toRgb(value);
+  // A re-spelled token this parser does not understand would yield NaN, and
+  // every `< 3` comparison below would then pass vacuously.
+  assert.ok(rgb.every(Number.isFinite), `${name} over ${surface} did not resolve to a colour: ${value}`);
+  return rgb;
 }
 
 test("BB-C-27: the dark off-track fill is readable out of switch.tsx", () => {

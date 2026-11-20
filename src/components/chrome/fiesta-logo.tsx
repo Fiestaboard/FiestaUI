@@ -27,13 +27,14 @@ interface FiestaLogoProps {
  * is a picture of a name, and announcing it as body text is what made audits
  * hold it to body-text contrast (BB-C-25).
  */
-export const FiestaLogo = memo(function FiestaLogo({ size = "md", className, label = "FiestaBoard" }: FiestaLogoProps) {
+export const FiestaLogo = memo(function FiestaLogo({ size = "md", className, label }: FiestaLogoProps) {
   const isSm = size === "sm";
 
   return (
     <span
       role="img"
-      aria-label={label}
+      // An empty label would leave a nameless image; fall back to the name.
+      aria-label={label || "FiestaBoard"}
       className={cn(
         "inline-flex items-baseline select-none leading-none tracking-tight",
         isSm ? "text-lg" : "text-xl",
@@ -42,8 +43,9 @@ export const FiestaLogo = memo(function FiestaLogo({ size = "md", className, lab
     >
       {/* --brand-wordmark, not --brand: this is a logotype, and --brand is the
           AA-tuned TEXT step, which on a light surface is the dark ochre the
-          wordmark specifically must not be. One value works on both the rail
-          and a card — 4.58:1 and 4.9:1 in light, ~8-9:1 in dark. */}
+          wordmark specifically must not be. In light it sits at 2.45-3.1:1
+          (exempt as a logotype, see FIESTA_LOGO_WORDMARK_SELECTOR); dark uses
+          --primary at ~8-9:1. */}
       <span aria-hidden="true" className="logo-fiesta-text font-black text-[color:var(--brand-wordmark)]">
         Fiesta
       </span>
