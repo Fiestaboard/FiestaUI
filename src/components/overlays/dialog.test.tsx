@@ -41,6 +41,19 @@ describe("Dialog shell variants", () => {
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-8");
   });
 
+  it("is an inset card with corner radius on a phone, not a full-bleed square panel (BB-C-12)", async () => {
+    const user = userEvent.setup();
+    render(<Example />);
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    const tokens = (screen.getByRole("dialog").getAttribute("class") ?? "").split(/\s+/);
+
+    expect(tokens).toEqual(
+      expect.arrayContaining(["w-[calc(100%-2rem)]", "rounded-lg", "max-h-[calc(100dvh-2rem)]", "overflow-y-auto"]),
+    );
+    expect(tokens).not.toContain("w-full");
+    expect(tokens).not.toContain("sm:rounded-lg");
+  });
+
   it("provides the reference wide surface and localized close without leaking recipe props", async () => {
     const user = userEvent.setup();
     render(<Example wide localized />);

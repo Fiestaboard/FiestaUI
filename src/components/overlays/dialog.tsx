@@ -67,10 +67,11 @@ function DialogContent({ className, children, variant = "default", labels, ...pr
         data-slot="dialog-content"
         data-variant={variant}
         className={cn(
-          "fixed left-[50%] top-[50%] z-[var(--z-modal)] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-modal duration-base data-[open]:animate-in data-[ending-style]:animate-out data-[ending-style]:fade-out-0 data-[open]:fade-in-0 data-[ending-style]:zoom-out-95 data-[open]:zoom-in-95 data-[ending-style]:slide-out-to-left-1/2 data-[ending-style]:slide-out-to-top-[48%] data-[open]:slide-in-from-left-1/2 data-[open]:slide-in-from-top-[48%] sm:rounded-lg",
+          "fixed left-[50%] top-[50%] z-[var(--z-modal)] grid w-[calc(100%-2rem)] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-modal duration-base data-[open]:animate-in data-[ending-style]:animate-out data-[ending-style]:fade-out-0 data-[open]:fade-in-0 data-[ending-style]:zoom-out-95 data-[open]:zoom-in-95 data-[ending-style]:slide-out-to-left-1/2 data-[ending-style]:slide-out-to-top-[48%] data-[open]:slide-in-from-left-1/2 data-[open]:slide-in-from-top-[48%]",
+          // Inset and rounded at every width (BB-C-12): the old `w-full` +
+          // `sm:rounded-lg` drew a square, edge-to-edge strip on every phone.
           "group/dialog",
-          wide &&
-            "w-[calc(100%-2rem)] max-w-[35rem] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[var(--radius-chrome)] bg-popover text-popover-foreground sm:rounded-[var(--radius-chrome)]",
+          wide && "max-w-[35rem] rounded-[var(--radius-chrome)] bg-popover text-popover-foreground",
           className,
         )}
         {...props}

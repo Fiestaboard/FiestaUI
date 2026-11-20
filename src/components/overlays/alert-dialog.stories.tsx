@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, waitFor, within } from "storybook/test";
 
 import { Button } from "../forms/button";
 import {
@@ -109,13 +110,60 @@ export const DestructiveAction = () => (
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-          Delete
-        </AlertDialogAction>
+        <AlertDialogAction variant="destructive">Delete</AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
 );
+
+/**
+ * BB-C-12: a data-loss confirmation on a phone. The card is inset 16px from
+ * both edges with rounded corners (it used to be a full-bleed, square strip
+ * below `sm`), and the confirming action wears the destructive fill.
+ */
+export const MobileDestructive: Story = {
+  globals: { viewport: { value: "mobile", isRotated: false } },
+  args: {
+    defaultOpen: true,
+    children: (
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Switch to Stable?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This switches to an older release channel. FiestaBoard restores the snapshot taken before joining the
+            preview, so changes made since then will be lost. FiestaBoard will restart.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction variant="destructive">Switch channel</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    const dialog = await body.findByRole("alertdialog", { name: "Switch to Stable?" });
+    const view = canvasElement.ownerDocument.defaultView!;
+    // The runner does not resize to the story's viewport global, so this holds
+    // at whatever width it runs: never closer than 16px to either edge. VRT
+    // captures the 390px frame.
+    await waitFor(() => {
+      const box = dialog.getBoundingClientRect();
+      expect(box.left).toBeGreaterThanOrEqual(15.5);
+      expect(view.innerWidth - box.right).toBeGreaterThanOrEqual(15.5);
+    });
+    expect(parseFloat(view.getComputedStyle(dialog).borderTopLeftRadius)).toBeGreaterThan(0);
+    // The confirming action paints --destructive, measured against a probe
+    // painted with the token itself rather than against a class name.
+    const action = body.getByRole("button", { name: "Switch channel" });
+    const probe = canvasElement.ownerDocument.createElement("div");
+    probe.style.backgroundColor = "var(--destructive)";
+    dialog.append(probe);
+    expect(view.getComputedStyle(action).backgroundColor).toBe(view.getComputedStyle(probe).backgroundColor);
+    probe.remove();
+  },
+};
 
 export const SingleAction = () => (
   <AlertDialog>
