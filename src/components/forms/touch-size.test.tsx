@@ -1,9 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { Tabs, TabsList, TabsTrigger } from "../containment/tabs";
 import { Chip } from "../feedback/chip";
+import { Dialog, DialogContent, DialogTitle } from "../overlays/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../overlays/dropdown-menu";
 import { Button } from "./button";
+import { Checkbox } from "./checkbox";
 import { Input } from "./input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 import { Swatch, SwatchGroup } from "./swatch";
@@ -258,6 +261,60 @@ describe("fui-coarse (W2)", () => {
     expect(classTokens(screen.getByRole("switch", { name: "Live" }))).toContain("coarse:before:min-h-touch");
     expect(classTokens(screen.getByRole("button", { name: "Red" }))).toContain("coarse:min-h-touch");
     expect(classTokens(screen.getByRole("radio", { name: "Fit" }))).toContain("coarse:min-h-touch");
+  });
+
+  /*
+   * BB-C-26 / BB-A-15: the controls the W2 layer had missed. A 16px checkbox,
+   * the 32px dialog close and 32px tabs measured under 44px on a phone even
+   * with `fui-coarse` on <html>.
+   */
+  it("gives Checkbox a 44×44 coarse hit area around its 16px box", () => {
+    render(<Checkbox aria-label="Keep me logged in" />);
+
+    expect(classTokens(screen.getByRole("checkbox", { name: "Keep me logged in" }))).toEqual(
+      expect.arrayContaining(["before:size-6", "coarse:before:min-h-touch", "coarse:before:min-w-touch"]),
+    );
+  });
+
+  it("gives the overlay close a 44×44 coarse target at both sizes", () => {
+    render(
+      <>
+        <Dialog defaultOpen>
+          <DialogContent labels={{ close: "Close default" }}>
+            <DialogTitle>Default</DialogTitle>
+          </DialogContent>
+        </Dialog>
+        <Dialog defaultOpen>
+          <DialogContent variant="wide" labels={{ close: "Close wide" }}>
+            <DialogTitle>Wide</DialogTitle>
+          </DialogContent>
+        </Dialog>
+      </>,
+    );
+
+    // 32px + 2×6px and 40px + 2×2px: an invisible ::after, so the chip and
+    // the header around it do not move.
+    expect(classTokens(screen.getByRole("button", { name: "Close default", hidden: true }))).toEqual(
+      expect.arrayContaining(["size-8", "coarse:after:absolute", "coarse:after:-inset-1.5"]),
+    );
+    expect(classTokens(screen.getByRole("button", { name: "Close wide", hidden: true }))).toEqual(
+      expect.arrayContaining(["size-10", "coarse:after:absolute", "coarse:after:-inset-0.5"]),
+    );
+  });
+
+  it("lifts Tabs to a 44px trigger and lets the list grow around it", () => {
+    render(
+      <Tabs defaultValue="overview">
+        <TabsList aria-label="Display">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+        </TabsList>
+      </Tabs>,
+    );
+
+    expect(classTokens(screen.getByRole("tab", { name: "Overview" }))).toContain("coarse:min-h-touch");
+    expect(classTokens(screen.getByRole("tablist", { name: "Display" }))).toEqual(
+      expect.arrayContaining(["h-10", "coarse:h-auto"]),
+    );
   });
 
   it.each([

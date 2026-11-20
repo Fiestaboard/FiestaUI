@@ -14,7 +14,9 @@ function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimi
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+        // `coarse:h-auto`: under the opted-in coarse layer (W2) the triggers
+        // floor at 44px, and the list grows around them instead of clipping.
+        "inline-flex h-10 coarse:h-auto items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
         className,
       )}
       {...props}
@@ -29,8 +31,9 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
       className={cn(
         // Hover is scoped to inactive tabs (`not-data-[active]:`) so it cannot
         // dim the active tab, and rides the trigger's existing 200ms
-        // transition (issue #165).
-        "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-[color,background-color,box-shadow] duration-base focus-ring not-data-[active]:hover:bg-background/50 not-data-[active]:hover:text-foreground disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-background data-[active]:text-foreground data-[active]:shadow-sm",
+        // transition (issue #165). `coarse:min-h-touch` is the W2 touch floor
+        // (BB-A-15, BB-C-26): 32px tabs on a phone become 44px targets.
+        "inline-flex coarse:min-h-touch items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-[color,background-color,box-shadow] duration-base focus-ring not-data-[active]:hover:bg-background/50 not-data-[active]:hover:text-foreground disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-background data-[active]:text-foreground data-[active]:shadow-sm",
         className,
       )}
       {...props}
