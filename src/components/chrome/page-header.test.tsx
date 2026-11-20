@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { Monitor } from "lucide-react";
 import { describe, expect, it } from "vitest";
 
-import { PageHeader } from "./page-header";
+import { PAGE_HUES, PageHeader, pageHue, PageIconGradientDefs } from "./page-header";
 
 describe("PageHeader collapsed", () => {
   it("renders as before when not collapsed", () => {
@@ -85,5 +85,19 @@ describe("PageHeader icon colour and optional parts", () => {
     const h1 = screen.getByRole("heading", { level: 1, name: "Schedule" });
     expect(h1.querySelector("svg")).toBeNull();
     expect(document.querySelector("[data-slot=page-header] .page-description")).toBeNull();
+  });
+});
+
+describe("pageHue and the deprecated gradient defs", () => {
+  it("hashes a key to one of the six hues, the same every time", () => {
+    const hue = pageHue("schedule");
+    expect(PAGE_HUES).toContain(hue);
+    expect(pageHue("schedule")).toBe(hue);
+  });
+
+  it("still renders the deprecated gradient defs for consumers that mount them", () => {
+    const { container } = render(<PageIconGradientDefs />);
+    expect(container.querySelector("linearGradient#page-icon-gradient")).not.toBeNull();
+    expect(container.querySelectorAll("stop")).toHaveLength(6);
   });
 });
