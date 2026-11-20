@@ -28,8 +28,13 @@ export interface FormulaAtomProps extends Omit<React.ComponentProps<"span">, "ch
    * Caller-formatted result, e.g. "= 72". In the error state, pass the actual
    * error tag (#REF, #VALUE, #DIV/0, #NAME?, #NUM, #SYNTAX:n, ???).
    * This presentation component neither evaluates nor parses hub results.
+   *
+   * Optional: leave it undefined (or "") where nothing evaluates the atom,
+   * e.g. a variable chip outside the page editor, and the atom draws no
+   * value segment at all, still 22px tall. An empty result that should show
+   * is the caller's to format (e.g. `= ""`).
    */
-  value: string;
+  value?: string;
   labels?: Partial<FormulaAtomLabels>;
   /**
    * The board colour this result lights, when the formula returns a colour
@@ -88,7 +93,8 @@ export function FormulaAtom({
 }: FormulaAtomProps) {
   const l = { ...DEFAULT_FORMULA_ATOM_LABELS, ...labels };
   const error = state === "error";
-  const color = error ? null : resolveValueColor(valueColor);
+  const hasValue = value !== undefined && value !== "";
+  const color = error || !hasValue ? null : resolveValueColor(valueColor);
   const Icon = error ? CircleAlert : kind === "variable" ? Braces : Sigma;
 
   return (
@@ -103,6 +109,8 @@ export function FormulaAtom({
         // editor's uppercase surface (BB-FP-10). Only the caller's value
         // reflects board output.
         "min-w-0 max-w-full shrink gap-1.5 rounded-[4px] border-0 py-0.5 pl-1.5 pr-[3px] align-baseline font-mono text-xs leading-4 font-normal normal-case",
+        // 22px with or without the 18px value pill.
+        "min-h-[22px]",
         // One shape and one 22px height in every state (BB-FP-12): the error
         // edge is an inset ring, which takes no layout, not a 1px border.
         error && "bg-tint-danger text-destructive ring-1 ring-destructive ring-inset",
@@ -112,31 +120,40 @@ export function FormulaAtom({
       <Icon aria-hidden="true" className="size-3 shrink-0" />
       <span data-slot="formula-atom-source" className="min-w-0 max-w-[116px] truncate" title={source}>
         {source}
-      </span>{" "}
-      {state === "fallback" && <span className="sr-only">{l.fallback} </span>}
-      <span
-        data-slot="formula-atom-value"
-        title={value}
-        className={cn(
-          "min-w-0 max-w-[50%] shrink-0 truncate rounded-[3px] px-1.5 py-px font-medium text-foreground",
-          error ? "bg-destructive text-destructive-foreground" : state === "fallback" ? "bg-tint-warning" : "bg-card",
-        )}
-      >
-        {color ? (
-          <>
-            <span aria-hidden="true">=</span>
-            <span
-              data-slot="formula-atom-color"
-              data-color={color}
-              aria-hidden="true"
-              className={cn("ml-1 inline-block h-3 w-[1.5ch] rounded-[2px] align-[-1px]", COLOR_DISPLAY[color].bg)}
-            />
-            <span className="sr-only">{value}</span>
-          </>
-        ) : (
-          value
-        )}
       </span>
+      {hasValue && (
+        <>
+          {" "}
+          {state === "fallback" && <span className="sr-only">{l.fallback} </span>}
+          <span
+            data-slot="formula-atom-value"
+            title={value}
+            className={cn(
+              "min-w-0 max-w-[50%] shrink-0 truncate rounded-[3px] px-1.5 py-px font-medium text-foreground",
+              error
+                ? "bg-destructive text-destructive-foreground"
+                : state === "fallback"
+                  ? "bg-tint-warning"
+                  : "bg-card",
+            )}
+          >
+            {color ? (
+              <>
+                <span aria-hidden="true">=</span>
+                <span
+                  data-slot="formula-atom-color"
+                  data-color={color}
+                  aria-hidden="true"
+                  className={cn("ml-1 inline-block h-3 w-[1.5ch] rounded-[2px] align-[-1px]", COLOR_DISPLAY[color].bg)}
+                />
+                <span className="sr-only">{value}</span>
+              </>
+            ) : (
+              value
+            )}
+          </span>
+        </>
+      )}
     </Badge>
   );
 }

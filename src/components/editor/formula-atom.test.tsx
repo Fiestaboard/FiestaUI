@@ -61,8 +61,8 @@ describe("FormulaAtom", () => {
   it("keeps caller formatting, including empty results, without evaluating it", () => {
     const { rerender, container } = render(<FormulaAtom source="1 + 1" value="2.00" />);
     expect(screen.getByText("2.00")).toBeInTheDocument();
-    rerender(<FormulaAtom source="EMPTY()" value="" />);
-    expect(container.querySelector('[data-slot="formula-atom-value"]')?.textContent).toBe("");
+    rerender(<FormulaAtom source="EMPTY()" value='= ""' />);
+    expect(screen.getByText('= ""')).toBeInTheDocument();
     expect(screen.queryByText("2.00")).not.toBeInTheDocument();
   });
 
@@ -141,5 +141,25 @@ describe("FormulaAtom", () => {
       expect(container.querySelector('[data-slot="formula-atom-color"]')).toBeNull();
       expect(screen.getByText("#VALUE")).toBeInTheDocument();
     });
+  });
+
+  // The app's variable chip outside the page editor has no value to show.
+  it.each([
+    ["undefined", undefined],
+    ["an empty string", ""],
+  ])("draws no value segment when the value is %s", (_label, value) => {
+    const { container } = render(
+      <FormulaAtom kind="variable" state="fallback" source="weather.temperature" value={value} />,
+    );
+    expect(container.querySelector('[data-slot="formula-atom-value"]')).toBeNull();
+    // Nor the fallback cue, which only describes a value.
+    expect(screen.queryByText("Fallback value:")).not.toBeInTheDocument();
+    expect(screen.getByText("weather.temperature")).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="formula-atom"]')).toHaveClass("min-h-[22px]");
+  });
+
+  it("draws no colour tile without a value", () => {
+    const { container } = render(<FormulaAtom source='COLOR("GREEN")' valueColor="66" />);
+    expect(container.querySelector('[data-slot="formula-atom-color"]')).toBeNull();
   });
 });

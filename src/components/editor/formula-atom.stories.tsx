@@ -29,7 +29,7 @@ const meta = {
     await expect(atoms.length).toBeGreaterThan(0);
     for (const atom of atoms) {
       const source = atom.querySelector<HTMLElement>('[data-slot="formula-atom-source"]')!;
-      const value = atom.querySelector<HTMLElement>('[data-slot="formula-atom-value"]')!;
+      const value = atom.querySelector<HTMLElement>('[data-slot="formula-atom-value"]');
       const icon = atom.querySelector("svg")!;
       const bounds = atom.getBoundingClientRect();
       // The shared page-enter translation can introduce fractional DOMRect
@@ -42,13 +42,16 @@ const meta = {
       await expect(getComputedStyle(source).textTransform).toBe("none");
       await expect(icon.getBoundingClientRect().width).toBe(12);
       await expect(icon.getBoundingClientRect().height).toBe(12);
-      await expect(value.getBoundingClientRect().height).toBe(18);
       await expect(getComputedStyle(atom).borderRadius).toBe("4px");
-      await expect(getComputedStyle(value).borderRadius).toBe("3px");
       await expect(getComputedStyle(source).fontSize).toBe("12px");
       await expect(getComputedStyle(source).lineHeight).toBe("16px");
-      await expect(source.getBoundingClientRect().right).toBeLessThanOrEqual(value.getBoundingClientRect().left);
-      await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(bounds.right);
+      // A value-less atom (NoValue) draws no value segment at all.
+      if (value) {
+        await expect(value.getBoundingClientRect().height).toBe(18);
+        await expect(getComputedStyle(value).borderRadius).toBe("3px");
+        await expect(source.getBoundingClientRect().right).toBeLessThanOrEqual(value.getBoundingClientRect().left);
+        await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(bounds.right);
+      }
       await expect(atom.tabIndex).toBe(-1);
       await expect(atom.scrollWidth).toBeLessThanOrEqual(atom.clientWidth);
       if (atom.dataset.state !== "error") {
@@ -203,5 +206,23 @@ export const ColorResult: Story = {
       await expect(tile.getBoundingClientRect().height).toBe(12);
     }
     await expect(context.canvasElement.textContent).not.toContain("{66}");
+  },
+};
+
+/**
+ * No `value`: where nothing evaluates the atom (a variable chip outside the
+ * page editor), there is no value segment at all, not an empty box, and the
+ * atom stays 22px tall.
+ */
+export const NoValue: Story = {
+  render: () => (
+    <div className="flex max-w-full flex-col items-start gap-3">
+      <FormulaAtom kind="variable" source="weather.temperature" />
+      <FormulaAtom source="IF(temp > 80, …)" value="" />
+    </div>
+  ),
+  play: async (context) => {
+    await meta.play(context);
+    await expect(context.canvasElement.querySelector('[data-slot="formula-atom-value"]')).toBeNull();
   },
 };
