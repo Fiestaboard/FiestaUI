@@ -5,6 +5,7 @@ import { checkCanvasEditing } from "./canvas-editor-regression";
 import { checkChoiceChip } from "./choice-chip-regression";
 import { checkDataSourceSwitch } from "./data-source-switch-regression";
 import { checkDeviceCodeNativeEditing } from "./device-code-regression";
+import { checkDialogInsetGeometry } from "./dialog-inset-regression";
 import { checkEditorPreviewNeverCollapses } from "./editor-preview-regression";
 import { checkTouchToolbarGeometry } from "./editor-toolbar-regression";
 import { checkFlowShellGeometry } from "./flow-shell-regression";
@@ -116,6 +117,7 @@ const config: TestRunnerConfig = {
     await checkEditorPreviewNeverCollapses(page, context.id);
     await checkTouchToolbarGeometry(page, context.id);
     await checkFlowShellGeometry(page, context.id);
+    await checkDialogInsetGeometry(page, context.id);
     await checkInspectorRowForcedColors(page, context.id);
 
     await configureAxe(page, {

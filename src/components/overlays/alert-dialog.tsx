@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
+import type { VariantProps } from "class-variance-authority";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
@@ -41,7 +42,11 @@ function AlertDialogContent({ className, ...props }: React.ComponentProps<typeof
       <AlertDialogPrimitive.Popup
         data-slot="alert-dialog-content"
         className={cn(
-          "fixed left-[50%] top-[50%] z-[var(--z-modal)] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-modal sm:rounded-lg",
+          // Inset and rounded at every width (BB-C-12). `w-full` with a
+          // `sm:` radius made every phone confirmation an edge-to-edge,
+          // square-cornered strip; the 1rem gutter and the max height keep a
+          // long confirmation on screen and scrollable instead.
+          "fixed left-[50%] top-[50%] z-[var(--z-modal)] grid w-[calc(100%-2rem)] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-modal",
           className,
         )}
         {...props}
@@ -93,12 +98,23 @@ function AlertDialogDescription({
   );
 }
 
-function AlertDialogAction({ className, ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Close>) {
+export type AlertDialogActionProps = React.ComponentProps<typeof AlertDialogPrimitive.Close> &
+  Pick<VariantProps<typeof buttonVariants>, "variant" | "size">;
+
+/**
+ * The confirming action. `variant="destructive"` is for a confirmation whose
+ * action loses data (delete, discard, a channel switch that restores an older
+ * snapshot): the button that costs the most should not wear the same
+ * primary fill as a harmless "Save".
+ */
+function AlertDialogAction({ className, variant = "default", size = "default", ...props }: AlertDialogActionProps) {
   return (
     <AlertDialogPrimitive.Close
       data-slot="alert-dialog-action"
       data-testid="alert-dialog-action"
-      className={cn(buttonVariants(), className)}
+      data-variant={variant}
+      data-size={size}
+      className={cn(buttonVariants({ variant, size }), className)}
       {...props}
     />
   );
@@ -109,6 +125,7 @@ function AlertDialogCancel({ className, ...props }: React.ComponentProps<typeof 
     <AlertDialogPrimitive.Close
       data-slot="alert-dialog-cancel"
       data-testid="alert-dialog-cancel"
+      data-variant="outline"
       className={cn(buttonVariants({ variant: "outline" }), "mt-2 sm:mt-0", className)}
       {...props}
     />

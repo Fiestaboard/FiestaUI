@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, within } from "storybook/test";
 
 import { Button } from "../forms/button";
 import {
@@ -109,13 +110,60 @@ export const DestructiveAction = () => (
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-          Delete
-        </AlertDialogAction>
+        <AlertDialogAction variant="destructive">Delete</AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
 );
+
+/**
+ * BB-C-12: a data-loss confirmation on a phone. The card is inset 16px from
+ * both edges with rounded corners (it used to be a full-bleed, square strip
+ * below `sm`), and the confirming action wears the destructive fill.
+ */
+export const MobileDestructive: Story = {
+  // Fullscreen, so VRT's #storybook-root capture is the whole 390×844 frame
+  // and not a centred sliver of the dialog.
+  parameters: { layout: "fullscreen" },
+  // A full-height root, so the VRT capture of #storybook-root is the frame.
+  decorators: [(Story) => <div className="min-h-dvh">{Story()}</div>],
+  globals: { viewport: { value: "mobile", isRotated: false } },
+  args: {
+    defaultOpen: true,
+    children: (
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Switch to Stable?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This switches to an older release channel. FiestaBoard restores the snapshot taken before joining the
+            preview, so changes made since then will be lost. FiestaBoard will restart.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction variant="destructive">Switch channel</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    const dialog = await body.findByRole("alertdialog", { name: "Switch to Stable?" });
+    const view = canvasElement.ownerDocument.defaultView!;
+    // The inset and radius at 320–900px are asserted by
+    // .storybook/dialog-inset-regression.ts, which resizes the page: the
+    // runner does not apply this story's viewport global. This play holds the
+    // destructive action at whatever width it runs.
+    // The confirming action paints --destructive, measured against a probe
+    // painted with the token itself rather than against a class name.
+    const action = body.getByRole("button", { name: "Switch channel" });
+    const probe = canvasElement.ownerDocument.createElement("div");
+    probe.style.backgroundColor = "var(--destructive)";
+    dialog.append(probe);
+    expect(view.getComputedStyle(action).backgroundColor).toBe(view.getComputedStyle(probe).backgroundColor);
+    probe.remove();
+  },
+};
 
 export const SingleAction = () => (
   <AlertDialog>
