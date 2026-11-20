@@ -1,5 +1,29 @@
 # @fiestaboard/ui
 
+## 8.17.0-alpha.4
+
+### Minor Changes
+
+- [#437](https://github.com/Fiestaboard/FiestaUI/pull/437) [`a1bb706`](https://github.com/Fiestaboard/FiestaUI/commit/a1bb706b28961007da7e02b0bb9e60fb657c9b5e) Thanks [@jeffredodd](https://github.com/jeffredodd)! - SelectItem takes an optional `description`: a muted second line that describes the option without joining its name or the trigger. BoardSelector's `BoardOption.description` uses it, so the switcher can show "Flagship 22 × 6 · Dinner note" under each display.
+
+- [#435](https://github.com/Fiestaboard/FiestaUI/pull/435) [`be4348a`](https://github.com/Fiestaboard/FiestaUI/commit/be4348a5a52ef73c820225245262fa29a4eea8c9) Thanks [@jeffredodd](https://github.com/jeffredodd)! - The opt-in coarse-pointer touch layer (`fui-coarse` on `<html>`) now also covers `Checkbox` (44×44 hit area around the 16 px box), and the Dialog/Sheet close chip (invisible 44×44 target; the chip does not grow).
+
+- [#432](https://github.com/Fiestaboard/FiestaUI/pull/432) [`11d33e1`](https://github.com/Fiestaboard/FiestaUI/commit/11d33e131ce5c59dd958011a9833ded404084953) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Dialog and AlertDialog are inset 16 px and rounded at every width (they were full-bleed with square corners below `sm`), and cap their height to the viewport with scrolling. `AlertDialogAction` takes `variant` and `size` (e.g. `variant="destructive"` for data-loss confirmations).
+
+- [#436](https://github.com/Fiestaboard/FiestaUI/pull/436) [`a393be1`](https://github.com/Fiestaboard/FiestaUI/commit/a393be1a331201519a1d90aac511cad7237d79f3) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Fix `ListRowGroup` list semantics (axe `aria-required-children`, BB-B-20). A `ListRow` with `render` (a link or button row) inside a group now wraps itself in an `<li>`, so `<ListRowGroup><ListRow render={<a />} /></ListRowGroup>` is valid in every group variant. Rows already inside a raw `<li>` or `ListItem` child of the group do not wrap again. Add `ListRowItem`, the `<li>` that holds a row when the item needs more than the row; `HubDiscoveryRow` and `SessionRow` use it.
+
+- [#433](https://github.com/Fiestaboard/FiestaUI/pull/433) [`491eff9`](https://github.com/Fiestaboard/FiestaUI/commit/491eff9005abe3d7c88c65796d580dd9f32c9455) Thanks [@jeffredodd](https://github.com/jeffredodd)! - `FiestaLogo` is now one image named "FiestaBoard" (`role="img"`, optional `label`), with the lockup text hidden from assistive tech, and exports `FIESTA_LOGO_WORDMARK_SELECTOR` (`.logo-fiesta-text`) — the one selector a consumer's axe run should exempt under the WCAG 1.4.3 logotype exception. In dark, an off `Switch` track uses `--input` so it reads at 3.58:1 on a card instead of vanishing (1.10:1).
+
+- [#439](https://github.com/Fiestaboard/FiestaUI/pull/439) [`cf38093`](https://github.com/Fiestaboard/FiestaUI/commit/cf38093faeba838dd8176d034e58092ef72e327f) Thanks [@jeffredodd](https://github.com/jeffredodd)! - `ScheduleEntryForm` takes `layout="compact"` for a phone sheet (07d `322:20318`): the page, start "to" end times on one row, Days in one row of four, then Save. Starts and Ends types, Repeat and "Entry is on" sit behind a "More options" disclosure that opens by itself when the entry already uses one of them or a Save error is inside it, and names what it holds while closed. The default layout is unchanged. New labels: `moreOptions`, `timeRangeTo`, `startsAtSun`, `endsAtSun`, `entryOff`.
+
+### Patch Changes
+
+- [#434](https://github.com/Fiestaboard/FiestaUI/pull/434) [`b559bc5`](https://github.com/Fiestaboard/FiestaUI/commit/b559bc54dd9e119aa8e6f1d337a9bb533d5959af) Thanks [@jeffredodd](https://github.com/jeffredodd)! - BoardDisplay: the first content a board paints lands at once instead of cascading from blank, after loading or after mounting empty. Opening a screen or switching display no longer replays the flap cascade; later content changes still animate.
+
+  Tabs: a tab trigger gets the W2 44px floor on a coarse pointer inside `.fui-coarse`, and the list grows with it.
+
+  Sidebar: the bottom tab bar renders at the end of `<body>` on the client, so it comes after the page in tab and reading order (skip link, header, main content, then the bar).
+
 ## 8.17.0-alpha.3
 
 ### Minor Changes
