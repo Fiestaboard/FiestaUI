@@ -140,11 +140,15 @@ export function FormulaAtom({
             {color ? (
               <>
                 <span aria-hidden="true">=</span>
+                {/* The hairline keeps a black (or filled) tile visible on a dark value pill. */}
                 <span
                   data-slot="formula-atom-color"
                   data-color={color}
                   aria-hidden="true"
-                  className={cn("ml-1 inline-block h-3 w-[1.5ch] rounded-[2px] align-[-1px]", COLOR_DISPLAY[color].bg)}
+                  className={cn(
+                    "ml-1 inline-block h-3 w-[1.5ch] rounded-[2px] align-[-1px] ring-1 ring-foreground/15",
+                    COLOR_DISPLAY[color].bg,
+                  )}
                 />
                 <span className="sr-only">{value}</span>
               </>
