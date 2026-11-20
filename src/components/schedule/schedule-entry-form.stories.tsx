@@ -211,8 +211,9 @@ export const CompactPhoneSheet: Story = {
     // The sheet portals in after its open transition starts; wait for it.
     const more = await body.findByRole("button", { name: "More options" });
     await expect(more).toHaveAttribute("aria-expanded", "false");
-    await expect(body.getByLabelText("Start time")).toHaveValue("09:00");
-    await expect(body.getByLabelText("End time")).toHaveValue("13:00");
+    // The kit TimePicker (BB-FC-7): a clock trigger reading "9:00 AM".
+    await expect(body.getByRole("button", { name: /^Start time/ })).toHaveTextContent("9:00 AM");
+    await expect(body.getByRole("button", { name: /^End time/ })).toHaveTextContent("1:00 PM");
     await expect(body.getByRole("radio", { name: "Weekends" })).toHaveAttribute("aria-checked", "true");
     await expect(body.getByRole("button", { name: "Save" })).toBeVisible();
   },
