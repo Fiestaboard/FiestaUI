@@ -56,9 +56,11 @@ export function pageHue(seed: string): PageHue {
 }
 
 interface PageHeaderProps {
-  icon: LucideIcon;
+  /** Leading title icon. Omit it where the frame draws none (07d Schedule, Integrations). */
+  icon?: LucideIcon;
   title: string;
-  description: string | React.ReactNode;
+  /** Line under the title. Omit it where the frame draws none. */
+  description?: string | React.ReactNode;
   children?: React.ReactNode;
   className?: string;
   animationDelay?: string;
@@ -71,7 +73,11 @@ interface PageHeaderProps {
    * page whose title is dynamic: renaming a board or a plugin must not
    * repaint the page.
    *
-   * Omitted, it falls back to hashing `title`.
+   * Omitted, it is brand orange (`--hue-orange`), which is what the frames
+   * draw (07e `321:9076`, `337:60272`). It used to hash `title`, and the title
+   * is translated copy, so one page changed colour with the locale (BB-FC-3):
+   * Settings was red in English and blue in German. `pageHue` stays exported
+   * for a caller that wants a stable seeded hue from a stable key.
    */
   hue?: PageHue;
   /**
@@ -134,7 +140,7 @@ export const PageHeader = memo(function PageHeader({
   hue,
   collapsed = false,
 }: PageHeaderProps) {
-  const resolved = hue ?? pageHue(title);
+  const resolved = hue ?? "orange";
   return (
     <div
       data-slot="page-header"
@@ -153,12 +159,14 @@ export const PageHeader = memo(function PageHeader({
     >
       <div className="min-w-0">
         <h1 className="page-title flex items-center gap-3">
-          <Icon className={cn("h-6 w-6 flex-shrink-0", HUE_CLASS[resolved])} aria-hidden="true" />
+          {Icon != null && <Icon className={cn("h-6 w-6 flex-shrink-0", HUE_CLASS[resolved])} aria-hidden="true" />}
           {title}
         </h1>
-        <Reveal open={!collapsed}>
-          <p className="page-description">{description}</p>
-        </Reveal>
+        {description != null && (
+          <Reveal open={!collapsed}>
+            <p className="page-description">{description}</p>
+          </Reveal>
+        )}
       </div>
       {children != null && (
         // `-m-1 p-1`: Reveal clips, and the focus ring is a 4px box-shadow

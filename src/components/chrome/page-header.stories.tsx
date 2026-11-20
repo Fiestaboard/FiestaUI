@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Badge } from "../feedback/badge";
 import { Button } from "../forms/button";
 import { Input } from "../forms/input";
-import { PAGE_HUES, PageHeader, pageHue, PageIconGradientDefs } from "./page-header";
+import { PAGE_HUES, PageHeader, PageIconGradientDefs } from "./page-header";
 import { PageToolbar } from "./page-toolbar";
 
 const meta = {
@@ -53,11 +53,10 @@ export const WithActions: Story = {
  * Every primary route, with its ASSIGNED hue — the recommended pattern: walk
  * the nav in order and hand out PAGE_HUES, so all six are used exactly once.
  *
- * The bottom half is the same six routes falling back to `pageHue(title)`, and
- * it is in this story on purpose: three of them land on red, and green and
- * orange never appear. That is the birthday problem — six items into six
- * buckets — not a bad hash, and it is why assignment is the contract rather
- * than a nicety.
+ * The bottom half is the same six routes with no `hue`: every one is brand
+ * orange, as the frames draw it (07e `321:9076`). It used to hash the title,
+ * which is translated copy, so a page changed colour with the locale
+ * (BB-FC-3).
  *
  * What both halves share is that they are FIXED. Schedule is the same colour
  * on every machine, every session, every build. Picking randomly per
@@ -96,15 +95,13 @@ export const EveryPage: Story = {
         </div>
         <div className="border-border border-t pt-8">
           <p className="text-muted-foreground mb-6 font-mono text-xs tracking-widest uppercase">
-            Hashed fallback — three reds, no green, no orange
+            Unassigned — brand orange, whatever the title says
           </p>
           <div className="space-y-8">
             {routes.map((r) => (
               <div key={r.title}>
                 <PageHeader {...r} />
-                <p className="text-muted-foreground -mt-4 font-mono text-xs">
-                  pageHue({JSON.stringify(r.title)}) = {pageHue(r.title)}
-                </p>
+                <p className="text-muted-foreground -mt-4 font-mono text-xs">hue omitted = &quot;orange&quot;</p>
               </div>
             ))}
           </div>
@@ -192,4 +189,15 @@ export const AlignsWithCardContent: Story = {
       </div>
     </div>
   ),
+};
+
+/**
+ * Title only — no icon, no description — the way 07d draws Schedule
+ * (`322:9978`) and Integrations (`324:40267`). Actions still sit on the right.
+ */
+export const TitleOnly: Story = {
+  args: {
+    title: "Schedule",
+    children: <Button variant="brand">Add entry</Button>,
+  },
 };

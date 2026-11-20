@@ -59,3 +59,31 @@ describe("PageHeader collapsed", () => {
     expect(action).toHaveClass("ml-auto");
   });
 });
+
+/*
+ * BB-FC-3: the icon colour used to be hashed from the TRANSLATED title, so
+ * Settings was red in English and blue in German. Figma (07e `321:9076`,
+ * `337:60272`) draws page icons in brand orange; an unassigned page now takes
+ * that, independent of the copy. Schedule/Integrations draw no icon and no
+ * description (07d `322:9978`, `324:40267`), so both are optional.
+ */
+describe("PageHeader icon colour and optional parts", () => {
+  const iconClass = (): string => document.querySelector("[data-slot=page-header] h1 svg")!.getAttribute("class") ?? "";
+
+  it.each(["Settings", "Einstellungen", "設定", "Paramètres"])("paints %s in brand orange", (title) => {
+    render(<PageHeader icon={Monitor} title={title} description="x" />);
+    expect(iconClass()).toContain("text-hue-orange");
+  });
+
+  it("still honours an assigned hue", () => {
+    render(<PageHeader icon={Monitor} title="Settings" description="x" hue="green" />);
+    expect(iconClass()).toContain("text-hue-green");
+  });
+
+  it("renders without an icon or a description", () => {
+    render(<PageHeader title="Schedule" />);
+    const h1 = screen.getByRole("heading", { level: 1, name: "Schedule" });
+    expect(h1.querySelector("svg")).toBeNull();
+    expect(document.querySelector("[data-slot=page-header] .page-description")).toBeNull();
+  });
+});
