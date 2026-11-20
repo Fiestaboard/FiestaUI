@@ -290,3 +290,32 @@ describe("BoardSelector hub glyph shapes (S7)", () => {
     expect(glyph.getAttribute("class")!.split(/\s+/)).toContain(iconClass);
   });
 });
+
+/*
+ * `BoardOption.description` (FiestaBoard BB-A-11; 07a `310:34278` draws each
+ * display as "Type W×H · <current page or mode>" under its name). It is the
+ * option's DESCRIPTION, never part of its name, and the trigger shows the
+ * name alone.
+ */
+describe("BoardSelector option detail", () => {
+  const DETAILED: BoardOption[] = [
+    { id: "kitchen", name: "Kitchen", description: "Flagship 22 × 6 · Pizza Special" },
+    { id: "den", name: "Den TV", description: "FiestaPanel 34 × 14 · Family Board", status: "error" },
+  ];
+
+  it("shows each display's type, size and page under its name, as its description", async () => {
+    render(<BoardSelector boards={DETAILED} value="kitchen" onChange={() => {}} labels={LABELS} />);
+    const list = await openList();
+    const kitchen = list.getByRole("option", { name: "Kitchen" });
+    expect(kitchen).toHaveAccessibleDescription("Flagship 22 × 6 · Pizza Special");
+    const den = list.getByRole("option", { name: "Den TV" });
+    expect(den).toHaveAccessibleDescription(/FiestaPanel 34 × 14 · Family Board/);
+    expect(den).toHaveAccessibleDescription(/Unavailable/);
+  });
+
+  it("keeps the trigger to the name", () => {
+    render(<BoardSelector boards={DETAILED} value="kitchen" onChange={() => {}} labels={LABELS} />);
+    expect(trigger()).toHaveTextContent("Kitchen");
+    expect(trigger()).not.toHaveTextContent("Flagship");
+  });
+});

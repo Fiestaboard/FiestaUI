@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { expect, userEvent, within } from "storybook/test";
 
 import { Label } from "./label";
 import {
@@ -86,6 +87,37 @@ export const Default: Story = {
       </SelectContent>
     </Select>
   ),
+};
+
+/**
+ * `description`: a muted second line that describes the option without
+ * joining its name or the trigger. The popup is portaled (outside VRT's
+ * `#storybook-root`); `play` holds the contract.
+ */
+export const WithDescriptions: Story = {
+  args: { defaultValue: "kitchen" },
+  render: (args) => (
+    <Select {...args}>
+      <SelectTrigger className="w-[240px]" aria-label="Display">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="kitchen" description="Flagship 22 × 6 · Dinner note">
+          Kitchen board
+        </SelectItem>
+        <SelectItem value="fridge" description="Note 15 × 3 · Grocery list">
+          Fridge note
+        </SelectItem>
+      </SelectContent>
+    </Select>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("combobox", { name: "Display" })).not.toHaveTextContent("Flagship");
+    await userEvent.click(canvas.getByRole("combobox", { name: "Display" }));
+    const option = await within(document.body).findByRole("option", { name: "Kitchen board" });
+    await expect(option).toHaveAccessibleDescription("Flagship 22 × 6 · Dinner note");
+  },
 };
 
 export const WithDefaultValue: Story = {

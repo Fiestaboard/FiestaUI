@@ -500,6 +500,7 @@ const GridRow = memo(
     animationsEnabled = true,
     flapStepMs,
     stepStart,
+    firstPaint,
     showSeams = false,
     isRowSeam = false,
     seamGap = "6px",
@@ -515,6 +516,7 @@ const GridRow = memo(
     animationsEnabled?: boolean;
     flapStepMs: number;
     stepStart: RefObject<number | null>;
+    firstPaint: RefObject<boolean>;
     showSeams?: boolean;
     isRowSeam?: boolean;
     seamGap?: string;
@@ -552,6 +554,7 @@ const GridRow = memo(
                 animationsEnabled={animationsEnabled}
                 flapStepMs={flapStepMs}
                 stepStart={stepStart}
+                firstPaint={firstPaint}
                 rowIdx={rowIdx}
                 colIdx={colIdx}
                 code62Glyph={code62Glyph}
@@ -572,6 +575,7 @@ const GridRow = memo(
     if (prevProps.animationsEnabled !== nextProps.animationsEnabled) return false;
     if (prevProps.flapStepMs !== nextProps.flapStepMs) return false;
     if (prevProps.stepStart !== nextProps.stepStart) return false;
+    if (prevProps.firstPaint !== nextProps.firstPaint) return false;
     if (prevProps.showSeams !== nextProps.showSeams) return false;
     if (prevProps.isRowSeam !== nextProps.isRowSeam) return false;
     if (prevProps.seamGap !== nextProps.seamGap) return false;
@@ -689,6 +693,7 @@ const CharTile = memo(
     animationsEnabled = true,
     flapStepMs,
     stepStart,
+    firstPaint,
     rowIdx = 0,
     colIdx = 0,
     code62Glyph = "degree",
@@ -701,6 +706,11 @@ const CharTile = memo(
     /** Resolved milliseconds per character step — see `flapSpeed`. */
     flapStepMs: number;
     stepStart: RefObject<number | null>;
+    /**
+     * True until the board has painted content (see BoardDisplay). While it
+     * is, a tile lands on its target instead of walking the drum to it.
+     */
+    firstPaint: RefObject<boolean>;
     rowIdx?: number;
     colIdx?: number;
     /** Resolved glyph of this board's code-62 flap; see {@link drumChar}. */
@@ -897,8 +907,9 @@ const CharTile = memo(
         prevTargetCharIndexRef.current = target;
 
         // Already there, or the target never changed while loading: only tiles
-        // whose character actually changed are supposed to flip.
-        if (currentCharIndexRef.current === target || prevTarget === target) {
+        // whose character actually changed are supposed to flip. The board's
+        // first content lands too: loading is not a change (first paint).
+        if (currentCharIndexRef.current === target || prevTarget === target || firstPaint.current) {
           setTransitioning(false);
           setCurrentChar(target);
           justStoppedLoadingRef.current = false;
@@ -930,6 +941,7 @@ const CharTile = memo(
       step,
       stopStepping,
       stepStart,
+      firstPaint,
     ]);
 
     // Effect 2: message changes — the cascade.
@@ -975,8 +987,9 @@ const CharTile = memo(
       prevTargetCharIndexRef.current = targetCharIndex;
 
       // Target unchanged, or the tile is already showing it: only tiles whose
-      // character actually changed are supposed to flip.
-      if (prevTarget === targetCharIndex || currentCharIndexRef.current === targetCharIndex) {
+      // character actually changed are supposed to flip. Nor does the board's
+      // first content: an empty mount filling in is not a change (first paint).
+      if (prevTarget === targetCharIndex || currentCharIndexRef.current === targetCharIndex || firstPaint.current) {
         stopStepping();
         setTransitioning(false);
         if (currentCharIndexRef.current !== targetCharIndex) setCurrentChar(targetCharIndex);
@@ -997,6 +1010,7 @@ const CharTile = memo(
       step,
       stopStepping,
       stepStart,
+      firstPaint,
     ]);
 
     // Color tiles also animate - they cycle through all characters during loading
@@ -1210,6 +1224,7 @@ const CharTile = memo(
       prevProps.animationsEnabled === nextProps.animationsEnabled &&
       prevProps.flapStepMs === nextProps.flapStepMs &&
       prevProps.stepStart === nextProps.stepStart &&
+      prevProps.firstPaint === nextProps.firstPaint &&
       prevProps.code62Glyph === nextProps.code62Glyph
     );
   },
@@ -1384,6 +1399,19 @@ export const BoardDisplay = memo(
     useEffect(() => {
       stepStart.current = null;
     });
+
+    // First paint: the board shows what is on it now. Opening a screen or
+    // switching display is not a change, so the first content this board
+    // paints — after loading, or after mounting empty — lands at once; only a
+    // later change cascades. Tiles read this in their passive effects, which
+    // run before this parent effect in the same commit, so the commit that
+    // first brings content still sees `true`. A ref, not a prop value, so
+    // clearing it re-renders nothing.
+    const hasContent = !isLoading && (cells !== undefined || message != null);
+    const firstPaint = useRef(true);
+    useEffect(() => {
+      if (hasContent) firstPaint.current = false;
+    }, [hasContent]);
 
     // Get dimensions for the device type
     const dims = resolveDimensions(deviceType, notesWide, notesTall, gridRows, gridCols);
@@ -1571,6 +1599,7 @@ export const BoardDisplay = memo(
                     animationsEnabled={motionEnabled}
                     flapStepMs={flapStepMs}
                     stepStart={stepStart}
+                    firstPaint={firstPaint}
                     showSeams={showSeams}
                     isRowSeam={isRowSeam}
                     seamGap={seamGap}

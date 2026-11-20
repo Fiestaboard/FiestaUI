@@ -1276,6 +1276,30 @@ describe("Sidebar bottom nav, review follow-ups", () => {
     expect(row.querySelector('[data-slot="nav-badge"]')).toHaveAttribute("data-tone", "destructive");
   });
 
+  it("puts the tab bar after the page in tab order (FiestaBoard BB-A-22)", () => {
+    // Skip link, header, main content, THEN the bar: it is fixed at the
+    // bottom, so it is read and tabbed last, after the page it sits over.
+    render(
+      <>
+        <Sidebar
+          labels={MORE_LABELS}
+          items={ITEMS}
+          variant="bottom-nav"
+          renderLink={renderLink}
+          collapsed={false}
+          onToggleCollapsed={() => {}}
+          maxWidth={1680}
+          sidebarInset={12}
+        />
+        <main>
+          <button type="button">Compose</button>
+        </main>
+      </>,
+    );
+    const main = screen.getByRole("main");
+    expect(main.compareDocumentPosition(bar()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("S7: keeps the bar clear of the home indicator", () => {
     renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: ITEMS });
     expect(bar().className).toContain("bottom-[calc(0.75rem+env(safe-area-inset-bottom))]");

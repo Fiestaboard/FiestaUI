@@ -12,15 +12,22 @@ import { cn } from "../../lib/utils";
  * pinned to the top-right of the popup. Sizes are a scale on this single
  * design, not separate designs — `md` (40px) for roomy surfaces like Sheet,
  * `sm` (32px) for the denser Dialog header. Both clear the WCAG 2.2 SC 2.5.8
- * 24x24 minimum, which the pre-unification 16px bare Dialog icon did not.
+ * 24x24 minimum, which the pre-unification 16px bare Dialog icon did not, and
+ * both reach 44x44 under `fui-coarse` on a coarse pointer.
  */
 const overlayCloseVariants = cva(
   "absolute right-4 top-4 flex items-center justify-center rounded-full bg-muted/80 transition-colors hover:bg-muted focus-ring disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       size: {
-        sm: "size-8 [&_svg]:size-4",
-        md: "size-10 [&_svg]:size-5",
+        // Under the opted-in coarse layer (W2) each size gains an invisible
+        // ::after that pads the target to 44×44 (--touch-target): 32 + 2×6
+        // and 40 + 2×2. The chip itself does not grow, so a dialog title
+        // beside it does not move (BB-C-26). The popup is the chip's
+        // positioned ancestor, and the chip is itself absolute, so the
+        // pseudo-element centres on the chip.
+        sm: "size-8 [&_svg]:size-4 coarse:after:absolute coarse:after:-inset-1.5",
+        md: "size-10 [&_svg]:size-5 coarse:after:absolute coarse:after:-inset-0.5",
       },
     },
     defaultVariants: {
