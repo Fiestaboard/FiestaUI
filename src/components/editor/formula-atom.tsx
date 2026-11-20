@@ -3,6 +3,7 @@
 import { Braces, CircleAlert, Sigma } from "lucide-react";
 import type * as React from "react";
 
+import { type BoardColorName, COLOR_DISPLAY } from "../../lib/board-colors";
 import { cn } from "../../lib/utils";
 import { Badge } from "../feedback/badge";
 
@@ -30,6 +31,42 @@ export interface FormulaAtomProps extends Omit<React.ComponentProps<"span">, "ch
    */
   value: string;
   labels?: Partial<FormulaAtomLabels>;
+  /**
+   * The board colour this result lights, when the formula returns a colour
+   * (e.g. `COLOR("GREEN")`). A board colour name (`green`, `purple`), its
+   * code (`66`) or the code as the board writes it (`{66}`). The value
+   * segment then shows `=` and that colour's tile, as the template's colour
+   * tiles do, instead of the raw code; `value` stays its accessible text and
+   * title, so pass a readable one ("= green"). Anything else, and any error
+   * state, falls back to `value` as text.
+   */
+  valueColor?: string;
+}
+
+/** Codes and aliases the board accepts for a colour, beyond the names. */
+const BOARD_COLOR_ALIASES: Readonly<Record<string, BoardColorName>> = Object.assign(Object.create(null), {
+  "63": "red",
+  "64": "orange",
+  "65": "yellow",
+  "66": "green",
+  "67": "blue",
+  "68": "violet",
+  "69": "white",
+  "70": "black",
+  "71": "black",
+  purple: "violet",
+  filled: "black",
+});
+
+/** `valueColor` as a board colour name, or null. Own keys only: `toString` is not a colour. */
+function resolveValueColor(valueColor: string | undefined): BoardColorName | null {
+  if (!valueColor) return null;
+  const key = valueColor
+    .trim()
+    .replace(/^\{(.*)\}$/, "$1")
+    .toLowerCase();
+  if (Object.hasOwn(COLOR_DISPLAY, key)) return key as BoardColorName;
+  return BOARD_COLOR_ALIASES[key] ?? null;
 }
 
 /**
@@ -45,11 +82,13 @@ export function FormulaAtom({
   source,
   value,
   labels,
+  valueColor,
   className,
   ...props
 }: FormulaAtomProps) {
   const l = { ...DEFAULT_FORMULA_ATOM_LABELS, ...labels };
   const error = state === "error";
+  const color = error ? null : resolveValueColor(valueColor);
   const Icon = error ? CircleAlert : kind === "variable" ? Braces : Sigma;
 
   return (
@@ -60,8 +99,13 @@ export function FormulaAtom({
       data-kind={kind}
       data-state={state}
       className={cn(
-        "min-w-0 max-w-full shrink gap-1.5 rounded-[4px] border-0 py-0.5 pl-1.5 pr-[3px] align-baseline font-mono text-xs leading-4 font-normal",
-        error && "border border-destructive bg-tint-danger text-destructive",
+        // normal-case: the source shows as written even inside the template
+        // editor's uppercase surface (BB-FP-10). Only the caller's value
+        // reflects board output.
+        "min-w-0 max-w-full shrink gap-1.5 rounded-[4px] border-0 py-0.5 pl-1.5 pr-[3px] align-baseline font-mono text-xs leading-4 font-normal normal-case",
+        // One shape and one 22px height in every state (BB-FP-12): the error
+        // edge is an inset ring, which takes no layout, not a 1px border.
+        error && "bg-tint-danger text-destructive ring-1 ring-destructive ring-inset",
         className,
       )}
     >
@@ -78,7 +122,20 @@ export function FormulaAtom({
           error ? "bg-destructive text-destructive-foreground" : state === "fallback" ? "bg-tint-warning" : "bg-card",
         )}
       >
-        {value}
+        {color ? (
+          <>
+            <span aria-hidden="true">=</span>
+            <span
+              data-slot="formula-atom-color"
+              data-color={color}
+              aria-hidden="true"
+              className={cn("ml-1 inline-block h-3 w-[1.5ch] rounded-[2px] align-[-1px]", COLOR_DISPLAY[color].bg)}
+            />
+            <span className="sr-only">{value}</span>
+          </>
+        ) : (
+          value
+        )}
       </span>
     </Badge>
   );

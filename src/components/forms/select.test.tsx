@@ -61,6 +61,16 @@ describe("Select", () => {
     expect(onValueChange).toHaveBeenCalledWith("office");
   });
 
+  // BB-FP-4: the listbox popup takes focus on a pointer open; it must not
+  // draw the browser focus outline around the whole popover surface.
+  it("draws no focus outline on the popup", async () => {
+    const user = userEvent.setup();
+    render(<BoardSelect defaultValue="kitchen" />);
+    await user.click(screen.getByRole("combobox", { name: "Board" }));
+    await screen.findByRole("listbox");
+    expect(document.querySelector('[data-slot="select-content"]')).toHaveClass("outline-hidden");
+  });
+
   it("defaults the trigger to data-size=default", () => {
     render(<BoardSelect />);
 
