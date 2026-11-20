@@ -56,7 +56,6 @@ async function pickTime(name: string, hhmm: string) {
   await user.click(
     screen.getByRole("option", { name: `${hour % 12 === 0 ? 12 : hour % 12} ${hour >= 12 ? "PM" : "AM"}` }),
   );
-  if (!screen.queryByRole("listbox", { name: "Minute" })) await user.click(timeButton(name));
   await user.click(screen.getByRole("option", { name: String(minute).padStart(2, "0") }));
 }
 
@@ -293,8 +292,9 @@ describe("ScheduleEntryForm", () => {
     }
     // The kit TimePicker, not a native time input (BB-FC-7, kit `18:89`).
     expect(document.querySelector('input[type="time"]')).toBeNull();
-    expect(timeButton("Start time")).toHaveTextContent("9:00 AM");
-    expect(timeButton("End time")).toHaveTextContent("1:00 PM");
+    // The name carries the value, as the native input's did.
+    expect(timeButton("Start time")).toHaveAccessibleName("Start time 9:00 AM");
+    expect(timeButton("End time")).toHaveAccessibleName("End time 1:00 PM");
     expect(timeButton("Start time").className).toContain("h-control-touch");
     expect(screen.getByRole("switch", { name: "Entry is on" })).toHaveAccessibleDescription(
       "Off keeps the entry but skips it",

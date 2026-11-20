@@ -732,6 +732,8 @@ function ScheduleEntryForm({
         inlineTimes ? null : (
           <Field label={labels.startTime} error={errors.start_time ? labels.errors.start_time : undefined}>
             {timePicker({
+              // The visible <label for> alone would name the trigger without its value.
+              "aria-label": labels.startTime,
               value: value.start_time,
               onValueChange: (next) => update({ start_time: next }),
             })}
@@ -747,6 +749,8 @@ function ScheduleEntryForm({
               error={errors.start_time ? labels.errors.start_time : undefined}
             >
               {timePicker({
+                // The visible <label for> alone would name the trigger without its value.
+                "aria-label": labels.startFallbackTime,
                 value: value.start_time,
                 onValueChange: (next) => update({ start_time: next }),
               })}
@@ -779,6 +783,8 @@ function ScheduleEntryForm({
         inlineTimes ? null : (
           <Field label={labels.endTime} error={endTimeError}>
             {timePicker({
+              // The visible <label for> alone would name the trigger without its value.
+              "aria-label": labels.endTime,
               value: value.end_time ?? "",
               onValueChange: (next) => update({ end_time: next }),
             })}
@@ -790,6 +796,8 @@ function ScheduleEntryForm({
           {repairTimes.end ? (
             <Field label={labels.endFallbackTime} description={labels.fallbackHint} error={endTimeError}>
               {timePicker({
+                // The visible <label for> alone would name the trigger without its value.
+                "aria-label": labels.endFallbackTime,
                 value: value.end_time ?? "",
                 onValueChange: (next) => update({ end_time: next }),
               })}
