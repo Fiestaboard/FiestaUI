@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -10,6 +11,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "./alert-dialog";
 
 /*
@@ -68,5 +70,30 @@ describe("AlertDialog (BB-C-12)", () => {
     expect(action).toHaveAttribute("data-variant", "default");
     expect(classTokens(action)).toContain("bg-primary");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveAttribute("data-variant", "outline");
+  });
+
+  it.each([false, true])("opens from its trigger (asChild %s)", async (asChild) => {
+    const user = userEvent.setup();
+    render(
+      <AlertDialog>
+        {asChild ? (
+          <AlertDialogTrigger asChild>
+            <button type="button">Delete board</button>
+          </AlertDialogTrigger>
+        ) : (
+          <AlertDialogTrigger>Delete board</AlertDialogTrigger>
+        )}
+        <AlertDialogContent>
+          <AlertDialogTitle>Delete Kitchen?</AlertDialogTitle>
+          <AlertDialogAction variant="destructive" size="lg">
+            Delete
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>,
+    );
+    await user.click(screen.getByRole("button", { name: "Delete board" }));
+
+    expect(screen.getByRole("alertdialog", { name: "Delete Kitchen?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("h-10");
   });
 });
