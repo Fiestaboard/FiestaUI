@@ -1,0 +1,160 @@
+import assert from "node:assert/strict";
+
+import type { Page } from "playwright";
+
+/**
+ * BB-FS-1 / BB-FS-3 in a real browser: jsdom computes no layout, no media
+ * queries and no :hover, so the class contract in sidebar-fidelity.test.tsx
+ * is checked here against what Chromium actually paints.
+ *
+ * - Shape (07a `302:20841` "Collapse toggle"): 16×28, 8px corners, top 18px
+ *   below the rail's top, right edge 2px past the rail's.
+ * - Visibility (owner ruling, `collapseHandle="hover"` default): hidden at
+ *   rest; shown while the pointer is on the rail; shown on keyboard focus with
+ *   the kit focus ring; shown at rest when the device cannot hover (touch).
+ * - Hover fill is opaque: the translucent accent is layered over --sidebar.
+ */
+const STORY = "app-chrome-sidebar--figma-rail";
+
+const MORE_STORY = "app-chrome-sidebar--bottom-nav-more-open";
+
+/**
+ * BB-FS-4 at 390: with More open only More is lit (Home keeps aria-current),
+ * and the scrim is on top of the header — a point on the header hits the
+ * scrim — while the tab bar stays above it.
+ */
+async function checkMoreSheet(page: Page, id: string) {
+  const original = page.viewportSize();
+  try {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await frames(page);
+    const bar = page.locator('[data-slot="sidebar-bottom-nav"]');
+    await bar.getByRole("button", { name: /^More/ }).click();
+    await frames(page);
+    const state = await page.evaluate(() => {
+      const nav = document.querySelector('[data-slot="sidebar-bottom-nav"]')!;
+      const home = Array.from(nav.querySelectorAll("a")).find((a) => a.textContent?.includes("Home"))!;
+      const more = nav.querySelector('[data-slot="sidebar-bottom-nav-more"]')!;
+      const header = document.querySelector("header")!.getBoundingClientRect();
+      const onHeader = document.elementFromPoint(header.left + header.width / 2, header.top + header.height / 2);
+      const b = more.getBoundingClientRect();
+      const onMore = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      return {
+        homeLit: home.classList.contains("nav-active"),
+        homeCurrent: home.getAttribute("aria-current"),
+        moreLit: more.classList.contains("nav-active"),
+        headerCovered: onHeader?.getAttribute("data-testid") === "mobile-backdrop",
+        moreOnTop: !!onMore && more.contains(onMore),
+      };
+    });
+    // Compared as JSON: page.evaluate's result lives in another realm, so a
+    // strict deep-equal fails on the prototype alone.
+    assert.equal(
+      JSON.stringify(state),
+      JSON.stringify({ homeLit: false, homeCurrent: "page", moreLit: true, headerCovered: true, moreOnTop: true }),
+      `${id}: More sheet state vs 07a 308:36074`,
+    );
+    await bar.getByRole("button", { name: /^More/ }).click();
+  } finally {
+    if (original) await page.setViewportSize(original);
+  }
+}
+
+const HANDLE = '[data-slot="sidebar-collapse-handle"]';
+
+async function frames(page: Page) {
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+}
+
+async function opacity(page: Page) {
+  // Wait out the duration-fast opacity transition rather than sampling mid-way.
+  await page.waitForFunction(
+    (sel) =>
+      document
+        .querySelector(sel)!
+        .getAnimations()
+        .every((a) => a.playState !== "running"),
+    HANDLE,
+    { timeout: 2000 },
+  );
+  return page.evaluate((sel) => Number(getComputedStyle(document.querySelector(sel)!).opacity), HANDLE);
+}
+
+export async function checkSidebarHandle(page: Page, id: string) {
+  if (id === MORE_STORY) return checkMoreSheet(page, id);
+  if (id !== STORY) return;
+  const original = page.viewportSize();
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.mouse.move(1400, 880);
+    await frames(page);
+
+    const geometry = await page.evaluate((sel) => {
+      const handle = document.querySelector<HTMLElement>(sel)!;
+      const rail = handle.closest("aside")!;
+      const h = handle.getBoundingClientRect();
+      const r = rail.getBoundingClientRect();
+      return {
+        width: Math.round(h.width),
+        height: Math.round(h.height),
+        radius: getComputedStyle(handle).borderTopLeftRadius,
+        top: Math.round(h.top - r.top),
+        proud: Math.round(h.right - r.right),
+      };
+    }, HANDLE);
+    assert.equal(
+      JSON.stringify(geometry),
+      JSON.stringify({ width: 16, height: 28, radius: "8px", top: 18, proud: 2 }),
+      `${id}: handle geometry vs 07a`,
+    );
+
+    assert.equal(await opacity(page), 0, `${id}: the handle is hidden at rest`);
+
+    // Pointer on the rail (not on the handle) reveals it.
+    const rail = await page.locator("aside").boundingBox();
+    await page.mouse.move(rail!.x + 120, rail!.y + 400);
+    assert.equal(await opacity(page), 1, `${id}: hovering the rail reveals the handle`);
+
+    // Hovering the handle itself fills it solidly.
+    await page.hover(HANDLE);
+    await frames(page);
+    const fill = await page.evaluate((sel) => {
+      const s = getComputedStyle(document.querySelector(sel)!);
+      return { image: s.backgroundImage, color: s.backgroundColor };
+    }, HANDLE);
+    assert.match(fill.image, /linear-gradient/, `${id}: hover lays the accent over the rail fill`);
+    assert.doesNotMatch(fill.color, /\/ 0?\.\d|rgba\(.*, 0?\.\d+\)|transparent/, `${id}: hover base stays opaque`);
+
+    // Keyboard focus reveals it, with the kit ring, the pointer far away.
+    await page.mouse.move(1400, 880);
+    assert.equal(await opacity(page), 0, `${id}: hidden again once the pointer leaves`);
+    let focused = false;
+    for (let i = 0; i < 40 && !focused; i++) {
+      await page.keyboard.press("Tab");
+      focused = await page.evaluate((sel) => document.activeElement === document.querySelector(sel), HANDLE);
+    }
+    assert.ok(focused, `${id}: the handle is in the Tab order`);
+    assert.equal(await opacity(page), 1, `${id}: keyboard focus reveals the handle`);
+    const ring = await page.evaluate((sel) => getComputedStyle(document.querySelector(sel)!).boxShadow, HANDLE);
+    assert.match(ring, /0px 0px 0px 4px/, `${id}: focus wears the kit focus-ring stack`);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+
+    // Touch: no hover to reveal it, so it stays visible at rest.
+    // Chromium reports (hover: none) / (pointer: coarse) under touch
+    // emulation, as a phone or tablet does.
+    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+    await page.mouse.move(1400, 880);
+    assert.ok(
+      await page.evaluate(() => matchMedia("(hover: none)").matches),
+      `${id}: (hover: none) emulation took effect`,
+    );
+    assert.equal(await opacity(page), 1, `${id}: on a device that cannot hover the handle is visible at rest`);
+  } finally {
+    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false }).catch(() => {});
+    await cdp.detach().catch(() => {});
+    if (original) await page.setViewportSize(original);
+  }
+}

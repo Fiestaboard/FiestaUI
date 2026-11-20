@@ -28,7 +28,16 @@ function token(name) {
 
 test("popovers outrank every layer that can host their trigger", () => {
   const popover = token("z-popover");
-  for (const layer of ["z-sidebar", "z-mobile-backdrop", "z-mobile-menu", "z-mobile-header", "z-sheet", "z-modal"]) {
+  for (const layer of [
+    "z-sidebar",
+    "z-mobile-backdrop",
+    "z-mobile-menu",
+    "z-mobile-header",
+    "z-bottom-nav-backdrop",
+    "z-bottom-nav",
+    "z-sheet",
+    "z-modal",
+  ]) {
     assert.ok(
       popover > token(layer),
       `--z-popover (${popover}) must beat --${layer} (${token(layer)}): that layer can hold a menu trigger`,
@@ -41,4 +50,10 @@ test("tooltips still outrank popovers", () => {
     token("z-tooltip") > token("z-popover"),
     "a tooltip describes the item under the cursor, so it stays on top",
   );
+});
+
+test("the More sheet's scrim dims the header, and the bar and drawer stand above it (BB-FS-4)", () => {
+  assert.ok(token("z-bottom-nav-backdrop") > token("z-mobile-header"), "07a dims the header under the More sheet");
+  assert.ok(token("z-bottom-nav") > token("z-bottom-nav-backdrop"), "More must stay tappable over its own scrim");
+  assert.ok(token("z-sheet") > token("z-bottom-nav"), "a sheet covers all chrome, the tab bar included");
 });
