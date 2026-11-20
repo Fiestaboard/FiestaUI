@@ -4,6 +4,7 @@ import { useRender } from "@base-ui/react/use-render";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
+import { ListItem } from "../typography/list";
 
 /**
  * ListRow: one record in a list (slice 1.8a, C16, WEB-18).
@@ -34,7 +35,14 @@ import { cn } from "../../lib/utils";
  * **Element.** A div by default, an `<li>` inside a {@link ListRowGroup}.
  * `render` swaps it: `render={<a href="…" />}` for a row that navigates, or
  * `render={<button />}`. A link or button row gets the hover fill and the
- * shared focus ring. Do not put another control inside a link or button row
+ * shared focus ring. Inside a group, a row whose `render` is not an `<li>`
+ * wraps itself in one (BB-B-20: a role="list" may only own listitems), so
+ * `<ListRowGroup><ListRow render={<a />} /></ListRowGroup>` is valid as is.
+ * Props and the ref stay on the link or button; the wrapper takes the
+ * group's corner radius. A row already inside an `<li>` (a raw `<li>` child
+ * of the group, ListRowItem or ListItem) does not wrap again. A `render`
+ * function is assumed not to return an `<li>`; wrap it in ListRowItem if it
+ * does. Do not put another control inside a link or button row
  * (nested interactive content); use a plain row with a trailing control, or
  * put the link on the title.
  *
@@ -60,6 +68,17 @@ interface ListRowGroupContextValue {
 }
 
 const ListRowGroupContext = React.createContext<ListRowGroupContextValue | null>(null);
+
+/**
+ * True inside an `<li>` that already holds a ListRow (BB-B-20). A ListRow
+ * whose `render` swaps its element (a link or button row) wraps itself in an
+ * `<li>` inside a ListRowGroup, so the group's role="list" only ever owns
+ * listitems. This context tells it the item already exists, so it neither
+ * wraps nor renders a second `<li>`. ListRowItem, the kit's own `<li>` rows
+ * and every raw `<li>` or ListItem child of a ListRowGroup provide it; a
+ * ListRowGroup resets it for its own subtree.
+ */
+const ListRowItemContext = React.createContext(false);
 
 const ROW_VARIANT_FOR_GROUP: Record<ListRowGroupVariant, ListRowVariant> = {
   inset: "plain",
@@ -170,6 +189,12 @@ function ListRow({
   ...props
 }: ListRowProps) {
   const group = React.useContext(ListRowGroupContext);
+  const inItem = React.useContext(ListRowItemContext);
+  // BB-B-20: in a group, the row must be (or sit in) a listitem. With no
+  // render it is the <li> itself; a render that swaps the element gets an
+  // <li> around it, unless an <li> already holds the row.
+  const rendersLi = React.isValidElement(render) && render.type === "li";
+  const wrap = group != null && !inItem && render != null && !rendersLi;
   const resolvedVariant = variant ?? group?.variant ?? "plain";
   const resolvedSize = size ?? group?.size ?? "default";
   const hasMeta = meta != null && meta !== false;
@@ -215,8 +240,8 @@ function ListRow({
     </>
   );
 
-  return useRender({
-    defaultTagName: group ? "li" : "div",
+  const element = useRender({
+    defaultTagName: group && !inItem ? "li" : "div",
     render,
     ref: ref as React.Ref<HTMLDivElement>,
     props: {
@@ -229,6 +254,10 @@ function ListRow({
         rowBase,
         selected ? rowSelected : rowInteractive,
         variantClasses[resolvedVariant],
+        // A wrapped plain row follows its <li>'s corners (an inset group's
+        // first and last items), so the hover fill and the focus ring stay
+        // inside the rounded surface. A card row keeps its own radius.
+        wrap && resolvedVariant === "plain" && "rounded-[inherit]",
         sizeClasses[resolvedSize],
         className,
       ),
@@ -240,6 +269,40 @@ function ListRow({
       "data-slot": "list-row",
     },
   });
+
+  return wrap ? <ListRowItem>{element}</ListRowItem> : element;
+}
+
+type ListRowItemProps = React.ComponentProps<"li">;
+
+/**
+ * The `<li>` around a ListRow in a {@link ListRowGroup}. A row with `render`
+ * adds one itself, so this is only needed when the item holds more than the
+ * row, or when a component renders the row through a `render` function that
+ * returns an `<li>`. Rows inside it never render a second `<li>`.
+ */
+function ListRowItem({ ...props }: ListRowItemProps) {
+  return (
+    <ListRowItemContext.Provider value={true}>
+      <li data-slot="list-row-item" {...props} />
+    </ListRowItemContext.Provider>
+  );
+}
+
+/**
+ * A raw `<li>` or ListItem child already is the item: rows inside it must not
+ * wrap again. (ListItem stays context-free so it can render on a server.)
+ */
+function markRawItems(children: React.ReactNode): React.ReactNode {
+  return React.Children.map(children, (child) =>
+    React.isValidElement<{ children?: React.ReactNode }>(child) && (child.type === "li" || child.type === ListItem)
+      ? React.cloneElement(
+          child,
+          undefined,
+          <ListRowItemContext.Provider value={true}>{child.props.children}</ListRowItemContext.Provider>,
+        )
+      : child,
+  );
 }
 
 interface ListRowGroupProps extends React.ComponentProps<"ul"> {
@@ -268,21 +331,34 @@ const groupClasses: Record<ListRowGroupVariant, string> = {
  * keeps list semantics in Safari, which drops them from a `list-style: none`
  * list.
  */
-function ListRowGroup({ variant = "inset", size, className, ...props }: ListRowGroupProps) {
+function ListRowGroup({ variant = "inset", size, className, children, ...props }: ListRowGroupProps) {
   const value = React.useMemo(() => ({ variant: ROW_VARIANT_FOR_GROUP[variant], size }), [variant, size]);
   return (
     <ListRowGroupContext.Provider value={value}>
-      {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- Safari drops list semantics from list-style:none */}
-      <ul
-        role="list"
-        data-slot="list-row-group"
-        data-variant={variant}
-        className={cn("m-0 list-none p-0", groupClasses[variant], className)}
-        {...props}
-      />
+      {/* A group nested inside an item starts a new list: its rows are not in an item yet. */}
+      <ListRowItemContext.Provider value={false}>
+        {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- Safari drops list semantics from list-style:none */}
+        <ul
+          role="list"
+          data-slot="list-row-group"
+          data-variant={variant}
+          className={cn("m-0 list-none p-0", groupClasses[variant], className)}
+          {...props}
+        >
+          {markRawItems(children)}
+        </ul>
+      </ListRowItemContext.Provider>
     </ListRowGroupContext.Provider>
   );
 }
 
-export { ListRow, ListRowGroup };
-export type { ListRowGroupProps, ListRowGroupVariant, ListRowLayout, ListRowProps, ListRowSize, ListRowVariant };
+export { ListRow, ListRowGroup, ListRowItem };
+export type {
+  ListRowGroupProps,
+  ListRowGroupVariant,
+  ListRowItemProps,
+  ListRowLayout,
+  ListRowProps,
+  ListRowSize,
+  ListRowVariant,
+};

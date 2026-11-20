@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import { describe, expect, it } from "vitest";
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../overlays/dropdown-menu";
-import { ListRow, ListRowGroup } from "./list-row";
+import { ListItem } from "../typography/list";
+import { ListRow, ListRowGroup, ListRowItem } from "./list-row";
 
 /*
  * ListRow (slice 1.8a, C16). Appearance is VRT's job; this pins the
@@ -307,5 +308,111 @@ describe("ListRowGroup", () => {
       </ListRowGroup>,
     );
     expect(screen.getByRole("link", { name: "A" })).toHaveAttribute("data-slot", "list-row");
+  });
+});
+
+/*
+ * BB-B-20: axe `aria-required-children` on the Creator IDE Explorer. A
+ * role="list" may only own listitems, and a ListRow with `render` (a link or
+ * button row) used to become a direct <a>/<button> child of the group's <ul>.
+ * These pin the axe rule structurally (jsdom runs no axe): every element
+ * child of the list is an <li>, no <li> sits inside another, and the
+ * interactive row keeps its own element, slot, props and ref.
+ */
+describe("ListRowGroup list semantics (BB-B-20)", () => {
+  function expectValidList(list: HTMLElement, items: number) {
+    for (const child of Array.from(list.children)) {
+      expect(child.tagName, `direct child ${child.outerHTML.slice(0, 80)}`).toBe("LI");
+    }
+    expect(list.querySelectorAll("li li")).toHaveLength(0);
+    expect(within(list).getAllByRole("listitem")).toHaveLength(items);
+  }
+
+  it.each(["inset", "plain", "separated"] as const)(
+    "a %s group's rows are listitems with and without render",
+    (variant) => {
+      const ref = React.createRef<HTMLDivElement>();
+      render(
+        <ListRowGroup variant={variant} aria-label="Pages">
+          <ListRow title="Plain row" />
+          {/* eslint-disable-next-line jsx-a11y/anchor-has-content -- ListRow supplies the content */}
+          <ListRow ref={ref} render={<a href="/pages/a" />} title="Link row" data-testid="link-row" />
+          <ListRow render={<button type="button" />} title="Button row" />
+          <ListRow render={<div />} title="Div row" />
+        </ListRowGroup>,
+      );
+
+      const list = screen.getByRole("list", { name: "Pages" });
+      expectValidList(list, 4);
+
+      const link = screen.getByRole("link", { name: "Link row" });
+      expect(link).toHaveAttribute("data-slot", "list-row");
+      expect(link).toHaveAttribute("data-testid", "link-row");
+      expect(ref.current).toBe(link);
+      expect(link.parentElement?.parentElement).toBe(list);
+      expect(screen.getByRole("button", { name: "Button row" }).parentElement?.tagName).toBe("LI");
+      // The row variant still comes from the group through the wrapper.
+      expect(link).toHaveAttribute("data-variant", variant === "separated" ? "card" : "plain");
+      // A wrapped plain row follows its <li>'s corners (inset first/last);
+      // a card row keeps its own radius.
+      if (variant === "separated") {
+        expect(link).toHaveClass("rounded-xl");
+        expect(link).not.toHaveClass("rounded-[inherit]");
+      } else {
+        expect(link).toHaveClass("rounded-[inherit]");
+      }
+      // A row that is the <li> itself is unchanged.
+      expect(screen.getByText("Plain row").closest('[data-slot="list-row"]')).not.toHaveClass("rounded-[inherit]");
+    },
+  );
+
+  it("keeps a single listitem when the row is already wrapped in an <li>, ListItem or ListRowItem", () => {
+    render(
+      <ListRowGroup aria-label="Pages">
+        <li>
+          {/* eslint-disable-next-line jsx-a11y/anchor-has-content -- ListRow supplies the content */}
+          <ListRow render={<a href="/a" />} title="Raw li" />
+        </li>
+        <ListItem>
+          <ListRow render={<button type="button" />} title="ListItem" />
+        </ListItem>
+        <ListRowItem>
+          <ListRow title="ListRowItem" />
+        </ListRowItem>
+      </ListRowGroup>,
+    );
+    expectValidList(screen.getByRole("list", { name: "Pages" }), 3);
+  });
+
+  it("does not wrap a row rendered as an <li>", () => {
+    render(
+      <ListRowGroup aria-label="Pages">
+        <ListRow render={<li data-testid="own-li" />} title="Own li" />
+      </ListRowGroup>,
+    );
+    expectValidList(screen.getByRole("list", { name: "Pages" }), 1);
+    expect(screen.getByTestId("own-li")).toHaveAttribute("data-slot", "list-row");
+  });
+
+  it("a group nested inside an item wraps its own link rows again", () => {
+    render(
+      <ListRowGroup aria-label="Outer">
+        <ListRowItem>
+          <ListRowGroup aria-label="Inner">
+            {/* eslint-disable-next-line jsx-a11y/anchor-has-content -- ListRow supplies the content */}
+            <ListRow render={<a href="/inner" />} title="Inner link" />
+          </ListRowGroup>
+        </ListRowItem>
+      </ListRowGroup>,
+    );
+    const inner = screen.getByRole("list", { name: "Inner" });
+    for (const child of Array.from(inner.children)) expect(child.tagName).toBe("LI");
+    expect(within(inner).getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  it("does not wrap a link row outside a group", () => {
+    // eslint-disable-next-line jsx-a11y/anchor-has-content -- ListRow supplies the content
+    const { container } = render(<ListRow render={<a href="/a" />} title="Alone" />);
+    expect(container.firstElementChild?.tagName).toBe("A");
   });
 });
