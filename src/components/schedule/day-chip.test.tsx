@@ -23,12 +23,16 @@ function strip() {
 }
 
 describe("WeekStrip / DayChip", () => {
-  it("is a named radiogroup of touch-size radios on one scrolling line", () => {
+  it("is a named radiogroup of touch-size radios on one joined tray (BB-FC-4)", () => {
     render(strip());
     const group = screen.getByRole("radiogroup", { name: "Day" });
     expect(group.dataset.weekStrip).toBe("");
-    expect(group.className).toContain("flex-nowrap");
-    expect(group.className).toContain("overflow-x-auto");
+    expect(group.dataset.variant).toBe("tray");
+    const classes = group.className.split(/\s+/);
+    for (const cls of ["flex-nowrap", "bg-muted", "p-0.5", "gap-0.5", "max-w-full"]) expect(classes).toContain(cls);
+    // No sideways scroller around a tray: it clipped the first chip at 390
+    // (BB-FC-4); a tray holds as many days as fit and the caller picks them.
+    for (const cls of ["overflow-x-auto", "-m-1", "p-1"]) expect(classes).not.toContain(cls);
     const radios = screen.getAllByRole("radio");
     expect(radios).toHaveLength(3);
     for (const radio of radios) expect(radio.dataset.size).toBe("touch");
@@ -76,5 +80,17 @@ describe("WeekStrip / DayChip", () => {
     );
     expect(screen.getByRole("radio").dataset.size).toBe("md");
     expect(screen.getByRole("radiogroup").className).toContain("extra");
+  });
+
+  it("keeps the scrolling pill row as an explicit opt-in", () => {
+    render(
+      <WeekStrip aria-label="Day" variant="pills" defaultValue="a">
+        <DayChip value="a">Mon 3</DayChip>
+      </WeekStrip>,
+    );
+    const group = screen.getByRole("radiogroup");
+    expect(group.dataset.variant).toBe("pills");
+    expect(group.className).toContain("overflow-x-auto");
+    expect(group.className).not.toContain("bg-muted");
   });
 });

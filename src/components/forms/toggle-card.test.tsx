@@ -421,7 +421,7 @@ describe("SegmentedControl tray variant", () => {
     );
     const group = screen.getByRole("radiogroup", { name: "Day" });
     expect(group).toHaveAttribute("data-variant", "tray");
-    for (const cls of ["bg-muted", "rounded-lg", "p-0.5", "gap-0.5", "flex-nowrap", "max-w-full"]) {
+    for (const cls of ["bg-muted", "rounded-md", "p-0.5", "gap-0.5", "flex-nowrap", "max-w-full"]) {
       expect(group.className.split(/\s+/)).toContain(cls);
     }
     expect(group.className.split(/\s+/)).not.toContain("gap-2");

@@ -359,7 +359,8 @@ const segmentedControlVariants = cva("", {
      */
     variant: {
       pills: "gap-2",
-      tray: "gap-0.5 rounded-lg bg-muted p-0.5",
+      // r8 like its items (`rounded-md`), as the frame draws both.
+      tray: "gap-0.5 rounded-md bg-muted p-0.5",
     },
     layout: {
       inline: "flex items-center",

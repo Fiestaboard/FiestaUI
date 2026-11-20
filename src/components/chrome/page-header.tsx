@@ -28,8 +28,9 @@ const HUE_CLASS: Record<PageHue, string> = {
 };
 
 /**
- * FALLBACK hue for a page that has not been assigned one. Prefer passing
- * `hue` explicitly — see the note on the prop.
+ * A stable SEEDED hue for a caller that wants one from a stable key (an id,
+ * never translated copy). PageHeader no longer falls back to it: an
+ * unassigned page is brand orange (BB-FC-3).
  *
  * DETERMINISTIC, NOT RANDOM, and that part is the whole design. A route that
  * is green today and blue tomorrow teaches a user nothing and reads as a

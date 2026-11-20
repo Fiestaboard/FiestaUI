@@ -13,11 +13,13 @@ import {
 /**
  * WeekStrip and DayChip: the Schedule's day picker (slice 1.8d, C24).
  *
- * The web goalpost (07d Schedule · Day `322:19169`) draws the strip as a
- * row of touch-size SegmentedControl pills labelled "Thu 5", so these are
- * that radiogroup, not a new look: one tab stop, arrow keys, the shared
- * selected pigment. The strip stays on one line and scrolls sideways when
- * the week does not fit.
+ * The web goalpost (07d Schedule · Day `322:19169`) draws the strip as
+ * touch-size SegmentedControl items labelled "Thu 5" joined on one muted
+ * tray (`variant="tray"`, the default here, BB-FC-4), so these are that
+ * radiogroup, not a new look: one tab stop, arrow keys, the shared selected
+ * pigment. A tray does not scroll: the frame fits five days in 358px, and
+ * the caller passes the days that fit (a scroller clipped the first chip at
+ * 390). `variant="pills"` keeps the old loose row, which scrolls sideways.
  *
  * The one thing borrowed from native 06 (`FB / Day chip` `31:115`) is the
  * **gap dot**: a day with a stretch no entry covers gets a small warning
@@ -28,15 +30,19 @@ import {
 
 type WeekStripProps = SegmentedControlProps;
 
-function WeekStrip({ size = "touch", className, ...props }: WeekStripProps) {
+function WeekStrip({ size = "touch", variant = "tray", className, ...props }: WeekStripProps) {
   return (
     <SegmentedControl
       data-week-strip=""
       size={size}
+      variant={variant}
       layout="inline"
       wrap={false}
-      // p-1 / -m-1: room inside the scroller for the 3px focus ring.
-      className={cn("-m-1 max-w-[calc(100%+0.5rem)] overflow-x-auto p-1", className)}
+      className={cn(
+        // p-1 / -m-1: room inside the pill scroller for the 3px focus ring.
+        variant === "pills" && "-m-1 max-w-[calc(100%+0.5rem)] overflow-x-auto p-1",
+        className,
+      )}
       {...props}
     />
   );
