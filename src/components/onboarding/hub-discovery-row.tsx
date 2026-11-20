@@ -4,7 +4,7 @@ import { ChevronRight, Server } from "lucide-react";
 import * as React from "react";
 
 import { IconTile } from "../containment/icon-tile";
-import { ListRow } from "../containment/list-row";
+import { ListRow, ListRowItem } from "../containment/list-row";
 
 interface HubDiscoveryRowProps extends Omit<React.ComponentProps<"li">, "children" | "onSelect"> {
   /** Human-readable hub name. Content slots must not contain controls. */
@@ -49,7 +49,7 @@ function HubDiscoveryRow({
   const id = React.useId();
   const hasMeta = meta != null && meta !== false;
   return (
-    <li {...props} ref={ref} data-slot="hub-discovery-row">
+    <ListRowItem {...props} ref={ref} data-slot="hub-discovery-row">
       <ListRow
         render={<button type="button" disabled={disabled} onClick={onSelect} />}
         aria-labelledby={`${id}-name ${id}-address${hasMeta ? ` ${id}-meta` : ""}`}
@@ -68,7 +68,7 @@ function HubDiscoveryRow({
         layout={layout}
         className="rounded-[inherit] disabled:pointer-events-none disabled:opacity-50 [&_[data-slot=list-row-meta]]:max-w-full"
       />
-    </li>
+    </ListRowItem>
   );
 }
 
