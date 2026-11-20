@@ -54,7 +54,10 @@ function TraceStep({ expression, value, state = "ok", depth = 0, labels, classNa
       <span
         data-slot="trace-step-expression"
         className={cn(
-          "min-w-0 flex-1 wrap-anywhere",
+          // wrap-break-word: wrap at word boundaries and break a token only when it
+          // cannot fit (BB-FP-16, Figma 132:20145); wrap-anywhere split
+          // "random.choice" as "random.choic / e".
+          "min-w-0 flex-1 wrap-break-word",
           state === "skipped" ? "text-muted-foreground" : "text-foreground",
         )}
       >
@@ -63,7 +66,7 @@ function TraceStep({ expression, value, state = "ok", depth = 0, labels, classNa
       <span
         data-slot="trace-step-value"
         className={cn(
-          "min-w-0 max-w-1/2 text-right font-medium wrap-anywhere",
+          "min-w-0 max-w-1/2 text-right font-medium wrap-break-word",
           state === "error" ? "text-destructive" : state === "skipped" ? "text-muted-foreground" : "text-success",
         )}
       >

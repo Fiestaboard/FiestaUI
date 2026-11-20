@@ -91,6 +91,25 @@ const toggleVariants = cva(
           "dark:not-data-[pressed]:data-[press]:bg-muted",
           "data-[pressed]:border-primary",
         ],
+        // The SegmentedControl checked look (BB-FP-16, Figma 132:20145
+        // "Inspect" on): a primary border over the selected tint with
+        // foreground ink, not the solid fill. Off chrome is `outline`'s, so
+        // the 1px border never shifts the box between states. The pressed
+        // classes restate the shared base ones; cn()'s tailwind-merge keeps
+        // these later ones, hover and press included, so the tint never
+        // flashes to the solid primary.
+        tint: [
+          "border bg-background shadow-xs",
+          "not-data-[pressed]:hover:bg-accent not-data-[pressed]:hover:text-accent-foreground",
+          "dark:border-input dark:not-data-[pressed]:bg-card dark:not-data-[pressed]:hover:bg-muted",
+          "not-data-[pressed]:active:bg-accent not-data-[pressed]:active:text-accent-foreground",
+          "dark:not-data-[pressed]:active:bg-muted",
+          "not-data-[pressed]:data-[press]:bg-accent not-data-[pressed]:data-[press]:text-accent-foreground",
+          "dark:not-data-[pressed]:data-[press]:bg-muted",
+          "data-[pressed]:border-primary data-[pressed]:bg-tint-selected data-[pressed]:text-foreground",
+          "data-[pressed]:hover:bg-tint-selected data-[pressed]:active:bg-tint-selected",
+          "data-[pressed]:data-[press]:bg-tint-selected",
+        ],
       },
       // Narrower paddings than Button (px-2 vs px-4 at the default size):
       // toggles are icon-first toolbar controls, and Button's label paddings
