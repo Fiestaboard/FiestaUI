@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -526,5 +526,133 @@ describe("ScheduleEntryForm", () => {
     expect(save.getAttribute("aria-busy")).toBe("true");
     fireEvent.click(save);
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe("ScheduleEntryForm Save name (BB-C-5)", () => {
+  it("names Save by its visible label only: Save idle, Saving… busy, never both", () => {
+    renderForm();
+    expect(screen.getByRole("button", { name: /Sav/ })).toHaveAccessibleName("Save");
+    cleanup();
+    renderForm({ busy: true });
+    expect(screen.getByRole("button", { name: /Sav/ })).toHaveAccessibleName("Saving…");
+  });
+});
+
+describe('ScheduleEntryForm layout="compact" (07d 322:20318, BB-C-5)', () => {
+  const more = () => screen.getByRole("button", { name: /More options/ });
+
+  it("shows the common weekly fixed-time entry as 07d draws it, the rest behind More options", () => {
+    renderForm({ layout: "compact", onDelete: vi.fn() });
+    const form = screen.getByRole("button", { name: "Save" }).closest("form")!;
+    expect(form.dataset.layout).toBe("compact");
+    const row = form.querySelector<HTMLElement>('[data-slot="schedule-entry-times"]')!;
+    expect(within(row).getByLabelText("Start time")).toHaveProperty("value", "09:00");
+    expect(within(row).getByText("to")).toBeTruthy();
+    expect(within(row).getByLabelText("End time")).toHaveProperty("value", "13:00");
+    const days = screen.getByRole("radiogroup", { name: "Days" });
+    expect(days.className).toContain("@[20rem]/schedule-entry:grid-cols-4");
+    expect(form.className).toContain("@container/schedule-entry");
+    expect(more()).toHaveAttribute("aria-expanded", "false");
+    for (const name of ["Starts", "Ends", "Repeat"]) expect(screen.queryByRole("radiogroup", { name })).toBeNull();
+    expect(screen.queryByRole("switch", { name: "Entry is on" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Delete entry…" })).toBeTruthy();
+  });
+
+  it("keeps every hub field reachable: More options holds Starts, Ends, Repeat and Entry is on", () => {
+    const { onSubmit } = renderForm({ layout: "compact", resolvedStartTime: "4:52 PM" });
+    fireEvent.click(more());
+    expect(more()).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Starts" })).getByRole("radio", { name: "Sunset" }));
+    // A sun start leaves the one-row times; each time lives in its own section.
+    expect(document.querySelector('[data-slot="schedule-entry-times"]')).toBeNull();
+    expect(screen.getByRole("combobox", { name: "Offset from sunset" })).toBeTruthy();
+    expect(screen.getByLabelText("End time")).toHaveProperty("value", "13:00");
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Repeat" })).getByRole("radio", { name: "Once on" }));
+    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-11-07" } });
+    fireEvent.click(screen.getByRole("switch", { name: "Entry is on" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        start_type: "sunset",
+        recurrence_type: "one_off_date",
+        one_off_date: "2026-11-07",
+        enabled: false,
+      }),
+    );
+  });
+
+  it.each([
+    ["a sun start", { start_type: "sunset" as const }],
+    ["a sun end", { end_type: "sunrise" as const }],
+    ["an open end", { end_time: null }],
+    ["a yearly repeat", { recurrence_type: "annual_date" as const, annual_date: "11-07" }],
+    ["a one-off date", { recurrence_type: "one_off_date" as const, one_off_date: "2026-11-07" }],
+    ["an entry that is off", { enabled: false }],
+  ])("opens More options by itself for %s", (_, over) => {
+    renderForm({ layout: "compact", defaultValue: entry(over) });
+    expect(more()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("opens More options when a controlled entry is replaced by one that uses them", () => {
+    const { rerender } = render(
+      <ScheduleEntryForm layout="compact" targets={TARGETS} value={entry()} onSubmit={vi.fn()} />,
+    );
+    expect(more()).toHaveAttribute("aria-expanded", "false");
+    rerender(
+      <ScheduleEntryForm layout="compact" targets={TARGETS} value={entry({ end_time: null })} onSubmit={vi.fn()} />,
+    );
+    expect(more()).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Runs until midnight.")).toBeTruthy();
+  });
+
+  it("says what is set when More options is closed over a setting it holds", () => {
+    renderForm({ layout: "compact", defaultValue: entry({ start_type: "sunset", end_time: null, enabled: false }) });
+    fireEvent.click(more());
+    expect(more()).toHaveAttribute("aria-expanded", "false");
+    expect(more()).toHaveAccessibleName("More options");
+    expect(more()).toHaveAccessibleDescription("Starts at sunset · Open-ended · Entry is off");
+    expect(screen.getByText("Starts at sunset · Open-ended · Entry is off")).toBeVisible();
+    fireEvent.click(more());
+    expect(more()).not.toHaveAccessibleDescription();
+  });
+
+  it.each([
+    [{ recurrence_type: "annual_date" as const, annual_date: "11-07" }, "Every year on November 7"],
+    [{ recurrence_type: "one_off_date" as const, one_off_date: "2026-11-07" }, "Once on 2026-11-07"],
+    [{ end_type: "sunrise" as const }, "Ends at sunrise"],
+  ])("names a closed More options' repeat or end: %o", (over, said) => {
+    renderForm({ layout: "compact", defaultValue: entry(over) });
+    fireEvent.click(more());
+    expect(more()).toHaveAccessibleDescription(said);
+  });
+
+  it("reopens More options on Save to show an error it holds", () => {
+    const { onSubmit } = renderForm({
+      layout: "compact",
+      defaultValue: entry({ recurrence_type: "one_off_date", one_off_date: null }),
+    });
+    fireEvent.click(more());
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(more()).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Date")).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("flags a zero-length range on the one-row end time", () => {
+    renderForm({ layout: "compact", defaultValue: entry({ end_time: "09:00" }) });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    const end = screen.getByLabelText("End time");
+    expect(end).toHaveAttribute("aria-invalid", "true");
+    expect(end).toHaveAccessibleDescription("Ends when it starts. Pick another end time.");
+    expect(end).toHaveFocus();
+  });
+
+  it("leaves the default layout as it was: every section inline, no disclosure", () => {
+    renderForm();
+    expect(screen.queryByRole("button", { name: /More options/ })).toBeNull();
+    expect(document.querySelector('[data-slot="schedule-entry-times"]')).toBeNull();
+    expect(screen.getByRole("radiogroup", { name: "Starts" })).toBeTruthy();
+    expect(screen.getByRole("radiogroup", { name: "Days" }).className).not.toContain("grid-cols-4");
   });
 });

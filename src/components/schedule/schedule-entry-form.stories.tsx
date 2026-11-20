@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
 
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../overlays/sheet";
 import { DEFAULT_SCHEDULE_ENTRY, ScheduleEntryForm, type ScheduleEntryValue } from "./schedule-entry-form";
 
 /*
@@ -26,6 +27,7 @@ const meta = {
   tags: ["autodocs"],
   argTypes: {
     size: { control: "inline-radio", options: ["touch", "default"] },
+    layout: { control: "inline-radio", options: ["default", "compact"] },
     targets: { control: false },
     value: { control: false },
     defaultValue: { control: false },
@@ -174,5 +176,78 @@ export const StoredCustomOffsets: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("combobox", { name: "Offset from sunset" })).toHaveTextContent("7 min after sunset");
     await expect(canvas.getByRole("combobox", { name: "Offset from sunrise" })).toHaveTextContent("4 h after sunrise");
+  },
+};
+
+/*
+ * Compact layout (BB-C-5): 07d's phone entry sheet as drawn. The common
+ * weekly fixed-time entry is inline; Starts, Ends, Repeat and Entry is on sit
+ * behind More options. .storybook/schedule-entry-form-regression.ts checks
+ * the phone-sheet stories at 390×844 in a real browser: Save is above the fold.
+ */
+
+function PhoneSheet(args: React.ComponentProps<typeof ScheduleEntryForm>) {
+  return (
+    <Sheet defaultOpen>
+      <SheetContent side="bottom" grabber>
+        <SheetHeader className="min-h-12 justify-center pr-12 text-left sm:text-left">
+          <SheetTitle>Edit entry</SheetTitle>
+          <SheetDescription>Kitchen board · repeats on weekends</SheetDescription>
+        </SheetHeader>
+        <ScheduleEntryForm {...args} />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/** 07d `322:20318` at 390: page, start "to" end, Days, Save and Delete entry… in the sheet, no scrolling. */
+export const CompactPhoneSheet: Story = {
+  parameters: { layout: "fullscreen", viewport: { defaultViewport: "mobile" } },
+  globals: { viewport: { value: "mobile" } },
+  args: { layout: "compact", defaultValue: weekend, onDelete: noop },
+  render: (args) => <PhoneSheet {...args} />,
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    // The sheet portals in after its open transition starts; wait for it.
+    const more = await body.findByRole("button", { name: "More options" });
+    await expect(more).toHaveAttribute("aria-expanded", "false");
+    await expect(body.getByLabelText("Start time")).toHaveValue("09:00");
+    await expect(body.getByLabelText("End time")).toHaveValue("13:00");
+    await expect(body.getByRole("radio", { name: "Weekends" })).toHaveAttribute("aria-checked", "true");
+    await expect(body.getByRole("button", { name: "Save" })).toBeVisible();
+  },
+};
+
+/** Custom days add the seven-day row; Save still shows at 390×844. */
+export const CompactPhoneSheetCustomDays: Story = {
+  parameters: { layout: "fullscreen", viewport: { defaultViewport: "mobile" } },
+  globals: { viewport: { value: "mobile" } },
+  args: {
+    layout: "compact",
+    defaultValue: { ...weekend, day_pattern: "custom", custom_days: ["thursday", "friday", "saturday"] },
+    summary: "Shows Thu, Fri and Sat, 9:00 AM–1:00 PM on Kitchen board.",
+    onDelete: noop,
+  },
+  render: (args) => <PhoneSheet {...args} />,
+};
+
+/** An entry that starts at sunset and runs to midnight: More options opens by itself. */
+export const CompactMoreOptions: Story = {
+  args: {
+    layout: "compact",
+    defaultValue: { ...weekend, start_type: "sunset", start_sun_offset: -30, end_time: null },
+    resolvedStartTime: "4:22 PM",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "More options" })).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      within(canvas.getByRole("radiogroup", { name: "Starts" })).getByRole("radio", { name: "Sunset" }),
+    ).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(canvas.getByRole("button", { name: "More options" }));
+    // Closed, it still says what it holds.
+    await expect(canvas.getByRole("button", { name: "More options" })).toHaveAccessibleDescription(
+      "Starts at sunset · Open-ended",
+    );
   },
 };
