@@ -50,7 +50,13 @@ function Switch({ className, size = "default", ...props }: SwitchProps) {
         // alone would leave the off-track at 1.09:1 against the page.
         // aria-invalid:data-[unchecked]: re-asserts the destructive border so
         // it cannot lose the specificity tie with data-[unchecked]:border-input.
-        "peer data-[checked]:bg-primary data-[unchecked]:bg-muted data-[unchecked]:border-input focus-visible:border-ring focus-visible:ring-ring/50 enabled:hover:ring-ring/30 enabled:hover:ring-[3px] aria-invalid:border-destructive aria-invalid:data-[unchecked]:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-[color,background-color,border-color,box-shadow] duration-control outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        //
+        // Dark is the exception (BB-C-27): --muted on a dark --card is 1.10:1,
+        // so on a settings card the off track vanished and only the thumb was
+        // left. There the track itself is the boundary — --input, the 3:1
+        // control-boundary token — at 3.58:1 on --card with the thumb 4.62:1
+        // on it (theme-contrast.test.mjs measures every dark surface).
+        "peer data-[checked]:bg-primary data-[unchecked]:bg-muted dark:data-[unchecked]:bg-input data-[unchecked]:border-input focus-visible:border-ring focus-visible:ring-ring/50 enabled:hover:ring-ring/30 enabled:hover:ring-[3px] aria-invalid:border-destructive aria-invalid:data-[unchecked]:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-[color,background-color,border-color,box-shadow] duration-control outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
         // The hit area: always at `touch`, and under the opted-in
         // coarse-pointer layer (W2) at the default size.
         size === "touch" ? TOUCH_HIT_AREA : COARSE_HIT_AREA,
