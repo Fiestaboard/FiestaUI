@@ -252,7 +252,7 @@ function SelectItem({
         className,
       )}
       {...props}
-      aria-labelledby={description ? nameId : props["aria-labelledby"]}
+      aria-labelledby={props["aria-labelledby"] ?? (description ? nameId : undefined)}
       aria-describedby={describedBy}
     >
       <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
@@ -262,12 +262,18 @@ function SelectItem({
       </span>
 
       {description ? (
-        <span className="flex min-w-0 flex-1 flex-col">
-          <SelectPrimitive.ItemText id={nameId}>{children}</SelectPrimitive.ItemText>
-          <span id={descriptionId} data-slot="select-item-description" className="text-xs text-muted-foreground">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <SelectPrimitive.ItemText id={nameId} className="truncate">
+            {children}
+          </SelectPrimitive.ItemText>
+          <span
+            id={descriptionId}
+            data-slot="select-item-description"
+            className="truncate text-xs text-muted-foreground"
+          >
             {description}
           </span>
-        </span>
+        </div>
       ) : (
         <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
       )}
