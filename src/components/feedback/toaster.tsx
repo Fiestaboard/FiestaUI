@@ -114,7 +114,7 @@ const SECONDARY_ACTION_CLASS = cn(
 );
 const TOAST_CLASSNAMES = {
   toast:
-    "group/toast font-sans shadow-lg has-[[data-button]]:flex-wrap has-[[data-button]]:!items-start has-[[data-button]]:!gap-3",
+    "group/toast font-sans !shadow-lg !leading-4.5 has-[[data-button]]:flex-wrap has-[[data-button]]:!items-start has-[[data-button]]:!gap-3",
   content: "group-has-[[data-button]]/toast:!basis-[calc(100%-2.25rem)]",
   description: "!text-muted-foreground",
   actionButton: PRIMARY_ACTION_CLASS,

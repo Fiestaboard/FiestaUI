@@ -134,7 +134,7 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"h5">) {
 }
 
 function AlertDescription({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="alert-description" className={cn("text-sm [&_p]:leading-relaxed", className)} {...props} />;
+  return <div data-slot="alert-description" className={cn("text-sm leading-relaxed", className)} {...props} />;
 }
 
 export { Alert, AlertDescription, AlertTitle, alertVariants };

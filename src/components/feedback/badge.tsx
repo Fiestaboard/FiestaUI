@@ -145,7 +145,10 @@ function Badge({ className, variant, asChild = false, children, onDismiss, dismi
                   onClick={onDismiss}
                   // The badge's own palette already sets the ink; the ghost
                   // fill would otherwise wash a coloured pill with --accent.
-                  className="hover:bg-black/10 dark:hover:bg-white/15 -me-px shrink-0 text-current"
+                  // Drawn as Figma's 16 px round chip with a 12 px x (Badge
+                  // `8:168`, BB-FK-2); the invisible ::before keeps the 24 px
+                  // target SC 2.5.8 asks for.
+                  className="relative size-4 rounded-full [&_svg]:size-3 before:absolute before:-inset-1 before:rounded-full before:content-[''] hover:bg-black/10 dark:hover:bg-white/15 -me-px shrink-0 text-current"
                 >
                   <X aria-hidden="true" />
                 </Button>
