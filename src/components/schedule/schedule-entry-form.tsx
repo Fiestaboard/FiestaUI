@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "../forms/select";
 import { Switch } from "../forms/switch";
+import { TimePicker, type TimePickerLabels } from "../forms/time-picker";
 import { SegmentedControl, SegmentedControlItem } from "../forms/toggle-card";
 
 /**
@@ -225,6 +226,8 @@ function formatSunOffset(minutes: number, type: "sunrise" | "sunset"): string {
 }
 
 interface ScheduleEntryFormLabels {
+  /** The time pickers' panel words (Hour, Minute, Quick picks, AM/PM). English by default. */
+  timePicker?: TimePickerLabels;
   target: string;
   targetPlaceholder: string;
   pages: string;
@@ -505,6 +508,23 @@ function ScheduleEntryForm({
   const touch = size === "touch";
   const segmentSize = touch ? "touch" : "md";
   const controlSize = touch ? "touch" : "default";
+  // Every fixed time is the kit TimePicker (`18:89`: clock, "7:30 AM", Hour /
+  // Minute / Quick picks), not the browser's own time input (BB-FC-7). One-
+  // minute steps so no time the hub holds becomes unreachable.
+  const timePicker = (props: {
+    value: string;
+    onValueChange: (next: string) => void;
+    "aria-label"?: string;
+    "aria-invalid"?: boolean;
+    "aria-describedby"?: string;
+  }) => (
+    <TimePicker
+      {...props}
+      minuteStep={1}
+      labels={labels.timePicker}
+      className={touch ? "h-control-touch" : undefined}
+    />
+  );
 
   const [inner, setInner] = React.useState(defaultValue);
   const value = valueProp ?? inner;
@@ -711,13 +731,12 @@ function ScheduleEntryForm({
       {value.start_type === "fixed" ? (
         inlineTimes ? null : (
           <Field label={labels.startTime} error={errors.start_time ? labels.errors.start_time : undefined}>
-            <Input
-              type="time"
-              step={60}
-              size={controlSize}
-              value={value.start_time}
-              onChange={(event) => update({ start_time: event.target.value })}
-            />
+            {timePicker({
+              // The visible <label for> alone would name the trigger without its value.
+              "aria-label": labels.startTime,
+              value: value.start_time,
+              onValueChange: (next) => update({ start_time: next }),
+            })}
           </Field>
         )
       ) : (
@@ -729,13 +748,12 @@ function ScheduleEntryForm({
               description={labels.fallbackHint}
               error={errors.start_time ? labels.errors.start_time : undefined}
             >
-              <Input
-                type="time"
-                step={60}
-                size={controlSize}
-                value={value.start_time}
-                onChange={(event) => update({ start_time: event.target.value })}
-              />
+              {timePicker({
+                // The visible <label for> alone would name the trigger without its value.
+                "aria-label": labels.startFallbackTime,
+                value: value.start_time,
+                onValueChange: (next) => update({ start_time: next }),
+              })}
             </Field>
           ) : null}
         </>
@@ -764,13 +782,12 @@ function ScheduleEntryForm({
       ) : endMode === "fixed" ? (
         inlineTimes ? null : (
           <Field label={labels.endTime} error={endTimeError}>
-            <Input
-              type="time"
-              step={60}
-              size={controlSize}
-              value={value.end_time ?? ""}
-              onChange={(event) => update({ end_time: event.target.value })}
-            />
+            {timePicker({
+              // The visible <label for> alone would name the trigger without its value.
+              "aria-label": labels.endTime,
+              value: value.end_time ?? "",
+              onValueChange: (next) => update({ end_time: next }),
+            })}
           </Field>
         )
       ) : (
@@ -778,13 +795,12 @@ function ScheduleEntryForm({
           {sunSelect("end", endMode, value.end_sun_offset, resolvedEndTime)}
           {repairTimes.end ? (
             <Field label={labels.endFallbackTime} description={labels.fallbackHint} error={endTimeError}>
-              <Input
-                type="time"
-                step={60}
-                size={controlSize}
-                value={value.end_time ?? ""}
-                onChange={(event) => update({ end_time: event.target.value })}
-              />
+              {timePicker({
+                // The visible <label for> alone would name the trigger without its value.
+                "aria-label": labels.endFallbackTime,
+                value: value.end_time ?? "",
+                onValueChange: (next) => update({ end_time: next }),
+              })}
             </Field>
           ) : null}
         </>
@@ -1001,29 +1017,23 @@ function ScheduleEntryForm({
       {inlineTimes ? (
         <div data-slot="schedule-entry-times" className="flex flex-col gap-1.5">
           <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-            <Input
-              type="time"
-              step={60}
-              size={controlSize}
-              aria-label={labels.startTime}
-              aria-invalid={errors.start_time ? true : undefined}
-              aria-describedby={errors.start_time ? `${ids.timesError}-start` : undefined}
-              value={value.start_time}
-              onChange={(event) => update({ start_time: event.target.value })}
-            />
+            {timePicker({
+              "aria-label": labels.startTime,
+              "aria-invalid": errors.start_time ? true : undefined,
+              "aria-describedby": errors.start_time ? `${ids.timesError}-start` : undefined,
+              value: value.start_time,
+              onValueChange: (next) => update({ start_time: next }),
+            })}
             <span aria-hidden="true" className="text-sm text-muted-foreground">
               {labels.timeRangeTo}
             </span>
-            <Input
-              type="time"
-              step={60}
-              size={controlSize}
-              aria-label={labels.endTime}
-              aria-invalid={endTimeError ? true : undefined}
-              aria-describedby={endTimeError ? `${ids.timesError}-end` : undefined}
-              value={value.end_time ?? ""}
-              onChange={(event) => update({ end_time: event.target.value })}
-            />
+            {timePicker({
+              "aria-label": labels.endTime,
+              "aria-invalid": endTimeError ? true : undefined,
+              "aria-describedby": endTimeError ? `${ids.timesError}-end` : undefined,
+              value: value.end_time ?? "",
+              onValueChange: (next) => update({ end_time: next }),
+            })}
           </div>
           {errors.start_time ? (
             <p id={`${ids.timesError}-start`} className="text-xs text-destructive">
