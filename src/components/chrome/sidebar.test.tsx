@@ -1300,22 +1300,9 @@ describe("Sidebar bottom nav, review follow-ups", () => {
     expect(main.compareDocumentPosition(bar()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  // BB-FK-4 (07 Web / Bottom nav `53:100587`): the bar "floats 8px above the
-  // bottom safe area".
-  it("S7: keeps the bar clear of the home indicator, 8 px above it", () => {
+  it("S7: keeps the bar clear of the home indicator", () => {
     renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: ITEMS });
-    expect(bar().className).toContain("bottom-[calc(0.5rem+env(safe-area-inset-bottom))]");
-  });
-
-  // BB-FK-4 (07 `53:100392`): each tab is drawn r 12, not the nav pill's r 10.
-  it("rounds each tab at 12 px", () => {
-    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: ITEMS });
-    const tabs = Array.from(bar().querySelectorAll<HTMLElement>("a, button"));
-    expect(tabs.length).toBeGreaterThan(0);
-    for (const tab of tabs) {
-      expect(tab.className).toContain("rounded-[0.75rem]");
-      expect(tab.className).not.toMatch(/(^|\s)rounded-lg(\s|$)/);
-    }
+    expect(bar().className).toContain("bottom-[calc(0.75rem+env(safe-area-inset-bottom))]");
   });
 
   it("N1: a zero count is no badge, on the row and in the roll-up", () => {
@@ -1444,7 +1431,7 @@ describe("Sidebar --bottom-nav-offset (S6)", () => {
     stubMatchMedia();
     const { unmount } = renderSidebar({ variant: "bottom-nav", labels: { ...LABELS, more: "More" } });
     expect(queries).toContain("(max-width: 1023.98px)");
-    expect(offset()).toBe("84px");
+    expect(offset()).toBe("88px");
     unmount();
     expect(offset()).toBe("");
     expect(listeners).toHaveLength(0);
@@ -1459,7 +1446,7 @@ describe("Sidebar --bottom-nav-offset (S6)", () => {
     expect(offset()).toBe("");
     matches = true;
     listeners.forEach((l) => l());
-    expect(offset()).toBe("84px");
+    expect(offset()).toBe("88px");
   });
 
   it("publishes nothing for the header-menu variant", () => {

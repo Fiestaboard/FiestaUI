@@ -84,7 +84,7 @@ const MOBILE_MENU_BASE =
   "fixed top-[calc(var(--mobile-header-height,56px)+16px)] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
 // variant="bottom-nav": the drawer is what "More" opens, so it rises from the
 // tab bar instead of dropping from the header — 12px above the bar, which
-// floats 8px above the viewport edge (and the home indicator).
+// floats 12px above the viewport edge (and the home indicator).
 const MOBILE_MENU_BOTTOM_BASE =
   "fixed bottom-[calc(var(--bottom-nav-offset,0px)+env(safe-area-inset-bottom))] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-var(--bottom-nav-offset,0px)-env(safe-area-inset-bottom)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
 
@@ -92,15 +92,14 @@ const MOBILE_HEADER_BASE =
   "fixed top-2 left-3 right-3 z-[var(--z-mobile-header)] overflow-hidden sidebar-gradient-horizontal";
 
 // The bottom tab bar (slice 1.4a; 07 `53:100587`): 64px tall, inset 12px
-// from the sides, floating 8px above the bottom safe area as the frame's
-// description says (BB-FK-4), with r 12 tabs (`53:100392`); five
+// from the sides and the bottom like the header pill is from the top, five
 // equal slots of 52px — every one a ≥44px target. It sits on the drawer's
 // layer so "More" stays tappable over the backdrop and can close what it
 // opened.
 const BOTTOM_NAV_BASE =
-  "fixed inset-x-3 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-[var(--z-mobile-menu)] flex h-16 items-stretch gap-0.5 p-1.5 sidebar-gradient-horizontal";
+  "fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-[var(--z-mobile-menu)] flex h-16 items-stretch gap-0.5 p-1.5 sidebar-gradient-horizontal";
 const BOTTOM_ITEM_BASE =
-  "focus-ring relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[0.75rem] px-1 text-xs font-medium transition-colors";
+  "focus-ring relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-xs font-medium transition-colors";
 // Medium in both states (07: Text/xs/medium); the fill alone says "here".
 const BOTTOM_ITEM_ACTIVE = cn(BOTTOM_ITEM_BASE, "nav-active");
 const BOTTOM_ITEM_INACTIVE = cn(BOTTOM_ITEM_BASE, NAV_ITEM_INACTIVE);
@@ -110,13 +109,13 @@ const BOTTOM_NAV_SLOTS = 5;
 
 /**
  * The bar's footprint above the viewport's bottom edge (safe-area inset
- * aside): its 8px float (`bottom-[calc(0.5rem+…)]`), its 64px height
+ * aside): its 12px float (`bottom-[calc(0.75rem+…)]`), its 64px height
  * (`h-16`) and 12px of air above it. Published as `--bottom-nav-offset` on
  * <html> while the bar is shown, so MainContent, PageLayout, the drawer and
  * anything else that must clear the bar (a toast) read one number, and fall
  * back to 0 when there is no bar.
  */
-const BOTTOM_NAV_OFFSET_PX = 8 + 64 + 12;
+const BOTTOM_NAV_OFFSET_PX = 12 + 64 + 12;
 
 /**
  * Every class that differs by `railBreakpoint` (slice 1.4b), spelled out per
