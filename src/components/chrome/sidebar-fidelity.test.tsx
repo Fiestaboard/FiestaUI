@@ -206,7 +206,9 @@ describe("One focus treatment across the shell (BB-FS-3, BB-FS-10)", () => {
         labels={{ boardSelector: "Board", selectBoard: "Select board", unnamedBoard: "Unnamed" }}
       />,
     );
-    expect(classes(screen.getByRole("combobox", { name: "Board" }))).toContain("focus-ring");
+    const trigger = classes(screen.getByRole("combobox", { name: "Board" }));
+    expect(trigger).toContain("focus-ring");
+    expect(trigger).toContain("focus-visible:border-sidebar-border/70");
   });
 
   it("draws the skip link with the same ring instead of a 2px ring + shadow of its own", () => {

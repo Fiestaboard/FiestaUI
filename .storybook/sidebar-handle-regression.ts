@@ -60,6 +60,59 @@ async function checkMoreSheet(page: Page, id: string) {
   }
 }
 
+const COLLAPSED_STORY = "app-chrome-sidebar--figma-rail-collapsed";
+
+/**
+ * 07a's collapsed rail `307:61756`: the handle stays visible at rest (the
+ * only way back to the labels, even under the hover default) with the same
+ * 16×28 / 2px-proud geometry; the nested Collections tile is flush with the
+ * rest; the hairline spans the tile's full width.
+ */
+async function checkCollapsedRail(page: Page, id: string) {
+  const original = page.viewportSize();
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.mouse.move(1400, 880);
+    await frames(page);
+    assert.equal(await opacity(page), 1, `${id}: the handle is visible at rest on the collapsed rail`);
+    const m = await page.evaluate((sel) => {
+      const handle = document.querySelector<HTMLElement>(sel)!;
+      const rail = handle.closest("aside")!;
+      const r = rail.getBoundingClientRect();
+      const h = handle.getBoundingClientRect();
+      const nav = rail.querySelector("nav")!;
+      const link = (name: string) =>
+        Array.from(nav.querySelectorAll("a"))
+          .find((a) => a.getAttribute("aria-label") === name)!
+          .getBoundingClientRect();
+      const sep = nav.querySelector('[data-slot="sidebar-nav-separator"]')!.getBoundingClientRect();
+      const pages = link("Pages");
+      const collections = link("Collections");
+      return {
+        rail: Math.round(r.width),
+        handle: [Math.round(h.width), Math.round(h.height), Math.round(h.top - r.top), Math.round(h.right - r.right)],
+        collectionsFlush: Math.round(collections.left) === Math.round(pages.left),
+        collectionsWidth: Math.round(collections.width) === Math.round(pages.width),
+        separatorFullTile:
+          Math.round(sep.width) === Math.round(pages.width) && Math.round(sep.left) === Math.round(pages.left),
+      };
+    }, HANDLE);
+    assert.equal(
+      JSON.stringify(m),
+      JSON.stringify({
+        rail: 64,
+        handle: [16, 28, 18, 2],
+        collectionsFlush: true,
+        collectionsWidth: true,
+        separatorFullTile: true,
+      }),
+      `${id}: collapsed rail vs 07a 307:61756`,
+    );
+  } finally {
+    if (original) await page.setViewportSize(original);
+  }
+}
+
 const HANDLE = '[data-slot="sidebar-collapse-handle"]';
 
 async function frames(page: Page) {
@@ -84,6 +137,7 @@ async function opacity(page: Page) {
 
 export async function checkSidebarHandle(page: Page, id: string) {
   if (id === MORE_STORY) return checkMoreSheet(page, id);
+  if (id === COLLAPSED_STORY) return checkCollapsedRail(page, id);
   if (id !== STORY) return;
   const original = page.viewportSize();
   const cdp = await page.context().newCDPSession(page);

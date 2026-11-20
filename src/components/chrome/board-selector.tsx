@@ -181,9 +181,10 @@ export const BoardSelector = memo(function BoardSelector({
       aria-describedby={triggerDescribedBy}
       className={cn(
         // focus-ring: the shell's one focus treatment (BB-FS-3), not the
-        // form field's 3px half-alpha band — this trigger is chrome, a row
-        // of the rail, and it focuses like the rows under it.
-        "focus-ring gap-2 border-sidebar-border/70 bg-sidebar-accent/40 font-medium text-sidebar-foreground shadow-none transition-[width,padding] duration-fast hover:bg-sidebar-accent/70",
+        // form field's 3px half-alpha band and orange border — this trigger
+        // is chrome, a row of the rail, and it focuses like the rows under
+        // it, so its border stays the rail's hairline under focus too.
+        "focus-ring gap-2 border-sidebar-border/70 focus-visible:border-sidebar-border/70 bg-sidebar-accent/40 font-medium text-sidebar-foreground shadow-none transition-[width,padding] duration-fast hover:bg-sidebar-accent/70",
         // Below 480px no board name fits beside the full wordmark, so the
         // trigger compacts to icon + caret and the header keeps one row.
         mobile && !mobileHub && "h-9 w-auto min-w-0 max-w-[170px] px-2.5 max-[479px]:gap-1 max-[479px]:px-2",
