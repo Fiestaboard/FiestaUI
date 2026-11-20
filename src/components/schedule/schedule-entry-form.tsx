@@ -1,9 +1,10 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { ChevronDown, Trash2 } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../containment/collapsible";
 import { Button } from "../forms/button";
 import { Field } from "../forms/field";
 import { Input } from "../forms/input";
@@ -55,6 +56,14 @@ import { SegmentedControl, SegmentedControlItem } from "../forms/toggle-card";
  * times and the one-off dates are native `<input type="time|date">`, so a
  * phone opens its own wheel or calendar. `size="touch"` (default) puts
  * every control at 44px.
+ *
+ * **Compact layout** (`layout="compact"`, BB-C-5) is 07d's phone sheet as
+ * drawn: the target, start "to" end on one row, Days in one row of four,
+ * Save. Everything else the hub stores (sun times, open-ended, yearly and
+ * one-off repeats, Entry is on) sits behind a "More options" disclosure,
+ * which opens by itself when the entry already uses one of them, when a
+ * Save error is inside it, and names what it holds while closed. The default
+ * layout is unchanged.
  *
  * The form renders no sheet or header: the host puts it in a `Sheet`
  * ("Edit entry", "Kitchen board · repeats on weekends") or a page pane.
@@ -262,6 +271,16 @@ interface ScheduleEntryFormLabels {
   save: string;
   saving: string;
   delete: string;
+  /** Compact layout: the disclosure that holds Starts, Ends, Repeat and Entry is on. */
+  moreOptions: string;
+  /** Compact layout: between the start and end times. */
+  timeRangeTo: string;
+  /** Compact layout, closed More options: "Starts at sunset". */
+  startsAtSun: (type: "sunrise" | "sunset") => string;
+  /** Compact layout, closed More options: "Ends at sunrise". */
+  endsAtSun: (type: "sunrise" | "sunset") => string;
+  /** Compact layout, closed More options: an entry that is off. */
+  entryOff: string;
   errors: {
     page_id: string;
     start_time: string;
@@ -339,6 +358,11 @@ const DEFAULT_SCHEDULE_ENTRY_FORM_LABELS: ScheduleEntryFormLabels = {
   save: "Save",
   saving: "Saving…",
   delete: "Delete entry…",
+  moreOptions: "More options",
+  timeRangeTo: "to",
+  startsAtSun: (type) => `Starts at ${type}`,
+  endsAtSun: (type) => `Ends at ${type}`,
+  entryOff: "Entry is off",
   errors: {
     page_id: "Pick a page or collection.",
     start_time: "Enter a time.",
@@ -362,6 +386,7 @@ interface ScheduleEntryTarget {
 }
 
 type ScheduleEntryFormSize = "touch" | "default";
+type ScheduleEntryFormLayout = "default" | "compact";
 
 interface ScheduleEntryFormProps extends Omit<React.ComponentProps<"form">, "onSubmit" | "defaultValue"> {
   /** Pages and collections to pick from, grouped by kind. */
@@ -389,6 +414,13 @@ interface ScheduleEntryFormProps extends Omit<React.ComponentProps<"form">, "onS
   busy?: boolean;
   /** `touch` (default): 44px controls. `default`: the desktop sizes. */
   size?: ScheduleEntryFormSize;
+  /**
+   * `default`: every section in one column (a page pane, a tall sheet).
+   * `compact`: 07d's phone sheet, the common weekly fixed-time entry inline
+   * and the rest behind "More options" (BB-C-5).
+   * @default "default"
+   */
+  layout?: ScheduleEntryFormLayout;
   labels?: Partial<Omit<ScheduleEntryFormLabels, "errors">> & { errors?: Partial<ScheduleEntryFormLabels["errors"]> };
 }
 
@@ -405,6 +437,27 @@ function daysInMonth(month: number): number {
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Settings the compact layout keeps behind More options; any of them opens it. */
+function usesMoreOptions(value: ScheduleEntryValue): boolean {
+  return (
+    value.start_type !== "fixed" ||
+    value.end_time === null ||
+    value.end_type !== "fixed" ||
+    value.recurrence_type !== "weekly" ||
+    !value.enabled
+  );
+}
+
+/** Open More options by itself whenever the entry starts using what it holds. */
+function useMoreOptions(advanced: boolean) {
+  const [state, setState] = React.useState({ advanced, open: advanced });
+  if (state.advanced !== advanced) setState({ advanced, open: state.open || advanced });
+  return [
+    state.advanced === advanced ? state.open : state.open || advanced,
+    (open: boolean) => setState({ advanced, open }),
+  ] as const;
+}
 
 /** Section heading that names a radiogroup or group. */
 function SectionLabel({ id, children }: { id: string; children: React.ReactNode }) {
@@ -439,6 +492,7 @@ function ScheduleEntryForm({
   summary,
   busy = false,
   size = "touch",
+  layout = "default",
   labels: labelsProp,
   className,
   ...props
@@ -470,6 +524,8 @@ function ScheduleEntryForm({
   const [repairTimes, setRepairTimes] = React.useState({ start: false, end: false });
   const [annualRange, setAnnualRange] = useDateRange(value.annual_end_date);
   const [onceRange, setOnceRange] = useDateRange(value.one_off_end_date);
+  const compact = layout === "compact";
+  const [moreOpen, setMoreOpen] = useMoreOptions(usesMoreOptions(value));
 
   const id = React.useId();
   const ids = {
@@ -481,6 +537,8 @@ function ScheduleEntryForm({
     customError: `${id}-custom-error`,
     enabled: `${id}-enabled`,
     enabledHint: `${id}-enabled-hint`,
+    timesError: `${id}-times-error`,
+    moreSummary: `${id}-more-summary`,
     annualRange: `${id}-annual-range`,
     onceRange: `${id}-once-range`,
   };
@@ -509,6 +567,11 @@ function ScheduleEntryForm({
       start: Boolean(found.start_time) && value.start_type !== "fixed",
       end: Boolean(found.end_time) && value.end_type !== "fixed",
     });
+    // An error More options holds must be visible (and focusable) after Save.
+    const inline: (keyof ScheduleEntryValue)[] = ["page_id", "custom_days"];
+    if (inlineTimes) inline.push("start_time", "end_time");
+    if (compact && Object.keys(found).some((key) => !inline.includes(key as keyof ScheduleEntryValue)))
+      setMoreOpen(true);
     if (Object.keys(found).length === 0) onSubmit(normalizeScheduleEntry(value));
   }
 
@@ -522,6 +585,10 @@ function ScheduleEntryForm({
           : undefined;
 
   const endMode: "fixed" | "sunrise" | "sunset" | "open" = value.end_time === null ? "open" : value.end_type;
+  /** Compact: both times are clock times, so they share 07d's one row. */
+  const inlineTimes = compact && value.start_type === "fixed" && endMode === "fixed";
+  const endTimeError =
+    errors.end_time === "same" ? labels.errors.same : errors.end_time ? labels.errors.end_time : undefined;
 
   function setEndMode(mode: string) {
     if (mode === "open") {
@@ -626,13 +693,269 @@ function ScheduleEntryForm({
     </div>
   );
 
+  const startsSection = (
+    <div className="flex flex-col gap-3">
+      <SectionLabel id={ids.starts}>{labels.starts}</SectionLabel>
+      <SegmentedControl
+        aria-labelledby={ids.starts}
+        layout="grid"
+        columns="3"
+        size={segmentSize}
+        value={value.start_type}
+        onValueChange={(next) => update({ start_type: next as ScheduleTimeType })}
+      >
+        <SegmentedControlItem value="fixed">{labels.atATime}</SegmentedControlItem>
+        <SegmentedControlItem value="sunrise">{labels.sunrise}</SegmentedControlItem>
+        <SegmentedControlItem value="sunset">{labels.sunset}</SegmentedControlItem>
+      </SegmentedControl>
+      {value.start_type === "fixed" ? (
+        inlineTimes ? null : (
+          <Field label={labels.startTime} error={errors.start_time ? labels.errors.start_time : undefined}>
+            <Input
+              type="time"
+              step={60}
+              size={controlSize}
+              value={value.start_time}
+              onChange={(event) => update({ start_time: event.target.value })}
+            />
+          </Field>
+        )
+      ) : (
+        <>
+          {sunSelect("start", value.start_type, value.start_sun_offset, resolvedStartTime)}
+          {repairTimes.start ? (
+            <Field
+              label={labels.startFallbackTime}
+              description={labels.fallbackHint}
+              error={errors.start_time ? labels.errors.start_time : undefined}
+            >
+              <Input
+                type="time"
+                step={60}
+                size={controlSize}
+                value={value.start_time}
+                onChange={(event) => update({ start_time: event.target.value })}
+              />
+            </Field>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+
+  const endsSection = (
+    <div className="flex flex-col gap-3">
+      <SectionLabel id={ids.ends}>{labels.ends}</SectionLabel>
+      <SegmentedControl
+        aria-labelledby={ids.ends}
+        layout="grid"
+        columns="2"
+        size={segmentSize}
+        value={endMode}
+        onValueChange={setEndMode}
+      >
+        <SegmentedControlItem value="fixed">{labels.atATime}</SegmentedControlItem>
+        <SegmentedControlItem value="open">{labels.openEnded}</SegmentedControlItem>
+        <SegmentedControlItem value="sunrise">{labels.sunrise}</SegmentedControlItem>
+        <SegmentedControlItem value="sunset">{labels.sunset}</SegmentedControlItem>
+      </SegmentedControl>
+      {endMode === "open" ? (
+        <p className="text-xs text-muted-foreground">{labels.openEndedHint}</p>
+      ) : endMode === "fixed" ? (
+        inlineTimes ? null : (
+          <Field label={labels.endTime} error={endTimeError}>
+            <Input
+              type="time"
+              step={60}
+              size={controlSize}
+              value={value.end_time ?? ""}
+              onChange={(event) => update({ end_time: event.target.value })}
+            />
+          </Field>
+        )
+      ) : (
+        <>
+          {sunSelect("end", endMode, value.end_sun_offset, resolvedEndTime)}
+          {repairTimes.end ? (
+            <Field label={labels.endFallbackTime} description={labels.fallbackHint} error={endTimeError}>
+              <Input
+                type="time"
+                step={60}
+                size={controlSize}
+                value={value.end_time ?? ""}
+                onChange={(event) => update({ end_time: event.target.value })}
+              />
+            </Field>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+
+  const daysSection = (
+    <>
+      <SectionLabel id={ids.days}>{labels.days}</SectionLabel>
+      <SegmentedControl
+        aria-labelledby={ids.days}
+        layout="grid"
+        columns="2"
+        size={segmentSize}
+        // 07d draws the four patterns in one row on a phone; a form narrower
+        // than 20rem (a 320px phone) keeps two rows so "Weekends" fits.
+        className={compact ? "@[20rem]/schedule-entry:grid-cols-4 @[20rem]/schedule-entry:[&>*]:px-1" : undefined}
+        value={value.day_pattern}
+        onValueChange={(next) => update({ day_pattern: next as ScheduleDayPattern })}
+      >
+        <SegmentedControlItem value="all">{labels.all}</SegmentedControlItem>
+        <SegmentedControlItem value="weekdays">{labels.weekdays}</SegmentedControlItem>
+        <SegmentedControlItem value="weekends">{labels.weekends}</SegmentedControlItem>
+        <SegmentedControlItem value="custom">{labels.custom}</SegmentedControlItem>
+      </SegmentedControl>
+      {value.day_pattern === "custom" ? (
+        <>
+          <div
+            role="group"
+            aria-label={labels.customDays}
+            data-invalid={errors.custom_days ? true : undefined}
+            aria-describedby={errors.custom_days ? ids.customError : undefined}
+            data-slot="schedule-entry-custom-days"
+            className="grid grid-cols-7 gap-1"
+          >
+            {SCHEDULE_DAYS.map((day) => {
+              const pressed = value.custom_days?.includes(day) ?? false;
+              return (
+                <SegmentedControlItem
+                  key={day}
+                  type="button"
+                  size={segmentSize}
+                  className="px-0"
+                  pressed={pressed}
+                  onPressedChange={(next) => {
+                    const current = value.custom_days ?? [];
+                    const days = next ? [...current, day] : current.filter((d) => d !== day);
+                    update({ custom_days: SCHEDULE_DAYS.filter((d) => days.includes(d)) });
+                  }}
+                >
+                  {labels.dayShort[day]}
+                </SegmentedControlItem>
+              );
+            })}
+          </div>
+          {errors.custom_days ? (
+            <p id={ids.customError} className="text-xs text-destructive">
+              {labels.errors.custom_days}
+            </p>
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
+
+  const repeatSection = (
+    <div className="flex flex-col gap-3">
+      <SectionLabel id={ids.repeat}>{labels.repeat}</SectionLabel>
+      <SegmentedControl
+        aria-labelledby={ids.repeat}
+        layout="grid"
+        columns="3"
+        size={segmentSize}
+        value={value.recurrence_type}
+        onValueChange={(next) => update({ recurrence_type: next as ScheduleRecurrenceType })}
+      >
+        <SegmentedControlItem value="weekly">{labels.weekly}</SegmentedControlItem>
+        <SegmentedControlItem value="annual_date">{labels.everyYear}</SegmentedControlItem>
+        <SegmentedControlItem value="one_off_date">{labels.once}</SegmentedControlItem>
+      </SegmentedControl>
+
+      {value.recurrence_type === "weekly" ? (
+        // Compact puts Days above More options, next to the times.
+        compact ? null : (
+          daysSection
+        )
+      ) : value.recurrence_type === "annual_date" ? (
+        <>
+          {monthDay("start", annualMonth, annualDay, errors.annual_date)}
+          {rangeSwitch(ids.annualRange, annualRange, (next) => {
+            setAnnualRange(next);
+            update({ annual_end_date: next ? value.annual_date : null });
+          })}
+          {annualRange ? monthDay("end", annualEndMonth, annualEndDay, errors.annual_end_date) : null}
+        </>
+      ) : (
+        <>
+          <Field label={labels.date} error={dateError(errors.one_off_date)}>
+            <Input
+              type="date"
+              size={controlSize}
+              value={value.one_off_date ?? ""}
+              onChange={(event) => update({ one_off_date: event.target.value || null })}
+            />
+          </Field>
+          {rangeSwitch(ids.onceRange, onceRange, (next) => {
+            setOnceRange(next);
+            update({ one_off_end_date: next ? value.one_off_date : null });
+          })}
+          {onceRange ? (
+            <Field label={labels.lastDay} error={dateError(errors.one_off_end_date)}>
+              <Input
+                type="date"
+                size={controlSize}
+                min={value.one_off_date ?? undefined}
+                value={value.one_off_end_date ?? ""}
+                onChange={(event) => {
+                  const endDate = event.target.value || null;
+                  setOnceRange(true, endDate);
+                  update({ one_off_end_date: endDate });
+                }}
+              />
+            </Field>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+
+  const enabledRow = (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <Label htmlFor={ids.enabled}>{labels.enabled}</Label>
+        <span id={ids.enabledHint} className="text-xs text-muted-foreground">
+          {labels.enabledHint}
+        </span>
+      </div>
+      <Switch
+        id={ids.enabled}
+        size={touch ? "touch" : "default"}
+        aria-describedby={ids.enabledHint}
+        checked={value.enabled}
+        onCheckedChange={(next) => update({ enabled: next })}
+      />
+    </div>
+  );
+
+  /** What a closed More options holds, so a stored setting is never out of sight. */
+  const moreSummary = [
+    value.start_type !== "fixed" ? labels.startsAtSun(value.start_type) : null,
+    endMode === "open" ? labels.openEnded : endMode !== "fixed" ? labels.endsAtSun(endMode) : null,
+    value.recurrence_type === "annual_date"
+      ? [labels.everyYear, annualMonth && labels.months[Number(annualMonth) - 1], annualDay && Number(annualDay)]
+          .filter(Boolean)
+          .join(" ")
+      : null,
+    value.recurrence_type === "one_off_date" ? [labels.once, value.one_off_date].filter(Boolean).join(" ") : null,
+    value.enabled ? null : labels.entryOff,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <form
       data-slot="schedule-entry-form"
       data-size={size}
+      data-layout={layout}
       noValidate
       onSubmit={handleSubmit}
-      className={cn("flex flex-col gap-5", className)}
+      className={cn("flex flex-col gap-5", compact && "@container/schedule-entry", className)}
       {...props}
     >
       {/* Target */}
@@ -675,238 +998,91 @@ function ScheduleEntryForm({
         </SelectContent>
       </Select>
 
-      {/* Starts */}
-      <div className="flex flex-col gap-3">
-        <SectionLabel id={ids.starts}>{labels.starts}</SectionLabel>
-        <SegmentedControl
-          aria-labelledby={ids.starts}
-          layout="grid"
-          columns="3"
-          size={segmentSize}
-          value={value.start_type}
-          onValueChange={(next) => update({ start_type: next as ScheduleTimeType })}
-        >
-          <SegmentedControlItem value="fixed">{labels.atATime}</SegmentedControlItem>
-          <SegmentedControlItem value="sunrise">{labels.sunrise}</SegmentedControlItem>
-          <SegmentedControlItem value="sunset">{labels.sunset}</SegmentedControlItem>
-        </SegmentedControl>
-        {value.start_type === "fixed" ? (
-          <Field label={labels.startTime} error={errors.start_time ? labels.errors.start_time : undefined}>
+      {inlineTimes ? (
+        <div data-slot="schedule-entry-times" className="flex flex-col gap-1.5">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
             <Input
               type="time"
               step={60}
               size={controlSize}
+              aria-label={labels.startTime}
+              aria-invalid={errors.start_time ? true : undefined}
+              aria-describedby={errors.start_time ? `${ids.timesError}-start` : undefined}
               value={value.start_time}
               onChange={(event) => update({ start_time: event.target.value })}
             />
-          </Field>
-        ) : (
-          <>
-            {sunSelect("start", value.start_type, value.start_sun_offset, resolvedStartTime)}
-            {repairTimes.start ? (
-              <Field
-                label={labels.startFallbackTime}
-                description={labels.fallbackHint}
-                error={errors.start_time ? labels.errors.start_time : undefined}
-              >
-                <Input
-                  type="time"
-                  step={60}
-                  size={controlSize}
-                  value={value.start_time}
-                  onChange={(event) => update({ start_time: event.target.value })}
-                />
-              </Field>
-            ) : null}
-          </>
-        )}
-      </div>
-
-      {/* Ends */}
-      <div className="flex flex-col gap-3">
-        <SectionLabel id={ids.ends}>{labels.ends}</SectionLabel>
-        <SegmentedControl
-          aria-labelledby={ids.ends}
-          layout="grid"
-          columns="2"
-          size={segmentSize}
-          value={endMode}
-          onValueChange={setEndMode}
-        >
-          <SegmentedControlItem value="fixed">{labels.atATime}</SegmentedControlItem>
-          <SegmentedControlItem value="open">{labels.openEnded}</SegmentedControlItem>
-          <SegmentedControlItem value="sunrise">{labels.sunrise}</SegmentedControlItem>
-          <SegmentedControlItem value="sunset">{labels.sunset}</SegmentedControlItem>
-        </SegmentedControl>
-        {endMode === "open" ? (
-          <p className="text-xs text-muted-foreground">{labels.openEndedHint}</p>
-        ) : endMode === "fixed" ? (
-          <Field
-            label={labels.endTime}
-            error={
-              errors.end_time === "same" ? labels.errors.same : errors.end_time ? labels.errors.end_time : undefined
-            }
-          >
+            <span aria-hidden="true" className="text-sm text-muted-foreground">
+              {labels.timeRangeTo}
+            </span>
             <Input
               type="time"
               step={60}
               size={controlSize}
+              aria-label={labels.endTime}
+              aria-invalid={endTimeError ? true : undefined}
+              aria-describedby={endTimeError ? `${ids.timesError}-end` : undefined}
               value={value.end_time ?? ""}
               onChange={(event) => update({ end_time: event.target.value })}
             />
-          </Field>
-        ) : (
-          <>
-            {sunSelect("end", endMode, value.end_sun_offset, resolvedEndTime)}
-            {repairTimes.end ? (
-              <Field
-                label={labels.endFallbackTime}
-                description={labels.fallbackHint}
-                error={
-                  errors.end_time === "same" ? labels.errors.same : errors.end_time ? labels.errors.end_time : undefined
-                }
-              >
-                <Input
-                  type="time"
-                  step={60}
-                  size={controlSize}
-                  value={value.end_time ?? ""}
-                  onChange={(event) => update({ end_time: event.target.value })}
-                />
-              </Field>
-            ) : null}
-          </>
-        )}
-      </div>
-
-      {/* Repeat */}
-      <div className="flex flex-col gap-3">
-        <SectionLabel id={ids.repeat}>{labels.repeat}</SectionLabel>
-        <SegmentedControl
-          aria-labelledby={ids.repeat}
-          layout="grid"
-          columns="3"
-          size={segmentSize}
-          value={value.recurrence_type}
-          onValueChange={(next) => update({ recurrence_type: next as ScheduleRecurrenceType })}
-        >
-          <SegmentedControlItem value="weekly">{labels.weekly}</SegmentedControlItem>
-          <SegmentedControlItem value="annual_date">{labels.everyYear}</SegmentedControlItem>
-          <SegmentedControlItem value="one_off_date">{labels.once}</SegmentedControlItem>
-        </SegmentedControl>
-
-        {value.recurrence_type === "weekly" ? (
-          <>
-            <SectionLabel id={ids.days}>{labels.days}</SectionLabel>
-            <SegmentedControl
-              aria-labelledby={ids.days}
-              layout="grid"
-              columns="2"
-              size={segmentSize}
-              value={value.day_pattern}
-              onValueChange={(next) => update({ day_pattern: next as ScheduleDayPattern })}
-            >
-              <SegmentedControlItem value="all">{labels.all}</SegmentedControlItem>
-              <SegmentedControlItem value="weekdays">{labels.weekdays}</SegmentedControlItem>
-              <SegmentedControlItem value="weekends">{labels.weekends}</SegmentedControlItem>
-              <SegmentedControlItem value="custom">{labels.custom}</SegmentedControlItem>
-            </SegmentedControl>
-            {value.day_pattern === "custom" ? (
-              <>
-                <div
-                  role="group"
-                  aria-label={labels.customDays}
-                  data-invalid={errors.custom_days ? true : undefined}
-                  aria-describedby={errors.custom_days ? ids.customError : undefined}
-                  data-slot="schedule-entry-custom-days"
-                  className="grid grid-cols-7 gap-1"
-                >
-                  {SCHEDULE_DAYS.map((day) => {
-                    const pressed = value.custom_days?.includes(day) ?? false;
-                    return (
-                      <SegmentedControlItem
-                        key={day}
-                        type="button"
-                        size={segmentSize}
-                        className="px-0"
-                        pressed={pressed}
-                        onPressedChange={(next) => {
-                          const current = value.custom_days ?? [];
-                          const days = next ? [...current, day] : current.filter((d) => d !== day);
-                          update({ custom_days: SCHEDULE_DAYS.filter((d) => days.includes(d)) });
-                        }}
-                      >
-                        {labels.dayShort[day]}
-                      </SegmentedControlItem>
-                    );
-                  })}
-                </div>
-                {errors.custom_days ? (
-                  <p id={ids.customError} className="text-xs text-destructive">
-                    {labels.errors.custom_days}
-                  </p>
-                ) : null}
-              </>
-            ) : null}
-          </>
-        ) : value.recurrence_type === "annual_date" ? (
-          <>
-            {monthDay("start", annualMonth, annualDay, errors.annual_date)}
-            {rangeSwitch(ids.annualRange, annualRange, (next) => {
-              setAnnualRange(next);
-              update({ annual_end_date: next ? value.annual_date : null });
-            })}
-            {annualRange ? monthDay("end", annualEndMonth, annualEndDay, errors.annual_end_date) : null}
-          </>
-        ) : (
-          <>
-            <Field label={labels.date} error={dateError(errors.one_off_date)}>
-              <Input
-                type="date"
-                size={controlSize}
-                value={value.one_off_date ?? ""}
-                onChange={(event) => update({ one_off_date: event.target.value || null })}
-              />
-            </Field>
-            {rangeSwitch(ids.onceRange, onceRange, (next) => {
-              setOnceRange(next);
-              update({ one_off_end_date: next ? value.one_off_date : null });
-            })}
-            {onceRange ? (
-              <Field label={labels.lastDay} error={dateError(errors.one_off_end_date)}>
-                <Input
-                  type="date"
-                  size={controlSize}
-                  min={value.one_off_date ?? undefined}
-                  value={value.one_off_end_date ?? ""}
-                  onChange={(event) => {
-                    const endDate = event.target.value || null;
-                    setOnceRange(true, endDate);
-                    update({ one_off_end_date: endDate });
-                  }}
-                />
-              </Field>
-            ) : null}
-          </>
-        )}
-      </div>
-
-      {/* Entry is on */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label htmlFor={ids.enabled}>{labels.enabled}</Label>
-          <span id={ids.enabledHint} className="text-xs text-muted-foreground">
-            {labels.enabledHint}
-          </span>
+          </div>
+          {errors.start_time ? (
+            <p id={`${ids.timesError}-start`} className="text-xs text-destructive">
+              {labels.errors.start_time}
+            </p>
+          ) : null}
+          {endTimeError ? (
+            <p id={`${ids.timesError}-end`} className="text-xs text-destructive">
+              {endTimeError}
+            </p>
+          ) : null}
         </div>
-        <Switch
-          id={ids.enabled}
-          size={touch ? "touch" : "default"}
-          aria-describedby={ids.enabledHint}
-          checked={value.enabled}
-          onCheckedChange={(next) => update({ enabled: next })}
-        />
-      </div>
+      ) : null}
+
+      {compact ? (
+        <>
+          {value.recurrence_type === "weekly" ? <div className="flex flex-col gap-3">{daysSection}</div> : null}
+          <Collapsible open={moreOpen} onOpenChange={setMoreOpen} className="flex flex-col gap-5">
+            <CollapsibleTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size={controlSize}
+                data-slot="schedule-entry-more"
+                aria-describedby={!moreOpen && moreSummary ? ids.moreSummary : undefined}
+                className="group h-auto min-h-touch w-full justify-between whitespace-normal px-0 py-2 text-left hover:bg-transparent has-[>svg]:px-0"
+              >
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span>{labels.moreOptions}</span>
+                  {!moreOpen && moreSummary ? (
+                    // The button's description, not part of its name: the
+                    // name stays "More options" whatever the entry holds.
+                    <span id={ids.moreSummary} aria-hidden="true" className="text-xs font-normal text-muted-foreground">
+                      {moreSummary}
+                    </span>
+                  ) : null}
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="transition-transform duration-control group-data-[panel-open]:rotate-180"
+                />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="flex flex-col gap-5">
+              {startsSection}
+              {endsSection}
+              {repeatSection}
+              {enabledRow}
+            </CollapsibleContent>
+          </Collapsible>
+        </>
+      ) : (
+        <>
+          {startsSection}
+          {endsSection}
+          {repeatSection}
+          {enabledRow}
+        </>
+      )}
 
       {summary != null && summary !== false ? (
         <p data-slot="schedule-entry-summary" className="text-sm text-muted-foreground">
@@ -944,6 +1120,7 @@ export type {
   ScheduleEntryErrorCode,
   ScheduleEntryErrors,
   ScheduleEntryFormLabels,
+  ScheduleEntryFormLayout,
   ScheduleEntryFormProps,
   ScheduleEntryFormSize,
   ScheduleEntryTarget,

@@ -9,6 +9,7 @@ import { checkEditorPreviewNeverCollapses } from "./editor-preview-regression";
 import { checkTouchToolbarGeometry } from "./editor-toolbar-regression";
 import { checkFlowShellGeometry } from "./flow-shell-regression";
 import { checkInspectorRowForcedColors } from "./inspector-row-regression";
+import { checkScheduleEntryPhoneSheet, SCHEDULE_ENTRY_PHONE_STORIES } from "./schedule-entry-form-regression";
 import { checkSpinnerMotion } from "./spinner-regression";
 
 /**
@@ -117,6 +118,7 @@ const config: TestRunnerConfig = {
     await checkTouchToolbarGeometry(page, context.id);
     await checkFlowShellGeometry(page, context.id);
     await checkInspectorRowForcedColors(page, context.id);
+    await checkScheduleEntryPhoneSheet(page, context.id);
 
     await configureAxe(page, {
       rules: [
@@ -139,7 +141,10 @@ const config: TestRunnerConfig = {
     // color-contrast is a real failure and still fails the build.
     // Flow-shell fixtures portal their actual dialogs/sheets to body. Checking
     // only the canvas would test the inert background and miss every control.
-    const a11yRoot = context.id.startsWith("overlays-flowshells--") ? "body" : "#storybook-root";
+    const a11yRoot =
+      context.id.startsWith("overlays-flowshells--") || SCHEDULE_ENTRY_PHONE_STORIES.has(context.id)
+        ? "body"
+        : "#storybook-root";
     await checkA11y(page, { include: a11yRoot, exclude: ".logo-fiesta-text" } as never, {
       detailedReport: true,
       detailedReportOptions: {
