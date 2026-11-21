@@ -105,7 +105,7 @@ export const InsetGroup: Story = {
 export const SetupRow: Story = {
   args: { title: "" },
   render: () => (
-    <ListRowGroup aria-label="Set up" size="touch" className="w-[358px] max-w-full">
+    <ListRowGroup aria-label="Set up" size="touch" className="w-[min(358px,calc(100vw-4rem))]">
       <ListRow
         leading={tile(<Wifi />)}
         title="Network"
