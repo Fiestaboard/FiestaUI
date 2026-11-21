@@ -11,6 +11,7 @@ import { checkTouchToolbarGeometry } from "./editor-toolbar-regression";
 import { checkFlowShellGeometry } from "./flow-shell-regression";
 import { checkInspectorRowForcedColors } from "./inspector-row-regression";
 import { checkScheduleEntryPhoneSheet, SCHEDULE_ENTRY_PHONE_STORIES } from "./schedule-entry-form-regression";
+import { checkShellInsets } from "./shell-inset-regression";
 import { checkSidebarHandle } from "./sidebar-handle-regression";
 import { checkSpinnerMotion } from "./spinner-regression";
 
@@ -123,6 +124,7 @@ const config: TestRunnerConfig = {
     await checkInspectorRowForcedColors(page, context.id);
     await checkScheduleEntryPhoneSheet(page, context.id);
     await checkSidebarHandle(page, context.id);
+    await checkShellInsets(page, context.id);
 
     await configureAxe(page, {
       rules: [

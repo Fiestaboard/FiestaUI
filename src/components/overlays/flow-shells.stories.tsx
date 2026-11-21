@@ -72,6 +72,18 @@ export const WideDialog: Story = {
     const close = body.getByRole("button", { name: "Close" }).getBoundingClientRect();
     expect(title.right).toBeLessThanOrEqual(close.left);
     expect(close.width).toBe(40);
+    // 24px from the top of the shell (07e `343:63073`, BB-FS-6): 24 inside
+    // the 1px border, as Figma's inside stroke measures it.
+    expect(Math.round(close.top - dialog.getBoundingClientRect().top - dialog.clientTop)).toBe(24);
+    // The scrim's colour reaches the root's reserved scrollbar gutter too:
+    // while it is up the canvas is --overlay-on-page, not the page colour.
+    const root = canvasElement.ownerDocument.documentElement;
+    const probe = canvasElement.ownerDocument.createElement("div");
+    probe.style.backgroundColor = "var(--overlay-on-page)";
+    canvasElement.ownerDocument.body.append(probe);
+    const expected = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    expect(getComputedStyle(root).backgroundColor).toBe(expected);
     const keep = body.getByRole("button", { name: "Keep editing" }).getBoundingClientRect();
     const discard = body.getByRole("button", { name: "Discard changes" }).getBoundingClientRect();
     if (width < 640) expect(discard.top).toBeGreaterThanOrEqual(keep.bottom);
@@ -212,7 +224,8 @@ export const SnackbarDesktop: Story = {
     await waitFor(() => {
       const closeBox = close.getBoundingClientRect();
       const toastBox = notification.getBoundingClientRect();
-      expect(closeBox.width).toBe(20);
+      // 16px × as 07a `311:73476` draws it (BB-FS-7); the hit area stays 44.
+      expect(closeBox.width).toBe(16);
       expect(toastBox.right - closeBox.right).toBeGreaterThanOrEqual(11);
       expect(toastBox.right - closeBox.right).toBeLessThanOrEqual(14);
       expect(close.contains(canvasElement.ownerDocument.elementFromPoint(closeBox.left - 11, closeBox.top + 10))).toBe(

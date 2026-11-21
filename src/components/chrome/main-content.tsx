@@ -28,8 +28,11 @@ const RAIL_LAYOUT = {
   md: {
     query: "(min-width: 768px)",
     pt: "md:pt-0",
-    plExpanded: "md:pl-[268px]",
-    plCollapsed: "md:pl-[76px]",
+    // The tablet band's rail sits 8px in, not 12 (07a 900 `307:61756`,
+    // BB-FS-8): 8 + 256 / 8 + 64, then 12 + … from 1024. The expanded-minus-
+    // collapsed delta is 192 in both bands, which is all the FLIP below uses.
+    plExpanded: "md:pl-[264px] lg:pl-[268px]",
+    plCollapsed: "md:pl-[72px] lg:pl-[76px]",
     pb: "md:pb-0",
   },
 } as const;

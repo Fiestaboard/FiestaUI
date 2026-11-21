@@ -141,3 +141,48 @@ export const Default: Story = {
 export const Collapsed: Story = {
   render: () => <AppShellDemo initialCollapsed />,
 };
+
+/**
+ * 07a Home `302:20841` as FiestaBoard builds it (BB-FS-8): `railBreakpoint="md"`
+ * and a bare PageHeader over the page's cards, no PageCard. At 1440 the rail
+ * is 12 in and the header's top is at 28; in the tablet band (900, `307:61756`)
+ * the rail is 8 in, 64 wide collapsed, the header's top is at 24 and the first
+ * card starts at x 88. Measured by .storybook/shell-inset-regression.ts.
+ */
+function FigmaHomeDemo() {
+  const [collapsed, setCollapsed] = useState(false);
+  const items: SidebarNavItem[] = [
+    { key: "home", href: "#", icon: Home, label: "Home", active: true },
+    { key: "pages", href: "#pages", icon: FileText, label: "Pages" },
+    { key: "schedule", href: "#schedule", icon: Calendar, label: "Schedule" },
+  ];
+  return (
+    <div className="min-h-dvh bg-background text-foreground">
+      <Sidebar
+        labels={LABELS}
+        items={items}
+        renderLink={renderLink}
+        collapsed={collapsed}
+        onToggleCollapsed={() => setCollapsed(!collapsed)}
+        maxWidth={1680}
+        sidebarInset={12}
+        railBreakpoint="md"
+      />
+      <MainContent collapsed={collapsed} maxWidth={1680} railBreakpoint="md">
+        <PageLayout railBreakpoint="md">
+          <PageHeader icon={Home} title="Home" description="Your board at a glance." hue={PAGE_HUES[0]} />
+          <Card data-testid="first-card">
+            <CardHeader>
+              <CardTitle>Now showing</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">Morning briefing — showing until 9:00.</CardContent>
+          </Card>
+        </PageLayout>
+      </MainContent>
+    </div>
+  );
+}
+
+export const FigmaHome: Story = {
+  render: () => <FigmaHomeDemo />,
+};

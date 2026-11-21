@@ -24,10 +24,16 @@ const RAIL_PAGE = {
   lg: {
     fill: "min-h-full sm:h-[calc(100dvh-72px-var(--bottom-nav-offset,0px))] sm:flex sm:flex-col sm:overflow-hidden lg:h-dvh",
     py: "py-4 sm:py-6 md:py-8 lg:py-3",
+    px: "px-4 md:px-6",
+    header: "lg:[&>[data-slot=page-header]]:mt-4",
   },
   md: {
     fill: "min-h-full sm:h-[calc(100dvh-72px-var(--bottom-nav-offset,0px))] sm:flex sm:flex-col sm:overflow-hidden md:h-dvh",
-    py: "py-4 sm:py-6 md:py-3",
+    // 768–1023 is the tablet band: the rail sits 8px in (07a 900 `307:61756`),
+    // so the page's own inset is 8 there and its gutter to the rail 16.
+    py: "py-4 sm:py-6 md:py-2 lg:py-3",
+    px: "px-4 lg:px-6",
+    header: "md:[&>[data-slot=page-header]]:mt-4",
   },
 } as const;
 
@@ -61,17 +67,13 @@ export const PageLayout = memo(function PageLayout({
     >
       <div
         className={cn(
-          // lg:py-3, matching the rail's own `lg:top-3`/`lg:bottom-3`. This
-          // was 28px for exactly one release, chosen to put the page TITLE on
-          // the same optical line as the wordmark beside it — the best
-          // available landmark back when a route began with bare type and
-          // there was no edge on the page side to align to.
-          // `PageCard` gave the route an edge. A reader now sees two adjacent
-          // surfaces, the rail and the card, and their top borders are the
-          // landmark; 28 against the rail's 12 read as a 16px slip no amount
-          // of optical reasoning about the title could excuse. The title sits
-          // lower than the wordmark now because the card's own py-6 puts it
-          // there, which is the card's rhythm and not this element's business.
+          // py: the rail's own inset (12, or 8 in the tablet band), so a
+          // PageCard's top border lines up with the rail's — the reason a
+          // 28px top was reverted once already. A BARE PageHeader (a direct
+          // child, not one inside a PageCard, which pads its own) takes 16
+          // more from the rail breakpoint up: 07a `302:20841` draws main at
+          // y 12 and the header 16 below it, top at 28 (24 at 900). BB-FS-8:
+          // the bare header sat 16px above the frame.
           // Vertical only. The horizontal gutter below is unaffected: the
           // rail is 12 + 256 wide and MainContent's lg:pl-[268px] lands the
           // card's left border 24 inboard of it, which is the gap this px
@@ -84,8 +86,10 @@ export const PageLayout = memo(function PageLayout({
           // beyond), so the content block read as outdented against the only
           // landmarks above it; 16px brings it into line. md+ steps to 24 for
           // the wider breathing room desktop can afford.
-          "container mx-auto px-4 md:px-6 max-w-full",
+          "container mx-auto max-w-full",
+          rail.px,
           rail.py,
+          rail.header,
           // When pinned to the viewport (e.g. calendar mode), the inner content
           // owns the scrolling — trim mobile vertical padding so the child gets
           // back the pixels normally reserved for page breathing room.

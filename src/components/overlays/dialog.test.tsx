@@ -63,7 +63,9 @@ describe("Dialog shell variants", () => {
     expect(dialog).toHaveClass("max-w-[35rem]", "bg-popover");
     expect(dialog).not.toHaveAttribute("variant");
     expect(dialog).not.toHaveAttribute("labels");
-    expect(screen.getByRole("button", { name: "Schließen" })).toHaveClass("size-10");
+    // 40px, 24px from the top (07e `343:63073`, BB-FS-6).
+    expect(screen.getByRole("button", { name: "Schließen" })).toHaveClass("size-10", "top-6");
+    expect(screen.getByRole("button", { name: "Schließen" })).not.toHaveClass("top-4");
     await user.click(screen.getByRole("button", { name: "Schließen" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     await waitFor(() => expect(screen.getByRole("button", { name: "Open" })).toHaveFocus());
