@@ -104,6 +104,66 @@ describe("toolbar Copy / Cut (BB-E-28)", () => {
   });
 });
 
+/** Select All (Mod-A): TipTap's AllSelection, whose slice is the paragraph itself (openStart 0). */
+async function selectAll(textbox: HTMLElement) {
+  textbox.focus();
+  const editor = (textbox as HTMLElement & { editor?: { commands: { selectAll: () => boolean } } }).editor;
+  if (!editor) throw new Error("no TipTap editor on the textbox");
+  await act(async () => {
+    editor.commands.selectAll();
+    await new Promise((r) => setTimeout(r, 20));
+  });
+}
+
+function copyEvent() {
+  const data = new Map<string, string>();
+  const event = new Event("copy", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "clipboardData", {
+    value: {
+      setData: (type: string, v: string) => void data.set(type, v),
+      getData: (type: string) => data.get(type) ?? "",
+      clearData: () => data.clear(),
+      types: [],
+      items: [],
+      files: [],
+    },
+  });
+  return { event, data };
+}
+
+describe("Select All, then copy (BB-E-28 review)", () => {
+  const VALUE = "{{red}}GOOD {{weather.temperature}}";
+
+  it("toolbar Copy keeps the chips", async () => {
+    const writeText = mockClipboard();
+    const { textbox } = await mount(VALUE);
+    await selectAll(textbox);
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    expect(writeText.mock.calls[0]![0].replace(/\n+$/, "")).toBe(VALUE);
+  });
+
+  it("toolbar Cut keeps the chips on the clipboard before it clears the field", async () => {
+    const writeText = mockClipboard();
+    const { textbox } = await mount(VALUE);
+    await selectAll(textbox);
+    fireEvent.click(screen.getByRole("button", { name: "Cut" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    expect(writeText.mock.calls[0]![0].replace(/\n+$/, "")).toBe(VALUE);
+  });
+
+  it("the field's own copy keeps the chips and drops the anchors", async () => {
+    const { textbox } = await mount(VALUE);
+    await selectAll(textbox);
+    const { event, data } = copyEvent();
+    await act(async () => {
+      textbox.dispatchEvent(event);
+    });
+    expect(data.get("text/plain")).not.toMatch(/\u200b/);
+    expect(data.get("text/plain")?.replace(/\n+$/, "")).toBe(VALUE);
+  });
+});
+
 describe("toolbar pickers return focus to the editor on Escape (BB-E-29)", () => {
   it.each(["Colors", "Formatting", "Variables"])("%s", async (name) => {
     const user = userEvent.setup();

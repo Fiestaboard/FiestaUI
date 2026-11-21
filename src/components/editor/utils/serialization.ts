@@ -206,6 +206,10 @@ export function spanHeadOf(node: JSONContent): string | null {
  * can never disagree about where a span starts and ends.
  */
 export function serializeInlineNodes(nodes: JSONContent[], serializeNode: (node: JSONContent) => string): string {
+  // A whole-paragraph slice (Select All's AllSelection opens no levels, so
+  // the clipboard hands over the paragraph itself) is read as its inline
+  // run. The document is one paragraph, so this loses nothing (BB-E-28).
+  while (nodes.length === 1 && nodes[0]!.type === "paragraph") nodes = nodes[0]!.content ?? [];
   let out = "";
   let open: string | null = null;
   for (const node of nodes) {
