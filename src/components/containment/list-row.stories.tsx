@@ -1,18 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import {
-  Bot,
-  Calendar,
-  ChevronRight,
-  Clock,
-  Copy,
-  Globe,
-  MoreHorizontal,
-  Pencil,
-  Server,
-  Trash2,
-  Wifi,
-} from "lucide-react";
+import { Bot, Calendar, Clock, Copy, Globe, MoreHorizontal, Pencil, Server, Trash2, Wifi } from "lucide-react";
 import { useEffect } from "react";
+import { expect, within } from "storybook/test";
 
 import { Button } from "../forms/button";
 import { Switch } from "../forms/switch";
@@ -24,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "../overlays/dropdown-menu";
 import { IconTile } from "./icon-tile";
-import { ListRow, ListRowGroup } from "./list-row";
+import { ListRow, ListRowChevron, ListRowGroup } from "./list-row";
 
 /*
  * ListRow (slice 1.8a, C16). Figma: 08 `61:25752` (the candidate), 06 `31:5`
@@ -66,7 +55,7 @@ export const Default: Story = {
     description: "Pages change on their own",
     meta: "On",
     leading: tile(<Calendar />),
-    trailing: <ChevronRight />,
+    trailing: <ListRowChevron />,
   },
   render: (args) => (
     <ListRowGroup aria-label="Schedule" className="w-full sm:w-[400px]">
@@ -75,23 +64,26 @@ export const Default: Story = {
   ),
 };
 
-/** The 06 settings rows, as an inset group with dividers. */
+/**
+ * The 06 settings rows, as an inset group with dividers, at the 05 Setup row
+ * size (`touch`, BB-FK-9).
+ */
 export const InsetGroup: Story = {
   args: { title: "" },
   render: () => (
-    <ListRowGroup aria-label="Hub" className="w-full sm:w-[400px]">
+    <ListRowGroup aria-label="Hub" size="touch" className="w-full sm:w-[400px]">
       <ListRow
         leading={tile(<Server />)}
         title="FiestaPi"
         description="fiestapi.local:4420"
-        trailing={<ChevronRight />}
+        trailing={<ListRowChevron />}
       />
       <ListRow
         leading={tile(<Calendar />)}
         title="Schedule Mode"
         description="Pages change on their own"
         meta="On"
-        trailing={<ChevronRight />}
+        trailing={<ListRowChevron />}
       />
       <ListRow
         leading={tile(<Clock />)}
@@ -102,6 +94,51 @@ export const InsetGroup: Story = {
       <ListRow title="Firmware" meta="8.17.0" />
     </ListRowGroup>
   ),
+};
+
+/**
+ * The 05 Setup / Row (`35:17332`), which every ListRow follows at
+ * `size="touch"` (BB-FK-9, owner ruling 2026-11-21): min-h 60, px 16, py 10,
+ * gap 12; a 32px tile; title 16/24 medium; subtitle 14/20 muted; a 16px
+ * chevron. The play function measures it in the browser.
+ */
+export const SetupRow: Story = {
+  args: { title: "" },
+  render: () => (
+    <ListRowGroup aria-label="Set up" size="touch" className="w-full sm:w-[390px]">
+      <ListRow
+        leading={tile(<Wifi />)}
+        title="Network"
+        description="Home 5G · connected"
+        trailing={<ListRowChevron />}
+      />
+      <ListRow leading={tile(<Server />)} title="Hub" trailing={<ListRowChevron />} />
+    </ListRowGroup>
+  ),
+  play: async ({ canvasElement }) => {
+    const rows = within(canvasElement).getAllByRole("listitem");
+    // Measured without the group's 1px divider, which `divide-y` draws as the
+    // upper row's bottom border.
+    const [twoLine, oneLine] = rows.map((r) => r.clientHeight);
+    // A one-line row sits on the 60px floor; two lines grow it (10 + 24 + 2 + 20 + 10).
+    await expect(oneLine).toBe(60);
+    await expect(twoLine).toBe(66);
+    const style = (el: Element) => getComputedStyle(el);
+    const row = rows[0]!;
+    await expect(style(row).paddingLeft).toBe("16px");
+    await expect(style(row).paddingTop).toBe("10px");
+    await expect(style(row).columnGap).toBe("12px");
+    const title = row.querySelector('[data-slot="list-row-title"]')!;
+    await expect([style(title).fontSize, style(title).lineHeight, style(title).fontWeight]).toEqual([
+      "16px",
+      "24px",
+      "500",
+    ]);
+    const subtitle = row.querySelector('[data-slot="list-row-description"]')!;
+    await expect([style(subtitle).fontSize, style(subtitle).lineHeight]).toEqual(["14px", "20px"]);
+    const chevron = row.querySelector('[data-slot="list-row-chevron"]')!.getBoundingClientRect();
+    await expect([chevron.width, chevron.height]).toEqual([16, 16]);
+  },
 };
 
 /**
@@ -127,7 +164,7 @@ export const Selected: Story = {
                 leading={item.icon}
                 title={item.title}
                 meta={item.meta}
-                trailing={<ChevronRight />}
+                trailing={<ListRowChevron />}
                 selected={item.title === open}
               />
             </li>
@@ -152,7 +189,7 @@ export const Layouts: Story = {
               title="Schedule Mode"
               description="Pages change on their own"
               meta="Every 15 min"
-              trailing={<ChevronRight />}
+              trailing={<ListRowChevron />}
             />
           </ListRowGroup>
         </div>
@@ -193,7 +230,7 @@ export const LargeText: Story = {
           title="Schedule Mode"
           description="Pages change on their own"
           meta="On"
-          trailing={<ChevronRight />}
+          trailing={<ListRowChevron />}
         />
       </ListRowGroup>
     </div>
@@ -227,12 +264,12 @@ export const Touch: Story = {
   args: { title: "" },
   render: () => (
     <ListRowGroup size="touch" aria-label="Displays" className="w-full sm:w-[400px]">
-      <ListRow leading={tile(<Server />)} title="Kitchen board" description="Online" trailing={<ChevronRight />} />
+      <ListRow leading={tile(<Server />)} title="Kitchen board" description="Online" trailing={<ListRowChevron />} />
       <ListRow
         leading={tile(<Server />)}
         title="Hallway"
         description="Last connected 2 h ago"
-        trailing={<ChevronRight />}
+        trailing={<ListRowChevron />}
       />
     </ListRowGroup>
   ),
@@ -250,7 +287,7 @@ export const AsLink: Story = {
           leading={tile(<Server />)}
           title="Kitchen board"
           description="fiestapi.local · Online"
-          trailing={<ChevronRight />}
+          trailing={<ListRowChevron />}
         />
       </li>
     </ListRowGroup>
