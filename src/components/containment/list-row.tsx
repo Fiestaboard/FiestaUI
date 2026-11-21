@@ -148,8 +148,10 @@ const variantClasses: Record<ListRowVariant, string> = {
 
 const sizeClasses: Record<ListRowSize, string> = {
   default: "min-h-12 py-2",
-  // 05 Setup / Row `35:17332`: min-h 60, py 10 (px 16 and gap 12 are shared).
-  touch: "min-h-15 py-2.5",
+  // 05 Setup / Row `35:17332`: min-h 60, py 10 (px 16 and gap 12 are shared),
+  // and the leading tile's glyph at 18 rather than IconTile sm's 16 (an icon
+  // that sets its own size- keeps it).
+  touch: "min-h-15 py-2.5 [&_[data-slot=icon-tile]>svg:not([class*='size-'])]:size-4.5",
 };
 
 const titleSize: Record<ListRowSize, string> = {

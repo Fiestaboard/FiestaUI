@@ -125,6 +125,16 @@ describe("ListRow", () => {
     expect(description.className.split(/\s+/)).toEqual(expect.arrayContaining(["text-sm", "text-muted-foreground"]));
   });
 
+  // 05 Setup / Row: the leading tile's glyph is 18, not IconTile sm's 16.
+  it("sizes an IconTile's glyph to 18px in a touch row only", () => {
+    const rule = "[&_[data-slot=icon-tile]>svg:not([class*='size-'])]:size-4.5";
+    const { unmount } = render(<ListRow title="Network" size="touch" />);
+    expect(row().className.split(/\s+/)).toContain(rule);
+    unmount();
+    render(<ListRow title="Network" />);
+    expect(row().className.split(/\s+/)).not.toContain(rule);
+  });
+
   it("keeps the dense default row as it was (48px floor, 14px title)", () => {
     render(<ListRow title="Market open" />);
     expect(row().className.split(/\s+/)).toEqual(expect.arrayContaining(["min-h-12", "py-2"]));

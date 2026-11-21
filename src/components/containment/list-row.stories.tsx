@@ -99,13 +99,13 @@ export const InsetGroup: Story = {
 /**
  * The 05 Setup / Row (`35:17332`), which every ListRow follows at
  * `size="touch"` (BB-FK-9, owner ruling 2026-11-21): min-h 60, px 16, py 10,
- * gap 12; a 32px tile; title 16/24 medium; subtitle 14/20 muted; a 16px
+ * gap 12; a 32px tile with an 18px glyph; title 16/24 medium; subtitle 14/20 muted; a 16px
  * chevron. The play function measures it in the browser.
  */
 export const SetupRow: Story = {
   args: { title: "" },
   render: () => (
-    <ListRowGroup aria-label="Set up" size="touch" className="w-full sm:w-[390px]">
+    <ListRowGroup aria-label="Set up" size="touch" className="w-[358px] max-w-full">
       <ListRow
         leading={tile(<Wifi />)}
         title="Network"
@@ -138,6 +138,11 @@ export const SetupRow: Story = {
     await expect([style(subtitle).fontSize, style(subtitle).lineHeight]).toEqual(["14px", "20px"]);
     const chevron = row.querySelector('[data-slot="list-row-chevron"]')!.getBoundingClientRect();
     await expect([chevron.width, chevron.height]).toEqual([16, 16]);
+    const tileEl = row.querySelector('[data-slot="icon-tile"]')!;
+    const tileBox = tileEl.getBoundingClientRect();
+    const glyph = tileEl.querySelector("svg")!.getBoundingClientRect();
+    await expect([tileBox.width, tileBox.height, style(tileEl).borderTopLeftRadius]).toEqual([32, 32, "8px"]);
+    await expect([glyph.width, glyph.height]).toEqual([18, 18]);
   },
 };
 
