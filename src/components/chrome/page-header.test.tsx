@@ -2,7 +2,9 @@ import { render, screen } from "@testing-library/react";
 import { Monitor } from "lucide-react";
 import { describe, expect, it } from "vitest";
 
+import { PageCard } from "./page-card";
 import { PageHeader } from "./page-header";
+import { PageLayout } from "./page-layout";
 
 describe("PageHeader collapsed", () => {
   it("renders as before when not collapsed", () => {
@@ -57,5 +59,47 @@ describe("PageHeader collapsed", () => {
     );
     const action = screen.getByRole("button", { name: "Add" }).closest("[data-slot=reveal]");
     expect(action).toHaveClass("ml-auto");
+  });
+});
+
+describe("PageHeader offset on a bare page (07a `302:20841`, BB-FS-8)", () => {
+  const header = () => document.querySelector<HTMLElement>('[data-slot="page-header"]')!;
+
+  it("sits 16px below the page top from the rail breakpoint, directly in PageLayout", () => {
+    render(
+      <PageLayout railBreakpoint="md">
+        <PageHeader icon={Monitor} title="Home" description="d" />
+      </PageLayout>,
+    );
+    expect(header()).toHaveClass("md:mt-4");
+    expect(header()).not.toHaveClass("lg:mt-4");
+  });
+
+  it("keeps the offset when a route wraps the header (Schedule: PageLayout > Box > PageHeader)", () => {
+    render(
+      <PageLayout>
+        <div>
+          <PageHeader icon={Monitor} title="Schedule" description="d" />
+        </div>
+      </PageLayout>,
+    );
+    expect(header()).toHaveClass("lg:mt-4");
+  });
+
+  it("leaves a header inside a PageCard to the card's own padding", () => {
+    render(
+      <PageLayout railBreakpoint="md">
+        <PageCard>
+          <PageHeader icon={Monitor} title="Displays" description="d" />
+        </PageCard>
+      </PageLayout>,
+    );
+    expect(header()).not.toHaveClass("md:mt-4");
+    expect(header()).not.toHaveClass("lg:mt-4");
+  });
+
+  it("adds nothing outside a PageLayout", () => {
+    render(<PageHeader icon={Monitor} title="Loose" description="d" />);
+    expect(header().className).not.toMatch(/mt-4/);
   });
 });

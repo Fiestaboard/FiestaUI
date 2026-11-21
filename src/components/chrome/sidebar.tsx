@@ -523,7 +523,11 @@ export interface SidebarProps {
   menuNotice?: string;
   /** App max width in px — the sidebar centers itself against it. */
   maxWidth: number;
-  /** Gap between the app edge and the sidebar in px. */
+  /**
+   * Gap between the app edge and the sidebar in px. With `railBreakpoint="md"`
+   * the tablet band (768–1023) always insets the rail 8px instead (07a 900
+   * `307:61756`); this value applies from 1024.
+   */
   sidebarInset: number;
   /**
    * The phone chrome, below `railBreakpoint` (slice 1.4a):

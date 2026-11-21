@@ -39,18 +39,13 @@ describe("PageLayout", () => {
   it("aligns to the rail from lg by default", () => {
     const { outer, inner } = layout();
     expect(inner).toEqual(expect.arrayContaining(["md:py-8", "lg:py-3"]));
-    // 07a `302:20841`: main at y 12, a bare PageHeader 16 below it — top at 28 (BB-FS-8).
-    expect(inner).toContain("lg:[&>[data-slot=page-header]]:mt-4");
     expect(outer).toContain("min-h-full");
   });
 
   it("aligns to the rail from md with railBreakpoint md", () => {
     const { inner } = layout({ railBreakpoint: "md" });
-    // The tablet band's rail sits 8 in (07a 900 `307:61756`): page inset 8, a 16px gutter to the rail,
-    // and a bare header 16 below (top at 24).
-    expect(inner).toEqual(
-      expect.arrayContaining(["md:py-2", "lg:py-3", "lg:px-6", "md:[&>[data-slot=page-header]]:mt-4"]),
-    );
+    // The tablet band's rail sits 8 in (07a 900 `307:61756`): page inset 8, a 16px gutter to the rail.
+    expect(inner).toEqual(expect.arrayContaining(["md:py-2", "lg:py-3", "lg:px-6"]));
     expect(inner).not.toContain("md:px-6");
     expect(inner).not.toContain("md:py-8");
   });

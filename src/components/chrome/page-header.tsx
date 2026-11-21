@@ -1,7 +1,8 @@
 import type { LucideIcon } from "lucide-react";
-import { memo } from "react";
+import { memo, useContext } from "react";
 
 import { cn } from "../../lib/utils";
+import { InPageCard, PageRail } from "./page-context";
 import { Reveal } from "./reveal";
 
 // Render-invariant styles, hoisted so re-renders reuse one object each.
@@ -135,6 +136,10 @@ export const PageHeader = memo(function PageHeader({
   collapsed = false,
 }: PageHeaderProps) {
   const resolved = hue ?? pageHue(title);
+  // Bare on the page (not in a PageCard), the header sits 16px below the
+  // page's top from the rail breakpoint up (07a `302:20841`, BB-FS-8).
+  const rail = useContext(PageRail);
+  const bare = !useContext(InPageCard);
   return (
     <div
       data-slot="page-header"
@@ -147,6 +152,7 @@ export const PageHeader = memo(function PageHeader({
         // action rather than snapping.
         "transition-[row-gap] duration-base ease-out-cubic",
         collapsed ? "gap-y-0" : "gap-y-3",
+        bare && (rail === "lg" ? "lg:mt-4" : rail === "md" ? "md:mt-4" : undefined),
         className,
       )}
       style={{ animationDelay }}

@@ -1,6 +1,7 @@
 import { memo } from "react";
 
 import { cn } from "../../lib/utils";
+import { PageRail } from "./page-context";
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -25,7 +26,6 @@ const RAIL_PAGE = {
     fill: "min-h-full sm:h-[calc(100dvh-72px-var(--bottom-nav-offset,0px))] sm:flex sm:flex-col sm:overflow-hidden lg:h-dvh",
     py: "py-4 sm:py-6 md:py-8 lg:py-3",
     px: "px-4 md:px-6",
-    header: "lg:[&>[data-slot=page-header]]:mt-4",
   },
   md: {
     fill: "min-h-full sm:h-[calc(100dvh-72px-var(--bottom-nav-offset,0px))] sm:flex sm:flex-col sm:overflow-hidden md:h-dvh",
@@ -33,7 +33,6 @@ const RAIL_PAGE = {
     // so the page's own inset is 8 there and its gutter to the rail 16.
     py: "py-4 sm:py-6 md:py-2 lg:py-3",
     px: "px-4 lg:px-6",
-    header: "md:[&>[data-slot=page-header]]:mt-4",
   },
 } as const;
 
@@ -46,59 +45,60 @@ export const PageLayout = memo(function PageLayout({
 }: PageLayoutProps) {
   const rail = RAIL_PAGE[railBreakpoint];
   return (
-    <div
-      className={cn(
-        // `surface-grain` because THIS is the page ground, not <body>. The base
-        // layer grains `body`, which is correct for a host that lets the page
-        // surface reach the canvas — but this component paints `bg-background`
-        // itself, so it covers the grained body with a flat fill and the page
-        // loses its tooth for every consumer using the system's own page
-        // component. The rail solves the same problem the same way (see
-        // `.sidebar-gradient` in theme.css): the element that paints the
-        // surface is the element that carries its texture.
-        "bg-background surface-grain overflow-x-hidden",
-        // fillHeight pins the page to the viewport so inner content (e.g. the
-        // calendar grid) can scroll independently. On phones we drop the
-        // pinning — viewport-internal scroll on a 24-hour grid is fiddly to
-        // discover, so we let the page itself scroll instead.
-        fillHeight ? rail.fill : "min-h-full",
-        outerClassName,
-      )}
-    >
+    <PageRail value={railBreakpoint}>
       <div
         className={cn(
-          // py: the rail's own inset (12, or 8 in the tablet band), so a
-          // PageCard's top border lines up with the rail's — the reason a
-          // 28px top was reverted once already. A BARE PageHeader (a direct
-          // child, not one inside a PageCard, which pads its own) takes 16
-          // more from the rail breakpoint up: 07a `302:20841` draws main at
-          // y 12 and the header 16 below it, top at 28 (24 at 900). BB-FS-8:
-          // the bare header sat 16px above the frame.
-          // Vertical only. The horizontal gutter below is unaffected: the
-          // rail is 12 + 256 wide and MainContent's lg:pl-[268px] lands the
-          // card's left border 24 inboard of it, which is the gap this px
-          // ramp is sized for.
-          // px-4 at base, not px-3. This is now the gutter for the CARDS —
-          // PageHeader carries its own px-6 so its type lands on the card's
-          // content column rather than on this edge. 12px put a card's border
-          // closer to the screen edge than anything else on a phone (the
-          // mobile header's menu button and wordmark both sit at 20px or
-          // beyond), so the content block read as outdented against the only
-          // landmarks above it; 16px brings it into line. md+ steps to 24 for
-          // the wider breathing room desktop can afford.
-          "container mx-auto max-w-full",
-          rail.px,
-          rail.py,
-          rail.header,
-          // When pinned to the viewport (e.g. calendar mode), the inner content
-          // owns the scrolling — trim mobile vertical padding so the child gets
-          // back the pixels normally reserved for page breathing room.
-          fillHeight && "py-2 sm:py-3 sm:flex-1 sm:min-h-0 sm:flex sm:flex-col sm:overflow-hidden",
-          className,
+          // `surface-grain` because THIS is the page ground, not <body>. The base
+          // layer grains `body`, which is correct for a host that lets the page
+          // surface reach the canvas — but this component paints `bg-background`
+          // itself, so it covers the grained body with a flat fill and the page
+          // loses its tooth for every consumer using the system's own page
+          // component. The rail solves the same problem the same way (see
+          // `.sidebar-gradient` in theme.css): the element that paints the
+          // surface is the element that carries its texture.
+          "bg-background surface-grain overflow-x-hidden",
+          // fillHeight pins the page to the viewport so inner content (e.g. the
+          // calendar grid) can scroll independently. On phones we drop the
+          // pinning — viewport-internal scroll on a 24-hour grid is fiddly to
+          // discover, so we let the page itself scroll instead.
+          fillHeight ? rail.fill : "min-h-full",
+          outerClassName,
         )}
       >
-        {children}
+        <div
+          className={cn(
+            // py: the rail's own inset (12, or 8 in the tablet band), so a
+            // PageCard's top border lines up with the rail's — the reason a
+            // 28px top was reverted once already. A BARE PageHeader (anywhere
+            // in this layout, but not inside a PageCard, which pads its own)
+            // adds 16 itself from the rail breakpoint up, read from the
+            // PageRail context below: 07a `302:20841` draws main at y 12 and
+            // the header 16 below it, top at 28 (24 at 900). BB-FS-8.
+            // Vertical only. The horizontal gutter below is unaffected: the
+            // rail is 12 + 256 wide and MainContent's lg:pl-[268px] lands the
+            // card's left border 24 inboard of it, which is the gap this px
+            // ramp is sized for.
+            // px-4 at base, not px-3. This is now the gutter for the CARDS —
+            // PageHeader carries its own px-6 so its type lands on the card's
+            // content column rather than on this edge. 12px put a card's border
+            // closer to the screen edge than anything else on a phone (the
+            // mobile header's menu button and wordmark both sit at 20px or
+            // beyond), so the content block read as outdented against the only
+            // landmarks above it; 16px brings it into line. md+ steps to 24 for
+            // the wider breathing room desktop can afford.
+            "container mx-auto max-w-full",
+            rail.px,
+            rail.py,
+            // When pinned to the viewport (e.g. calendar mode), the inner content
+            // owns the scrolling — trim mobile vertical padding so the child gets
+            // back the pixels normally reserved for page breathing room.
+            fillHeight && "py-2 sm:py-3 sm:flex-1 sm:min-h-0 sm:flex sm:flex-col sm:overflow-hidden",
+            className,
+          )}
+        >
+          {children}
+        </div>
       </div>
-    </div>
+    </PageRail>
   );
 });

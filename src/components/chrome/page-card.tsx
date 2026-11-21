@@ -2,6 +2,7 @@ import { createContext, memo, useContext, useEffect, useRef, useState } from "re
 
 import { cn } from "../../lib/utils";
 import { Card, CardDescription, CardTitle } from "../containment/card";
+import { InPageCard } from "./page-context";
 
 interface PageCardProps {
   /** Continuous page canvas. Nested sections keep their spacing without repeated borders. */
@@ -84,28 +85,30 @@ export const PageCard = memo(function PageCard({ children, className, fillHeight
   }, []);
   return (
     <PageCardMounted value={mounted}>
-      <PageSurface value={surface}>
-        <Card
-          data-slot="page-card"
-          data-surface={surface}
-          className={cn(
-            // Card's own rhythm is off — the blocks own it.
-            "gap-0 overflow-hidden py-0",
-            // `PageHeader` and `PageToolbar` predate this component and pad
-            // themselves horizontally but not vertically, spacing with a bottom
-            // margin instead. Inside a card they are blocks: swap the margin for
-            // block padding, and give the toolbar the rule above it.
-            "[&>[data-slot=page-header]]:mb-0 [&>[data-slot=page-header]]:py-6",
-            TOOLBAR_AS_BLOCK,
-            surface === "card" && "[&>[data-slot=page-toolbar]]:border-t",
-            surface === "plain" && "border-0 bg-transparent shadow-none",
-            fillHeight && "min-h-0 flex-1",
-            className,
-          )}
-        >
-          {children}
-        </Card>
-      </PageSurface>
+      <InPageCard value={true}>
+        <PageSurface value={surface}>
+          <Card
+            data-slot="page-card"
+            data-surface={surface}
+            className={cn(
+              // Card's own rhythm is off — the blocks own it.
+              "gap-0 overflow-hidden py-0",
+              // `PageHeader` and `PageToolbar` predate this component and pad
+              // themselves horizontally but not vertically, spacing with a bottom
+              // margin instead. Inside a card they are blocks: swap the margin for
+              // block padding, and give the toolbar the rule above it.
+              "[&>[data-slot=page-header]]:mb-0 [&>[data-slot=page-header]]:py-6",
+              TOOLBAR_AS_BLOCK,
+              surface === "card" && "[&>[data-slot=page-toolbar]]:border-t",
+              surface === "plain" && "border-0 bg-transparent shadow-none",
+              fillHeight && "min-h-0 flex-1",
+              className,
+            )}
+          >
+            {children}
+          </Card>
+        </PageSurface>
+      </InPageCard>
     </PageCardMounted>
   );
 });
