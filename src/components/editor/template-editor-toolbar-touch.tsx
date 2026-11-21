@@ -94,6 +94,8 @@ export interface TouchToolbarProps {
   onCut: () => void;
   onCopy: () => void;
   onPaste: () => void;
+  /** Escape from a picker returns focus here: the editor (BB-E-29). */
+  onReturnFocus?: () => void;
   // Insertion.
   onInsert: (token: string) => void;
   onInsertFormula: () => void;
@@ -313,6 +315,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
   const variablesTool = (
     <ToolbarDropdown
       key="variables"
+      returnFocus={props.onReturnFocus}
       size="touch"
       presentation={pickerPresentation}
       container={container}
@@ -342,6 +345,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
     return (
       <ToolbarDropdown
         key={face}
+        returnFocus={props.onReturnFocus}
         size="touch"
         presentation={pickerPresentation}
         container={container}
@@ -403,6 +407,7 @@ export function TouchToolbar(props: TouchToolbarProps) {
   const formattingTool = (
     <ToolbarDropdown
       key="formatting"
+      returnFocus={props.onReturnFocus}
       size="touch"
       presentation={pickerPresentation}
       container={container}

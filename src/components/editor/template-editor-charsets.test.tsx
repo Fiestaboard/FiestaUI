@@ -232,11 +232,9 @@ describe("the clipboard", () => {
     await act(async () => {
       textbox.dispatchEvent(event);
     });
-    // The clipboard keeps the document's cursor anchors (zero-width spaces)
-    // verbatim, as it always has; the template shape is what matters here.
-    expect(data.get("text/plain")?.replaceAll("\u200b", "").replace(/\n+$/, "")).toBe(
-      "{{red:HOT {{weather.temperature}}}} END",
-    );
+    // The cursor anchors (zero-width spaces) stay in the editor (BB-E-28).
+    expect(data.get("text/plain")).not.toMatch(/\u200b/);
+    expect(data.get("text/plain")?.replace(/\n+$/, "")).toBe("{{red:HOT {{weather.temperature}}}} END");
   });
 
   it("refuses a pasted span whose colour is not a colour: no style injection, no hostile head in the value", async () => {

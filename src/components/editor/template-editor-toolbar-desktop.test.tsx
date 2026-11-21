@@ -93,6 +93,19 @@ describe("TemplateEditorToolbar (default size) · history and clipboard", () => 
     await waitFor(() => expect(fake.calls).toContain("delete"));
   });
 
+  // BB-E-28: a host editor whose own serializer is absent (or keeps the
+  // anchors) still never puts the U+200B cursor anchors on the clipboard.
+  it("strips the editor's cursor anchors from what Copy writes", async () => {
+    const clip = mockClipboard();
+    const fake = fakeEditor({ selection: true });
+    const withAnchors = Object.create(fake.editor, {
+      state: { get: () => ({ selection: { from: 0, to: 6 }, doc: { textBetween: () => "\u200bGOOD\u200b\u200b" } }) },
+    }) as Editor;
+    render(<TemplateEditorToolbar editor={withAnchors} />);
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    await waitFor(() => expect(clip.writeText).toHaveBeenCalledWith("GOOD"));
+  });
+
   it("falls back to execCommand when the clipboard write is denied", async () => {
     const clip = mockClipboard({ write: false });
     render(<TemplateEditorToolbar editor={fakeEditor({ selection: true }).editor} />);
