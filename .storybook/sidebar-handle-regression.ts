@@ -199,7 +199,6 @@ export async function checkSidebarHandle(page: Page, id: string) {
   if (id === BOTTOM_NAV_STORY) return checkBottomNav(page, id);
   if (id !== STORY) return;
   const original = page.viewportSize();
-  const cdp = await page.context().newCDPSession(page);
   try {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.mouse.move(1400, 880);
@@ -255,26 +254,32 @@ export async function checkSidebarHandle(page: Page, id: string) {
     assert.match(ring, /0px 0px 0px 4px/, `${id}: focus wears the kit focus-ring stack`);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 
-    // Touch: no hover to reveal it, so it stays visible at rest.
-    // Chromium reports (hover: none) / (pointer: coarse) under touch
-    // emulation, as a phone or tablet does.
+    // Touch: no hover to reveal it, so it stays visible at rest. Chromium
+    // reports (hover: none) under touch emulation, as a phone or tablet does.
+    // It runs on a page of its own: on Linux headless Chromium, turning the
+    // emulation off again never restores (hover: hover) on that page, which
+    // would leak into every later story the runner visits on it.
     assert.ok(
       await page.evaluate(() => matchMedia("(hover: hover)").matches),
       `${id}: the page starts on a hover-capable pointer`,
     );
-    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
-    await page.mouse.move(1400, 880);
-    assert.ok(
-      await page.evaluate(() => matchMedia("(hover: none)").matches),
-      `${id}: (hover: none) emulation took effect`,
-    );
-    assert.equal(await opacity(page), 1, `${id}: on a device that cannot hover the handle is visible at rest`);
+    const touchPage = await page.context().newPage();
+    try {
+      await touchPage.setViewportSize({ width: 1440, height: 900 });
+      const cdp = await page.context().newCDPSession(touchPage);
+      await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+      await touchPage.goto(page.url());
+      await touchPage.waitForSelector(HANDLE);
+      await touchPage.mouse.move(1400, 880);
+      assert.ok(
+        await touchPage.evaluate(() => matchMedia("(hover: none)").matches),
+        `${id}: (hover: none) emulation took effect`,
+      );
+      assert.equal(await opacity(touchPage), 1, `${id}: on a device that cannot hover the handle is visible at rest`);
+    } finally {
+      await touchPage.close();
+    }
   } finally {
-    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false }).catch(() => {});
-    await cdp.detach().catch(() => {});
-    // The media query flips back asynchronously; don't hand the next story a
-    // page that still reports (hover: none).
-    await page.waitForFunction(() => matchMedia("(hover: hover)").matches, null, { timeout: 3000 }).catch(() => {});
     if (original) await page.setViewportSize(original);
   }
 }
