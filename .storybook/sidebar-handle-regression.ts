@@ -75,6 +75,9 @@ async function checkCollapsedRail(page: Page, id: string) {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.mouse.move(1400, 880);
     await frames(page);
+    // A previous story's touch emulation must be gone: under (hover: none)
+    // the handle is visible at rest by design.
+    await waitForHover(page, id);
     assert.equal(await opacity(page), 0, `${id}: the handle is hidden at rest on the collapsed rail`);
     const box = await page.locator("aside").boundingBox();
     await page.mouse.move(box!.x + 32, box!.y + 400);
@@ -159,6 +162,15 @@ async function checkBottomNav(page: Page, id: string) {
   } finally {
     if (original) await page.setViewportSize(original);
   }
+}
+
+/** Wait (briefly) for a hover-capable pointer, and fail with a clear message if it never comes. */
+async function waitForHover(page: Page, id: string) {
+  const ok = await page
+    .waitForFunction(() => matchMedia("(hover: hover)").matches, null, { timeout: 3000 })
+    .then(() => true)
+    .catch(() => false);
+  assert.ok(ok, `${id}: the page reports (hover: hover) (no leftover touch emulation)`);
 }
 
 async function frames(page: Page) {
@@ -260,6 +272,9 @@ export async function checkSidebarHandle(page: Page, id: string) {
   } finally {
     await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false }).catch(() => {});
     await cdp.detach().catch(() => {});
+    // The media query flips back asynchronously; don't hand the next story a
+    // page that still reports (hover: none).
+    await page.waitForFunction(() => matchMedia("(hover: hover)").matches, null, { timeout: 3000 }).catch(() => {});
     if (original) await page.setViewportSize(original);
   }
 }
