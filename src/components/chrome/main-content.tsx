@@ -36,7 +36,7 @@ const RAIL_LAYOUT = {
 
 /**
  * Room for the bottom tab bar (slice 1.4a): `--bottom-nav-offset`, which the
- * Sidebar publishes (88px: the bar's 64, the 12 it floats and 12 of air)
+ * Sidebar publishes (84px: the bar's 64, the 8 it floats and 12 of air)
  * only while its bar is on screen — plus the home-indicator inset on phones
  * that have one. No bar, no variable, no gap.
  */

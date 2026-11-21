@@ -17,7 +17,7 @@ import {
   Sun,
 } from "lucide-react";
 import { useState } from "react";
-import { expect } from "storybook/test";
+import { expect, userEvent, waitFor } from "storybook/test";
 
 import {
   DropdownMenu,
@@ -836,15 +836,19 @@ export const FigmaRail: Story = {
   render: () => <DemoSidebar items={FIGMA_IA} boardCount={2} />,
 };
 
-/** 07a's 900 rail `307:61756`: the nested tile flush, the hairline kept at the tile's width. */
+/**
+ * 07a's 900 rail `307:61756`: the nested tile flush, the hairline kept at the
+ * tile's width. The edge tab follows the same hover/focus rule as expanded.
+ */
 export const FigmaRailCollapsed: Story = {
   render: () => <DemoSidebar items={FIGMA_IA} boardCount={2} initialCollapsed />,
 };
 
 /**
  * `collapseHandle="always"`: the edge tab at rest, as the 07a/07e frames
- * draw it. The default is `"hover"` (owner ruling): hidden at rest, shown on
- * rail hover, keyboard focus, touch and the collapsed rail — see FigmaRail,
+ * draw it. The default is `"hover"` (owner ruling 2026-11-21): hidden at
+ * rest, shown on rail hover and keyboard focus, and at rest on touch, on the
+ * expanded and the collapsed rail — see FigmaRail and FigmaRailCollapsed,
  * which the test-runner hook (sidebar-handle-regression.ts) drives.
  */
 export const CollapseHandleAlways: Story = {
@@ -852,6 +856,22 @@ export const CollapseHandleAlways: Story = {
   play: async ({ canvasElement }) => {
     const handle = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-slot="sidebar-collapse-handle"]');
     await expect(handle).toHaveAttribute("data-visibility", "always");
+  },
+};
+
+/**
+ * The edge tab under keyboard focus (BB-FS-1): Tab reaches it, it appears
+ * with the kit focus ring although the pointer is nowhere near the rail.
+ */
+export const CollapseHandleKeyboardFocus: Story = {
+  render: () => <DemoSidebar items={FIGMA_IA} boardCount={2} />,
+  play: async ({ canvasElement }) => {
+    const doc = canvasElement.ownerDocument;
+    const handle = doc.querySelector<HTMLElement>('[data-slot="sidebar-collapse-handle"]')!;
+    for (let i = 0; i < 40 && doc.activeElement !== handle; i++) await userEvent.tab();
+    await expect(handle).toHaveFocus();
+    await expect(handle).toHaveAttribute("data-visibility", "hover");
+    await waitFor(() => expect(getComputedStyle(handle).opacity).toBe("1"));
   },
 };
 

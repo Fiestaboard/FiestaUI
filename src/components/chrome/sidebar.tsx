@@ -104,13 +104,15 @@ const NAV_SEPARATOR_EXPANDED = cn(NAV_SEPARATOR_BASE, "mx-2");
 // through it. The result is solid on any page.
 const COLLAPSE_HANDLE_BASE =
   "focus-ring absolute -right-0.5 top-4.5 z-[var(--z-sidebar-toggle)] flex h-7 w-4 items-center justify-center rounded-md border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-md transition-[opacity,color,background-image] duration-fast hover:bg-[linear-gradient(var(--sidebar-accent),var(--sidebar-accent))] hover:text-sidebar-accent-foreground";
-// `collapseHandle="hover"`: hidden at rest on the expanded rail, shown while
-// the pointer is anywhere on the rail, whenever the handle has keyboard focus,
-// on a device that cannot hover (touch), and always on the collapsed rail —
-// the one way back to the labels must never be invisible.
+// `collapseHandle="hover"` (owner ruling 2026-11-21, expanded and collapsed
+// rail alike): shown only while the pointer is anywhere on the rail or the
+// handle has keyboard focus. The hiding itself is gated on (hover: hover) —
+// the media query Tailwind wraps every hover: variant in — so it is only ever
+// hidden where a hover can bring it back. A touch device, or a browser that
+// matches neither, keeps it visible at rest, with nothing to opt back into.
 const COLLAPSE_HANDLE_HOVER = cn(
   COLLAPSE_HANDLE_BASE,
-  "opacity-0 group-hover/rail:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
+  "[@media(hover:hover)]:opacity-0 group-hover/rail:opacity-100 focus-visible:opacity-100",
 );
 
 const NAV_LABEL_BASE = "whitespace-nowrap overflow-hidden transition-opacity duration-fast";
@@ -131,7 +133,7 @@ const MOBILE_MENU_BASE =
   "fixed top-[calc(var(--mobile-header-height,56px)+16px)] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
 // variant="bottom-nav": the drawer is what "More" opens, so it rises from the
 // tab bar instead of dropping from the header — 12px above the bar, which
-// floats 12px above the viewport edge (and the home indicator).
+// floats 8px above the viewport edge (and the home indicator).
 const MOBILE_MENU_BOTTOM_BASE =
   "fixed bottom-[calc(var(--bottom-nav-offset,0px)+env(safe-area-inset-bottom))] left-3 right-3 z-[var(--z-bottom-nav)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-var(--bottom-nav-offset,0px)-env(safe-area-inset-bottom)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
 
@@ -139,14 +141,15 @@ const MOBILE_HEADER_BASE =
   "fixed top-2 left-3 right-3 z-[var(--z-mobile-header)] overflow-hidden sidebar-gradient-horizontal";
 
 // The bottom tab bar (slice 1.4a; 07 `53:100587`): 64px tall, inset 12px
-// from the sides and the bottom like the header pill is from the top, five
-// equal slots of 52px — every one a ≥44px target. It sits on the drawer's
+// from the sides, floating 8px above the bottom safe area as the frame's
+// description says (BB-FK-4), with r 12 tabs (`53:100392`, the chrome-item
+// radius); five equal slots of 52px — every one a ≥44px target. It sits on the drawer's
 // layer so "More" stays tappable over the backdrop and can close what it
 // opened.
 const BOTTOM_NAV_BASE =
-  "fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-[var(--z-bottom-nav)] flex h-16 items-stretch gap-0.5 p-1.5 sidebar-gradient-horizontal";
+  "fixed inset-x-3 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-[var(--z-bottom-nav)] flex h-16 items-stretch gap-0.5 p-1.5 sidebar-gradient-horizontal";
 const BOTTOM_ITEM_BASE =
-  "focus-ring relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-xs font-medium transition-colors";
+  "focus-ring relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-chrome-item)] px-1 text-xs font-medium transition-colors";
 // Medium in both states (07: Text/xs/medium); the fill alone says "here".
 const BOTTOM_ITEM_ACTIVE = cn(BOTTOM_ITEM_BASE, "nav-active");
 const BOTTOM_ITEM_INACTIVE = cn(BOTTOM_ITEM_BASE, NAV_ITEM_INACTIVE);
@@ -156,13 +159,13 @@ const BOTTOM_NAV_SLOTS = 5;
 
 /**
  * The bar's footprint above the viewport's bottom edge (safe-area inset
- * aside): its 12px float (`bottom-[calc(0.75rem+…)]`), its 64px height
+ * aside): its 8px float (`bottom-[calc(0.5rem+…)]`), its 64px height
  * (`h-16`) and 12px of air above it. Published as `--bottom-nav-offset` on
  * <html> while the bar is shown, so MainContent, PageLayout, the drawer and
  * anything else that must clear the bar (a toast) read one number, and fall
  * back to 0 when there is no bar.
  */
-const BOTTOM_NAV_OFFSET_PX = 12 + 64 + 12;
+const BOTTOM_NAV_OFFSET_PX = 8 + 64 + 12;
 
 /**
  * Every class that differs by `railBreakpoint` (slice 1.4b), spelled out per
@@ -542,12 +545,11 @@ export interface SidebarProps {
   railBreakpoint?: "lg" | "md";
   /**
    * When the rail's edge collapse handle shows (BB-FS-1, owner ruling
-   * 2026-11-20):
-   * - `"hover"` (default): only while the pointer is on the rail — and
-   *   always on keyboard focus, on a device that cannot hover (touch: the
-   *   handle stays visible at rest there, since there is no hover to reveal
-   *   it and a hidden tap target is undiscoverable), and on the collapsed
-   *   rail, where it is the only way back to the labels.
+   * 2026-11-21):
+   * - `"hover"` (default): only while the pointer is on the rail or the
+   *   handle has keyboard focus, on the expanded and the collapsed rail
+   *   alike. A device that cannot hover (touch) shows it at rest, since a
+   *   hidden tap target there would be undiscoverable.
    * - `"always"`: at rest, as the 07a/07e frames draw it.
    */
   collapseHandle?: "always" | "hover";
@@ -1413,8 +1415,8 @@ export const Sidebar = memo(function Sidebar({
                 // reads identically in both themes. Shape and visibility:
                 // COLLAPSE_HANDLE_BASE / _HOVER above.
                 data-slot="sidebar-collapse-handle"
-                data-visibility={collapseHandle === "hover" && !collapsed ? "hover" : "always"}
-                className={collapseHandle === "hover" && !collapsed ? COLLAPSE_HANDLE_HOVER : COLLAPSE_HANDLE_BASE}
+                data-visibility={collapseHandle}
+                className={collapseHandle === "hover" ? COLLAPSE_HANDLE_HOVER : COLLAPSE_HANDLE_BASE}
               >
                 {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
               </button>
