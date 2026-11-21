@@ -152,11 +152,12 @@ export const SidebarAccountTrigger = React.forwardRef<HTMLButtonElement, Sidebar
           )}
         </span>
         {!collapsed && (
-          // The name and its chevrons travel together, 4px apart, instead
-          // of the chevrons being pushed to the far edge. Out there they
-          // sat as close to the gear as the gear does to the assistant and
-          // read as a third icon in that row.
-          <span className="flex min-w-0 items-center gap-1">
+          // The name leads and the chevrons hold the trigger's trailing
+          // edge (BB-FS-5; kit SidebarFooterTrigger `25:77`, 07e
+          // `343:61586`: chevrons at x≈177 of the 184px trigger, not
+          // right after the name). The 8px between the trigger and the
+          // footer chips keeps them from reading as a third chip.
+          <span data-slot="sidebar-account-label" className="flex min-w-0 flex-1 items-center gap-1">
             {/* min-w-0 + truncate: a long username shortens rather than
                 pushing the chevrons or the chips off the rail. `title` is
                 what makes the shortened name recoverable without opening
@@ -171,7 +172,13 @@ export const SidebarAccountTrigger = React.forwardRef<HTMLButtonElement, Sidebar
 
                 Not when anonymous: an ellipsis and the word "More" have
                 each already said "menu", and a third signal is noise. */}
-            {!anonymous && <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-60" aria-hidden="true" />}
+            {!anonymous && (
+              <ChevronsUpDown
+                data-slot="sidebar-account-chevrons"
+                className="ms-auto h-3.5 w-3.5 shrink-0 opacity-60"
+                aria-hidden="true"
+              />
+            )}
           </span>
         )}
         {hasNotice && (

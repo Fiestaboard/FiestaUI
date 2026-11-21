@@ -17,6 +17,7 @@ import {
   Sun,
 } from "lucide-react";
 import { useState } from "react";
+import { expect } from "storybook/test";
 
 import {
   DropdownMenu,
@@ -812,4 +813,60 @@ export const HubIdentityBottomNav: Story = {
       }
     />
   ),
+};
+
+/*
+ * Bug bash F (shell fidelity) — the rail as 07a `302:20841` draws it:
+ * Collections nested 16px inside Pages, one hairline between the primary
+ * destinations and the rest, and the 16×28 edge handle 2px proud of the rail.
+ */
+const FIGMA_IA: SidebarNavItem[] = [
+  { key: "home", href: "#", icon: Home, label: "Home", active: true },
+  { key: "pages", href: "#pages", icon: FileText, label: "Pages" },
+  { key: "collections", href: "#collections", icon: GalleryHorizontalEnd, label: "Collections", nested: true },
+  { key: "schedule", href: "#schedule", icon: Calendar, label: "Schedule" },
+  { key: "displays", href: "#displays", icon: Monitor, label: "Displays" },
+  { key: "integrations", href: "#integrations", icon: Puzzle, label: "Integrations", separatorBefore: true },
+  { key: "picks", href: "#picks", icon: Award, label: "Staff Picks" },
+  ...UTILITIES,
+];
+
+/** 07a at 1440: nested Collections and the primary/secondary hairline; the edge tab hides until hover or focus. */
+export const FigmaRail: Story = {
+  render: () => <DemoSidebar items={FIGMA_IA} boardCount={2} />,
+};
+
+/** 07a's 900 rail `307:61756`: the nested tile flush, the hairline kept at the tile's width. */
+export const FigmaRailCollapsed: Story = {
+  render: () => <DemoSidebar items={FIGMA_IA} boardCount={2} initialCollapsed />,
+};
+
+/**
+ * `collapseHandle="always"`: the edge tab at rest, as the 07a/07e frames
+ * draw it. The default is `"hover"` (owner ruling): hidden at rest, shown on
+ * rail hover, keyboard focus, touch and the collapsed rail — see FigmaRail,
+ * which the test-runner hook (sidebar-handle-regression.ts) drives.
+ */
+export const CollapseHandleAlways: Story = {
+  render: () => <DemoSidebar items={FIGMA_IA} collapseHandle="always" />,
+  play: async ({ canvasElement }) => {
+    const handle = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-slot="sidebar-collapse-handle"]');
+    await expect(handle).toHaveAttribute("data-visibility", "always");
+  },
+};
+
+/**
+ * 07a `308:36074`: with More open, More is the only lit tab and the scrim
+ * dims the header too. The test-runner hook (sidebar-handle-regression.ts)
+ * opens it at 390 and checks both; the runner does not apply viewports, so
+ * a play function here would see the rail.
+ */
+export const BottomNavMoreOpen: Story = {
+  globals: {
+    viewport: { value: "mobile1", isRotated: false },
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+  render: () => <DemoSidebar variant="bottom-nav" labels={BOTTOM_NAV_LABELS} items={WEB_IA} />,
 };
