@@ -268,7 +268,11 @@ export async function checkSidebarHandle(page: Page, id: string) {
       await touchPage.setViewportSize({ width: 1440, height: 900 });
       const cdp = await page.context().newCDPSession(touchPage);
       await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
-      await touchPage.goto(page.url());
+      // The runner's own URL carries a literal `viewMode={{viewMode}}`; ask
+      // for the story view explicitly, keeping its id and theme global.
+      const url = new URL(page.url());
+      url.searchParams.set("viewMode", "story");
+      await touchPage.goto(url.toString());
       await touchPage.waitForSelector(HANDLE);
       await touchPage.mouse.move(1400, 880);
       assert.ok(
