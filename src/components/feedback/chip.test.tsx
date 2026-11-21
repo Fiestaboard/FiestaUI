@@ -27,4 +27,14 @@ describe("Chip", () => {
     expect(link).toHaveAttribute("data-slot", "chip");
     expect(link).toHaveAttribute("data-size", "touch");
   });
+
+  // BB-FK-3 (Figma Chip `10:38` State=Hover): hover only fills accent; the
+  // border stays --border. The press keeps its brand border.
+  it("keeps the border on hover and turns it brand only while pressed", () => {
+    render(<Chip>5.11</Chip>);
+    const chip = screen.getByRole("button", { name: "5.11" });
+    expect(chip.className).toContain("hover:bg-accent");
+    expect(chip.className).not.toContain("hover:border-brand");
+    expect(chip.className).toContain("data-[press]:border-brand");
+  });
 });

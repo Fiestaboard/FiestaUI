@@ -125,4 +125,18 @@ describe("Alert", () => {
     expect(region).toContainElement(screen.getByText("Scheduled update"));
     expect(region).toContainElement(screen.getByText("The board restarts tonight at 02:00."));
   });
+
+  // BB-FK-6 (Figma Alert `10:47`): the description is 14 px at leading 1.625,
+  // plain text included, not only nested paragraphs.
+  it("sets the description's own line height to leading-relaxed", () => {
+    render(
+      <Alert>
+        <AlertTitle>Saved</AlertTitle>
+        <AlertDescription>Your changes are on the board.</AlertDescription>
+      </Alert>,
+    );
+    const description = screen.getByText("Your changes are on the board.");
+    expect(description).toHaveAttribute("data-slot", "alert-description");
+    expect(description.className).toMatch(/(^|\s)leading-relaxed(\s|$)/);
+  });
 });
