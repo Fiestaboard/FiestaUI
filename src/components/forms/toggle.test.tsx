@@ -207,7 +207,12 @@ describe('Toggle variant="tint"', () => {
       "data-[pressed]:hover:bg-tint-selected",
       "data-[pressed]:active:bg-tint-selected",
       "data-[pressed]:data-[press]:bg-tint-selected",
+      // Guarded, or at equal specificity the later dark rule would keep the
+      // grey rim on a pressed toggle (the browser check is
+      // .storybook/toggle-pressed-border-regression.ts).
+      "dark:not-data-[pressed]:border-input",
     );
+    expect(toggle).not.toHaveClass("dark:border-input");
     for (const solid of [
       "data-[pressed]:bg-primary",
       "data-[pressed]:text-primary-foreground",
@@ -225,6 +230,8 @@ describe('Toggle variant="tint"', () => {
         Wrap
       </Toggle>,
     );
-    expect(screen.getByRole("button", { name: "Wrap" })).toHaveClass("data-[pressed]:bg-primary");
+    const wrap = screen.getByRole("button", { name: "Wrap" });
+    expect(wrap).toHaveClass("data-[pressed]:bg-primary", "dark:not-data-[pressed]:border-input");
+    expect(wrap).not.toHaveClass("dark:border-input");
   });
 });

@@ -93,6 +93,7 @@ export const LongTokens: Story = {
   args: { expression: 'IF(ready, random.choice(list), "none")', value: "7" },
   decorators: [
     (Story) => (
+      // w-min: the shrink-to-fit ancestor that exposed the min-content bug.
       <div className="w-min max-w-full">
         <Story />
       </div>

@@ -53,7 +53,8 @@ const toggleVariants = cva(
     // hovered, 7.04:1 pressed) — inherited from button.tsx, where the
     // ratios were measured and an alpha hover was rejected for compositing
     // below AA. Living in the base rather than per-variant is the point of
-    // the component: no variant can exist without a pressed fill.
+    // the component: every variant has a pressed surface it cannot omit.
+    // `tint` restates all five as the selected tint (below), nothing drops them.
     "data-[pressed]:bg-primary data-[pressed]:text-primary-foreground",
     "data-[pressed]:hover:bg-primary-hover data-[pressed]:active:bg-primary-active",
     "data-[pressed]:data-[press]:bg-primary-active",
@@ -84,24 +85,26 @@ const toggleVariants = cva(
         outline: [
           "border bg-background shadow-xs",
           "not-data-[pressed]:hover:bg-accent not-data-[pressed]:hover:text-accent-foreground",
-          "dark:border-input dark:not-data-[pressed]:bg-card dark:not-data-[pressed]:hover:bg-muted",
+          "dark:not-data-[pressed]:border-input dark:not-data-[pressed]:bg-card dark:not-data-[pressed]:hover:bg-muted",
           "not-data-[pressed]:active:bg-accent not-data-[pressed]:active:text-accent-foreground",
           "dark:not-data-[pressed]:active:bg-muted",
           "not-data-[pressed]:data-[press]:bg-accent not-data-[pressed]:data-[press]:text-accent-foreground",
           "dark:not-data-[pressed]:data-[press]:bg-muted",
           "data-[pressed]:border-primary",
         ],
-        // The SegmentedControl checked look (BB-FP-16, Figma 132:20145
-        // "Inspect" on): a primary border over the selected tint with
+        // A selected-tint ON state (BB-FP-16, Figma 132:20145 "Inspect" on):
+        // a primary border over --tint-selected (the Figma #fcedd5) with
         // foreground ink, not the solid fill. Off chrome is `outline`'s, so
         // the 1px border never shifts the box between states. The pressed
         // classes restate the shared base ones; cn()'s tailwind-merge keeps
         // these later ones, hover and press included, so the tint never
-        // flashes to the solid primary.
+        // flashes to the solid primary. The dark off rim is guarded with
+        // `not-data-[pressed]:` like the hovers: unguarded, the later dark
+        // rule ties on specificity and keeps the grey rim when pressed.
         tint: [
           "border bg-background shadow-xs",
           "not-data-[pressed]:hover:bg-accent not-data-[pressed]:hover:text-accent-foreground",
-          "dark:border-input dark:not-data-[pressed]:bg-card dark:not-data-[pressed]:hover:bg-muted",
+          "dark:not-data-[pressed]:border-input dark:not-data-[pressed]:bg-card dark:not-data-[pressed]:hover:bg-muted",
           "not-data-[pressed]:active:bg-accent not-data-[pressed]:active:text-accent-foreground",
           "dark:not-data-[pressed]:active:bg-muted",
           "not-data-[pressed]:data-[press]:bg-accent not-data-[pressed]:data-[press]:text-accent-foreground",
