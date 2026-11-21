@@ -83,7 +83,10 @@ function DialogContent({ className, children, variant = "default", labels, ...pr
           data-slot="dialog-close"
           size={wide ? "md" : "sm"}
           label={labels?.close}
-          className={wide ? "before:absolute before:-inset-0.5 before:rounded-full" : undefined}
+          // The wide shell's close sits 24px from the top (07e `343:63073`
+          // "OverlayClose", BB-FS-6): on the 24px padding line of the title,
+          // not the 16px the dense default uses.
+          className={wide ? "top-6 before:absolute before:-inset-0.5 before:rounded-full" : undefined}
         />
       </DialogPrimitive.Popup>
     </DialogPortal>

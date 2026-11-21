@@ -174,7 +174,11 @@ function railChrome(bp: "lg" | "md") {
   const aside =
     bp === "lg"
       ? "group/rail hidden lg:fixed lg:top-3 lg:bottom-3 lg:z-[var(--z-sidebar)] lg:block sidebar-gradient sidebar-transition"
-      : "group/rail hidden md:fixed md:top-3 md:bottom-3 md:z-[var(--z-sidebar)] md:block sidebar-gradient sidebar-transition";
+      : // The tablet band (768–1023) insets the rail 8px on every side, not
+        // 12 (07a 900 `307:61756`, BB-FS-8). `left` is the inline style
+        // (app inset + `sidebarInset`), so the band's 8 overrides it with
+        // `!`; the app inset is 0 below the app's max width anyway.
+        "group/rail hidden md:fixed md:top-2 md:bottom-2 md:max-lg:left-2! lg:top-3 lg:bottom-3 md:z-[var(--z-sidebar)] md:block sidebar-gradient sidebar-transition";
   return {
     header: cn(phoneOnly, MOBILE_HEADER_BASE),
     backdropOpen: cn(phoneOnly, MOBILE_BACKDROP_BASE, "opacity-100 pointer-events-auto"),
@@ -519,7 +523,11 @@ export interface SidebarProps {
   menuNotice?: string;
   /** App max width in px — the sidebar centers itself against it. */
   maxWidth: number;
-  /** Gap between the app edge and the sidebar in px. */
+  /**
+   * Gap between the app edge and the sidebar in px. With `railBreakpoint="md"`
+   * the tablet band (768–1023) always insets the rail 8px instead (07a 900
+   * `307:61756`); this value applies from 1024.
+   */
   sidebarInset: number;
   /**
    * The phone chrome, below `railBreakpoint` (slice 1.4a):
