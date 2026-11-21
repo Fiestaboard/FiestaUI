@@ -197,8 +197,10 @@ function SelectContent({
           className={cn(
             // max-w: content sized by a long item (e.g. page names) would run
             // off narrow viewports. Clamping here makes long item text wrap
-            // instead.
-            "relative min-w-[max(8rem,var(--anchor-width))] max-w-[calc(100vw-16px)] overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md",
+            // instead. outline-hidden: the popup takes focus on a pointer
+            // open; the highlighted option is the focus indicator, not a
+            // browser outline round the whole surface (BB-FP-4).
+            "relative min-w-[max(8rem,var(--anchor-width))] max-w-[calc(100vw-16px)] overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md outline-hidden",
             !disableHeightConstraint && "max-h-[min(24rem,var(--available-height))]",
             // When height constraint is disabled, use a fixed height that fits
             // multiple items. Each SelectItem is typically ~36-40px, so 90px
