@@ -29,8 +29,9 @@ const HUE_CLASS: Record<PageHue, string> = {
 };
 
 /**
- * FALLBACK hue for a page that has not been assigned one. Prefer passing
- * `hue` explicitly — see the note on the prop.
+ * A stable SEEDED hue for a caller that wants one from a stable key (an id,
+ * never translated copy). PageHeader no longer falls back to it: an
+ * unassigned page is brand orange (BB-FC-3).
  *
  * DETERMINISTIC, NOT RANDOM, and that part is the whole design. A route that
  * is green today and blue tomorrow teaches a user nothing and reads as a
@@ -57,9 +58,11 @@ export function pageHue(seed: string): PageHue {
 }
 
 interface PageHeaderProps {
-  icon: LucideIcon;
+  /** Leading title icon. Omit it where the frame draws none (07d Schedule, Integrations). */
+  icon?: LucideIcon;
   title: string;
-  description: string | React.ReactNode;
+  /** Line under the title. Omit it where the frame draws none. */
+  description?: string | React.ReactNode;
   children?: React.ReactNode;
   className?: string;
   animationDelay?: string;
@@ -72,7 +75,11 @@ interface PageHeaderProps {
    * page whose title is dynamic: renaming a board or a plugin must not
    * repaint the page.
    *
-   * Omitted, it falls back to hashing `title`.
+   * Omitted, it is brand orange (`--hue-orange`), which is what the frames
+   * draw (07e `321:9076`, `337:60272`). It used to hash `title`, and the title
+   * is translated copy, so one page changed colour with the locale (BB-FC-3):
+   * Settings was red in English and blue in German. `pageHue` stays exported
+   * for a caller that wants a stable seeded hue from a stable key.
    */
   hue?: PageHue;
   /**
@@ -135,7 +142,7 @@ export const PageHeader = memo(function PageHeader({
   hue,
   collapsed = false,
 }: PageHeaderProps) {
-  const resolved = hue ?? pageHue(title);
+  const resolved = hue ?? "orange";
   // Bare on the page (not in a PageCard), the header sits 16px below the
   // page's top from the rail breakpoint up (07a `302:20841`, BB-FS-8).
   const rail = useContext(PageRail);
@@ -159,12 +166,14 @@ export const PageHeader = memo(function PageHeader({
     >
       <div className="min-w-0">
         <h1 className="page-title flex items-center gap-3">
-          <Icon className={cn("h-6 w-6 flex-shrink-0", HUE_CLASS[resolved])} aria-hidden="true" />
+          {Icon != null && <Icon className={cn("h-6 w-6 flex-shrink-0", HUE_CLASS[resolved])} aria-hidden="true" />}
           {title}
         </h1>
-        <Reveal open={!collapsed}>
-          <p className="page-description">{description}</p>
-        </Reveal>
+        {description != null && (
+          <Reveal open={!collapsed}>
+            <p className="page-description">{description}</p>
+          </Reveal>
+        )}
       </div>
       {children != null && (
         // `-m-1 p-1`: Reveal clips, and the focus ring is a 4px box-shadow
