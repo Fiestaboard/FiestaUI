@@ -209,7 +209,10 @@ export function serializeInlineNodes(nodes: JSONContent[], serializeNode: (node:
   let out = "";
   let open: string | null = null;
   for (const node of nodes) {
-    const body = serializeNode(node);
+    // The cursor anchors (U+200B) are caret scaffolding, never template text:
+    // dropped here so neither a save nor a copy carries them (BB-E-28), and a
+    // node that is only an anchor opens no span.
+    const body = serializeNode(node).replaceAll(CURSOR_ANCHOR_CHAR, "");
     if (body === "") continue;
     const head = spanHeadOf(node);
     if (head !== open) {

@@ -277,9 +277,7 @@ function serializeSliceToTemplate(slice: Slice | null | undefined): string {
     const nodes = (content.toJSON() as JSONContent[] | null) ?? [];
     // Shares the span grouping with the document serializer, so a copied
     // `{{red:HOT {{x.y}}}}` pastes back as one span.
-    // The cursor anchors (U+200B) are the editor's caret scaffolding, never
-    // template text: a copy must not carry them out (BB-E-28).
-    return serializeInlineNodes(nodes, serializeClipboardNode).replaceAll(CURSOR_ANCHOR, "");
+    return serializeInlineNodes(nodes, serializeClipboardNode);
   } catch (error) {
     console.warn("Error in serializeSliceToTemplate:", error);
     return "";
