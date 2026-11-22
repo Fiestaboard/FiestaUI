@@ -35,8 +35,10 @@ async function expectCodeTypography(canvasElement: HTMLElement, width: number, h
     expect(style.lineHeight).toBe("20px");
   }
   for (const cell of grid.querySelectorAll('[data-slot="device-code-cell"]')) {
+    // toBeCloseTo(…, 1) allows |Δ| < 0.05px: sub-pixel layout noise
+    // (48.0000038) passes, a real size change (even 1px) still fails.
     expect(cell.getBoundingClientRect().width).toBeCloseTo(width, 1);
-    expect(cell.getBoundingClientRect().height).toBe(height);
+    expect(cell.getBoundingClientRect().height).toBeCloseTo(height, 1);
   }
   // Decorative glyph typography must not alter the native editing metric.
   const input = canvasElement.querySelector("input")!;
@@ -83,8 +85,8 @@ export const Mobile: Story = {
     const frame = canvasElement.querySelector("main")!.getBoundingClientRect();
     const field = canvasElement.querySelector<HTMLElement>('[data-slot="device-code-input"]')!;
     expect(frame.width).toBe(390);
-    expect(field.getBoundingClientRect().width).toBe(308);
-    expect(field.getBoundingClientRect().left - frame.left).toBe(41);
+    expect(field.getBoundingClientRect().width).toBeCloseTo(308, 1);
+    expect(field.getBoundingClientRect().left - frame.left).toBeCloseTo(41, 1);
     expect(field.scrollWidth).toBeLessThanOrEqual(field.clientWidth + 1);
   },
 };
@@ -139,10 +141,10 @@ export const Compact: Story = {
     const field = canvasElement.querySelector('[data-slot="device-code-input"]')!;
     const grid = canvasElement.querySelector('[data-slot="device-code-cells"]')!;
     const input = within(canvasElement).getByRole("textbox");
-    expect(field.getBoundingClientRect().width).toBe(271);
+    expect(field.getBoundingClientRect().width).toBeCloseTo(271, 1);
     expect(getComputedStyle(grid).columnGap).toBe("3px");
     for (const cell of grid.querySelectorAll('[data-slot="device-code-cell"]')) {
-      expect(cell.getBoundingClientRect().height).toBe(44);
+      expect(cell.getBoundingClientRect().height).toBeCloseTo(44, 1);
     }
     await expectCodeTypography(canvasElement, 30, 44, 3);
     // The hidden field's native character advance scales with this container,
@@ -152,7 +154,7 @@ export const Compact: Story = {
     const measurement = document.createElement("canvas").getContext("2d")!;
     measurement.font = style.font;
     const characterWidth = measurement.measureText("0").width;
-    expect(input.getBoundingClientRect().width).toBe(271);
+    expect(input.getBoundingClientRect().width).toBeCloseTo(271, 1);
     expect(Number.parseFloat(style.letterSpacing) + characterWidth).toBeCloseTo(271 / 8, 1);
     expect(Number.parseFloat(style.paddingLeft)).toBeCloseTo((271 / 8 - characterWidth) / 2, 1);
     await RTLHost.play?.(context);

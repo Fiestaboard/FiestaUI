@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import * as React from "react";
+import { expect } from "storybook/test";
 
 import { DayChip, WeekStrip } from "./day-chip";
 
@@ -76,10 +78,69 @@ export const FiveDaysPhone: Story = {
   ),
 };
 
-/** `variant="pills"`: a full week in a phone-width slot stays on one line and scrolls sideways. */
+/**
+ * Keeps the checked chip of a pills strip aligned to the scroller's end, from
+ * the strip's final layout, whenever that layout changes.
+ *
+ * Two things made the captured offset depend on timing (a VRT flake):
+ * - Base UI's composite root scrolls the checked chip into view on mount. It
+ *   sums `offsetLeft` up to the nearest positioned ancestor (`<body>`, as the
+ *   scroller is not positioned), so its offset includes the strip's page
+ *   position, which differs by Storybook's 16px body padding depending on
+ *   whether that padding is in effect at mount.
+ * - At a phone viewport the `max-w-full` slot is capped by the preview's
+ *   padded `<main>` (311px at 390), and that cap can land after the first
+ *   alignment, narrowing the strip under a fixed scroll offset (the checked
+ *   chip then sat 9px past the edge).
+ *
+ * Aligning from rects on every resize of the strip (and once the fonts are in)
+ * makes the resting offset a function of the final layout alone.
+ */
+function StripEndAligned({ children }: { children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    const strip = ref.current!.querySelector<HTMLElement>("[data-week-strip]")!;
+    const align = () => alignCheckedToEnd(strip);
+    const observer = new ResizeObserver(align);
+    observer.observe(strip);
+    void document.fonts.ready.then(align);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="w-[320px] max-w-full">
+      {children}
+    </div>
+  );
+}
+
+/** Scroll so the checked chip's right edge, plus the scroller's padding (room for the focus ring), meets the end. */
+function alignCheckedToEnd(strip: HTMLElement) {
+  const checked = strip.querySelector<HTMLElement>('[aria-checked="true"]');
+  if (!checked) return;
+  const right = checked.getBoundingClientRect().right - strip.getBoundingClientRect().left + strip.scrollLeft;
+  const pad = parseFloat(getComputedStyle(strip).paddingRight);
+  strip.scrollTo({ left: Math.max(0, right + pad - strip.clientWidth), behavior: "instant" });
+}
+
+/**
+ * `variant="pills"`: a full week in a phone-width slot stays on one line and
+ * scrolls sideways, with the checked day (Wed) at the end of the strip. See
+ * StripEndAligned for why the story pins that offset.
+ */
 export const FullWeekNarrow: Story = {
+  play: async ({ canvasElement }) => {
+    await document.fonts.ready;
+    const strip = canvasElement.querySelector<HTMLElement>("[data-week-strip]")!;
+    alignCheckedToEnd(strip);
+    // The checked day is fully inside the visible strip.
+    const checked = strip.querySelector<HTMLElement>('[aria-checked="true"]')!;
+    const s = strip.getBoundingClientRect();
+    const c = checked.getBoundingClientRect();
+    await expect(c.left).toBeGreaterThanOrEqual(s.left);
+    await expect(c.right).toBeLessThanOrEqual(s.right);
+  },
   render: (args) => (
-    <div className="w-[320px] max-w-full">
+    <StripEndAligned>
       <WeekStrip {...args} variant="pills" defaultValue="wed">
         {WEEK.map((day) => (
           <DayChip key={day.value} value={day.value} hasGap={day.gap}>
@@ -87,7 +148,7 @@ export const FullWeekNarrow: Story = {
           </DayChip>
         ))}
       </WeekStrip>
-    </div>
+    </StripEndAligned>
   ),
 };
 

@@ -10,6 +10,7 @@ import { checkEditorPreviewNeverCollapses } from "./editor-preview-regression";
 import { checkTouchToolbarGeometry } from "./editor-toolbar-regression";
 import { checkFlowShellGeometry } from "./flow-shell-regression";
 import { checkInspectorRowForcedColors } from "./inspector-row-regression";
+import { checkMinimapClickWaitsForFonts } from "./minimap-click-regression";
 import { checkPopupFocusRing } from "./popup-focus-regression";
 import { checkScheduleEntryPhoneSheet, SCHEDULE_ENTRY_PHONE_STORIES } from "./schedule-entry-form-regression";
 import { checkSidebarHandle } from "./sidebar-handle-regression";
@@ -127,6 +128,7 @@ const config: TestRunnerConfig = {
     await checkInspectorRowForcedColors(page, context.id);
     await checkScheduleEntryPhoneSheet(page, context.id);
     await checkSidebarHandle(page, context.id);
+    await checkMinimapClickWaitsForFonts(page, context.id);
 
     await configureAxe(page, {
       rules: [
