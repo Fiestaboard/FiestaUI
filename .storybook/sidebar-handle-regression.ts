@@ -124,6 +124,41 @@ const HANDLE = '[data-slot="sidebar-collapse-handle"]';
 
 const BOTTOM_NAV_STORY = "app-chrome-sidebar--bottom-nav";
 
+const BOTTOM_NAV_BADGE_STORY = "app-chrome-sidebar--bottom-nav-update-available";
+
+/**
+ * BB-FK-10 at 390 (07 `53:100392` › More › "Badge dot" `53:100429`): the
+ * notice on More is an 8×8 brand dot with no ring, its box 3px past the 20px
+ * icon's right edge and 2px above its top.
+ */
+async function checkTabBadge(page: Page, id: string) {
+  const original = page.viewportSize();
+  try {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await frames(page);
+    const m = await page.evaluate(() => {
+      const nav = document.querySelector('[data-slot="sidebar-bottom-nav"]')!;
+      const dot = nav.querySelector<HTMLElement>('[data-slot="nav-badge"]')!;
+      const icon = dot.previousElementSibling!.getBoundingClientRect();
+      const d = dot.getBoundingClientRect();
+      const style = getComputedStyle(dot);
+      return {
+        size: [Math.round(d.width), Math.round(d.height)],
+        past: [Math.round(d.right - icon.right), Math.round(icon.top - d.top)],
+        ring: style.boxShadow,
+        tone: dot.dataset.tone,
+      };
+    });
+    assert.equal(
+      JSON.stringify(m),
+      JSON.stringify({ size: [8, 8], past: [3, 2], ring: "none", tone: "brand" }),
+      `${id}: tab badge vs 07 53:100429`,
+    );
+  } finally {
+    if (original) await page.setViewportSize(original);
+  }
+}
+
 /**
  * BB-FK-4 at 390×844 (07 Web / Bottom nav `53:100587`, Home `53:100392`): the
  * 64px bar is inset 12px from each side (366 wide on a 390 phone), floats
@@ -197,6 +232,7 @@ export async function checkSidebarHandle(page: Page, id: string) {
   if (id === MORE_STORY) return checkMoreSheet(page, id);
   if (id === COLLAPSED_STORY) return checkCollapsedRail(page, id);
   if (id === BOTTOM_NAV_STORY) return checkBottomNav(page, id);
+  if (id === BOTTOM_NAV_BADGE_STORY) return checkTabBadge(page, id);
   if (id !== STORY) return;
   const original = page.viewportSize();
   try {
