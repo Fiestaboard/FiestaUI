@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect } from "storybook/test";
 
 import { DayChip, WeekStrip } from "./day-chip";
 
@@ -76,8 +77,32 @@ export const FiveDaysPhone: Story = {
   ),
 };
 
-/** `variant="pills"`: a full week in a phone-width slot stays on one line and scrolls sideways. */
+/**
+ * `variant="pills"`: a full week in a phone-width slot stays on one line and
+ * scrolls sideways.
+ *
+ * Base UI's composite root scrolls the checked chip into view on mount, which
+ * can run before the web font has loaded; the chips then widen by a few px
+ * and the frozen scroll offset depended on load timing (a VRT flake). The play
+ * waits for the fonts and aligns the checked chip to the scroller's end from
+ * the final layout, so every capture starts from the same offset.
+ */
 export const FullWeekNarrow: Story = {
+  play: async ({ canvasElement }) => {
+    await document.fonts.ready;
+    const strip = canvasElement.querySelector<HTMLElement>("[data-week-strip]")!;
+    const checked = strip.querySelector<HTMLElement>('[aria-checked="true"]')!;
+    // The checked chip's right edge in the scroller's content, plus the
+    // scroller's own padding (room for the focus ring).
+    const right = checked.getBoundingClientRect().right - strip.getBoundingClientRect().left + strip.scrollLeft;
+    const pad = parseFloat(getComputedStyle(strip).paddingRight);
+    strip.scrollTo({ left: Math.max(0, right + pad - strip.clientWidth), behavior: "instant" });
+    // The checked day is fully inside the visible strip.
+    const s = strip.getBoundingClientRect();
+    const c = checked.getBoundingClientRect();
+    await expect(c.left).toBeGreaterThanOrEqual(s.left);
+    await expect(c.right).toBeLessThanOrEqual(s.right);
+  },
   render: (args) => (
     <div className="w-[320px] max-w-full">
       <WeekStrip {...args} variant="pills" defaultValue="wed">
