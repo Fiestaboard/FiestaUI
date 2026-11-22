@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState, useSyncExternalStore } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { Button } from "../forms/button";
 import { TemplateEditor } from "./template-editor";
@@ -150,5 +150,25 @@ export const BrushPopover: Story = {
   args: { draw: true, forcePopover: true },
   play: async ({ canvasElement }) => {
     await userEvent.click(await within(canvasElement).findByRole("button", { name: "Brush" }));
+  },
+};
+
+/**
+ * BB-E-29: Escape from a picker puts focus back in the editor, at its caret,
+ * rather than on the picker's trigger — in the real browser, both themes.
+ */
+export const EscapeReturnsToEditor: Story = {
+  args: { forcePopover: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+    const editor = await canvas.findByRole("textbox", { name: "Template editor" });
+    for (const name of ["Variables", "Colors"]) {
+      await userEvent.click(await canvas.findByRole("button", { name }));
+      const popup = await body.findByRole("dialog", { name });
+      await userEvent.keyboard("{Escape}");
+      await waitFor(() => expect(popup).not.toBeInTheDocument());
+      await waitFor(() => expect(editor).toHaveFocus());
+    }
   },
 };

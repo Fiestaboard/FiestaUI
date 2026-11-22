@@ -75,6 +75,14 @@ export interface ToolbarDropdownProps {
   children: React.ReactNode | ((close: () => void, presentation: "popover" | "sheet") => React.ReactNode);
   className?: string;
   onClose?: () => void;
+  /**
+   * Where focus goes when the panel is dismissed with Escape, instead of the
+   * trigger (BB-E-29). The template toolbar passes its editor, so Esc from a
+   * picker puts the caret back where it was, as a text field's menus do. Any
+   * other dismissal (outside press, the sheet's close button, a trigger
+   * toggle) keeps its own focus rule. Unset: Escape behaves as before.
+   */
+  returnFocus?: () => void;
   /** When false, clicking outside will NOT close the dropdown. Default: true */
   closeOnOutsideClick?: boolean;
   /** Disables the trigger button and prevents opening. */
@@ -115,6 +123,7 @@ export function ToolbarDropdown({
   children,
   className,
   onClose,
+  returnFocus,
   closeOnOutsideClick = true,
   disabled = false,
   labels,
@@ -142,6 +151,8 @@ export function ToolbarDropdown({
   const dropdownRef = useRef<HTMLElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [restoreTouchFocus, setRestoreTouchFocus] = useState(false);
+  // Set by an Escape dismissal of the sheet, read by its finalFocus.
+  const escapedRef = useRef(false);
   const panelRef = useRef<HTMLElement>(null);
   const [panelShift, setPanelShift] = useState(0);
 
@@ -250,11 +261,20 @@ export function ToolbarDropdown({
         event.stopPropagation();
         setIsOpen(false);
         onClose?.();
+        returnFocus?.();
       }
     }
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [isOpen, onClose, asSheet, touchPopover]);
+  }, [isOpen, onClose, returnFocus, asSheet, touchPopover]);
+
+  // Escape with a return target: focus it ourselves and tell Base UI not to
+  // move focus (returning false). Everything else keeps the trigger.
+  const focusReturnTarget = () => {
+    returnFocus?.();
+    return false;
+  };
+  const sheetFinalFocus = () => (escapedRef.current && returnFocus ? focusReturnTarget() : triggerRef.current);
 
   const content = typeof children === "function" ? children(handleClose, asSheet ? "sheet" : "popover") : children;
 
@@ -269,6 +289,7 @@ export function ToolbarDropdown({
     if (disabled) return;
     // Sheet openings bypass Popover.onOpenChange; never inherit a prior Escape.
     setRestoreTouchFocus(false);
+    escapedRef.current = false;
     setIsOpen(!isOpen);
   };
 
@@ -367,6 +388,7 @@ export function ToolbarDropdown({
                   (node) => node instanceof Node && triggerRef.current?.contains(node),
                 );
                 if (fromTrigger) return;
+                escapedRef.current = details.reason === "escape-key";
                 closeFromSheet();
               }}
             >
@@ -379,7 +401,7 @@ export function ToolbarDropdown({
                 style={sheetStyle}
                 grabber
                 scrim={false}
-                finalFocus={triggerRef}
+                finalFocus={sheetFinalFocus}
                 labels={{ close: l.close }}
                 detents={detents}
                 defaultDetent={defaultDetent}
@@ -407,7 +429,7 @@ export function ToolbarDropdown({
               // viewport, and use the shared portal to escape overflow-x-auto.
               className="w-max max-w-[min(24rem,var(--available-width))] p-4 shadow-lg"
               initialFocus={false}
-              finalFocus={restoreTouchFocus ? triggerRef : false}
+              finalFocus={restoreTouchFocus ? (returnFocus ? focusReturnTarget : triggerRef) : false}
             >
               {content}
             </PopoverContent>
