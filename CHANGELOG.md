@@ -1,5 +1,21 @@
 # @fiestaboard/ui
 
+## 8.17.0-alpha.6
+
+### Minor Changes
+
+- [#448](https://github.com/Fiestaboard/FiestaUI/pull/448) [`bbdc53c`](https://github.com/Fiestaboard/FiestaUI/commit/bbdc53ced9ef355e58e3089f60d5ced44a5ff708) Thanks [@jeffredodd](https://github.com/jeffredodd)! - ListRow `size="touch"` is now the 05 Setup row: a 60 px floor (was 56), with the 16/24 title, 14/20 description, 16 px side and 10 px vertical padding it already had. New `ListRowChevron`: the 16 px trailing chevron (lucide's default is 24), decorative and mirrored in right-to-left text. HubDiscoveryRow uses it.
+
+- [#444](https://github.com/Fiestaboard/FiestaUI/pull/444) [`d57ec60`](https://github.com/Fiestaboard/FiestaUI/commit/d57ec608341a75b839493d4b25efda578102a010) Thanks [@jeffredodd](https://github.com/jeffredodd)! - ScheduleEntryForm's fixed times use the kit TimePicker (clock trigger, Hour / Minute lists, quick picks) instead of the browser's time input, at one-minute steps; `labels.timePicker` localises its panel (BB-FC-7).
+
+- [#447](https://github.com/Fiestaboard/FiestaUI/pull/447) [`6a80d7e`](https://github.com/Fiestaboard/FiestaUI/commit/6a80d7e41432e8795d522fe70a314369ce77eb8b) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Template editor toolbar: Copy and Cut put the template on the clipboard as the field's own copy does (chips as their markup, no U+200B cursor anchors), and Escape from the Variables, Colors or Formatting picker returns focus to the editor at its caret. New `ToolbarDropdown` prop `returnFocus` says where focus goes on Escape. The field's own copy no longer carries the anchors either.
+
+### Patch Changes
+
+- [#449](https://github.com/Fiestaboard/FiestaUI/pull/449) [`abbce09`](https://github.com/Fiestaboard/FiestaUI/commit/abbce090fba968688eca8838ab0b22190aef473d) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Sidebar: with `collapseHandle="hover"` (the default) the edge collapse handle now follows the same rule on the collapsed rail as on the expanded one, shown only on rail hover or keyboard focus, and it is hidden only on devices that can hover, so touch keeps it visible at rest. The phone tab bar floats 8 px above the safe area (was 12; `--bottom-nav-offset` is now 84 px) and its tabs are rounded 12 px, using the new `--radius-chrome-item` token.
+
+- [#452](https://github.com/Fiestaboard/FiestaUI/pull/452) [`def3418`](https://github.com/Fiestaboard/FiestaUI/commit/def3418d7cec6f23ae14152667f55d3bf6823f65) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Sidebar: on the bottom tab bar a dot badge is 8 px with no ring, 3 px past the icon and 2 px above it, as 07 draws it (BB-FK-10). The rail and drawer keep the 10 px dot with its card ring.
+
 ## 8.17.0-alpha.5
 
 ### Minor Changes
