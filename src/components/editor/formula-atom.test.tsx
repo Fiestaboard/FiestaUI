@@ -61,8 +61,8 @@ describe("FormulaAtom", () => {
   it("keeps caller formatting, including empty results, without evaluating it", () => {
     const { rerender, container } = render(<FormulaAtom source="1 + 1" value="2.00" />);
     expect(screen.getByText("2.00")).toBeInTheDocument();
-    rerender(<FormulaAtom source="EMPTY()" value="" />);
-    expect(container.querySelector('[data-slot="formula-atom-value"]')?.textContent).toBe("");
+    rerender(<FormulaAtom source="EMPTY()" value='= ""' />);
+    expect(screen.getByText('= ""')).toBeInTheDocument();
     expect(screen.queryByText("2.00")).not.toBeInTheDocument();
   });
 
@@ -86,5 +86,80 @@ describe("FormulaAtom", () => {
     expect(ref.current).toHaveAttribute("data-slot", "formula-atom");
     expect(ref.current).toHaveAttribute("aria-describedby", "help");
     expect(ref.current).toHaveClass("custom-atom");
+  });
+  // BB-FP-10: the template editor surface is uppercase. An atom shows its
+  // source as written, so it resets the inherited text-transform itself.
+  it("resets text-transform so an uppercase host cannot restyle the source", () => {
+    const { container } = render(
+      <p className="uppercase">
+        <FormulaAtom source='UPPER(date_time.day_of_week) & "Morning"' value="= MONDAY" />
+      </p>,
+    );
+    const atom = container.querySelector('[data-slot="formula-atom"]');
+    expect(atom).toHaveClass("normal-case");
+    expect(atom).not.toHaveClass("uppercase");
+  });
+
+  // BB-FP-12: one atom shape and one 22px height. A 1px border on the error
+  // state made error lines 2px taller than their neighbours.
+  it.each(["formula", "variable"] as const)("draws the %s error state without a layout border", (kind) => {
+    const { container } = render(<FormulaAtom kind={kind} state="error" source="1 / 0" value="#DIV/0" />);
+    const atom = container.querySelector('[data-slot="formula-atom"]')!;
+    expect(atom).toHaveClass("border-0");
+    expect(atom.classList.contains("border")).toBe(false);
+  });
+
+  describe("valueColor (BB-FP-12)", () => {
+    it.each([
+      ["66", "green"],
+      ["green", "green"],
+      ["GREEN", "green"],
+      ["purple", "violet"],
+      ["63", "red"],
+      ["71", "black"],
+    ])("shows %s as the %s board tile, keeping the caller's value as the text", (valueColor, name) => {
+      const { container } = render(<FormulaAtom source='COLOR("GREEN")' value="= green" valueColor={valueColor} />);
+      const tile = container.querySelector('[data-slot="formula-atom-color"]');
+      expect(tile).not.toBeNull();
+      expect(tile).toHaveAttribute("data-color", name);
+      expect(tile).toHaveAttribute("aria-hidden", "true");
+      expect(tile).toHaveClass(`bg-board-${name}`);
+      const value = container.querySelector('[data-slot="formula-atom-value"]')!;
+      expect(value).toHaveAttribute("title", "= green");
+      expect(value).toHaveTextContent("green");
+      expect(value.textContent).not.toContain("{66}");
+    });
+
+    it("falls back to the plain value for anything that is not a board colour", () => {
+      const { container } = render(<FormulaAtom source="x" value="= toString" valueColor="toString" />);
+      expect(container.querySelector('[data-slot="formula-atom-color"]')).toBeNull();
+      expect(screen.getByText("= toString")).toBeInTheDocument();
+    });
+
+    it("never draws a tile over an error tag", () => {
+      const { container } = render(<FormulaAtom state="error" source="COLOR(x)" value="#VALUE" valueColor="66" />);
+      expect(container.querySelector('[data-slot="formula-atom-color"]')).toBeNull();
+      expect(screen.getByText("#VALUE")).toBeInTheDocument();
+    });
+  });
+
+  // The app's variable chip outside the page editor has no value to show.
+  it.each([
+    ["undefined", undefined],
+    ["an empty string", ""],
+  ])("draws no value segment when the value is %s", (_label, value) => {
+    const { container } = render(
+      <FormulaAtom kind="variable" state="fallback" source="weather.temperature" value={value} />,
+    );
+    expect(container.querySelector('[data-slot="formula-atom-value"]')).toBeNull();
+    // Nor the fallback cue, which only describes a value.
+    expect(screen.queryByText("Fallback value:")).not.toBeInTheDocument();
+    expect(screen.getByText("weather.temperature")).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="formula-atom"]')).toHaveClass("min-h-[22px]");
+  });
+
+  it("draws no colour tile without a value", () => {
+    const { container } = render(<FormulaAtom source='COLOR("GREEN")' valueColor="66" />);
+    expect(container.querySelector('[data-slot="formula-atom-color"]')).toBeNull();
   });
 });

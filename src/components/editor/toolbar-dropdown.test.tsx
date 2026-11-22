@@ -459,3 +459,95 @@ it("toggles and dismisses a touch popover once without closing on an inside pres
   await waitFor(() => expect(panel()).toBeNull());
   expect(onClose).toHaveBeenCalledTimes(1);
 });
+
+/*
+ * BB-E-29: a picker in the template toolbar dismissed with Escape hands focus
+ * back to the editor (the caret), not to its trigger. `returnFocus` is how the
+ * toolbar says where focus goes; every other dismissal keeps today's rules.
+ */
+describe("ToolbarDropdown · returnFocus on Escape (BB-E-29)", () => {
+  function withEditor(props: Partial<ToolbarDropdownProps> = {}) {
+    const returnFocus = vi.fn(() => screen.getByRole("textbox", { name: "Editor" }).focus());
+    const onClose = vi.fn();
+    render(
+      <>
+        <textarea aria-label="Editor" />
+        <button type="button">Outside</button>
+        <ToolbarDropdown
+          label="Colors"
+          icon={<span>C</span>}
+          onClose={onClose}
+          returnFocus={returnFocus}
+          data-testid="colors"
+          {...props}
+        >
+          <button type="button">Red</button>
+        </ToolbarDropdown>
+      </>,
+    );
+    return {
+      returnFocus,
+      onClose,
+      trigger: screen.getByTestId("colors"),
+      editor: screen.getByRole("textbox", { name: "Editor" }),
+    };
+  }
+
+  it("popover: Escape closes it and focuses the editor", async () => {
+    const user = userEvent.setup();
+    const { trigger, editor, returnFocus, onClose } = withEditor();
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "Red" }));
+    await user.keyboard("{Escape}");
+    expect(panel()).toBeNull();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(returnFocus).toHaveBeenCalledTimes(1);
+    expect(editor).toHaveFocus();
+  });
+
+  it("popover: an outside press does not pull focus to the editor", async () => {
+    const user = userEvent.setup();
+    const { trigger, returnFocus } = withEditor();
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "Outside" }));
+    expect(panel()).toBeNull();
+    expect(returnFocus).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Outside" })).toHaveFocus();
+  });
+
+  it("sheet: Escape closes it and focuses the editor, not the trigger", async () => {
+    const user = userEvent.setup();
+    const { trigger, editor, returnFocus } = withEditor({ presentation: "sheet" });
+    await user.click(trigger);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Red" })).toHaveFocus());
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(sheet()).toBeNull());
+    await waitFor(() => expect(editor).toHaveFocus());
+    expect(returnFocus).toHaveBeenCalled();
+    expect(trigger).not.toHaveFocus();
+  });
+
+  it("sheet: the close button still returns focus to the trigger", async () => {
+    const user = userEvent.setup();
+    const { trigger, returnFocus } = withEditor({ presentation: "sheet" });
+    await user.click(trigger);
+    await waitFor(() => expect(sheet()).toBeInTheDocument());
+    await user.click(within(sheet()!).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(sheet()).toBeNull());
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(returnFocus).not.toHaveBeenCalled();
+  });
+
+  it("touch popover: Escape focuses the editor", async () => {
+    const user = userEvent.setup();
+    const { trigger, editor, returnFocus } = withEditor({ size: "touch", presentation: "popover" });
+    trigger.focus();
+    await user.keyboard("{Enter}");
+    expect(await screen.findByRole("dialog", { name: "Colors" })).toBeInTheDocument();
+    await user.tab();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(panel()).toBeNull());
+    await waitFor(() => expect(editor).toHaveFocus());
+    expect(returnFocus).toHaveBeenCalled();
+  });
+});

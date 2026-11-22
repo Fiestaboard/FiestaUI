@@ -19,7 +19,13 @@ import { FiestaLogo } from "./fiesta-logo";
 const NAV_ITEM_ACTIVE = "nav-active font-semibold";
 const NAV_ITEM_INACTIVE = "text-sidebar-foreground nav-active-hover";
 
-const MOBILE_ITEM_BASE = "flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium min-h-[48px]";
+// `focus-ring` on every row, rail and drawer alike (BB-FS-3): the shell has
+// ONE focus treatment — the two-tone recipe the footer chips, the account
+// trigger and the tab bar already wear. Without it the rows fell back to the
+// browser's 1px outline, which on a lit row in dark (an orange pill) was
+// orange on orange: no indicator at all. The ink hairlines are what hold the
+// boundary there.
+const MOBILE_ITEM_BASE = "focus-ring flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium min-h-[48px]";
 const MOBILE_ITEM_ACTIVE = cn(MOBILE_ITEM_BASE, NAV_ITEM_ACTIVE);
 const MOBILE_ITEM_INACTIVE = cn(MOBILE_ITEM_BASE, NAV_ITEM_INACTIVE);
 
@@ -69,9 +75,45 @@ function footerChipClass(active: boolean, fill: boolean) {
 //       states and never moves during the width transition. Not a scale
 //       step on purpose — it is derived from the rail, not chosen.
 const DESKTOP_LINK_BASE =
-  "flex items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium transition-colors";
+  "focus-ring flex items-center gap-3 py-2 pl-[14px] pr-3 rounded-lg text-sm font-medium transition-colors";
 const DESKTOP_LINK_ACTIVE = cn(DESKTOP_LINK_BASE, NAV_ITEM_ACTIVE);
 const DESKTOP_LINK_INACTIVE = cn(DESKTOP_LINK_BASE, NAV_ITEM_INACTIVE);
+
+// A destination that lives inside the row above it (Collections in Pages;
+// 07a "Nested · Collections (inside Pages)" `302:20841`): the pill starts
+// 16px further in (x 24 on the 256px rail, 224 wide). Expanded only — the
+// collapsed rail is a column of 48px tiles, and 07a's 900 rail `307:61756`
+// draws the nested tile flush like the rest.
+const NAV_ITEM_NESTED = "ms-4";
+
+// The hairline between the primary destinations and the rest (07a
+// "Divider · primary / secondary"): 1px of --sidebar-border, inset 16px on
+// the expanded rail (224 wide) and the tile's full 48px collapsed. It sits in
+// the list's own 4px rhythm, so the next row starts 4 + 1 + 4 = 9px below the
+// previous one instead of 4 — 07a's 5px step (nav y 217 vs 212).
+const NAV_SEPARATOR_BASE = "shrink-0 border-t border-sidebar-border";
+const NAV_SEPARATOR_EXPANDED = cn(NAV_SEPARATOR_BASE, "mx-2");
+
+// The edge collapse handle (BB-FS-1; 07a "Collapse toggle"
+// `I302:20841;53:99218;302:20873`, the same on the 900 rail `307:61756` and
+// 07e `343:63073`): a 16×28 tab with 8px corners (--radius-control) that
+// stands 2px proud of the rail's edge, top at 18 so it centres on the logo
+// mark. Its rest fill is the rail's own --sidebar; hover lays --sidebar-accent
+// OVER that fill as a gradient rather than replacing it, because the accent
+// is translucent and the overhanging 2px would otherwise show the page grain
+// through it. The result is solid on any page.
+const COLLAPSE_HANDLE_BASE =
+  "focus-ring absolute -right-0.5 top-4.5 z-[var(--z-sidebar-toggle)] flex h-7 w-4 items-center justify-center rounded-md border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-md transition-[opacity,color,background-image] duration-fast hover:bg-[linear-gradient(var(--sidebar-accent),var(--sidebar-accent))] hover:text-sidebar-accent-foreground";
+// `collapseHandle="hover"` (owner ruling 2026-11-21, expanded and collapsed
+// rail alike): shown only while the pointer is anywhere on the rail or the
+// handle has keyboard focus. The hiding itself is gated on (hover: hover) —
+// the media query Tailwind wraps every hover: variant in — so it is only ever
+// hidden where a hover can bring it back. A touch device, or a browser that
+// matches neither, keeps it visible at rest, with nothing to opt back into.
+const COLLAPSE_HANDLE_HOVER = cn(
+  COLLAPSE_HANDLE_BASE,
+  "[@media(hover:hover)]:opacity-0 group-hover/rail:opacity-100 focus-visible:opacity-100",
+);
 
 const NAV_LABEL_BASE = "whitespace-nowrap overflow-hidden transition-opacity duration-fast";
 const NAV_LABEL_COLLAPSED = cn(NAV_LABEL_BASE, "opacity-0 max-w-0");
@@ -80,26 +122,34 @@ const NAV_LABEL_EXPANDED = cn(NAV_LABEL_BASE, "opacity-100 max-w-48 delay-150");
 const MOBILE_BACKDROP_BASE =
   "fixed inset-0 z-[var(--z-mobile-backdrop)] bg-black/25 backdrop-blur-[2px] transition-opacity duration-base pointer-events-none";
 
+// variant="bottom-nav": the More sheet's scrim is the system --overlay (07a
+// `308:36074` fills it with var(--overlay)) and it dims the header too —
+// only the drawer and the tab bar stand above it. Header-menu keeps the
+// light blur under its header, which hosts that variant's close button.
+const MOBILE_BACKDROP_BOTTOM_BASE =
+  "fixed inset-0 z-[var(--z-bottom-nav-backdrop)] bg-overlay transition-opacity duration-base pointer-events-none";
+
 const MOBILE_MENU_BASE =
   "fixed top-[calc(var(--mobile-header-height,56px)+16px)] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
 // variant="bottom-nav": the drawer is what "More" opens, so it rises from the
 // tab bar instead of dropping from the header — 12px above the bar, which
-// floats 12px above the viewport edge (and the home indicator).
+// floats 8px above the viewport edge (and the home indicator).
 const MOBILE_MENU_BOTTOM_BASE =
-  "fixed bottom-[calc(var(--bottom-nav-offset,0px)+env(safe-area-inset-bottom))] left-3 right-3 z-[var(--z-mobile-menu)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-var(--bottom-nav-offset,0px)-env(safe-area-inset-bottom)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
+  "fixed bottom-[calc(var(--bottom-nav-offset,0px)+env(safe-area-inset-bottom))] left-3 right-3 z-[var(--z-bottom-nav)] flex max-h-[calc(100dvh-var(--mobile-header-height,56px)-var(--bottom-nav-offset,0px)-env(safe-area-inset-bottom)-2rem)] flex-col overflow-hidden sidebar-gradient-horizontal";
 
 const MOBILE_HEADER_BASE =
   "fixed top-2 left-3 right-3 z-[var(--z-mobile-header)] overflow-hidden sidebar-gradient-horizontal";
 
 // The bottom tab bar (slice 1.4a; 07 `53:100587`): 64px tall, inset 12px
-// from the sides and the bottom like the header pill is from the top, five
-// equal slots of 52px — every one a ≥44px target. It sits on the drawer's
+// from the sides, floating 8px above the bottom safe area as the frame's
+// description says (BB-FK-4), with r 12 tabs (`53:100392`, the chrome-item
+// radius); five equal slots of 52px — every one a ≥44px target. It sits on the drawer's
 // layer so "More" stays tappable over the backdrop and can close what it
 // opened.
 const BOTTOM_NAV_BASE =
-  "fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-[var(--z-mobile-menu)] flex h-16 items-stretch gap-0.5 p-1.5 sidebar-gradient-horizontal";
+  "fixed inset-x-3 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-[var(--z-bottom-nav)] flex h-16 items-stretch gap-0.5 p-1.5 sidebar-gradient-horizontal";
 const BOTTOM_ITEM_BASE =
-  "focus-ring relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-xs font-medium transition-colors";
+  "focus-ring relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-chrome-item)] px-1 text-xs font-medium transition-colors";
 // Medium in both states (07: Text/xs/medium); the fill alone says "here".
 const BOTTOM_ITEM_ACTIVE = cn(BOTTOM_ITEM_BASE, "nav-active");
 const BOTTOM_ITEM_INACTIVE = cn(BOTTOM_ITEM_BASE, NAV_ITEM_INACTIVE);
@@ -109,13 +159,13 @@ const BOTTOM_NAV_SLOTS = 5;
 
 /**
  * The bar's footprint above the viewport's bottom edge (safe-area inset
- * aside): its 12px float (`bottom-[calc(0.75rem+…)]`), its 64px height
+ * aside): its 8px float (`bottom-[calc(0.5rem+…)]`), its 64px height
  * (`h-16`) and 12px of air above it. Published as `--bottom-nav-offset` on
  * <html> while the bar is shown, so MainContent, PageLayout, the drawer and
  * anything else that must clear the bar (a toast) read one number, and fall
  * back to 0 when there is no bar.
  */
-const BOTTOM_NAV_OFFSET_PX = 12 + 64 + 12;
+const BOTTOM_NAV_OFFSET_PX = 8 + 64 + 12;
 
 /**
  * Every class that differs by `railBreakpoint` (slice 1.4b), spelled out per
@@ -126,12 +176,14 @@ function railChrome(bp: "lg" | "md") {
   const phoneOnly = bp === "lg" ? "lg:hidden" : "md:hidden";
   const aside =
     bp === "lg"
-      ? "hidden lg:fixed lg:top-3 lg:bottom-3 lg:z-[var(--z-sidebar)] lg:block sidebar-gradient sidebar-transition"
-      : "hidden md:fixed md:top-3 md:bottom-3 md:z-[var(--z-sidebar)] md:block sidebar-gradient sidebar-transition";
+      ? "group/rail hidden lg:fixed lg:top-3 lg:bottom-3 lg:z-[var(--z-sidebar)] lg:block sidebar-gradient sidebar-transition"
+      : "group/rail hidden md:fixed md:top-3 md:bottom-3 md:z-[var(--z-sidebar)] md:block sidebar-gradient sidebar-transition";
   return {
     header: cn(phoneOnly, MOBILE_HEADER_BASE),
     backdropOpen: cn(phoneOnly, MOBILE_BACKDROP_BASE, "opacity-100 pointer-events-auto"),
     backdropClosed: cn(phoneOnly, MOBILE_BACKDROP_BASE, "opacity-0"),
+    backdropBottomOpen: cn(phoneOnly, MOBILE_BACKDROP_BOTTOM_BASE, "opacity-100 pointer-events-auto"),
+    backdropBottomClosed: cn(phoneOnly, MOBILE_BACKDROP_BOTTOM_BASE, "opacity-0"),
     menuOpen: cn(phoneOnly, MOBILE_MENU_BASE, "opacity-100"),
     menuClosed: cn(phoneOnly, MOBILE_MENU_BASE, "opacity-0 pointer-events-none"),
     menuBottomOpen: cn(phoneOnly, MOBILE_MENU_BOTTOM_BASE, "opacity-100"),
@@ -198,6 +250,19 @@ export interface SidebarNavItem {
   onPrefetch?: () => void;
   /** An attention badge on the row's icon, on the rail, in the drawer and on the tab bar. */
   badge?: SidebarNavBadge;
+  /**
+   * A destination inside the row above it (Collections in Pages): indented
+   * 16px on the expanded rail and in the drawer, flush on the collapsed rail.
+   * The tab bar has no room for nesting; leave nested rows off it.
+   */
+  nested?: boolean;
+  /**
+   * Draw the list's one hairline above this row: the break between the
+   * primary destinations and the rest (07a "Divider · primary / secondary",
+   * before Integrations). On the rail, collapsed or not, and in the drawer;
+   * never on the tab bar.
+   */
+  separatorBefore?: boolean;
 }
 
 /**
@@ -478,6 +543,16 @@ export interface SidebarProps {
    * MainContent so its padding switches on the same pixel.
    */
   railBreakpoint?: "lg" | "md";
+  /**
+   * When the rail's edge collapse handle shows (BB-FS-1, owner ruling
+   * 2026-11-21):
+   * - `"hover"` (default): only while the pointer is on the rail or the
+   *   handle has keyboard focus, on the expanded and the collapsed rail
+   *   alike. A device that cannot hover (touch) shows it at rest, since a
+   *   hidden tap target there would be undiscoverable.
+   * - `"always"`: at rest, as the 07a/07e frames draw it.
+   */
+  collapseHandle?: "always" | "hover";
 }
 
 const noSubscribe = () => () => {};
@@ -520,6 +595,7 @@ export const Sidebar = memo(function Sidebar({
   sidebarInset,
   variant = "header-menu",
   railBreakpoint = "lg",
+  collapseHandle = "hover",
 }: SidebarProps) {
   const chrome = RAIL_CHROME[railBreakpoint];
   // One list, no seam. The deprecated pair used to be spliced around the AI
@@ -782,7 +858,7 @@ export const Sidebar = memo(function Sidebar({
 
   function renderMobileNavItem(item: SidebarNavItem) {
     const Icon = item.icon;
-    const mobileClassName = item.active ? MOBILE_ITEM_ACTIVE : MOBILE_ITEM_INACTIVE;
+    const mobileClassName = cn(item.active ? MOBILE_ITEM_ACTIVE : MOBILE_ITEM_INACTIVE, item.nested && NAV_ITEM_NESTED);
     const content = (
       <>
         {navIcon(Icon, "h-5 w-5", badgeOf(item))}
@@ -826,7 +902,10 @@ export const Sidebar = memo(function Sidebar({
 
   function renderDesktopNavItem(item: SidebarNavItem) {
     const Icon = item.icon;
-    const linkClassName = item.active ? DESKTOP_LINK_ACTIVE : DESKTOP_LINK_INACTIVE;
+    const linkClassName = cn(
+      item.active ? DESKTOP_LINK_ACTIVE : DESKTOP_LINK_INACTIVE,
+      item.nested && !collapsed && NAV_ITEM_NESTED,
+    );
 
     const inner = (
       <>
@@ -885,6 +964,16 @@ export const Sidebar = memo(function Sidebar({
       </Tooltip>
     );
   }
+
+  /** The list's primary/secondary hairline. Decorative: the rows still read in order. */
+  const navSeparator = (key: string, isCollapsed: boolean) => (
+    <div
+      key={key}
+      data-slot="sidebar-nav-separator"
+      aria-hidden="true"
+      className={isCollapsed ? NAV_SEPARATOR_BASE : NAV_SEPARATOR_EXPANDED}
+    />
+  );
 
   /**
    * The assistant as an icon chip. Same control in both places it appears —
@@ -1009,7 +1098,10 @@ export const Sidebar = memo(function Sidebar({
   };
 
   function renderBottomNavItem(item: SidebarNavItem) {
-    const className = item.active ? BOTTOM_ITEM_ACTIVE : BOTTOM_ITEM_INACTIVE;
+    // While More's drawer is open, More is the one lit tab (07a `308:36074`):
+    // the route's tab un-lights so the bar never shows two selections. It
+    // keeps aria-current — the page under the drawer has not changed.
+    const className = item.active && !mobileMenuOpen ? BOTTOM_ITEM_ACTIVE : BOTTOM_ITEM_INACTIVE;
     const badge = badgeOf(item);
     const content = (
       <>
@@ -1215,7 +1307,15 @@ export const Sidebar = memo(function Sidebar({
       {/* Mobile Menu Backdrop */}
       <div
         data-testid="mobile-backdrop"
-        className={mobileMenuOpen ? chrome.backdropOpen : chrome.backdropClosed}
+        className={
+          bottomNav
+            ? mobileMenuOpen
+              ? chrome.backdropBottomOpen
+              : chrome.backdropBottomClosed
+            : mobileMenuOpen
+              ? chrome.backdropOpen
+              : chrome.backdropClosed
+        }
         onClick={handleBackdropClick}
         aria-hidden="true"
       />
@@ -1263,7 +1363,11 @@ export const Sidebar = memo(function Sidebar({
               aria-label={bottomNav ? moreLabel : labels.primaryNavigation}
               className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4"
             >
-              {drawerItems.map(renderMobileNavItem)}
+              {drawerItems.map((item) =>
+                item.separatorBefore
+                  ? [navSeparator(`${item.key}-separator`, false), renderMobileNavItem(item)]
+                  : renderMobileNavItem(item),
+              )}
             </nav>
             <div className="shrink-0 border-t border-sidebar-border mx-3" />
           </>
@@ -1303,25 +1407,16 @@ export const Sidebar = memo(function Sidebar({
           <Tooltip>
             <TooltipTrigger asChild>
               <button
+                type="button"
                 onClick={onToggleCollapsed}
                 aria-label={collapsed ? labels.expandSidebar : labels.collapseSidebar}
-                // Painted in the RAIL's vocabulary, not the page's. This used
-                // to be `bg-background text-muted-foreground`, which took its
-                // fill from the page and its glyph from whatever
-                // --muted-foreground resolved to INSIDE .sidebar-gradient —
-                // two different surfaces for one control. Once the rail became
-                // a fixture that is dark in both themes, that mismatch went
-                // from fragile to invisible: a white circle with a white
-                // chevron on it in light mode. The toggle is a knob on the
-                // rail, so it uses --sidebar/--sidebar-foreground and reads
-                // identically in both themes.
-                //
-                // top-4.5 (18px) centres the 28px knob on the logo mark's
-                // midline (16px rail margin + half of 32). It used to sit
-                // at 51px — the seam between the logo row and the board
-                // selector — where it half-covered the selector's corner
-                // in both states and read as clutter rather than a handle.
-                className="absolute -right-3.5 top-4.5 z-[var(--z-sidebar-toggle)] flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-md transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                // Painted in the RAIL's vocabulary (--sidebar and its
+                // foreground), never the page's: it is a tab on the rail and
+                // reads identically in both themes. Shape and visibility:
+                // COLLAPSE_HANDLE_BASE / _HOVER above.
+                data-slot="sidebar-collapse-handle"
+                data-visibility={collapseHandle}
+                className={collapseHandle === "hover" ? COLLAPSE_HANDLE_HOVER : COLLAPSE_HANDLE_BASE}
               >
                 {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
               </button>
@@ -1356,7 +1451,11 @@ export const Sidebar = memo(function Sidebar({
                 don't use; min-h-0 lets it actually shrink so overflow-y
                 scrolls the LIST, never the sidebar. */}
             <nav aria-label={labels.primaryNavigation} className="min-h-0 flex-1 space-y-1 overflow-y-auto py-3 px-2">
-              {navItems.map(renderDesktopNavItem)}
+              {navItems.map((item) =>
+                item.separatorBefore
+                  ? [navSeparator(`${item.key}-separator`, collapsed), renderDesktopNavItem(item)]
+                  : renderDesktopNavItem(item),
+              )}
             </nav>
 
             <div className="mx-2 border-t border-sidebar-border" />

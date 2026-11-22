@@ -344,8 +344,24 @@ function ToggleCard({
  * phone width would be a full-width button per option — the shape the grid
  * exists to avoid. Do not "unify" the two.
  */
-const segmentedControlVariants = cva("gap-2", {
+const segmentedControlVariants = cva("", {
   variants: {
+    /*
+     * The chrome axis (BB-FC-4). "pills" is the library item spec on its own
+     * (`19:493`): separate bordered pills 8px apart, no container. "tray" is
+     * how the screens actually draw a one-of-N switcher (07d `322:19169` Day
+     * chips, `322:9978` Day/Week/List, 07e `333:56102` Theme, 07a `318:42101`
+     * Pages/Collections): the same bordered items on ONE muted r8 tray with
+     * 2px padding and 2px between items. A tray never wraps — a two-line tray
+     * reads as two controls — so it carries `flex-nowrap` and caps itself at
+     * its container's width; a call site with more options than fit picks
+     * fewer (a window of days) or `layout="grid"`, it does not scroll.
+     */
+    variant: {
+      pills: "gap-2",
+      // r8 like its items (`rounded-md`), as the frame draws both.
+      tray: "gap-0.5 rounded-md bg-muted p-0.5",
+    },
     layout: {
       inline: "flex items-center",
       grid: "grid w-full items-stretch",
@@ -370,8 +386,12 @@ const segmentedControlVariants = cva("gap-2", {
     { layout: "grid", columns: "4", class: "grid-cols-4" },
     { layout: "inline", wrap: true, class: "flex-wrap" },
     { layout: "inline", wrap: false, class: "flex-nowrap" },
+    // `w-fit`: a flex row is block-level, so without it the tray's fill would
+    // run to the container's edge behind the last item.
+    { layout: "inline", variant: "tray", class: "w-fit max-w-full" },
   ],
   defaultVariants: {
+    variant: "pills",
     layout: "inline",
     columns: "2",
     wrap: true,
@@ -453,9 +473,12 @@ type SegmentedControlSize = NonNullable<VariantProps<typeof segmentedControlItem
 type SegmentedControlLayout = NonNullable<VariantProps<typeof segmentedControlVariants>["layout"]>;
 type SegmentedControlColumns = NonNullable<VariantProps<typeof segmentedControlVariants>["columns"]>;
 
+type SegmentedControlVariant = NonNullable<VariantProps<typeof segmentedControlVariants>["variant"]>;
+
 interface SegmentedControlContextValue {
   size?: SegmentedControlSize;
   layout?: SegmentedControlLayout;
+  variant?: SegmentedControlVariant;
 }
 
 const SegmentedControlContext = React.createContext<SegmentedControlContextValue | null>(null);
@@ -464,7 +487,14 @@ export type SegmentedControlProps = SelectionGroupBaseProps &
   SelectionGroupNameProps &
   // `layout` and `columns` are re-declared below so they can carry their own
   // documentation; VariantProps supplies the rest of the axis (`wrap`).
-  Omit<VariantProps<typeof segmentedControlVariants>, "layout" | "columns"> & {
+  Omit<VariantProps<typeof segmentedControlVariants>, "layout" | "columns" | "variant"> & {
+    /**
+     * `"pills"` — separate bordered pills with an 8px gap (the library item
+     * spec). `"tray"` — the same items joined on one muted tray with 2px
+     * padding and gap, as every screen frame draws a one-of-N switcher. A
+     * tray never wraps. @default "pills"
+     */
+    variant?: SegmentedControlVariant;
     /** Size applied to every item; an item may override it. */
     size?: SegmentedControlSize;
     /**
@@ -497,21 +527,28 @@ function SegmentedControl({
   size,
   layout = "inline",
   columns = "2",
+  variant = "pills",
   wrap,
   children,
   ...props
 }: SegmentedControlProps) {
-  const context = React.useMemo<SegmentedControlContextValue>(() => ({ size, layout }), [size, layout]);
+  const context = React.useMemo<SegmentedControlContextValue>(
+    () => ({ size, layout, variant }),
+    [size, layout, variant],
+  );
+  // A tray is one control on one line; `wrap` only applies to loose pills.
+  const resolvedWrap = variant === "tray" ? false : wrap;
 
   return (
     <SegmentedControlContext.Provider value={context}>
       <SelectionGroupRoot
         slot="segmented-control"
         data-layout={layout}
+        data-variant={variant}
         // Only meaningful under the grid; a column count on a hugging row
         // would advertise a structure the row does not have.
         data-columns={layout === "grid" ? columns : undefined}
-        className={cn(segmentedControlVariants({ layout, columns, wrap }), className)}
+        className={cn(segmentedControlVariants({ variant, layout, columns, wrap: resolvedWrap }), className)}
         {...props}
       >
         {children}
@@ -562,6 +599,7 @@ function SegmentedControlItem({
       data-slot="segmented-control-item"
       data-size={resolvedSize}
       data-layout={resolvedLayout}
+      data-variant={group?.variant ?? "pills"}
       className={cn(segmentedControlItemVariants({ size: resolvedSize, layout: resolvedLayout }), className)}
       {...props}
       // C21: `data-press` while a pointer is down (lib/press.ts).

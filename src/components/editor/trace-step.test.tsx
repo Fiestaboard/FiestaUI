@@ -53,4 +53,16 @@ describe("TraceStep", () => {
     expect(screen.getByText(expression)).toBeVisible();
     expect(screen.getByText(value)).toBeVisible();
   });
+
+  // BB-FP-16 (Figma 132:20145): wrap at word boundaries and break a token only
+  // when it cannot fit, so "random.choice" never splits as "random.choic / e".
+  // The browser check is the LongTokens story play.
+  it("wraps expression and value at word boundaries, not anywhere", () => {
+    const { container } = render(<TraceStep expression="random.choice(items)" value='"NX"' />);
+    for (const slot of ["trace-step-expression", "trace-step-value"]) {
+      const el = container.querySelector(`[data-slot="${slot}"]`);
+      expect(el).toHaveClass("wrap-break-word");
+      expect(el).not.toHaveClass("wrap-anywhere");
+    }
+  });
 });

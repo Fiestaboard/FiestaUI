@@ -1,6 +1,7 @@
 "use client";
 
 import { useRender } from "@base-ui/react/use-render";
+import { ChevronRight } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
@@ -101,7 +102,11 @@ interface ListRowProps extends Omit<useRender.ComponentProps<"div">, "title"> {
   layout?: ListRowLayout;
   /** `plain` (default; dividers come from the group) or `card` (its own border and radius). */
   variant?: ListRowVariant;
-  /** `touch` gives a 56px floor and 16px titles. Default `default` (48px floor). */
+  /**
+   * `touch` is the 05 Setup row (`35:17332`, BB-FK-9): a 60px floor, 10px
+   * vertical padding, a 16/24 title and a 14/20 description. Default
+   * `default`: the dense 48px row with 14/20 titles and 12/16 descriptions.
+   */
   size?: ListRowSize;
   /**
    * The row is the open item of a list-detail (slice 1.8e; 07e Settings
@@ -143,7 +148,10 @@ const variantClasses: Record<ListRowVariant, string> = {
 
 const sizeClasses: Record<ListRowSize, string> = {
   default: "min-h-12 py-2",
-  touch: "min-h-14 py-2.5",
+  // 05 Setup / Row `35:17332`: min-h 60, py 10 (px 16 and gap 12 are shared),
+  // and the leading tile's glyph at 18 rather than IconTile sm's 16 (an icon
+  // that sets its own size- keeps it).
+  touch: "min-h-15 py-2.5 [&_[data-slot=icon-tile]>svg:not([class*='size-'])]:size-4.5",
 };
 
 const titleSize: Record<ListRowSize, string> = {
@@ -352,7 +360,20 @@ function ListRowGroup({ variant = "inset", size, className, children, ...props }
   );
 }
 
-export { ListRow, ListRowGroup, ListRowItem };
+/**
+ * The trailing "opens a detail" chevron, as the 05 Setup row draws it: 16px
+ * (lucide's own default is 24), decorative, in the trailing slot's muted
+ * tone, and mirrored in right-to-left text. Pass it as `trailing`; the row's
+ * name already says where it goes.
+ */
+function ListRowChevron({ className, ...props }: React.ComponentProps<typeof ChevronRight>) {
+  return (
+    // lucide marks its icons aria-hidden itself.
+    <ChevronRight data-slot="list-row-chevron" className={cn("size-4 rtl:-scale-x-100", className)} {...props} />
+  );
+}
+
+export { ListRow, ListRowChevron, ListRowGroup, ListRowItem };
 export type {
   ListRowGroupProps,
   ListRowGroupVariant,

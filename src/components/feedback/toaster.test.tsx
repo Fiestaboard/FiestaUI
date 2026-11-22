@@ -352,4 +352,18 @@ describe("Toaster · snackbar actions (C18, 07a Web / Toast 297:7793)", () => {
       if (labels.length === 2) expect(labels).toEqual(["A", "B"]);
     }
   });
+
+  // BB-FK-5 (Figma Toast `40:61`): 13/18 type and Shadow/lg. Sonner's own
+  // [data-sonner-toast] rules outrank a plain class, so both are forced.
+  it("sets 18 px leading and the kit's shadow-lg over Sonner's defaults", async () => {
+    render(<Toaster />);
+    act(() => {
+      toast("Saved", { description: "On Kitchen board now", duration: Infinity });
+    });
+    await screen.findByText("Saved");
+    const el = document.querySelector<HTMLElement>("[data-sonner-toast]")!;
+    expect(el.className).toMatch(/(^|\s)!shadow-lg(\s|$)/);
+    expect(el.querySelector("[data-title]")!.className).toMatch(/(^|\s)!leading-4\.5(\s|$)/);
+    expect(el.querySelector("[data-description]")!.className).toMatch(/(^|\s)!leading-4\.5(\s|$)/);
+  });
 });

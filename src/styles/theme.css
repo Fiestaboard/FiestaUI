@@ -1032,6 +1032,7 @@
    * pill          | --radius-pill          | rounded-full |  ∞    | badge, switch, slider, overlay close (dialog + sheet), scroll-area thumb, sidebar edge toggle, empty-state icon
    * chrome        | --radius-chrome        | (css/inline) | 14px  | desktop sidebar shell
    * chrome-mobile | --radius-chrome-mobile | (css/inline) | 16px  | mobile header/menu shell, menu clip-path reveal
+   * chrome-item   | --radius-chrome-item   | (css/inline) | 12px  | a tab inside the phone tab bar (07 `53:100392`, BB-FK-4)
    *
    * Components KEEP their Tailwind rounded-* classes — those already
    * resolve through the --radius calc chain, so each role token below
@@ -1053,6 +1054,7 @@
   --radius-pill: calc(infinity * 1px);
   --radius-chrome: 14px;
   --radius-chrome-mobile: 16px;
+  --radius-chrome-item: 12px;
 
   /* ============================================================
    * METRICS (T1, slice 1.1) — platform-agnostic sizes, in CSS px.
@@ -1097,6 +1099,11 @@
    *   --z-mobile-header   100  mobile header — beats the open menu (95)
    *                            and backdrop (90) so the hamburger/close
    *                            button stays clickable
+   *   --z-bottom-nav-backdrop 102  bottom-nav More sheet's scrim — ABOVE
+   *                            the header: 07a dims it too (BB-FS-4)
+   *   --z-bottom-nav      105  bottom tab bar + its More drawer, above
+   *                            that scrim so More can close what it
+   *                            opened
    *   --z-sheet           110  sheet/drawer + its backdrop — covers all
    *                            chrome including the mobile header
    *   --z-select          120  Select popup — MUST stay above
@@ -1137,6 +1144,8 @@
   --z-mobile-backdrop: 90;
   --z-mobile-menu: 95;
   --z-mobile-header: 100;
+  --z-bottom-nav-backdrop: 102;
+  --z-bottom-nav: 105;
   --z-sheet: 110;
   --z-select: 120;
   --z-modal: 130;

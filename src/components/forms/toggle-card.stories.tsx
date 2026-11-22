@@ -382,6 +382,34 @@ export const SegmentedControlDefault = () => (
   </SegmentedControl>
 );
 
+/**
+ * The joined tray (BB-FC-4) — how the screens draw a one-of-N switcher: the
+ * same bordered items on one muted tray, 2px padding and gap. Day chips at a
+ * 390 phone (07d `322:19169`: five touch items in 358), Day/Week/List
+ * (`322:9978`) and Theme as a full-width grid (07e `333:56102`).
+ */
+export const SegmentedControlTray = () => (
+  <div className="flex w-[358px] max-w-full flex-col items-start gap-4">
+    <SegmentedControl aria-label="Day" variant="tray" size="touch" defaultValue="sun">
+      {["Thu 5", "Fri 6", "Sat 7", "Sun 8", "Mon 9"].map((day) => (
+        <SegmentedControlItem key={day} value={day.slice(0, 3).toLowerCase()}>
+          {day}
+        </SegmentedControlItem>
+      ))}
+    </SegmentedControl>
+    <SegmentedControl aria-label="View" variant="tray" size="lg" defaultValue="week">
+      <SegmentedControlItem value="day">Day</SegmentedControlItem>
+      <SegmentedControlItem value="week">Week</SegmentedControlItem>
+      <SegmentedControlItem value="list">List</SegmentedControlItem>
+    </SegmentedControl>
+    <SegmentedControl aria-label="Theme" variant="tray" layout="grid" columns="3" size="touch" defaultValue="system">
+      <SegmentedControlItem value="light">Light</SegmentedControlItem>
+      <SegmentedControlItem value="dark">Dark</SegmentedControlItem>
+      <SegmentedControlItem value="system">System</SegmentedControlItem>
+    </SegmentedControl>
+  </div>
+);
+
 /** Pill scales. `sm` still clears the 24×24 minimum target size. */
 export const SegmentedControlSizes = () => (
   <div className="flex flex-col items-start gap-4">

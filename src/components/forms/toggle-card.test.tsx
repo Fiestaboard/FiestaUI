@@ -397,3 +397,53 @@ describe("SegmentedControl layout", () => {
     }
   });
 });
+
+/*
+ * BB-FC-4: the joined tray (Figma 07d `322:19169` "Day chips › Segmented":
+ * a muted r8 tray, padding 2, items 2 apart). `variant="tray"` draws it;
+ * the default stays the loose pill row so shipped call sites do not reflow.
+ */
+describe("SegmentedControl tray variant", () => {
+  it("defaults to loose pills with an 8px gap and no tray", () => {
+    render(<Density defaultValue="cosy" />);
+    const group = screen.getByRole("radiogroup", { name: "Board density" });
+    expect(group).toHaveAttribute("data-variant", "pills");
+    expect(group.className).toContain("gap-2");
+    expect(group.className).not.toContain("bg-muted");
+  });
+
+  it("draws one joined tray: muted fill, 2px padding, 2px gap, no wrap", () => {
+    render(
+      <SegmentedControl aria-label="Day" variant="tray" defaultValue="sun">
+        <SegmentedControlItem value="sat">Sat 7</SegmentedControlItem>
+        <SegmentedControlItem value="sun">Sun 8</SegmentedControlItem>
+      </SegmentedControl>,
+    );
+    const group = screen.getByRole("radiogroup", { name: "Day" });
+    expect(group).toHaveAttribute("data-variant", "tray");
+    for (const cls of ["bg-muted", "rounded-md", "p-0.5", "gap-0.5", "flex-nowrap", "max-w-full"]) {
+      expect(group.className.split(/\s+/)).toContain(cls);
+    }
+    expect(group.className.split(/\s+/)).not.toContain("gap-2");
+    expect(group.className.split(/\s+/)).not.toContain("flex-wrap");
+    // Items keep their own bordered chrome inside the tray (Figma item `19:493`).
+    for (const item of within(group).getAllByRole("radio")) {
+      expect(item).toHaveAttribute("data-variant", "tray");
+      expect(item.className).toContain("border-input");
+    }
+  });
+
+  it("fills a grid tray edge to edge", () => {
+    render(
+      <SegmentedControl aria-label="Theme" variant="tray" layout="grid" columns="3" defaultValue="system">
+        <SegmentedControlItem value="light">Light</SegmentedControlItem>
+        <SegmentedControlItem value="dark">Dark</SegmentedControlItem>
+        <SegmentedControlItem value="system">System</SegmentedControlItem>
+      </SegmentedControl>,
+    );
+    const group = screen.getByRole("radiogroup", { name: "Theme" });
+    for (const cls of ["grid", "grid-cols-3", "bg-muted", "p-0.5", "gap-0.5"]) {
+      expect(group.className.split(/\s+/)).toContain(cls);
+    }
+  });
+});

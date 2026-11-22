@@ -58,11 +58,29 @@ export const WithGaps: Story = {
   ),
 };
 
-/** A full week in a phone-width slot stays on one line and scrolls sideways. */
+/**
+ * The phone frame (07d `322:19169`): five days on one tray in 358px — the
+ * caller passes the days that fit; a tray does not scroll (BB-FC-4).
+ */
+export const FiveDaysPhone: Story = {
+  render: (args) => (
+    <div className="w-[358px] max-w-full">
+      <WeekStrip {...args} defaultValue={WEEK[3].value}>
+        {WEEK.slice(0, 5).map((day) => (
+          <DayChip key={day.value} value={day.value} hasGap={day.gap}>
+            {day.label}
+          </DayChip>
+        ))}
+      </WeekStrip>
+    </div>
+  ),
+};
+
+/** `variant="pills"`: a full week in a phone-width slot stays on one line and scrolls sideways. */
 export const FullWeekNarrow: Story = {
   render: (args) => (
     <div className="w-[320px] max-w-full">
-      <WeekStrip {...args} defaultValue="wed">
+      <WeekStrip {...args} variant="pills" defaultValue="wed">
         {WEEK.map((day) => (
           <DayChip key={day.value} value={day.value} hasGap={day.gap}>
             {day.label}

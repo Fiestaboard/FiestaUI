@@ -50,7 +50,7 @@ import { Flex } from "../layout/flex";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../overlays/tooltip";
 import { Text } from "../typography/text";
 import { type BlockColorChoice, ColorPickerContent, type ColorPickerLabels } from "./color-picker-content";
-import type { DeviceType } from "./constants";
+import { CURSOR_ANCHOR, type DeviceType } from "./constants";
 import { DrawCharPickerContent, type DrawCharPickerLabels } from "./draw-char-picker-content";
 import { FormattingPickerContent, type FormattingPickerLabels } from "./formatting-picker-content";
 import type { LineAlignment } from "./template-editor";
@@ -71,6 +71,24 @@ import type {
   TemplateVariables,
   VariablePickerLabels,
 } from "./variable-picker-content";
+
+/**
+ * The selection as clipboard text (BB-E-28): the same text the field's own
+ * Ctrl/Cmd+C writes, read through the editor's `clipboardTextSerializer`
+ * prop, so chips go out as their markup. The plain-text fallback is for an
+ * editor without one. Either way the cursor anchors (U+200B) never leave the
+ * editor: they exist only to give the caret a text node to sit in.
+ */
+function selectionClipboardText(editor: Editor): string {
+  const { view, state } = editor;
+  const { from, to } = state.selection;
+  const slice = typeof state.selection.content === "function" ? state.selection.content() : null;
+  const serialized =
+    slice && typeof view.someProp === "function"
+      ? view.someProp("clipboardTextSerializer", (serialize) => serialize(slice, view))
+      : undefined;
+  return (serialized ?? state.doc.textBetween(from, to, "\n")).replaceAll(CURSOR_ANCHOR, "");
+}
 
 // Lazy-loaded — pulls in lucide-react's full `icons` barrel (every icon in
 // the library, ~1.2 MB) to resolve plugin-provided icon names dynamically.
@@ -668,8 +686,7 @@ function TemplateEditorToolbarImpl({
   const handleCut = useCallback(async () => {
     if (editor && hasSelection) {
       editor.view.focus();
-      const { from, to } = editor.state.selection;
-      const selectedText = editor.state.doc.textBetween(from, to, "\n");
+      const selectedText = selectionClipboardText(editor);
 
       try {
         await navigator.clipboard.writeText(selectedText);
@@ -686,8 +703,7 @@ function TemplateEditorToolbarImpl({
   const handleCopy = useCallback(async () => {
     if (editor && hasSelection) {
       editor.view.focus();
-      const { from, to } = editor.state.selection;
-      const selectedText = editor.state.doc.textBetween(from, to, "\n");
+      const selectedText = selectionClipboardText(editor);
 
       try {
         await navigator.clipboard.writeText(selectedText);
@@ -699,6 +715,13 @@ function TemplateEditorToolbarImpl({
       setHasClipboardContent(true);
     }
   }, [editor, hasSelection]);
+
+  // BB-E-29: Escape from a picker puts the caret back in the editor, at the
+  // selection it had (TipTap's focus() restores it), as a text field's own
+  // menus do. Hosts used to add this glue themselves.
+  const focusEditor = useCallback(() => {
+    editor?.commands.focus();
+  }, [editor]);
 
   const handlePaste = useCallback(async () => {
     if (!editor) return;
@@ -747,6 +770,7 @@ function TemplateEditorToolbarImpl({
           onCut={handleCut}
           onCopy={handleCopy}
           onPaste={handlePaste}
+          onReturnFocus={focusEditor}
           onInsert={handleInsert}
           onInsertFormula={insertFormula}
           onTextColor={handleTextColor}
@@ -1061,6 +1085,7 @@ function TemplateEditorToolbarImpl({
             {hasVariables ? (
               <ToolbarDropdown
                 label={l.variables}
+                returnFocus={focusEditor}
                 icon={<Code2 className="w-4 h-4" />}
                 presentation={pickerPresentation}
               >
@@ -1123,6 +1148,7 @@ function TemplateEditorToolbarImpl({
             {(hasColors || hasSetMarkup) && (
               <ToolbarDropdown
                 label={l.colors}
+                returnFocus={focusEditor}
                 icon={<Palette className="w-4 h-4" />}
                 presentation={pickerPresentation}
               >
@@ -1169,6 +1195,7 @@ function TemplateEditorToolbarImpl({
             {hasFormatting && (
               <ToolbarDropdown
                 label={l.formatting}
+                returnFocus={focusEditor}
                 icon={<Type className="w-4 h-4" />}
                 presentation={pickerPresentation}
               >

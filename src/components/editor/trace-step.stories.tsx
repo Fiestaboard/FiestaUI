@@ -80,3 +80,45 @@ export const LargeText: Story = {
     ),
   ],
 };
+
+/**
+ * BB-FP-16 (Figma 132:20145): a row wraps at word boundaries and only breaks
+ * a token that cannot fit. `overflow-wrap: anywhere` gave every character a
+ * break in the row's min-content width, so under any intrinsically sized
+ * ancestor (here `w-min`, as a shrink-to-fit panel column does) the spans
+ * collapsed and "random.choice" split as "random.choic / e". With
+ * `break-word` the min-content width is the longest token, kept whole.
+ */
+export const LongTokens: Story = {
+  args: { expression: 'IF(ready, random.choice(list), "none")', value: "7" },
+  decorators: [
+    (Story) => (
+      // w-min: the shrink-to-fit ancestor that exposed the min-content bug.
+      <div className="w-min max-w-full">
+        <Story />
+      </div>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    expectViewportFit(canvasElement);
+    const expression = canvasElement.querySelector<HTMLElement>('[data-slot="trace-step-expression"]')!;
+    const text = expression.firstChild!;
+    const lineTops = (start: number, end: number) => {
+      const range = document.createRange();
+      range.setStart(text, start);
+      range.setEnd(text, end);
+      return new Set(Array.from(range.getClientRects(), (r) => Math.round(r.top))).size;
+    };
+    const source = text.textContent!;
+    // The identifier the bug split ("random.choic / e") stays on one line.
+    const token = "random.choice";
+    const start = source.indexOf(token);
+    // The row does wrap.
+    await expect(lineTops(0, source.length)).toBeGreaterThan(1);
+    await expect(lineTops(start, start + token.length)).toBe(1);
+    for (const slot of ["trace-step-expression", "trace-step-value"]) {
+      const el = canvasElement.querySelector<HTMLElement>(`[data-slot="${slot}"]`)!;
+      await expect(getComputedStyle(el).overflowWrap).toBe("break-word");
+    }
+  },
+};
