@@ -276,8 +276,29 @@ export interface SidebarNavItem {
  */
 type BadgeTone = "destructive" | "brand";
 
+/**
+ * Where a dot badge sits and how it is cut out:
+ * - `rail` (the rail and the drawer; 07a Nav badge `302:2340`): 10px with a
+ *   2px card ring that separates it from the icon.
+ * - `tab` (the bottom tab bar; 07 `53:100392` › "Badge dot" `53:100429`,
+ *   BB-FK-10): 8px, no ring, its box 3px past the 20px icon's right edge and
+ *   2px above its top.
+ */
+const NAV_DOT: Record<"rail" | "tab", string> = {
+  rail: "-end-1 -top-0.5 size-2.5 ring-2 ring-card",
+  tab: "-end-[3px] -top-0.5 size-2",
+};
+
 /** Badge overlay for a nav icon. Decorative: its words go in the row's name. */
-function NavBadge({ badge, tone = "destructive" }: { badge: SidebarNavBadge; tone?: BadgeTone }) {
+function NavBadge({
+  badge,
+  tone = "destructive",
+  placement = "rail",
+}: {
+  badge: SidebarNavBadge;
+  tone?: BadgeTone;
+  placement?: "rail" | "tab";
+}) {
   if (badge.count == null) {
     return (
       <span
@@ -286,7 +307,8 @@ function NavBadge({ badge, tone = "destructive" }: { badge: SidebarNavBadge; ton
         data-tone={tone}
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute -end-1 -top-0.5 size-2.5 rounded-full ring-2 ring-card",
+          "pointer-events-none absolute rounded-full",
+          NAV_DOT[placement],
           tone === "brand" ? "bg-brand" : "bg-destructive",
         )}
       />
@@ -342,12 +364,13 @@ function navIcon(
   className: string,
   badge?: SidebarNavBadge,
   tone?: BadgeTone,
+  placement?: "rail" | "tab",
 ) {
   if (!badge) return <Icon className={className} />;
   return (
     <span className="relative inline-flex shrink-0">
       <Icon className={className} />
-      <NavBadge badge={badge} tone={tone} />
+      <NavBadge badge={badge} tone={tone} placement={placement} />
     </span>
   );
 }
@@ -1113,7 +1136,7 @@ export const Sidebar = memo(function Sidebar({
     const badge = badgeOf(item);
     const content = (
       <>
-        {navIcon(item.icon, "h-5 w-5", badge)}
+        {navIcon(item.icon, "h-5 w-5", badge, undefined, "tab")}
         <span className="max-w-full truncate">{item.label}</span>
         {badgeText(badge?.label)}
       </>
@@ -1180,7 +1203,7 @@ export const Sidebar = memo(function Sidebar({
         }}
         className={lit ? BOTTOM_ITEM_ACTIVE : BOTTOM_ITEM_INACTIVE}
       >
-        {navIcon(Ellipsis, "h-5 w-5", noticeBadge, tone)}
+        {navIcon(Ellipsis, "h-5 w-5", noticeBadge, tone, "tab")}
         <span className="max-w-full truncate">{moreLabel}</span>
         {badgeText(noticeBadge?.label)}
       </button>

@@ -1220,6 +1220,44 @@ describe("Sidebar bottom nav, review follow-ups", () => {
     document.documentElement.style.removeProperty("--bottom-nav-offset");
   });
 
+  // BB-FK-10 (07 Web / Bottom nav `53:100392` › More › "Badge dot" `53:100429`):
+  // on the tab bar a dot is 8×8, brand, no ring, its box at x 15 / y −2 in the
+  // 20px icon (3px past the icon's right edge, 2px above its top).
+  const TAB_DOT = ["size-2", "-end-[3px]", "-top-0.5"];
+  it("draws the tab bar's dot badge 8px with no ring (BB-FK-10)", () => {
+    renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: ITEMS, menuNotice: "Update available" });
+    const dot = moreBadge()!;
+    expect(dot).toHaveAttribute("data-kind", "dot");
+    expect(dot).toHaveAttribute("data-tone", "brand");
+    const c = dot.className.split(/\s+/);
+    expect(c).toEqual(expect.arrayContaining(TAB_DOT));
+    expect(c).not.toContain("size-2.5");
+    expect(c.some((k) => k.startsWith("ring-"))).toBe(false);
+  });
+
+  it("draws a dot on a tab the same way", () => {
+    renderSidebar({
+      variant: "bottom-nav",
+      labels: MORE_LABELS,
+      items: ITEMS.map((item) => (item.key === "pages" ? { ...item, badge: { label: "Needs attention" } } : item)),
+    });
+    const pages = within(bar()).getByRole("link", { name: "Pages, Needs attention" });
+    const c = pages.querySelector('[data-slot="nav-badge"]')!.className.split(/\s+/);
+    expect(c).toEqual(expect.arrayContaining(TAB_DOT));
+    expect(c.some((k) => k.startsWith("ring-"))).toBe(false);
+  });
+
+  it("keeps the rail's dot as 07a draws it (10px with a card ring)", () => {
+    renderSidebar({
+      items: ITEMS.map((item) => (item.key === "pages" ? { ...item, badge: { label: "Needs attention" } } : item)),
+    });
+    const dots = Array.from(document.querySelectorAll<HTMLElement>('aside [data-slot="nav-badge"]'));
+    expect(dots.length).toBeGreaterThan(0);
+    for (const dot of dots) {
+      expect(dot.className.split(/\s+/)).toEqual(expect.arrayContaining(["size-2.5", "ring-2", "ring-card"]));
+    }
+  });
+
   it("M1: closes the More drawer when a tab on the bar is followed", async () => {
     const user = userEvent.setup();
     renderSidebar({ variant: "bottom-nav", labels: MORE_LABELS, items: ITEMS });
