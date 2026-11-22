@@ -104,9 +104,11 @@ export const Interactive: Story = {
     await expect(select).toHaveAttribute("aria-pressed", "true");
     await expectSelectedBoundary(canvasElement);
     await expect(canvasElement.querySelector("button button")).toBeNull();
+    // 24px minimum targets (WCAG 2.5.8), less 0.05px of sub-pixel layout
+    // noise (23.999996 flaked in CI); a 23px target still fails.
     for (const button of canvas.getAllByRole("button")) {
-      await expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(24);
-      await expect(button.getBoundingClientRect().width).toBeGreaterThanOrEqual(24);
+      await expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(24 - 0.05);
+      await expect(button.getBoundingClientRect().width).toBeGreaterThanOrEqual(24 - 0.05);
     }
   },
 };
