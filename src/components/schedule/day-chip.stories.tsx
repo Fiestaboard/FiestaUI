@@ -81,11 +81,15 @@ export const FiveDaysPhone: Story = {
  * `variant="pills"`: a full week in a phone-width slot stays on one line and
  * scrolls sideways.
  *
- * Base UI's composite root scrolls the checked chip into view on mount, which
- * can run before the web font has loaded; the chips then widen by a few px
- * and the frozen scroll offset depended on load timing (a VRT flake). The play
- * waits for the fonts and aligns the checked chip to the scroller's end from
- * the final layout, so every capture starts from the same offset.
+ * Base UI's composite root scrolls the checked chip into view on mount. It
+ * measures the chip with `offsetLeft` summed up to the nearest positioned
+ * ancestor (here `<body>`, as the scroller is not positioned), so the offset
+ * includes the strip's page position, and that differs by Storybook's 16px
+ * body padding depending on whether the padding is in effect at mount (a VRT
+ * flake). The play waits for the fonts and realigns the checked chip to the
+ * scroller's end from the final layout using rects, which do not depend on
+ * where the strip sits on the page, so every capture starts from the same
+ * offset.
  */
 export const FullWeekNarrow: Story = {
   play: async ({ canvasElement }) => {
