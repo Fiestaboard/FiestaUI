@@ -1459,6 +1459,15 @@
   html:has([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"], [data-slot="sheet-overlay"]) {
     background-color: var(--overlay-on-page);
   }
+  /* Giving <html> a background switches off the propagation of body's page
+     colour to the canvas, so the canvas is --overlay-on-page everywhere body
+     does not reach. On a page shorter than the viewport (or a story whose only
+     content is a portalled dialog) the scrim then dimmed that canvas a second
+     time and the gutter read LIGHTER than the scrim (VRT-445). While a scrim
+     is up, body covers the viewport, so the canvas only shows in the gutter. */
+  html:has([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"], [data-slot="sheet-overlay"]) body {
+    min-height: 100dvh;
+  }
   body {
     @apply bg-background text-foreground;
     /* The grain is a BACKGROUND-IMAGE LAYER on the element that already paints

@@ -12,6 +12,7 @@ import { checkFlowShellGeometry } from "./flow-shell-regression";
 import { checkInspectorRowForcedColors } from "./inspector-row-regression";
 import { checkPopupFocusRing } from "./popup-focus-regression";
 import { checkScheduleEntryPhoneSheet, SCHEDULE_ENTRY_PHONE_STORIES } from "./schedule-entry-form-regression";
+import { checkScrimDimsOnce } from "./scrim-regression";
 import { checkShellInsets } from "./shell-inset-regression";
 import { checkSidebarHandle } from "./sidebar-handle-regression";
 import { checkSpinnerMotion } from "./spinner-regression";
@@ -122,6 +123,7 @@ const config: TestRunnerConfig = {
     await checkEditorPreviewNeverCollapses(page, context.id);
     await checkTouchToolbarGeometry(page, context.id);
     await checkFlowShellGeometry(page, context.id);
+    await checkScrimDimsOnce(page, context.id);
     await checkDialogInsetGeometry(page, context.id);
     await checkPopupFocusRing(page, context.id);
     await checkTogglePressedBorder(page, context.id);
