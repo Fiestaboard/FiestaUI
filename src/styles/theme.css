@@ -773,6 +773,15 @@
      not by a surface contrast ratio. Do not "fix" the dark figure; it is
      not measuring what it looks like it is measuring. */
   --overlay: oklch(0.16 0.012 73 / 60%);
+  /* The same scrim already composited over the page, as an OPAQUE colour, for
+     the one place an overlay cannot reach: the root's reserved scrollbar
+     gutter (html { scrollbar-gutter: stable } below). Scroll lock hides the
+     scrollbar but keeps its 15px; a fixed scrim is clipped out of it, and the
+     gutter shows the canvas — the root's background-colour only, never an
+     image. So while a scrim is up the canvas takes this colour and the strip
+     reads as dimmed (BB-FS-6). Mixed in sRGB, which is how the scrim itself
+     composites. Keep the base and percentage in step with --overlay. */
+  --overlay-on-page: color-mix(in srgb, oklch(0.16 0.012 73) 60%, var(--background));
   /* ============================================================
    * BRAND: ONE PIGMENT, THREE JOBS (#231).
    *
@@ -1264,6 +1273,7 @@
   /* See the :root note: the dark figure here is not a contrast ratio worth
      quoting. Modality in dark is carried by --elevation-modal. */
   --overlay: oklch(0.08 0.006 73 / 72%);
+  --overlay-on-page: color-mix(in srgb, oklch(0.08 0.006 73) 72%, var(--background)); /* see :root */
   --brand: var(--hue-orange); /* text step — see :root */
   --brand-foreground: oklch(0.205 0.008 73);
   --brand-tile: var(--primary); /* DEPRECATED alias — same pigment now */
@@ -1442,6 +1452,21 @@
   html {
     /* Reserve space for scrollbar to prevent layout shift */
     scrollbar-gutter: stable;
+  }
+  /* While a --overlay scrim is open, dim the reserved gutter too (see
+     --overlay-on-page). Without this a 15px undimmed strip ran down the right
+     edge beside every dialog, alert and sheet on a classic-scrollbar system. */
+  html:has([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"], [data-slot="sheet-overlay"]) {
+    background-color: var(--overlay-on-page);
+  }
+  /* Giving <html> a background switches off the propagation of body's page
+     colour to the canvas, so the canvas is --overlay-on-page everywhere body
+     does not reach. On a page shorter than the viewport (or a story whose only
+     content is a portalled dialog) the scrim then dimmed that canvas a second
+     time and the gutter read LIGHTER than the scrim (VRT-445). While a scrim
+     is up, body covers the viewport, so the canvas only shows in the gutter. */
+  html:has([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"], [data-slot="sheet-overlay"]) body {
+    min-height: 100dvh;
   }
   body {
     @apply bg-background text-foreground;

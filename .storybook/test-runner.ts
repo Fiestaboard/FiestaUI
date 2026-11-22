@@ -13,6 +13,8 @@ import { checkInspectorRowForcedColors } from "./inspector-row-regression";
 import { checkMinimapClickWaitsForFonts } from "./minimap-click-regression";
 import { checkPopupFocusRing } from "./popup-focus-regression";
 import { checkScheduleEntryPhoneSheet, SCHEDULE_ENTRY_PHONE_STORIES } from "./schedule-entry-form-regression";
+import { checkScrimDimsOnce } from "./scrim-regression";
+import { checkShellInsets } from "./shell-inset-regression";
 import { checkSidebarHandle } from "./sidebar-handle-regression";
 import { checkSpinnerMotion } from "./spinner-regression";
 import { checkTogglePressedBorder } from "./toggle-pressed-border-regression";
@@ -122,12 +124,14 @@ const config: TestRunnerConfig = {
     await checkEditorPreviewNeverCollapses(page, context.id);
     await checkTouchToolbarGeometry(page, context.id);
     await checkFlowShellGeometry(page, context.id);
+    await checkScrimDimsOnce(page, context.id);
     await checkDialogInsetGeometry(page, context.id);
     await checkPopupFocusRing(page, context.id);
     await checkTogglePressedBorder(page, context.id);
     await checkInspectorRowForcedColors(page, context.id);
     await checkScheduleEntryPhoneSheet(page, context.id);
     await checkSidebarHandle(page, context.id);
+    await checkShellInsets(page, context.id);
     await checkMinimapClickWaitsForFonts(page, context.id);
 
     await configureAxe(page, {

@@ -119,6 +119,16 @@ describe("Toaster", () => {
     expect(await screen.findByRole("button", { name: "Schließen" })).toBeInTheDocument();
   });
 
+  it("draws the snackbar × at 16px with a 44px hit area (07a `311:73476`, BB-FS-7)", async () => {
+    render(<Toaster variant="snackbar" closeButton labels={{ close: "Close" }} />);
+    act(() => {
+      toast("Copied");
+    });
+    const close = await screen.findByRole("button", { name: "Close" });
+    expect(close).toHaveClass("!size-4", "before:-inset-3.5");
+    expect(close).not.toHaveClass("!size-5");
+  });
+
   it("forwards the theme and bridges popover tokens", async () => {
     render(<Toaster theme="dark" />);
     act(() => {

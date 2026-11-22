@@ -1093,8 +1093,22 @@ describe("Sidebar rail breakpoint", () => {
     expect(header().className).not.toMatch(/(^|\s)lg:hidden(\s|$)/);
     expect(desktopRail().className).toMatch(/(^|\s)md:block(\s|$)/);
     expect(desktopRail().className).toMatch(/(^|\s)md:w-64(\s|$)/);
-    expect(desktopRail().className).not.toMatch(/(^|\s)lg:/);
+    // The only lg: classes are the inset's return to 12 from 1024 (BB-FS-8).
+    expect(
+      desktopRail()
+        .className.split(/\s+/)
+        .filter((c) => c.startsWith("lg:")),
+    ).toEqual(["lg:top-3", "lg:bottom-3"]);
     expect(screen.getByTestId("mobile-backdrop").className).toMatch(/(^|\s)md:hidden(\s|$)/);
+  });
+
+  it("insets the rail 8px in the tablet band and 12px from lg (07a 900 `307:61756`, BB-FS-8)", () => {
+    renderSidebar({ railBreakpoint: "md" });
+    const c = desktopRail().className.split(/\s+/);
+    expect(c).toEqual(
+      expect.arrayContaining(["md:top-2", "md:bottom-2", "md:max-lg:left-2!", "lg:top-3", "lg:bottom-3"]),
+    );
+    expect(c).not.toContain("md:top-3");
   });
 
   it("narrows the md rail to the icon column when collapsed", () => {

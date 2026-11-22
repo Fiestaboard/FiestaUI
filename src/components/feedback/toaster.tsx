@@ -131,7 +131,9 @@ const SNACKBAR_CLASSNAMES = {
   description: "!text-muted-foreground !text-xs",
   content: cn(TOAST_CLASSNAMES.content, "group-has-[[data-close-button]]/toast:pr-9"),
   closeButton:
-    "!left-auto !right-3 !top-3.5 !transform-none !size-5 !rounded-md !border-0 !bg-transparent before:absolute before:-inset-3 before:rounded-full focus-ring",
+    // 16px, as 07a `311:73476` draws the ×; the invisible ::before keeps the
+    // hit area at 44px (16 + 2×14) — BB-FS-7.
+    "!left-auto !right-3 !top-3.5 !transform-none !size-4 !rounded-md !border-0 !bg-transparent before:absolute before:-inset-3.5 before:rounded-full focus-ring",
 };
 
 /** Scalar offsets intentionally replace every edge; partial objects preserve other kit defaults. */

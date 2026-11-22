@@ -60,8 +60,9 @@ describe("MainContent padding", () => {
         page
       </MainContent>,
     );
-    expect(classesOf(main())).toEqual(expect.arrayContaining(["md:pl-[268px]", "md:pt-0"]));
-    expect(classesOf(main())).not.toContain("lg:pl-[268px]");
+    // Tablet band: the rail is 8 in (8 + 256), then 12 from lg (BB-FS-8).
+    expect(classesOf(main())).toEqual(expect.arrayContaining(["md:pl-[264px]", "lg:pl-[268px]", "md:pt-0"]));
+    expect(classesOf(main())).not.toContain("md:pl-[268px]");
     expect(main()).toHaveAttribute("data-rail-breakpoint", "md");
 
     rerender(
@@ -69,7 +70,8 @@ describe("MainContent padding", () => {
         page
       </MainContent>,
     );
-    expect(classesOf(main())).toContain("md:pl-[76px]");
+    // 8 + 64 = 72, + PageLayout's 16 gutter = content at x 88 (07a 900 `307:61756`).
+    expect(classesOf(main())).toEqual(expect.arrayContaining(["md:pl-[72px]", "lg:pl-[76px]"]));
   });
 
   it("reserves the AI panel's width on the right", () => {
