@@ -43,6 +43,22 @@ function renderForm(props: Partial<React.ComponentProps<typeof ScheduleEntryForm
   return { onSubmit, onValueChange };
 }
 
+/** A time field is the kit TimePicker (BB-FC-7): a button named by its label. */
+function timeButton(name: string, root: HTMLElement = document.body): HTMLElement {
+  return within(root).getByRole("button", { name: new RegExp(`^${name}`) });
+}
+
+/** Opens a time field's picker and chooses `HH:MM` from its Hour and Minute lists. */
+async function pickTime(name: string, hhmm: string) {
+  const user = userEvent.setup();
+  const [hour, minute] = hhmm.split(":").map(Number);
+  await user.click(timeButton(name));
+  await user.click(
+    screen.getByRole("option", { name: `${hour % 12 === 0 ? 12 : hour % 12} ${hour >= 12 ? "PM" : "AM"}` }),
+  );
+  await user.click(screen.getByRole("option", { name: String(minute).padStart(2, "0") }));
+}
+
 function lastValue(fn: ReturnType<typeof vi.fn>): ScheduleEntryValue {
   return fn.mock.calls.at(-1)?.[0] as ScheduleEntryValue;
 }
@@ -274,8 +290,12 @@ describe("ScheduleEntryForm", () => {
       const group = screen.getByRole("radiogroup", { name });
       for (const radio of within(group).getAllByRole("radio")) expect(radio.dataset.size).toBe("touch");
     }
-    expect(screen.getByLabelText("Start time")).toHaveProperty("type", "time");
-    expect(screen.getByLabelText("End time")).toHaveProperty("value", "13:00");
+    // The kit TimePicker, not a native time input (BB-FC-7, kit `18:89`).
+    expect(document.querySelector('input[type="time"]')).toBeNull();
+    // The name carries the value, as the native input's did.
+    expect(timeButton("Start time")).toHaveAccessibleName("Start time 9:00 AM");
+    expect(timeButton("End time")).toHaveAccessibleName("End time 1:00 PM");
+    expect(timeButton("Start time").className).toContain("h-control-touch");
     expect(screen.getByRole("switch", { name: "Entry is on" })).toHaveAccessibleDescription(
       "Off keeps the entry but skips it",
     );
@@ -287,7 +307,7 @@ describe("ScheduleEntryForm", () => {
   it("uses the default sizes when size is default", () => {
     renderForm({ size: "default", onDelete: vi.fn() });
     expect(screen.getByRole("button", { name: "Save" }).dataset.size).toBe("default");
-    expect(screen.getByLabelText("Start time").dataset.size).toBe("default");
+    expect(timeButton("Start time").className).not.toContain("h-control-touch");
     expect(within(screen.getByRole("radiogroup", { name: "Starts" })).getAllByRole("radio")[0].dataset.size).toBe("md");
   });
 
@@ -298,12 +318,12 @@ describe("ScheduleEntryForm", () => {
     expect(onSubmit.mock.calls[0][0]).toMatchObject({ page_id: "page-brunch", start_sun_offset: 0, custom_days: null });
   });
 
-  it("changes the times through the native inputs", () => {
+  it("changes the times through the time pickers", async () => {
     const { onValueChange } = renderForm();
-    fireEvent.change(screen.getByLabelText("Start time"), { target: { value: "17:00" } });
+    await pickTime("Start time", "17:00");
     expect(lastValue(onValueChange).start_time).toBe("17:00");
-    fireEvent.change(screen.getByLabelText("End time"), { target: { value: "18:30" } });
-    expect(lastValue(onValueChange).end_time).toBe("18:30");
+    await pickTime("End time", "18:37");
+    expect(lastValue(onValueChange).end_time).toBe("18:37");
   });
 
   it("starts at sunset with an offset, and shows the hub's resolved time", () => {
@@ -422,32 +442,29 @@ describe("ScheduleEntryForm", () => {
   it("flags a zero-length range on the end time", () => {
     renderForm({ defaultValue: entry({ start_time: "09:00", end_time: "09:00" }) });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(screen.getByLabelText("End time").getAttribute("aria-invalid")).toBe("true");
+    expect(timeButton("End time").getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByText("Ends when it starts. Pick another end time.")).toBeTruthy();
   });
 
-  it("reveals an invalid start fallback after switching to sunset and lets it be repaired", () => {
-    const { onSubmit } = renderForm();
-    fireEvent.change(screen.getByLabelText("Start time"), { target: { value: "" } });
+  it("reveals an invalid start fallback after switching to sunset and lets it be repaired", async () => {
+    const { onSubmit } = renderForm({ defaultValue: entry({ start_time: "" }) });
     fireEvent.click(within(screen.getByRole("radiogroup", { name: "Starts" })).getByRole("radio", { name: "Sunset" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(onSubmit).not.toHaveBeenCalled();
-    const fallback = screen.getByLabelText("Start fallback time");
-    expect(fallback).toHaveAttribute("aria-invalid", "true");
-    fireEvent.change(fallback, { target: { value: "17:00" } });
-    expect(screen.getByLabelText("Start fallback time")).toHaveValue("17:00");
+    expect(timeButton("Start fallback time")).toHaveAttribute("aria-invalid", "true");
+    await pickTime("Start fallback time", "17:00");
+    expect(timeButton("Start fallback time")).toHaveTextContent("5:00 PM");
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ start_type: "sunset", start_time: "17:00" }));
   });
 
-  it("reveals a zero-length sun end fallback without silently changing the stored time", () => {
+  it("reveals a zero-length sun end fallback without silently changing the stored time", async () => {
     const { onSubmit } = renderForm({ defaultValue: entry({ end_type: "sunrise", end_time: "09:00" }) });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(onSubmit).not.toHaveBeenCalled();
-    const fallback = screen.getByLabelText("End fallback time");
-    expect(fallback).toHaveValue("09:00");
-    expect(fallback).toHaveAttribute("aria-invalid", "true");
-    fireEvent.change(fallback, { target: { value: "10:00" } });
+    expect(timeButton("End fallback time")).toHaveTextContent("9:00 AM");
+    expect(timeButton("End fallback time")).toHaveAttribute("aria-invalid", "true");
+    await pickTime("End fallback time", "10:00");
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ end_type: "sunrise", end_time: "10:00" }));
   });
@@ -467,13 +484,14 @@ describe("ScheduleEntryForm", () => {
     expect(onDelete).toHaveBeenCalled();
   });
 
-  it("is controlled through value", () => {
+  it("is controlled through value", async () => {
     const onValueChange = vi.fn();
     const { rerender } = render(
       <ScheduleEntryForm targets={TARGETS} value={entry()} onValueChange={onValueChange} onSubmit={vi.fn()} />,
     );
-    fireEvent.change(screen.getByLabelText("Start time"), { target: { value: "10:00" } });
-    expect(screen.getByLabelText("Start time")).toHaveProperty("value", "09:00");
+    await pickTime("Start time", "10:00");
+    expect(onValueChange).toHaveBeenCalled();
+    expect(timeButton("Start time")).toHaveTextContent("9:00 AM");
     rerender(
       <ScheduleEntryForm
         targets={TARGETS}
@@ -482,7 +500,7 @@ describe("ScheduleEntryForm", () => {
         onSubmit={vi.fn()}
       />,
     );
-    expect(screen.getByLabelText("Start time")).toHaveProperty("value", "10:00");
+    expect(timeButton("Start time")).toHaveTextContent("10:00 AM");
   });
 
   it("shows ranges when a controlled entry is replaced by a multi-day entry", () => {
@@ -547,9 +565,9 @@ describe('ScheduleEntryForm layout="compact" (07d 322:20318, BB-C-5)', () => {
     const form = screen.getByRole("button", { name: "Save" }).closest("form")!;
     expect(form.dataset.layout).toBe("compact");
     const row = form.querySelector<HTMLElement>('[data-slot="schedule-entry-times"]')!;
-    expect(within(row).getByLabelText("Start time")).toHaveProperty("value", "09:00");
+    expect(timeButton("Start time", row)).toHaveTextContent("9:00 AM");
     expect(within(row).getByText("to")).toBeTruthy();
-    expect(within(row).getByLabelText("End time")).toHaveProperty("value", "13:00");
+    expect(timeButton("End time", row)).toHaveTextContent("1:00 PM");
     const days = screen.getByRole("radiogroup", { name: "Days" });
     expect(days.className).toContain("@[20rem]/schedule-entry:grid-cols-4");
     expect(form.className).toContain("@container/schedule-entry");
@@ -567,7 +585,7 @@ describe('ScheduleEntryForm layout="compact" (07d 322:20318, BB-C-5)', () => {
     // A sun start leaves the one-row times; each time lives in its own section.
     expect(document.querySelector('[data-slot="schedule-entry-times"]')).toBeNull();
     expect(screen.getByRole("combobox", { name: "Offset from sunset" })).toBeTruthy();
-    expect(screen.getByLabelText("End time")).toHaveProperty("value", "13:00");
+    expect(timeButton("End time")).toHaveTextContent("1:00 PM");
     fireEvent.click(within(screen.getByRole("radiogroup", { name: "Repeat" })).getByRole("radio", { name: "Once on" }));
     fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-11-07" } });
     fireEvent.click(screen.getByRole("switch", { name: "Entry is on" }));
