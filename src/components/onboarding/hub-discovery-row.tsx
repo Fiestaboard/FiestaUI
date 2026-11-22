@@ -1,10 +1,10 @@
 "use client";
 
-import { ChevronRight, Server } from "lucide-react";
+import { Server } from "lucide-react";
 import * as React from "react";
 
 import { IconTile } from "../containment/icon-tile";
-import { ListRow, ListRowItem } from "../containment/list-row";
+import { ListRow, ListRowChevron, ListRowItem } from "../containment/list-row";
 
 interface HubDiscoveryRowProps extends Omit<React.ComponentProps<"li">, "children" | "onSelect"> {
   /** Human-readable hub name. Content slots must not contain controls. */
@@ -63,7 +63,7 @@ function HubDiscoveryRow({
             </span>
           ) : undefined
         }
-        trailing={<ChevronRight aria-hidden="true" className="size-4" />}
+        trailing={<ListRowChevron />}
         size={size}
         layout={layout}
         className="rounded-[inherit] disabled:pointer-events-none disabled:opacity-50 [&_[data-slot=list-row-meta]]:max-w-full"
