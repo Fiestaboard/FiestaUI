@@ -9,9 +9,10 @@ import type { Page } from "playwright";
  *
  * - Shape (07a `302:20841` "Collapse toggle"): 16×28, 8px corners, top 18px
  *   below the rail's top, right edge 2px past the rail's.
- * - Visibility (owner ruling, `collapseHandle="hover"` default): hidden at
- *   rest; shown while the pointer is on the rail; shown on keyboard focus with
- *   the kit focus ring; shown at rest when the device cannot hover (touch).
+ * - Visibility (owner ruling 2026-11-21, `collapseHandle="hover"` default,
+ *   expanded and collapsed rail alike): hidden at rest; shown while the
+ *   pointer is on the rail; shown on keyboard focus with the kit focus ring;
+ *   shown at rest when the device cannot hover (touch).
  * - Hover fill is opaque: the translucent accent is layered over --sidebar.
  */
 const STORY = "app-chrome-sidebar--figma-rail";
@@ -63,10 +64,10 @@ async function checkMoreSheet(page: Page, id: string) {
 const COLLAPSED_STORY = "app-chrome-sidebar--figma-rail-collapsed";
 
 /**
- * 07a's collapsed rail `307:61756`: the handle stays visible at rest (the
- * only way back to the labels, even under the hover default) with the same
- * 16×28 / 2px-proud geometry; the nested Collections tile is flush with the
- * rest; the hairline spans the tile's full width.
+ * 07a's collapsed rail `307:61756`: the handle follows the same rule as on
+ * the expanded rail (hidden at rest, shown on rail hover, visible at rest on
+ * touch) with the same 16×28 / 2px-proud geometry; the nested Collections
+ * tile is flush with the rest; the hairline spans the tile's full width.
  */
 async function checkCollapsedRail(page: Page, id: string) {
   const original = page.viewportSize();
@@ -74,7 +75,13 @@ async function checkCollapsedRail(page: Page, id: string) {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.mouse.move(1400, 880);
     await frames(page);
-    assert.equal(await opacity(page), 1, `${id}: the handle is visible at rest on the collapsed rail`);
+    // A previous story's touch emulation must be gone: under (hover: none)
+    // the handle is visible at rest by design.
+    await waitForHover(page, id);
+    assert.equal(await opacity(page), 0, `${id}: the handle is hidden at rest on the collapsed rail`);
+    const box = await page.locator("aside").boundingBox();
+    await page.mouse.move(box!.x + 32, box!.y + 400);
+    assert.equal(await opacity(page), 1, `${id}: hovering the collapsed rail reveals the handle`);
     const m = await page.evaluate((sel) => {
       const handle = document.querySelector<HTMLElement>(sel)!;
       const rail = handle.closest("aside")!;
@@ -115,6 +122,57 @@ async function checkCollapsedRail(page: Page, id: string) {
 
 const HANDLE = '[data-slot="sidebar-collapse-handle"]';
 
+const BOTTOM_NAV_STORY = "app-chrome-sidebar--bottom-nav";
+
+/**
+ * BB-FK-4 at 390×844 (07 Web / Bottom nav `53:100587`, Home `53:100392`): the
+ * 64px bar is inset 12px from each side (366 wide on a 390 phone), floats
+ * 8px above the viewport's bottom edge (no safe area in Storybook), and every
+ * tab is rounded 12px.
+ */
+async function checkBottomNav(page: Page, id: string) {
+  const original = page.viewportSize();
+  try {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await frames(page);
+    const m = await page.evaluate(() => {
+      const bar = document.querySelector<HTMLElement>('[data-slot="sidebar-bottom-nav"]')!;
+      const b = bar.getBoundingClientRect();
+      const radii = Array.from(bar.querySelectorAll<HTMLElement>("a, button")).map(
+        (t) => getComputedStyle(t).borderTopLeftRadius,
+      );
+      return {
+        // Left and bottom as painted; the right inset as computed, since the
+        // runner's story frame can reserve a scrollbar gutter on that side.
+        bar: [
+          Math.round(b.left),
+          getComputedStyle(bar).right,
+          Math.round(b.height),
+          Math.round(window.innerHeight - b.bottom),
+        ],
+        radii: Array.from(new Set(radii)),
+        offset: document.documentElement.style.getPropertyValue("--bottom-nav-offset"),
+      };
+    });
+    assert.equal(
+      JSON.stringify(m),
+      JSON.stringify({ bar: [12, "12px", 64, 8], radii: ["12px"], offset: "84px" }),
+      `${id}: tab bar vs 07 53:100587`,
+    );
+  } finally {
+    if (original) await page.setViewportSize(original);
+  }
+}
+
+/** Wait (briefly) for a hover-capable pointer, and fail with a clear message if it never comes. */
+async function waitForHover(page: Page, id: string) {
+  const ok = await page
+    .waitForFunction(() => matchMedia("(hover: hover)").matches, null, { timeout: 3000 })
+    .then(() => true)
+    .catch(() => false);
+  assert.ok(ok, `${id}: the page reports (hover: hover) (no leftover touch emulation)`);
+}
+
 async function frames(page: Page) {
   await page.evaluate(
     () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
@@ -138,9 +196,9 @@ async function opacity(page: Page) {
 export async function checkSidebarHandle(page: Page, id: string) {
   if (id === MORE_STORY) return checkMoreSheet(page, id);
   if (id === COLLAPSED_STORY) return checkCollapsedRail(page, id);
+  if (id === BOTTOM_NAV_STORY) return checkBottomNav(page, id);
   if (id !== STORY) return;
   const original = page.viewportSize();
-  const cdp = await page.context().newCDPSession(page);
   try {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.mouse.move(1400, 880);
@@ -196,19 +254,36 @@ export async function checkSidebarHandle(page: Page, id: string) {
     assert.match(ring, /0px 0px 0px 4px/, `${id}: focus wears the kit focus-ring stack`);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 
-    // Touch: no hover to reveal it, so it stays visible at rest.
-    // Chromium reports (hover: none) / (pointer: coarse) under touch
-    // emulation, as a phone or tablet does.
-    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
-    await page.mouse.move(1400, 880);
+    // Touch: no hover to reveal it, so it stays visible at rest. Chromium
+    // reports (hover: none) under touch emulation, as a phone or tablet does.
+    // It runs on a page of its own: on Linux headless Chromium, turning the
+    // emulation off again never restores (hover: hover) on that page, which
+    // would leak into every later story the runner visits on it.
     assert.ok(
-      await page.evaluate(() => matchMedia("(hover: none)").matches),
-      `${id}: (hover: none) emulation took effect`,
+      await page.evaluate(() => matchMedia("(hover: hover)").matches),
+      `${id}: the page starts on a hover-capable pointer`,
     );
-    assert.equal(await opacity(page), 1, `${id}: on a device that cannot hover the handle is visible at rest`);
+    const touchPage = await page.context().newPage();
+    try {
+      await touchPage.setViewportSize({ width: 1440, height: 900 });
+      const cdp = await page.context().newCDPSession(touchPage);
+      await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+      // The runner's own URL carries a literal `viewMode={{viewMode}}`; ask
+      // for the story view explicitly, keeping its id and theme global.
+      const url = new URL(page.url());
+      url.searchParams.set("viewMode", "story");
+      await touchPage.goto(url.toString());
+      await touchPage.waitForSelector(HANDLE);
+      await touchPage.mouse.move(1400, 880);
+      assert.ok(
+        await touchPage.evaluate(() => matchMedia("(hover: none)").matches),
+        `${id}: (hover: none) emulation took effect`,
+      );
+      assert.equal(await opacity(touchPage), 1, `${id}: on a device that cannot hover the handle is visible at rest`);
+    } finally {
+      await touchPage.close();
+    }
   } finally {
-    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false }).catch(() => {});
-    await cdp.detach().catch(() => {});
     if (original) await page.setViewportSize(original);
   }
 }

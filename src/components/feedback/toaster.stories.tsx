@@ -130,7 +130,7 @@ export const SnackbarActions: Story = {
 };
 
 /**
- * With the bottom-nav Sidebar on screen, `--bottom-nav-offset` (88px) lifts
+ * With the bottom-nav Sidebar on screen, `--bottom-nav-offset` (84px) lifts
  * the stack above the bar. The bar here is a stand-in that publishes the
  * same variable.
  */
@@ -140,12 +140,12 @@ export const AboveBottomNav: Story = {
   render: (args) => (
     <div
       className="fixed inset-0 bg-background p-4 text-foreground"
-      style={{ "--bottom-nav-offset": "88px" } as React.CSSProperties}
+      style={{ "--bottom-nav-offset": "84px" } as React.CSSProperties}
     >
       <p className="text-base font-semibold">Kitchen morning</p>
       <div
         aria-hidden="true"
-        className="fixed inset-x-3 bottom-3 h-16 rounded-[var(--radius-chrome-mobile)] border bg-sidebar"
+        className="fixed inset-x-3 bottom-2 h-16 rounded-[var(--radius-chrome-mobile)] border bg-sidebar"
       />
       <Toaster {...args} />
       <RaiseSnackbars />

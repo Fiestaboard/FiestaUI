@@ -97,31 +97,44 @@ describe("Sidebar collapse handle (BB-FS-1)", () => {
     expect(classes(handle())).toContain("focus-ring");
   });
 
-  it("hides at rest by default (owner ruling: hover), returning on rail hover, keyboard focus and touch", () => {
+  // Owner ruling 2026-11-21: shown only on hover or keyboard focus, and
+  // visible on touch. Hiding is gated on (hover: hover), the same media query
+  // Tailwind wraps every hover: variant in, so the handle is only ever hidden
+  // where hover can bring it back; a device that cannot hover (or a browser
+  // that answers neither) keeps it visible by default.
+  it("hides at rest by default only where the device can hover, returning on rail hover and keyboard focus", () => {
     renderSidebar();
     expect(handle()).toHaveAttribute("data-visibility", "hover");
     const c = classes(handle());
     expect(c).toEqual(
       expect.arrayContaining([
-        "opacity-0",
+        "[@media(hover:hover)]:opacity-0",
         "group-hover/rail:opacity-100",
         "focus-visible:opacity-100",
-        "[@media(hover:none)]:opacity-100",
       ]),
     );
+    // Never hidden unconditionally, so touch needs no opt-back-in.
+    expect(c).not.toContain("opacity-0");
+    expect(c).not.toContain("[@media(hover:none)]:opacity-100");
     expect(classes(rail())).toContain("group/rail");
   });
 
   it('keeps the handle at rest with collapseHandle="always", as the 07a/07e frames draw it', () => {
     renderSidebar({ collapseHandle: "always" });
     expect(handle()).toHaveAttribute("data-visibility", "always");
-    expect(classes(handle())).not.toContain("opacity-0");
+    expect(classes(handle())).not.toContain("[@media(hover:hover)]:opacity-0");
   });
 
-  it('stays visible on the collapsed rail even with collapseHandle="hover"', () => {
+  it('follows the same hover/focus rule on the collapsed rail with collapseHandle="hover"', () => {
     renderSidebar({ collapseHandle: "hover", collapsed: true });
+    expect(handle()).toHaveAttribute("data-visibility", "hover");
+    expect(classes(handle())).toContain("[@media(hover:hover)]:opacity-0");
+  });
+
+  it('keeps it at rest on the collapsed rail with collapseHandle="always"', () => {
+    renderSidebar({ collapseHandle: "always", collapsed: true });
     expect(handle()).toHaveAttribute("data-visibility", "always");
-    expect(classes(handle())).not.toContain("opacity-0");
+    expect(classes(handle())).not.toContain("[@media(hover:hover)]:opacity-0");
   });
 });
 
