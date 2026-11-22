@@ -73,12 +73,28 @@ export const Narrow: Story = {
 };
 
 /** Shallow board thumbnails retain their aspect ratio inside a full touch target. */
+/**
+ * A 3-row board still gets a 44px pointer surface; a click in its middle
+ * centres the frame.
+ *
+ * The play waits for the web fonts before it measures. The card is centred and
+ * as wide as its header text, so when Archivo and Spline Sans Mono replace the
+ * fallback font the surface moves sideways (about 7px with DejaVu, the CI
+ * runner's fallback). A click aimed from a pre-swap rect but dispatched after
+ * the swap landed three columns left, "Cols 41–50", in most CI VRT shots and
+ * "Cols 44–53" in the rest. `.storybook/minimap-click-regression.ts` holds the
+ * fonts back to keep this ordering honest.
+ */
 export const ShallowTouchTarget: Story = {
   args: {
     board: { deviceType: "panel", gridCols: 96, gridRows: 3, message: "SHALLOW BOARD" },
     viewport: { column: 1, row: 1, columns: 10, rows: 1 },
   },
   play: async ({ canvasElement }) => {
+    // Lay the header out first, so its font loads have started and are
+    // pending in `document.fonts.ready`.
+    canvasElement.getBoundingClientRect();
+    await document.fonts.ready;
     const surface = canvasElement.querySelector<HTMLElement>('[data-slot="board-minimap-surface"]')!;
     const thumbnail = canvasElement.querySelector<HTMLElement>('[data-slot="board-minimap-thumbnail"]')!;
     const target = surface.getBoundingClientRect();
