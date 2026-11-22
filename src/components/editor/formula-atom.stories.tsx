@@ -29,22 +29,29 @@ const meta = {
     await expect(atoms.length).toBeGreaterThan(0);
     for (const atom of atoms) {
       const source = atom.querySelector<HTMLElement>('[data-slot="formula-atom-source"]')!;
-      const value = atom.querySelector<HTMLElement>('[data-slot="formula-atom-value"]')!;
+      const value = atom.querySelector<HTMLElement>('[data-slot="formula-atom-value"]');
       const icon = atom.querySelector("svg")!;
       const bounds = atom.getBoundingClientRect();
       // The shared page-enter translation can introduce fractional DOMRect
       // rounding (CI: 22.000003814697266). Four decimals allow <0.00005px
-      // noise while preserving the 22px/24px geometry requirement.
-      await expect(bounds.height).toBeCloseTo(atom.dataset.state === "error" ? 24 : 22, 4);
+      // noise while preserving the 22px geometry requirement. Every state is
+      // 22px (BB-FP-12): the error edge is an inset ring, not a border.
+      await expect(bounds.height).toBeCloseTo(22, 4);
+      await expect(getComputedStyle(atom).borderTopWidth).toBe("0px");
+      // The source shows as written, whatever the host's text-transform (BB-FP-10).
+      await expect(getComputedStyle(source).textTransform).toBe("none");
       await expect(icon.getBoundingClientRect().width).toBe(12);
       await expect(icon.getBoundingClientRect().height).toBe(12);
-      await expect(value.getBoundingClientRect().height).toBe(18);
       await expect(getComputedStyle(atom).borderRadius).toBe("4px");
-      await expect(getComputedStyle(value).borderRadius).toBe("3px");
       await expect(getComputedStyle(source).fontSize).toBe("12px");
       await expect(getComputedStyle(source).lineHeight).toBe("16px");
-      await expect(source.getBoundingClientRect().right).toBeLessThanOrEqual(value.getBoundingClientRect().left);
-      await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(bounds.right);
+      // A value-less atom (NoValue) draws no value segment at all.
+      if (value) {
+        await expect(value.getBoundingClientRect().height).toBe(18);
+        await expect(getComputedStyle(value).borderRadius).toBe("3px");
+        await expect(source.getBoundingClientRect().right).toBeLessThanOrEqual(value.getBoundingClientRect().left);
+        await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(bounds.right);
+      }
       await expect(atom.tabIndex).toBe(-1);
       await expect(atom.scrollWidth).toBeLessThanOrEqual(atom.clientWidth);
       if (atom.dataset.state !== "error") {
@@ -154,4 +161,68 @@ export const Inline: Story = {
       <FormulaAtom source="MAX(forecast)" value="= 80°" />.
     </p>
   ),
+};
+
+/**
+ * BB-FP-10: the template editor surface is uppercase. The atom resets
+ * text-transform itself, so identifiers and string literals read as written;
+ * only the value (board output) is uppercase, because the caller passes it so.
+ */
+export const InUppercaseHost: Story = {
+  render: () => (
+    <p className="max-w-full font-mono text-sm uppercase leading-8">
+      good <FormulaAtom source="UPPER(date_time.day_of_week)" value="= MONDAY" />{" "}
+      <FormulaAtom kind="variable" source="weather.temperature" value="= 72" />{" "}
+      <FormulaAtom state="error" source='IF(x, "Morning", 1/0)' value="#DIV/0" />
+    </p>
+  ),
+  play: async (context) => {
+    await meta.play(context);
+    const source = context.canvasElement.querySelector<HTMLElement>('[data-slot="formula-atom-source"]')!;
+    await expect(getComputedStyle(source.parentElement!.parentElement!).textTransform).toBe("uppercase");
+    await expect(source.innerText).toBe("UPPER(date_time.day_of_week)");
+  },
+};
+
+/**
+ * BB-FP-12: a COLOR() result shows as the board colour's tile, not the raw
+ * "{66}" code. `valueColor` takes a name, a code or "{code}"; `value` stays
+ * the accessible text and title.
+ */
+export const ColorResult: Story = {
+  render: () => (
+    <div className="flex max-w-full flex-col items-start gap-3">
+      <FormulaAtom source='COLOR("GREEN")' value="= green" valueColor="{66}" />
+      <FormulaAtom source='IF(countdown.is_expired, COLOR("RED"), …)' value="= red" valueColor="red" />
+      <FormulaAtom kind="variable" source="status.color" value="= white" valueColor="69" />
+    </div>
+  ),
+  play: async (context) => {
+    await meta.play(context);
+    const tiles = context.canvasElement.querySelectorAll<HTMLElement>('[data-slot="formula-atom-color"]');
+    await expect(tiles.length).toBe(3);
+    for (const tile of tiles) {
+      await expect(getComputedStyle(tile).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+      await expect(tile.getBoundingClientRect().height).toBe(12);
+    }
+    await expect(context.canvasElement.textContent).not.toContain("{66}");
+  },
+};
+
+/**
+ * No `value`: where nothing evaluates the atom (a variable chip outside the
+ * page editor), there is no value segment at all, not an empty box, and the
+ * atom stays 22px tall.
+ */
+export const NoValue: Story = {
+  render: () => (
+    <div className="flex max-w-full flex-col items-start gap-3">
+      <FormulaAtom kind="variable" source="weather.temperature" />
+      <FormulaAtom source="IF(temp > 80, …)" value="" />
+    </div>
+  ),
+  play: async (context) => {
+    await meta.play(context);
+    await expect(context.canvasElement.querySelector('[data-slot="formula-atom-value"]')).toBeNull();
+  },
 };

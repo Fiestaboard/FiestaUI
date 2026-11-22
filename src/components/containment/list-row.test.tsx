@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../overlays/dropdown-menu";
 import { ListItem } from "../typography/list";
-import { ListRow, ListRowGroup, ListRowItem } from "./list-row";
+import { ListRow, ListRowChevron, ListRowGroup, ListRowItem } from "./list-row";
 
 /*
  * ListRow (slice 1.8a, C16). Appearance is VRT's job; this pins the
@@ -111,9 +111,33 @@ describe("ListRow", () => {
     expect(row()).toHaveAttribute("data-size", size);
   });
 
-  it("gives a touch row a 56px floor", () => {
-    render(<ListRow title="Market open" size="touch" />);
-    expect(row().className).toContain("min-h-14");
+  // BB-FK-9, owner ruling 2026-11-21: a touch row is the native 05 Setup /
+  // Row (`35:17332`): min-h 60, px 16, py 10, gap 12, title 16/24 medium,
+  // subtitle 14/20 muted.
+  it("draws a touch row as the 05 Setup row", () => {
+    render(<ListRow title="Market open" description="Weekdays" size="touch" />);
+    const c = row().className.split(/\s+/);
+    expect(c).toEqual(expect.arrayContaining(["min-h-15", "py-2.5", "px-4", "gap-3"]));
+    expect(c).not.toContain("min-h-14");
+    const title = row().querySelector('[data-slot="list-row-title"]')!;
+    expect(title.className.split(/\s+/)).toEqual(expect.arrayContaining(["text-base", "font-medium"]));
+    const description = row().querySelector('[data-slot="list-row-description"]')!;
+    expect(description.className.split(/\s+/)).toEqual(expect.arrayContaining(["text-sm", "text-muted-foreground"]));
+  });
+
+  // 05 Setup / Row: the leading tile's glyph is 18, not IconTile sm's 16.
+  it("sizes an IconTile's glyph to 18px in a touch row only", () => {
+    const rule = "[&_[data-slot=icon-tile]>svg:not([class*='size-'])]:size-4.5";
+    const { unmount } = render(<ListRow title="Network" size="touch" />);
+    expect(row().className.split(/\s+/)).toContain(rule);
+    unmount();
+    render(<ListRow title="Network" />);
+    expect(row().className.split(/\s+/)).not.toContain(rule);
+  });
+
+  it("keeps the dense default row as it was (48px floor, 14px title)", () => {
+    render(<ListRow title="Market open" />);
+    expect(row().className.split(/\s+/)).toEqual(expect.arrayContaining(["min-h-12", "py-2"]));
   });
 
   it("never styles Base UI's data-pressed (it means 'popup open' on a menu trigger)", () => {
@@ -414,5 +438,26 @@ describe("ListRowGroup list semantics (BB-B-20)", () => {
     // eslint-disable-next-line jsx-a11y/anchor-has-content -- ListRow supplies the content
     const { container } = render(<ListRow render={<a href="/a" />} title="Alone" />);
     expect(container.firstElementChild?.tagName).toBe("A");
+  });
+});
+
+// BB-FK-9: the 05 Setup row's trailing chevron is 16px (lucide's own default
+// is 24). ListRowChevron is that affordance, so no host sizes it by hand.
+describe("ListRowChevron", () => {
+  it("is a 16px decorative chevron in the trailing slot", () => {
+    render(<ListRow title="Network" trailing={<ListRowChevron />} />);
+    const trailing = row().querySelector('[data-slot="list-row-trailing"]')!;
+    const svg = trailing.querySelector("svg")!;
+    expect(svg).toHaveAttribute("aria-hidden", "true");
+    expect(svg).toHaveAttribute("data-slot", "list-row-chevron");
+    expect(svg.getAttribute("class")!.split(/\s+/)).toContain("size-4");
+  });
+
+  it("mirrors in right-to-left text and takes a className", () => {
+    render(<ListRowChevron className="text-foreground" />);
+    const svg = document.querySelector('[data-slot="list-row-chevron"]')!;
+    expect(svg.getAttribute("class")!.split(/\s+/)).toEqual(
+      expect.arrayContaining(["rtl:-scale-x-100", "text-foreground"]),
+    );
   });
 });

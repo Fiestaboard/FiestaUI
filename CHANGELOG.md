@@ -1,5 +1,25 @@
 # @fiestaboard/ui
 
+## 8.17.0-alpha.5
+
+### Minor Changes
+
+- [#442](https://github.com/Fiestaboard/FiestaUI/pull/442) [`dd18b09`](https://github.com/Fiestaboard/FiestaUI/commit/dd18b09cc1847d8710df0d08b57ba21ac366a822) Thanks [@jeffredodd](https://github.com/jeffredodd)! - `FormulaAtom` shows its source as written inside an uppercase host such as the template editor (it resets `text-transform` itself), and every state is one 22 px shape: the error edge is an inset ring instead of a 1 px border that made error atoms 24 px (BB-FP-10, BB-FP-12). New `valueColor` prop: a board colour name, code or `{code}` that a `COLOR()` result lights, shown as `=` and that colour's tile instead of the raw code; `value` stays the accessible text. `value` is now optional: undefined or `""` draws no value segment (no empty box), still 22 px tall; an empty result that should show is formatted by the caller (e.g. `= ""`). The `DropdownMenu` (and its submenu and context mode) and `Select` popups no longer draw the browser focus outline around the whole popup when opened with the mouse; the popover surface keeps its 1 px border and shadow (BB-FP-4). `TraceStep` expression and value wrap at word boundaries (`overflow-wrap: break-word`, was `anywhere`), so an identifier such as `random.choice` no longer splits mid-token under a shrink-to-fit container (BB-FP-16). New `Toggle` `variant="tint"`: pressed is the SegmentedControl checked look (primary border over `bg-tint-selected`, foreground ink, hover and press included) instead of the solid primary fill, for Figma 132:20145 "Inspect" (BB-FP-16).
+
+- [#441](https://github.com/Fiestaboard/FiestaUI/pull/441) [`5bd1a91`](https://github.com/Fiestaboard/FiestaUI/commit/5bd1a914d68d5cfb5c6088223660a710087cf51d) Thanks [@jeffredodd](https://github.com/jeffredodd)! - SegmentedControl gains `variant="tray"`: the bordered items joined on one muted tray (2px padding and gap, no wrap), as the screen frames draw Day chips, Day/Week/List, Theme and Pages/Collections (BB-FC-4). WeekStrip now draws that tray by default and no longer scrolls sideways; `variant="pills"` keeps the old scrolling row. PageHeader's unassigned icon is brand orange instead of a hue hashed from the translated title, and `icon` and `description` are optional (BB-FC-3).
+
+- [#440](https://github.com/Fiestaboard/FiestaUI/pull/440) [`61cc5c8`](https://github.com/Fiestaboard/FiestaUI/commit/61cc5c863bef6704e1633c8c97a2e1a77537df06) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Sidebar shell fidelity (bug bash F, BB-FS-1..5, -10):
+
+  - The edge collapse handle is the 07a 16×28 tab with 8px corners, 2px proud of the rail (was a 28px circle hanging 14px off it), with a solid hover fill. New `collapseHandle="hover" | "always"`, default `"hover"` (owner ruling): hidden at rest on the expanded rail, shown while the pointer is on the rail, on keyboard focus, on touch devices (no hover: always visible) and on the collapsed rail. `"always"` keeps it at rest.
+  - `SidebarNavItem.nested` indents a row 16px inside the one above it (expanded rail and drawer; flush on the collapsed rail), and `separatorBefore` draws the primary/secondary hairline before a row.
+  - One focus treatment across the shell: rail and drawer rows, the collapse handle, the board selector and SkipToContent all use the two-tone `focus-ring` (visible on a lit row in dark, where the browser outline was orange on orange).
+  - `variant="bottom-nav"`: with More open, More is the only lit tab (the route's tab keeps `aria-current`), and the scrim is `--overlay` above the header, under the bar and drawer. New z tokens `--z-bottom-nav-backdrop` (102) and `--z-bottom-nav` (105).
+  - SidebarAccountTrigger holds its chevrons at the trigger's trailing edge.
+
+### Patch Changes
+
+- [#443](https://github.com/Fiestaboard/FiestaUI/pull/443) [`462e59f`](https://github.com/Fiestaboard/FiestaUI/commit/462e59f84f3e5778c180b7ad6faa326ca3f04b68) Thanks [@jeffredodd](https://github.com/jeffredodd)! - Match the Figma library: a dismissible Badge's dismiss is a 16 px round chip (24 px target kept), Chip hover only fills, toasts use 13/18 type and shadow-lg, and an Alert description is leading-relaxed.
+
 ## 8.17.0-alpha.4
 
 ### Minor Changes

@@ -10,10 +10,12 @@ import { checkEditorPreviewNeverCollapses } from "./editor-preview-regression";
 import { checkTouchToolbarGeometry } from "./editor-toolbar-regression";
 import { checkFlowShellGeometry } from "./flow-shell-regression";
 import { checkInspectorRowForcedColors } from "./inspector-row-regression";
+import { checkPopupFocusRing } from "./popup-focus-regression";
 import { checkScheduleEntryPhoneSheet, SCHEDULE_ENTRY_PHONE_STORIES } from "./schedule-entry-form-regression";
 import { checkShellInsets } from "./shell-inset-regression";
 import { checkSidebarHandle } from "./sidebar-handle-regression";
 import { checkSpinnerMotion } from "./spinner-regression";
+import { checkTogglePressedBorder } from "./toggle-pressed-border-regression";
 
 /**
  * Which theme this run renders, from the `THEME` env that ci.yml's a11y
@@ -121,6 +123,8 @@ const config: TestRunnerConfig = {
     await checkTouchToolbarGeometry(page, context.id);
     await checkFlowShellGeometry(page, context.id);
     await checkDialogInsetGeometry(page, context.id);
+    await checkPopupFocusRing(page, context.id);
+    await checkTogglePressedBorder(page, context.id);
     await checkInspectorRowForcedColors(page, context.id);
     await checkScheduleEntryPhoneSheet(page, context.id);
     await checkSidebarHandle(page, context.id);

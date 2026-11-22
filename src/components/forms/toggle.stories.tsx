@@ -13,11 +13,12 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["default", "outline"],
+      options: ["default", "outline", "tint"],
       description:
         "Off-state chrome only. `default` is Button's ghost (flat until hovered, the toolbar look); " +
         "`outline` is Button's outline (a bordered field). The on-state fill — bg-primary with board ink — " +
-        "is shared by both and cannot be opted out of.",
+        "is shared by both. `tint` pressed is the SegmentedControl checked look instead: a primary border " +
+        "over the selected tint (Figma 132:20145 Inspect).",
     },
     size: {
       control: "select",
@@ -88,6 +89,13 @@ export const Variants = () => (
     </Toggle>
     <Toggle aria-label="Italic" variant="outline" size="icon" defaultPressed>
       <Italic />
+    </Toggle>
+    <span className="text-xs text-muted-foreground">tint</span>
+    <Toggle variant="tint" size="sm">
+      Inspect
+    </Toggle>
+    <Toggle variant="tint" size="sm" defaultPressed>
+      Inspect
     </Toggle>
   </div>
 );

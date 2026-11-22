@@ -185,3 +185,53 @@ describe("ToggleGroup segmented", () => {
     expect(screen.getByRole("group", { name: "Loose" })).not.toHaveAttribute("data-segmented");
   });
 });
+
+// BB-FP-16 (Figma 132:20145 "Inspect" on): the tint variant's ON state is the
+// SegmentedControl checked look, a primary border over the selected tint,
+// never the solid primary fill.
+describe('Toggle variant="tint"', () => {
+  it("pressed is border-primary on bg-tint-selected with foreground ink, hover and press included", () => {
+    render(
+      <Toggle variant="tint" defaultPressed>
+        Inspect
+      </Toggle>,
+    );
+    const toggle = screen.getByRole("button", { name: "Inspect" });
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(toggle).toHaveAttribute("data-variant", "tint");
+    expect(toggle).toHaveClass(
+      "border",
+      "data-[pressed]:border-primary",
+      "data-[pressed]:bg-tint-selected",
+      "data-[pressed]:text-foreground",
+      "data-[pressed]:hover:bg-tint-selected",
+      "data-[pressed]:active:bg-tint-selected",
+      "data-[pressed]:data-[press]:bg-tint-selected",
+      // Guarded, or at equal specificity the later dark rule would keep the
+      // grey rim on a pressed toggle (the browser check is
+      // .storybook/toggle-pressed-border-regression.ts).
+      "dark:not-data-[pressed]:border-input",
+    );
+    expect(toggle).not.toHaveClass("dark:border-input");
+    for (const solid of [
+      "data-[pressed]:bg-primary",
+      "data-[pressed]:text-primary-foreground",
+      "data-[pressed]:hover:bg-primary-hover",
+      "data-[pressed]:active:bg-primary-active",
+      "data-[pressed]:data-[press]:bg-primary-active",
+    ]) {
+      expect(toggle).not.toHaveClass(solid);
+    }
+  });
+
+  it("keeps the solid primary fill on the existing variants", () => {
+    render(
+      <Toggle variant="outline" defaultPressed>
+        Wrap
+      </Toggle>,
+    );
+    const wrap = screen.getByRole("button", { name: "Wrap" });
+    expect(wrap).toHaveClass("data-[pressed]:bg-primary", "dark:not-data-[pressed]:border-input");
+    expect(wrap).not.toHaveClass("dark:border-input");
+  });
+});

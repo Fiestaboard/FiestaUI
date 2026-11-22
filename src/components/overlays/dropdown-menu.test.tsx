@@ -144,6 +144,22 @@ describe("DropdownMenu (click trigger, unchanged)", () => {
     expect(screen.getByRole("menuitem", { name: "Duplicate" })).toBeInTheDocument();
   });
 
+  // BB-FP-4: Base UI focuses the popup itself on a pointer open, and the
+  // browser's own focus outline (coloured by the base `outline-ring`) then
+  // hugged the whole menu. Figma's DropdownMenu / Content is the popover
+  // surface with a 1px border and shadow-md, no ring. The browser check is
+  // .storybook/popup-focus-regression.ts; this pins the class on both popups.
+  it("draws no focus outline on the menu or submenu popup", async () => {
+    const user = userEvent.setup();
+    render(<ClickMenu defaultOpen />);
+    await waitFor(() => expect(menu()).not.toBeNull());
+    expect(document.querySelector('[data-slot="dropdown-menu-content"]')).toHaveClass("outline-hidden");
+
+    await user.click(screen.getByRole("menuitem", { name: "More" }));
+    await waitFor(() => expect(document.querySelector('[data-slot="dropdown-menu-sub-content"]')).not.toBeNull());
+    expect(document.querySelector('[data-slot="dropdown-menu-sub-content"]')).toHaveClass("outline-hidden");
+  });
+
   it("renders a children trigger when asChild is off", () => {
     render(
       <DropdownMenu>

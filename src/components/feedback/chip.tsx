@@ -36,15 +36,13 @@ const chipVariants = cva(
   // weight reads as a wireframe, exactly what theme.css's #161 note warns
   // about.
   //
-  // Hover: `border-brand`, NOT the docs site's `border-ring`. --ring is the
-  // literal #f5a623 tile — measured 1.83:1 on the light page and 1.73:1 on
-  // the hover fill, so in light it cannot carry a state. --brand is the same
-  // hue at the ink plateau and clears everywhere it lands: 5.09:1 vs
-  // --background and 4.79:1 vs --accent in light; 9.63:1 / 8.32:1 in dark.
-  // Same pigment the docs chip meant, at the only weight that is legal as a
-  // 1px indicator in both themes. The accent fill (1.06:1 light / 1.16:1
-  // dark vs the page) is a supporting cue only — the border carries the
-  // state.
+  // Hover: the accent fill only, as Figma Chip `10:38` State=Hover draws it
+  // (BB-FK-3); the border stays --border. A hover state has no contrast
+  // requirement (1.4.11 covers the states a user needs to identify a
+  // control, and focus has its own ring), so the fill is enough. The brand
+  // border (--brand: 5.09:1 vs --background, 4.79:1 vs --accent in light;
+  // 9.63:1 / 8.32:1 in dark; not --ring, which is 1.83:1) is kept for the
+  // press, where it is the clearest cue.
   //
   // Active: one surface step past hover — accent → secondary (1.13:1 light /
   // 1.25:1 dark vs the page), label still 15.56:1 / 14.25:1. The brand
@@ -58,7 +56,7 @@ const chipVariants = cva(
   // is a docs site whose global link styles (Infima) underline anchors on
   // hover, and an underlined pill reads as a link wearing a costume rather
   // than a chip. The border/fill hover above replaces that affordance.
-  "inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none text-foreground no-underline hover:bg-accent hover:text-accent-foreground hover:border-brand active:bg-secondary active:border-brand data-[press]:bg-secondary data-[press]:border-brand focus-ring transition-[color,background-color,border-color,box-shadow] duration-control disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none text-foreground no-underline hover:bg-accent hover:text-accent-foreground active:bg-secondary active:border-brand data-[press]:bg-secondary data-[press]:border-brand focus-ring transition-[color,background-color,border-color,box-shadow] duration-control disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       // A boolean, not a variant axis. Mono is typography for code-shaped

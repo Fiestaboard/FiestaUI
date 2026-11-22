@@ -208,3 +208,32 @@ describe("Badge props type", () => {
     expect(invalid).toBeTruthy();
   });
 });
+
+// BB-FK-2 (Figma Badge `8:275`, Dismissible=true `8:168`): a 26 px pill
+// whose dismiss is a 16 px round chip with a 12 px x. The 24 px target
+// (SC 2.5.8) is kept by an invisible hit area around the drawn chip.
+describe("Badge dismiss chip geometry (BB-FK-2)", () => {
+  it("draws the dismiss as a 16 px round chip with a 12 px glyph", () => {
+    render(
+      <Badge onDismiss={() => {}} dismissLabel="Remove Weather">
+        Weather
+      </Badge>,
+    );
+    const dismiss = document.querySelector<HTMLElement>('[data-slot="badge-dismiss"]')!;
+    expect(dismiss.className).toMatch(/(^|\s)size-4(\s|$)/);
+    expect(dismiss.className).not.toMatch(/(^|\s)size-6(\s|$)/);
+    expect(dismiss.className).toMatch(/(^|\s)rounded-full(\s|$)/);
+    expect(dismiss.className).toContain("[&_svg]:size-3");
+  });
+
+  it("keeps a 24 px hit area around the 16 px chip", () => {
+    render(
+      <Badge onDismiss={() => {}} dismissLabel="Remove Weather">
+        Weather
+      </Badge>,
+    );
+    const dismiss = document.querySelector<HTMLElement>('[data-slot="badge-dismiss"]')!;
+    expect(dismiss.className).toContain("before:-inset-1");
+    expect(dismiss.className).toMatch(/(^|\s)relative(\s|$)/);
+  });
+});
